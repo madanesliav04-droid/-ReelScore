@@ -8,18 +8,49 @@ async function loadMetaRules(){
  }
 }
 
+async function cleanupTempVideos(){
+ try{
+  const items=await puter.fs.readdir('./');
+  const stale=(items||[]).filter(x=>x && typeof x.name==='string' && (x.name.startsWith('reelscore-')||x.name.startsWith('viralplus-')));
+  for(const item of stale){
+   try{await puter.fs.delete(item.path||item.name)}catch{}
+  }
+ }catch{}
+}
+
+async function ensureStorageFor(file){
+ await cleanupTempVideos();
+ try{
+  const space=await puter.fs.space();
+  const capacity=Number(space?.capacity)||0;
+  const used=Number(space?.used)||0;
+  const available=Math.max(0,capacity-used);
+  const reserve=2*1024*1024;
+  if(capacity>0 && file.size+reserve>available){
+   const maxMB=Math.max(0,Math.floor((available-reserve)/1048576));
+   const err=new Error(`Cette vidéo fait ${(file.size/1048576).toFixed(1)} Mo mais il reste environ ${maxMB} Mo disponibles pour l’analyse temporaire. Choisis une vidéo plus légère ou exporte-la en 720p.`);
+   err.code='viralplus_storage_limit';
+   throw err;
+  }
+ }catch(e){
+  if(e?.code==='viralplus_storage_limit')throw e;
+ }
+}
+
 async function analyzeWithAI(file,setProgress){
  const ext=file.name.includes('.')?'.'+file.name.split('.').pop().replace(/[^a-zA-Z0-9]/g,'').slice(0,8):'';
- const tempPath=`reelscore-${Date.now()}-${Math.random().toString(36).slice(2,8)}${ext}`;
+ const tempPath=`viralplus-${Date.now()}-${Math.random().toString(36).slice(2,8)}${ext}`;
  let uploaded=false;
  try{
-  setProgress('Chargement du référentiel Meta…',18);
+  setProgress('Chargement du référentiel Meta…',15);
   const rules=await loadMetaRules();
+  setProgress('Nettoyage des fichiers temporaires…',22);
+  await ensureStorageFor(file);
   setProgress('Envoi temporaire de la vidéo…',30);
   await puter.fs.write(tempPath,file);uploaded=true;
   const videoURL=await puter.fs.getReadURL(tempPath,60*60*1000);
   const principles=(rules.principles||[]).map(p=>`- ${p.id}: ${p.rule} | preuve: ${p.evidence||''}`).join('\n');
-  const prompt=`Tu es le moteur d'analyse de contenu de ReelScore. Analyse CETTE VIDÉO RÉELLE pour Instagram Reels. Tu n'as pas accès à l'algorithme privé de Meta et tu ne dois jamais prétendre le contraire. Tu dois distinguer : (A) signaux officiellement documentés ou cohérents avec le référentiel Meta fourni, (B) heuristiques créatives de ReelScore. Ne promets jamais qu'une vidéo sera virale. Évalue seulement son potentiel de recommandation/distribution et explique l'incertitude.
+  const prompt=`Tu es le moteur d'analyse de contenu de Viral+. Analyse CETTE VIDÉO RÉELLE pour Instagram Reels. Tu n'as pas accès à l'algorithme privé de Meta et tu ne dois jamais prétendre le contraire. Tu dois distinguer : (A) signaux officiellement documentés ou cohérents avec le référentiel Meta fourni, (B) heuristiques créatives de Viral+. Ne promets jamais qu'une vidéo sera virale. Évalue seulement son potentiel de recommandation/distribution et explique l'incertitude.
 
 RÉFÉRENTIEL ACTUEL ${rules.version||''}
 ${rules.methodology||''}
@@ -53,6 +84,14 @@ Réponds uniquement avec un JSON valide sans markdown, sous cette forme exacte :
   data.rulebook_version=data.rulebook_version||rules.version||'unknown';
   setProgress('Préparation des recommandations…',95);
   return data;
+ }catch(e){
+  if(e?.code==='storage_limit_reached' || e?.status===413){
+   await cleanupTempVideos();
+   const err=new Error('Espace temporaire insuffisant pour cette vidéo. Viral+ a nettoyé les anciens fichiers : réessaie une fois. Si le message revient, exporte la vidéo en 720p pour réduire son poids.');
+   err.code='viralplus_storage_limit';
+   throw err;
+  }
+  throw e;
  }finally{
   if(uploaded){try{await puter.fs.delete(tempPath)}catch{}}
  }
