@@ -1,0 +1,57 @@
+{
+  "version": "IG-2026.09.22",
+  "platform": "Instagram Reels",
+  "last_verified": "2026-09-22",
+  "methodology": "Weights are ReelScore-derived heuristics informed by current official Meta/Instagram signals. Meta does not publish exact ranking weights.",
+  "weights": {
+    "retention": 0.24,
+    "shareability": 0.16,
+    "originality": 0.15,
+    "audience_relevance": 0.12,
+    "spoken_hook": 0.11,
+    "visual_hook": 0.08,
+    "clarity": 0.05,
+    "value_emotion": 0.04,
+    "title": 0.03,
+    "rhythm": 0.02,
+    "cta": 0.00
+  },
+  "principles": [
+    {
+      "id": "original_content",
+      "status": "official-confirmed",
+      "scope": "Instagram recommendations",
+      "rule": "Original content should be rewarded in analysis. Reposts or low-value transformations should be penalized.",
+      "evidence": "Meta reported that 75% of Instagram recommendations in the US were coming from original posts in Q4 2025, after a 10 percentage point increase.",
+      "source": "https://about.fb.com/news/2026/01/2026-ai-drives-performance/"
+    },
+    {
+      "id": "personalized_relevance",
+      "status": "official-confirmed",
+      "scope": "Instagram recommendations",
+      "rule": "Score audience-topic fit and likely relevance; do not treat virality as universal across audiences.",
+      "evidence": "Meta states that recommendations are personalized from user activity and interactions, and has expanded the signals used for personalization.",
+      "source": "https://about.fb.com/news/2025/10/improving-your-recommendations-apps-ai-meta/"
+    },
+    {
+      "id": "broader_personalization",
+      "status": "official-confirmed",
+      "scope": "Meta personalized content",
+      "rule": "Treat audience relevance as dynamic and contextual rather than a fixed content property.",
+      "evidence": "In 2026 Meta announced expanded use of activity from businesses to personalize non-ad content including Feed and AI responses.",
+      "source": "https://about.fb.com/news/2026/06/better-personalization-and-changes-to-controls-for-your-activity-from-other-businesses/"
+    },
+    {
+      "id": "creator_performance_context",
+      "status": "official-product-signal",
+      "scope": "Meta creator insights",
+      "rule": "When account-level performance data becomes available, calibrate recommendations to the creator's own audience and past performance.",
+      "evidence": "Meta's Creator Assistant uses creator content style, performance, audience/community and engagement trends to generate personalized recommendations.",
+      "source": "https://about.fb.com/news/2026/06/creator-assistant-more-languages-for-ai-translations-on-facebook/"
+    }
+  ],
+  "diagnostics_not_in_distribution_score": {
+    "cta": "CTA is kept as a conversion diagnostic but currently carries no weight in the distribution score because Meta has not published evidence that CTA quality is a recommendation-ranking factor.",
+    "freshness": "Freshness is monitored, but Facebook-specific same-day Reel changes are not automatically applied to Instagram scoring without Instagram-specific confirmation."
+  }
+}
