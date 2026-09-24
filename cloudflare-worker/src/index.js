@@ -12,10 +12,18 @@ export default {
 
     const url = new URL(request.url);
     if (request.method === 'GET' && url.pathname === '/health') {
-      const health = { ok: true, service: 'Viral+ API', model: env.MODEL || 'gemini-3.8-flash', gemini_secret_configured: Boolean(env.GEMINI_API_KEY) };
+      const primaryModel = env.MODEL || 'gemini-3.8-flash';
+      const fallbackModel = env.FALLBACK_MODEL || 'gemini-3.5-flash-lite';
+      const health = {
+        ok: true,
+        service: 'Viral+ API',
+        model: primaryModel,
+        fallback_model: fallbackModel,
+        gemini_secret_configured: Boolean(env.GEMINI_API_KEY)
+      };
       if (url.searchParams.get('deep') === '1' && env.GEMINI_API_KEY) {
         try {
-          const check = await fetch(`${GOOGLE_BASE}/v1beta/models/${encodeURIComponent(env.MODEL || 'gemini-3.8-flash')}`, {
+          const check = await fetch(`${GOOGLE_BASE}/v1beta/models/${encodeURIComponent(primaryModel)}`, {
             headers: { 'x-goog-api-key': String(env.GEMINI_API_KEY).trim() }
           });
           health.gemini_auth_ok = check.ok;
@@ -78,9 +86,10 @@ export default {
       geminiFileName = uploaded.name;
       const activeFile = await waitForFile(uploaded.name, apiKey);
       const prompt = buildPrompt(rules);
-      const analysis = await generateAnalysis({
+      const analysis = await generateAnalysisWithFallback({
         apiKey,
-        model: env.MODEL || 'gemini-3.8-flash',
+        primaryModel: env.MODEL || 'gemini-3.8-flash',
+        fallbackModel: env.FALLBACK_MODEL || 'gemini-3.5-flash-lite',
         fileUri: activeFile.uri,
         mimeType: activeFile.mimeType || activeFile.mime_type || mimeType,
         prompt,
@@ -192,6 +201,27 @@ async function waitForFile(name, apiKey) {
   throw new Error('Le traitement vidéo Gemini a dépassé le délai prévu. Réessaie avec une vidéo plus courte.');
 }
 
+async function generateAnalysisWithFallback({ apiKey, primaryModel, fallbackModel, fileUri, mimeType, prompt }) {
+  const models = [...new Set([primaryModel, fallbackModel].filter(Boolean))];
+  let lastError = null;
+
+  for (const model of models) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const analysis = await generateAnalysis({ apiKey, model, fileUri, mimeType, prompt });
+        analysis.model_used = model;
+        return analysis;
+      } catch (err) {
+        lastError = err;
+        if (!isTransientModelError(err)) throw err;
+        if (attempt === 0) await sleep(1500);
+      }
+    }
+  }
+
+  throw lastError || new Error('Tous les modèles Gemini sont temporairement indisponibles.');
+}
+
 async function generateAnalysis({ apiKey, model, fileUri, mimeType, prompt }) {
   const res = await fetch(`${GOOGLE_BASE}/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
     method: 'POST',
@@ -215,6 +245,11 @@ async function generateAnalysis({ apiKey, model, fileUri, mimeType, prompt }) {
   const text = (payload?.candidates || []).flatMap(c => c?.content?.parts || []).map(p => p?.text || '').join('').trim();
   if (!text) throw new Error('Gemini n’a renvoyé aucun diagnostic exploitable.');
   return parseJsonText(text);
+}
+
+function isTransientModelError(err) {
+  const msg = String(err?.message || err || '');
+  return [429, 500, 502, 503, 504].includes(Number(err?.status)) || /high demand|temporar|overload|unavailable|resource exhausted|try again later/i.test(msg);
 }
 
 function buildPrompt(rules) {
@@ -260,6 +295,7 @@ function classifyGoogleAuth(msg) {
 
 function friendlyError(err) {
   const msg = String(err?.message || err || 'Erreur inconnue');
+  if (/high demand|temporar|overload|unavailable|try again later/i.test(msg)) return 'Les modèles Gemini sont momentanément saturés. Viral+ a déjà essayé le modèle de secours ; réessaie dans quelques minutes.';
   if (/quota|resource exhausted|429/i.test(msg)) return 'Quota Gemini temporairement atteint. Réessaie dans quelques minutes.';
   if (/reported as leaked|leaked/i.test(msg)) return 'La clé Gemini a été bloquée par Google car elle est considérée comme exposée. Crée une nouvelle clé Auth dans Google AI Studio puis remplace GEMINI_API_KEY dans Cloudflare.';
   if (/project has been denied access|denied access/i.test(msg)) return 'Google refuse actuellement l’accès Gemini à ce projet. Dans Google AI Studio, crée ou sélectionne un autre projet puis génère une nouvelle clé Auth.';
