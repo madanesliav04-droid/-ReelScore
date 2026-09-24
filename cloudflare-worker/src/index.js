@@ -12,7 +12,28 @@ export default {
 
     const url = new URL(request.url);
     if (request.method === 'GET' && url.pathname === '/health') {
-      return json({ ok: true, service: 'Viral+ API', model: env.MODEL || 'gemini-3.8-flash' }, 200, cors);
+      const health = { ok: true, service: 'Viral+ API', model: env.MODEL || 'gemini-3.8-flash', gemini_secret_configured: Boolean(env.GEMINI_API_KEY) };
+      if (url.searchParams.get('deep') === '1' && env.GEMINI_API_KEY) {
+        try {
+          const check = await fetch(`${GOOGLE_BASE}/v1beta/models/${encodeURIComponent(env.MODEL || 'gemini-3.8-flash')}`, {
+            headers: { 'x-goog-api-key': String(env.GEMINI_API_KEY).trim() }
+          });
+          health.gemini_auth_ok = check.ok;
+          health.gemini_status = check.status;
+          if (!check.ok) {
+            try {
+              const body = await check.json();
+              health.gemini_error = classifyGoogleAuth(body?.error?.message || body?.message || '');
+            } catch {
+              health.gemini_error = 'UNKNOWN_AUTH_ERROR';
+            }
+          }
+        } catch {
+          health.gemini_auth_ok = false;
+          health.gemini_error = 'NETWORK_ERROR';
+        }
+      }
+      return json(health, 200, cors);
     }
 
     if (url.pathname !== '/analyze' || request.method !== 'POST') {
@@ -27,6 +48,7 @@ export default {
       return json({ error: 'Le secret GEMINI_API_KEY n’est pas configuré sur Cloudflare.' }, 500, cors);
     }
 
+    const apiKey = String(env.GEMINI_API_KEY).trim().replace(/^['"]|['"]$/g, '');
     const mimeType = (request.headers.get('content-type') || '').split(';')[0].trim();
     const rawSize = request.headers.get('x-file-size') || request.headers.get('content-length') || '0';
     const size = Number(rawSize);
@@ -47,17 +69,17 @@ export default {
     try {
       const rules = await loadRulebook(env.RULEBOOK_URL);
       const uploaded = await uploadToGemini(request.body, {
-        apiKey: env.GEMINI_API_KEY,
+        apiKey,
         size,
         mimeType,
         displayName,
       });
 
       geminiFileName = uploaded.name;
-      const activeFile = await waitForFile(uploaded.name, env.GEMINI_API_KEY);
+      const activeFile = await waitForFile(uploaded.name, apiKey);
       const prompt = buildPrompt(rules);
       const analysis = await generateAnalysis({
-        apiKey: env.GEMINI_API_KEY,
+        apiKey,
         model: env.MODEL || 'gemini-3.8-flash',
         fileUri: activeFile.uri,
         mimeType: activeFile.mimeType || activeFile.mime_type || mimeType,
@@ -71,7 +93,7 @@ export default {
       return json({ error: friendlyError(err) }, err?.status || 500, cors);
     } finally {
       if (geminiFileName) {
-        try { await deleteGeminiFile(geminiFileName, env.GEMINI_API_KEY); } catch (e) { console.warn('Gemini cleanup failed', e); }
+        try { await deleteGeminiFile(geminiFileName, apiKey); } catch (e) { console.warn('Gemini cleanup failed', e); }
       }
     }
   }
@@ -214,19 +236,35 @@ async function deleteGeminiFile(name, apiKey) {
 
 async function googleError(response, fallback) {
   let detail = '';
+  let reason = '';
   try {
     const body = await response.json();
     detail = body?.error?.message || body?.message || '';
+    reason = body?.error?.status || body?.error?.details?.[0]?.reason || '';
   } catch {}
   const err = new Error(detail ? `${fallback} ${detail}` : fallback);
   err.status = response.status >= 400 && response.status < 600 ? response.status : 500;
+  err.googleReason = reason;
   return err;
+}
+
+function classifyGoogleAuth(msg) {
+  const s = String(msg || '');
+  if (/reported as leaked|leaked/i.test(s)) return 'KEY_BLOCKED_AS_LEAKED';
+  if (/project has been denied access|denied access/i.test(s)) return 'PROJECT_DENIED';
+  if (/api key not valid|invalid api key|API_KEY_INVALID/i.test(s)) return 'KEY_INVALID';
+  if (/access_token_type_unsupported/i.test(s)) return 'AUTH_KEY_FORMAT_OR_COPY_ERROR';
+  if (/permission|unauth|forbidden/i.test(s)) return 'PERMISSION_DENIED';
+  return 'AUTH_ERROR';
 }
 
 function friendlyError(err) {
   const msg = String(err?.message || err || 'Erreur inconnue');
   if (/quota|resource exhausted|429/i.test(msg)) return 'Quota Gemini temporairement atteint. Réessaie dans quelques minutes.';
-  if (/api key|permission|unauth|401|403/i.test(msg)) return 'La clé Gemini du backend doit être vérifiée.';
+  if (/reported as leaked|leaked/i.test(msg)) return 'La clé Gemini a été bloquée par Google car elle est considérée comme exposée. Crée une nouvelle clé Auth dans Google AI Studio puis remplace GEMINI_API_KEY dans Cloudflare.';
+  if (/project has been denied access|denied access/i.test(msg)) return 'Google refuse actuellement l’accès Gemini à ce projet. Dans Google AI Studio, crée ou sélectionne un autre projet puis génère une nouvelle clé Auth.';
+  if (/api key not valid|invalid api key|API_KEY_INVALID|access_token_type_unsupported/i.test(msg)) return 'La clé Gemini est invalide, incomplète ou obsolète. Crée une nouvelle clé Auth dans Google AI Studio et remplace GEMINI_API_KEY dans Cloudflare.';
+  if (/api key|permission|unauth|401|403/i.test(msg)) return 'Gemini refuse la clé du backend. Utilise une nouvelle clé Auth créée dans Google AI Studio (format actuel), puis remplace le secret GEMINI_API_KEY dans Cloudflare.';
   return msg;
 }
 
