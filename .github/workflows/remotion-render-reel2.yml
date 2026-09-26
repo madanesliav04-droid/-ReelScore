@@ -25,11 +25,10 @@ jobs:
         run: |
           cd remotion-browser
           ./node_modules/.bin/remotion browser ensure
-          echo '--- Browser files ---'
-          find "$HOME/.cache" -maxdepth 6 -type f 2>/dev/null | grep -E 'chrome|headless|remotion' || true
-      - name: Pack Remotion browser cache
+          test -x node_modules/.remotion/chrome-headless-shell/linux64/chrome-headless-shell-linux64/chrome-headless-shell
+      - name: Pack Remotion browser
         run: |
-          tar -czf remotion-browser-cache.tar.gz -C "$HOME" .cache/remotion || tar -czf remotion-browser-cache.tar.gz -C "$HOME" .cache
+          tar -czf remotion-browser-cache.tar.gz remotion-browser/node_modules/.remotion
       - name: Upload browser artifact
         uses: actions/upload-artifact@v4
         with:
