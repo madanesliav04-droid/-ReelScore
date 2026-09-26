@@ -1,0 +1,13 @@
+name: Remotion Reel 2 Render
+on:
+  push:
+    branches:
+      - remotion-render-reel2-20260926
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "Remotion render branch active"
