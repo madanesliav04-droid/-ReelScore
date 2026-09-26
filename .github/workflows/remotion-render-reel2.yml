@@ -1,4 +1,4 @@
-name: Remotion Reel 2 Render
+name: Remotion Runtime Build
 on:
   push:
     branches:
@@ -6,8 +6,33 @@ on:
   workflow_dispatch:
 
 jobs:
-  smoke:
+  build-runtime:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-      - run: echo "Remotion render branch active"
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: remotion-runtime/package-lock.json
+        continue-on-error: true
+      - name: Install Remotion runtime
+        run: |
+          rm -rf remotion-runtime
+          mkdir -p remotion-runtime
+          cd remotion-runtime
+          npm init -y
+          npm install --save-exact remotion@4.0.506 @remotion/cli@4.0.506 @remotion/media@4.0.506 react@19.0.0 react-dom@19.0.0
+          node -e "console.log('remotion', require('remotion/package.json').version)"
+          node -e "console.log('cli', require('@remotion/cli/package.json').version)"
+      - name: Pack runtime
+        run: tar -czf remotion-runtime.tar.gz remotion-runtime
+      - name: Upload runtime artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: remotion-runtime-4.0.506
+          path: remotion-runtime.tar.gz
+          compression-level: 0
+          retention-days: 1
