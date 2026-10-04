@@ -227,6 +227,27 @@ function setFile(file,isReanalysis=false){
   prepareVideoUpload(file,isReanalysis,generation);
 }
 fileInput.addEventListener('change',e=>{setFile(e.target.files?.[0],false);e.target.value=''});
+
+// Hardened native picker: do not depend solely on label semantics inside the phone mockup.
+function openVideoPicker(){
+  let input=$('fileInput');
+  if(!input){
+    input=document.createElement('input');
+    input.id='fileInput';
+    input.type='file';
+    input.accept='video/*,.mp4,.mov,.webm';
+    input.className='dropFileInput';
+    document.body.appendChild(input);
+    input.addEventListener('change',e=>{setFile(e.target.files?.[0],false);e.target.value=''});
+  }
+  input.click();
+}
+dropzone.addEventListener('click',e=>{
+  if(e.target.closest('#changeVideo')) return;
+  e.preventDefault();
+  e.stopPropagation();
+  openVideoPicker();
+});
 reanalyseInput.addEventListener('change',e=>{setFile(e.target.files?.[0],true);e.target.value=''});
 const workspaceUploader=$('workspaceUploader');
 ['dragenter','dragover'].forEach(evt=>dropzone.addEventListener(evt,e=>{e.preventDefault();dropzone.classList.add('dragover')}));
