@@ -205,6 +205,7 @@ function setFile(file,isReanalysis=false){
   if(objectUrl)URL.revokeObjectURL(objectUrl);
   objectUrl=URL.createObjectURL(file);
   currentFile=file;
+  currentVideoSha256=null;
   storagePath=null;
   reanalysisMode=isReanalysis;
   previewVideo.src=objectUrl;
