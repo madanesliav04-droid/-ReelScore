@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="v5.css?v=20261004-13" />
+<link rel="stylesheet" href="v5.css?v=20261004-14" />
 </head>
 <body>
 <nav class="nav">
@@ -65,7 +65,7 @@
           <div class="screenLayer analysisScreen" id="analysisLayer">
             <div class="analysisHead"><span>Viral+</span><small id="analysisState">PRÊT À ANALYSER</small></div>
             <div class="scan" id="scan"></div>
-            <label class="preview" id="dropzone" for="fileInput"><div class="placeholder" id="placeholder"><div class="dropIcon">＋</div><strong>Dépose ta vidéo ici</strong><span>ou clique pour l’importer</span><small>MP4 · MOV · WebM · 100 Mo max</small></div><video id="previewVideo" playsinline muted loop controls></video><div class="videoShade" id="videoShade"><span id="videoFileName">Vidéo chargée</span><button type="button" id="changeVideo">Changer</button></div></label>
+            <label class="preview" id="dropzone" for="fileInput"><div class="placeholder" id="placeholder"><div class="dropIcon">＋</div><strong>Dépose ta vidéo ici</strong><span>ou clique pour l’importer</span><small>MP4 · MOV · WebM · 100 Mo max</small></div><video id="previewVideo" playsinline muted loop controls></video><div class="videoShade" id="videoShade"><span id="videoFileName">Vidéo chargée</span><button type="button" id="changeVideo">Changer</button></div><input id="fileInput" class="dropFileInput" type="file" accept="video/*,.mp4,.mov,.webm" /></label>
             <div class="phoneScore hidden" id="phoneScore"><span>SCORE VIRAL+</span><strong id="scoreNumber">0</strong><small>/100</small></div>
             <div class="timeline"><small id="timelineLabel">Hook</small><div class="timelineBar"><i id="timelineFill"></i></div><small id="timelineText">0:00 → 0:02</small></div>
             <div class="controls"><button class="analyzeBtn" id="analyzeBtn" disabled>Analyser la vidéo</button></div>
@@ -114,8 +114,7 @@
 <div class="modal hidden" id="authModal"><div class="modalCard authCard"><button class="closeModal" id="closeAuth">×</button><div class="authBrand">VIRAL<b>+</b></div><h3>Entre dans Viral+</h3><p>14 jours gratuits pour tester Viral+.</p><div class="authTabs"><button class="active" data-auth="login">Connexion</button><button data-auth="signup">Créer un compte</button></div><form id="authForm"><input id="authEmail" type="email" autocomplete="email" placeholder="Email" required><input id="authPassword" type="password" minlength="6" autocomplete="current-password" placeholder="Mot de passe" required><button class="btn primary" id="authSubmit" type="submit">Se connecter</button></form><small id="authMessage"></small></div></div>
 <div class="modal hidden" id="paywall"><div class="modalCard paywallCard"><button class="closeModal" id="closePaywall">×</button><small>VIRAL+ CREATOR</small><h3>Corrige, re-score et compare.</h3><p>20 analyses/mois, toutes les corrections, re-score avant/après et historique complet.</p><div class="payPrice"><strong>19€</strong><span>/mois</span></div><button class="btn primary" id="requestCreator">Demander l’accès bêta Creator</button><small id="upgradeMessage">Le paiement automatique sera activé ensuite.</small></div></div>
 <div class="toast hidden" id="toast"></div>
-<input id="fileInput" class="hidden" type="file" accept="video/*,.mp4,.mov,.webm" />
 <input id="reanalyseInput" class="hidden" type="file" accept="video/*,.mp4,.mov,.webm" />
-<script src="../../config.js?v=20261004-12"></script><script src="product-config.js"></script><script src=""></script><script src="v5.js?v=20261004-13"></script>
+<script src="../../config.js?v=20261004-12"></script><script src="product-config.js"></script><script src=""></script><script src="v5.js?v=20261004-14"></script>
 </body>
 </html>
