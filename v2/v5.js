@@ -18,7 +18,8 @@ const stageResultCta=$('stageResultCta'),phoneResultScore=$('phoneResultScore'),
 let session=null, entitlement=null, authMode='login', lastHoverBurst=0, pendingFile=null, pendingReanalysis=false, currentVideoSha256=null;
 let currentFile=null, objectUrl=null, currentAnalysis=null, baselineAnalysis=null, reanalysisMode=false, analyzing=false, counterTimer=0, scrollRAF=0, mouseRAF=0, resultMode=false, storagePath=null, storageUpload=null, uploadGeneration=0, analysisStartedAt=0, analysisProgressTimer=null;
 
-function clamp(v,a=0,b=1){return Math.max(a,Math.min(b,v))}\nasync function sha256File(file){
+function clamp(v,a=0,b=1){return Math.max(a,Math.min(b,v))}
+async function sha256File(file){
   const buffer=await file.arrayBuffer();
   const digest=await crypto.subtle.digest('SHA-256',buffer);
   return [...new Uint8Array(digest)].map(b=>b.toString(16).padStart(2,'0')).join('');
