@@ -9,65 +9,33 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./styles.css" />
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../config.js"></script>
 </head>
 <body>
-<div id="setup" class="screen hidden">
-  <div class="setup-card">
-    <span class="logo">L</span>
-    <p class="eyebrow">LIAV CRM</p>
-    <h1>Backend en cours de connexion.</h1>
-    <p>Le CRM est prêt. Il manque seulement les identifiants publics Supabase pour activer les leads en temps réel.</p>
-  </div>
-</div>
+<div id="setup" class="screen hidden"><div class="setup-card"><span class="logo">L</span><p class="eyebrow">LIAV CRM</p><h1>Connexion backend manquante.</h1><p>Le CRM est prêt mais son API n’est pas configurée.</p></div></div>
 
 <div id="login" class="screen hidden">
   <form id="loginForm" class="login-card">
-    <span class="logo">L</span>
-    <p class="eyebrow">LIAV CRM</p>
-    <h1>Connexion</h1>
-    <label>Email<input id="loginEmail" type="email" autocomplete="email" required /></label>
-    <label>Mot de passe<input id="loginPassword" type="password" autocomplete="current-password" required /></label>
-    <button type="submit">Entrer dans le CRM</button>
-    <p id="loginError" class="error"></p>
+    <span class="logo">L</span><p class="eyebrow">LIAV CRM</p><h1>Connexion</h1>
+    <label>Code d’accès<input id="loginPassword" type="password" autocomplete="current-password" required /></label>
+    <button type="submit">Entrer dans le CRM</button><p id="loginError" class="error"></p>
   </form>
 </div>
 
 <div id="app" class="app hidden">
   <aside class="sidebar">
     <div class="brand"><span class="logo small">L</span><div><b>LIAV CRM</b><small>Exécution &gt; intelligence</small></div></div>
-    <nav>
-      <button class="nav-btn active" data-view="pipeline">Pipeline</button>
-      <button class="nav-btn" data-view="all">Tous les leads</button>
-      <button class="nav-btn" data-view="followups">Relances</button>
-    </nav>
+    <nav><button class="nav-btn active" data-view="pipeline">Pipeline</button><button class="nav-btn" data-view="all">Tous les leads</button><button class="nav-btn" data-view="followups">Relances</button></nav>
     <button id="logoutBtn" class="logout">Déconnexion</button>
   </aside>
 
   <main class="main">
-    <header class="topbar">
-      <div><p class="eyebrow">CRM PERSONNEL</p><h1>Pipeline</h1></div>
-      <div class="top-actions">
-        <input id="searchInput" type="search" placeholder="Rechercher un lead…" />
-        <button id="refreshBtn" class="secondary">Actualiser</button>
-      </div>
-    </header>
-
-    <section class="stats" id="stats"></section>
-    <section id="pipelineView" class="pipeline"></section>
-    <section id="tableView" class="table-wrap hidden"></section>
+    <header class="topbar"><div><p class="eyebrow">CRM PERSONNEL</p><h1>Pipeline</h1></div><div class="top-actions"><input id="searchInput" type="search" placeholder="Rechercher un lead…" /><button id="refreshBtn" class="secondary">Actualiser</button></div></header>
+    <section class="stats" id="stats"></section><section id="pipelineView" class="pipeline"></section><section id="tableView" class="table-wrap hidden"></section>
   </main>
 </div>
 
-<div id="drawer" class="drawer hidden" aria-hidden="true">
-  <div class="drawer-backdrop" data-close-drawer></div>
-  <aside class="drawer-panel">
-    <button class="close" data-close-drawer>×</button>
-    <div id="drawerContent"></div>
-  </aside>
-</div>
-
+<div id="drawer" class="drawer hidden" aria-hidden="true"><div class="drawer-backdrop" data-close-drawer></div><aside class="drawer-panel"><button class="close" data-close-drawer>×</button><div id="drawerContent"></div></aside></div>
 <script src="./app.js"></script>
 </body>
 </html>
