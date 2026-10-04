@@ -1,80 +1,28 @@
-<!doctype html>
-<html lang="fr">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<meta name="theme-color" content="#eef0f5" />
-<title>Viral+ — Cinematic Creator Intelligence</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="v4.css" />
-<style>
-.phone,.screenLayer,.float,.socialBadge{will-change:transform,opacity}
-.scene,.phone,.screen{contain:layout paint style}
-.phoneLogo{position:absolute;z-index:3;left:50%;top:47%;transform:translate(-50%,-50%);font-family:Sora,Inter,sans-serif;font-weight:800;font-size:clamp(38px,5vw,62px);letter-spacing:-.08em;color:#111;text-shadow:0 8px 24px rgba(255,255,255,.48);pointer-events:none;white-space:nowrap}.phoneLogo b{color:var(--ruby)}
-@media(max-width:900px){.float,.socialBadge,.navpill,.btn,.storyPanel{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}.ring{animation-duration:42s}.phoneLogo{font-size:46px}.socialParticle{box-shadow:0 8px 20px rgba(51,58,75,.12)}}
-@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.ring,.float,.socialBadge,.scan{animation:none!important}.screenLayer,.phone{transition:none!important}}
-</style>
-</head>
-<body>
-<nav class="nav">
-  <div class="brand">VIRAL<b>+</b></div>
-  <div class="navright"><a class="navpill" href="#story">Comment ça marche</a><a class="navpill primary" href="#analyse">Analyser</a></div>
-</nav>
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#eef0f5"><title>Viral+ — Cinematic Creator Intelligence</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Sora:wght@600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="v4.css"></head><body>
+<nav class="nav"><div class="brand">VIRAL<b>+</b></div><div class="navright"><a class="navpill" href="#experience">Expérience</a><button class="navpill primary" id="navAnalyse">Analyser</button></div></nav>
 <main>
-<section class="chapter">
-  <div class="wrap heroGrid">
-    <div class="heroCopy">
-      <div class="eyebrow"><i></i> Creator intelligence, sans rupture d’expérience</div>
-      <h1>SACHE CE QUI BLOQUE <span>AVANT DE PUBLIER</span></h1>
-      <p>Un téléphone cinématique, des signaux sociaux qui vivent autour de lui, puis la même scène qui devient ton outil d’analyse. Aucun dashboard froid. Aucun changement d’univers.</p>
-      <div class="heroActions"><a class="btn primary" href="#analyse" id="heroAnalyse">Analyser ma vidéo</a><a class="btn" href="#story">Voir comment ça marche</a></div>
-      <div class="heroStats"><div><strong id="heroViews">124K</strong>vues</div><div><strong id="heroLikes">18.9K</strong>likes</div><div><strong id="heroFollowers">+4.3K</strong>followers</div></div>
-    </div>
+<section class="cinematic" id="experience"><div class="sticky">
+  <div class="ambient a1"></div><div class="ambient a2"></div><div class="ring r1"></div><div class="ring r2"></div><div class="floor"></div>
+  <div class="storyCopy sc1"><span>01 · VIRALITÉ</span><h1>SACHE CE QUI BLOQUE <em>AVANT DE PUBLIER</em></h1><p>Le téléphone vit. Les vues montent. Les likes arrivent. Puis tout ralentit.</p></div>
+  <div class="storyCopy sc2"><span>02 · LE DOUTE</span><h2>POURQUOI CERTAINES VIDÉOS <em>EXPLOSENT ?</em></h2><p>Et pourquoi d'autres restent bloquées malgré une bonne idée ?</p></div>
+  <div class="storyCopy sc3"><span>03 · VIRAL+</span><h2>LA MÊME SCÈNE <em>DEVIENT TON OUTIL</em></h2><p>Pas de dashboard séparé. Le téléphone se retourne, ta vidéo entre dedans, l'analyse commence ici.</p></div>
+  <div class="storyCopy sc4"><span>04 · ACTION</span><h2>DÉPOSE TA VIDÉO. <em>ON L'ANALYSE ICI.</em></h2><p>Hook, rétention, visuel, partage. Tout apparaît autour du même téléphone.</p></div>
 
-    <div class="sceneWrap">
-      <div class="scene" id="scene">
-        <div class="halo"></div><div class="ring r1"></div><div class="ring r2"></div><div class="floor"></div>
-        <div class="phone" id="phone">
-          <div class="screen">
-            <div class="screenLayer socialScreen active" id="socialLayer">
-              <div class="socialTop"><div class="user"><div class="avatar"></div><span>viralplus.media</span></div><span>Pour toi</span></div>
-              <div class="stories"><span></span><span></span><span></span><span></span><span></span></div>
-              <div class="reel"><div class="silhouette"></div><div class="phoneLogo">VIRAL<b>+</b></div><div class="reelActions"><div class="reelAction"><i>♥</i><span id="likeCounter">18.9K</span></div><div class="reelAction"><i>💬</i><span id="commentCounter">1.8K</span></div><div class="reelAction"><i>↗</i><span id="shareCounter">5.4K</span></div></div><div class="reelMeta"><strong>Pourquoi certaines vidéos explosent…</strong><small>…et d’autres restent bloquées à 500 vues ?</small></div></div>
-            </div>
-            <div class="screenLayer analysisScreen" id="analysisLayer">
-              <div class="analysisHead">Viral+ · analyse du contenu</div><div class="scan"></div>
-              <div class="preview" id="preview"><div class="placeholder" id="placeholder"><strong>Dépose ta vidéo</strong>La même scène devient ton outil d’analyse.</div><video id="previewVideo" playsinline muted loop controls></video></div>
-              <div class="timeline"><small>Hook</small><div class="timelineBar"><i id="timelineFill"></i></div><small id="timelineText">0:00 → 0:02</small></div>
-              <div class="controls"><label class="upload" for="fileInput">Importer</label><button class="analyzeBtn" id="analyzeBtn">Analyser</button></div>
-            </div>
-          </div>
-        </div>
-        <div class="socialBadge b1"><em>IG</em><span id="sViews">124K vues</span></div><div class="socialBadge b2"><em>TT</em><span id="sLikes">18.9K likes</span></div><div class="socialBadge b3"><em>YT</em><span id="sFollowers">+4.3K followers</span></div><div class="socialBadge b4"><em>FB</em><span id="sComments">1.8K commentaires</span></div>
-        <div class="float f1" id="cardHook"><div class="k">Hook</div><strong>82</strong><small>Compris immédiatement</small></div>
-        <div class="float f2" id="cardRetention"><div class="k">Rétention</div><strong>71</strong><small>Peut être densifiée</small></div>
-        <div class="float f3" id="cardVisual"><div class="k">Visuel</div><strong>64</strong><small>Ajoute une rupture</small></div>
-        <div class="float f4" id="cardShare"><div class="k">Partage</div><strong>79</strong><small>Bon potentiel</small></div>
-      </div>
-    </div>
+  <div class="scene" id="scene">
+    <div class="ghostWord">VIRAL+</div>
+    <div class="mosaic" id="mosaic"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <div class="orb" id="orb"></div>
+    <div class="phone" id="phone"><div class="screen">
+      <div class="screenLayer socialScreen active" id="socialLayer"><div class="socialTop"><div class="user"><div class="avatar"></div><span>viralplus.media</span></div><span>Pour toi</span></div><div class="reel"><div class="silhouette"></div><div class="phoneLogo">VIRAL<b>+</b></div><div class="reelActions"><div><i>♥</i><span id="likeCounter">18.9K</span></div><div><i>💬</i><span id="commentCounter">1.8K</span></div><div><i>↗</i><span id="shareCounter">5.4K</span></div></div><div class="reelMeta"><strong>Pourquoi certaines vidéos explosent…</strong><small>…et d'autres restent bloquées ?</small></div></div></div>
+      <div class="screenLayer analysisScreen" id="analysisLayer"><div class="analysisHead">Viral+ · analyse du contenu</div><div class="scan"></div><label class="dropzone" id="dropzone" for="fileInput"><div class="dropIcon">＋</div><strong>Dépose ta vidéo ici</strong><span>ou clique pour importer · MP4 · MOV · WebM · 95 Mo max</span><video id="previewVideo" playsinline muted loop controls></video></label><div class="timeline"><small>Hook</small><div class="timelineBar"><i id="timelineFill"></i></div><small id="timelineText">Prêt à analyser</small></div><button class="analyzeBtn" id="analyzeBtn">Analyser la vidéo</button><div class="status" id="status"></div></div>
+    </div></div>
+
+    <div class="socialBadge b1"><em>IG</em><span id="sViews">124K vues</span></div><div class="socialBadge b2"><em>TT</em><span id="sLikes">18.9K likes</span></div><div class="socialBadge b3"><em>YT</em><span id="sFollowers">+4.3K followers</span></div><div class="socialBadge b4"><em>FB</em><span id="sComments">1.8K commentaires</span></div>
+    <div class="float f1" id="cardHook"><div class="k">Hook</div><strong>82</strong><small>Compris immédiatement</small></div><div class="float f2" id="cardRetention"><div class="k">Rétention</div><strong>71</strong><small>Peut être densifiée</small></div><div class="float f3" id="cardVisual"><div class="k">Visuel</div><strong>64</strong><small>Ajoute une rupture</small></div><div class="float f4" id="cardShare"><div class="k">Partage</div><strong>79</strong><small>Bon potentiel</small></div>
   </div>
-</section>
-
-<div class="storyPanel" id="story">
-  <div class="stateTab active" data-mode="social"><small>Acte 01</small><strong>Viralité</strong></div>
-  <div class="stateTab" data-mode="problem"><small>Acte 02</small><strong>Blocage</strong></div>
-  <div class="stateTab" data-mode="analysis"><small>Acte 03</small><strong>Analyse</strong></div>
-  <div class="stateTab" data-mode="improve"><small>Acte 04</small><strong>Améliorer</strong></div>
-</div>
-
-<section class="info" id="analyse"><div class="infoGrid">
-  <div><div class="eyebrow"><i></i> Même téléphone. Même caméra.</div><h2>LE TÉLÉPHONE RESTE.<span>L’EXPÉRIENCE ÉVOLUE.</span></h2><p>Au début, les éléments autour du téléphone représentent la viralité. Quand l’analyse commence, ces mêmes objets deviennent les scores Viral+. Rien ne casse l’immersion.</p><div class="stack"><div class="infoCard"><strong>Une scène unique</strong><span>Viralité → blocage → analyse → correction → meilleure version.</span></div><div class="infoCard"><strong>Analyse dans le téléphone</strong><span>Ta vidéo est uploadée directement dans le smartphone central.</span></div><div class="infoCard"><strong>Simple pour un débutant</strong><span>Hook, visuel, rétention, partage : une lecture directe, sans jargon inutile.</span></div></div></div>
-  <div><div class="eyebrow"><i></i> Résultat utile, pas juste joli</div><h2>UN SCORE QUI <span>DIT QUOI CHANGER.</span></h2><p>Le but n’est pas de promettre la viralité. Le but est d’identifier ce qui freine la vidéo avant publication, puis de montrer la version à renforcer.</p><div class="resultPanels"><div class="panel"><div class="label">Le problème principal</div><strong id="mainTitle">Ton hook</strong><p id="mainText">Il démarre trop lentement. Annonce l’idée plus vite et ajoute une rupture visuelle.</p></div><div class="panel"><div class="label">Amélioration proposée</div><strong id="fixTitle">Version plus forte</strong><p id="fixText">« Si tes vidéos restent bloquées au même niveau, regarde ça. »</p></div></div></div>
+  <div class="scrollMeter"><i id="scrollFill"></i></div><div class="scrollHint">SCROLL POUR ENTRER DANS VIRAL+</div>
 </div></section>
-<div class="finalSpace"></div>
+
+<section class="after" id="result"><div class="afterGrid"><div><span class="eyebrow">Résultat</span><h2>UN SCORE QUI <em>DIT QUOI CHANGER.</em></h2><p>Viral+ ne promet pas la viralité. Il identifie le point qui freine ta vidéo avant publication.</p></div><div class="resultPanels"><div class="panel"><span>Problème principal</span><strong id="mainTitle">Ton hook</strong><p id="mainText">Il démarre trop lentement.</p></div><div class="panel"><span>Correction proposée</span><strong id="fixTitle">Version plus forte</strong><p id="fixText">Importe une vidéo pour obtenir une recommandation.</p></div></div></div></section>
 </main>
-<input id="fileInput" class="hidden" type="file" accept="video/*,.mp4,.mov,.webm" />
-<script src="v4.js"></script>
-</body>
-</html>
+<input id="fileInput" type="file" hidden accept="video/*,.mp4,.mov,.webm"><script src="../config.js"></script><script src="../analyzer.js"></script><script src="v4.js"></script></body></html>
