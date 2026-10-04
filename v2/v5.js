@@ -15,7 +15,7 @@ const authModal=$('authModal'),paywall=$('paywall'),toast=$('toast'),usagePill=$
 const resultEmpty=$('resultEmpty'),resultContent=$('resultContent'),resultScore=$('resultScore'),scoreOrb=$('scoreOrb'),statusBadge=$('statusBadge'),resultVerdictTitle=$('resultVerdictTitle'),resultVerdictText=$('resultVerdictText'),versionLine=$('versionLine'),mainProblem=$('mainProblem'),mainWhy=$('mainWhy'),hotspotTime=$('hotspotTime'),hotspotReason=$('hotspotReason'),hookBefore=$('hookBefore'),hookAfter=$('hookAfter'),actionList=$('actionList'),premiumTeaser=$('premiumTeaser'),comparePanel=$('comparePanel'),beforeScore=$('beforeScore'),afterScore=$('afterScore'),deltaScore=$('deltaScore'),metricDelta=$('metricDelta');
 const stageResultCta=$('stageResultCta'),phoneResultScore=$('phoneResultScore'),phoneStatus=$('phoneStatus'),phoneProblem=$('phoneProblem'),phoneHotspot=$('phoneHotspot');
 
-let session=null, entitlement=null, authMode='login';
+let session=null, entitlement=null, authMode='login', lastHoverBurst=0;
 let currentFile=null, objectUrl=null, currentAnalysis=null, baselineAnalysis=null, reanalysisMode=false, analyzing=false, counterTimer=0, scrollRAF=0, mouseRAF=0, resultMode=false;
 
 function clamp(v,a=0,b=1){return Math.max(a,Math.min(b,v))}
@@ -64,6 +64,8 @@ function showResultLayer(data){resultMode=true;socialLayer.classList.remove('act
 
 function burstSocial(count=14){if(reduceMotion)return;const labels=['♥ 1.2K','💬 incroyable','↗ 96','+742 followers','12.4K vues','exactement'];const r=phone.getBoundingClientRect(),frag=document.createDocumentFragment(),nodes=[];for(let i=0;i<count;i++){const n=document.createElement('div');n.className='socialParticle';n.textContent=labels[Math.floor(Math.random()*labels.length)];n.style.left=(r.left+r.width/2-40+Math.random()*80)+'px';n.style.top=(r.top+r.height*.55-20+Math.random()*60)+'px';n.style.setProperty('--x',(Math.random()*300-150)+'px');n.style.setProperty('--y',(-150-Math.random()*250)+'px');n.style.setProperty('--r',(Math.random()*44-22)+'deg');n.style.setProperty('--dur',(1.2+Math.random()*.9)+'s');frag.appendChild(n);nodes.push(n)}document.body.appendChild(frag);setTimeout(()=>nodes.forEach(n=>n.remove()),2400)}
 phone.addEventListener('click',()=>{if(socialLayer.classList.contains('active'))burstSocial(lowPower?8:16)});
+phone.addEventListener('pointerenter',()=>{if(socialLayer.classList.contains('active'))burstSocial(lowPower?3:6)});
+phone.addEventListener('pointermove',()=>{if(lowPower||reduceMotion||!socialLayer.classList.contains('active'))return;const now=performance.now();if(now-lastHoverBurst>900){lastHoverBurst=now;burstSocial(3)}});
 addEventListener('mousemove',e=>{if(lowPower||reduceMotion||!socialLayer.classList.contains('active')||stageProgress()>.1)return;if(mouseRAF)return;const cx=e.clientX,cy=e.clientY;mouseRAF=requestAnimationFrame(()=>{const x=(cx/innerWidth-.5)*4,y=(cy/innerHeight-.5)*-3;phone.style.transform=`rotateY(${-16+x}deg) rotateX(${6+y}deg) rotateZ(-2deg)`;mouseRAF=0})},{passive:true});
 
 function tickCounters(){clearTimeout(counterTimer);if(!document.hidden&&socialLayer.classList.contains('active')){const v=124000+Math.floor(Math.random()*900),l=18900+Math.floor(Math.random()*120),f=4300+Math.floor(Math.random()*30),c=1800+Math.floor(Math.random()*22),s=5400+Math.floor(Math.random()*35);heroViews.textContent=fmt(v);heroLikes.textContent=fmt(l);heroFollowers.textContent='+'+fmt(f);likeCounter.textContent=fmt(l);commentCounter.textContent=fmt(c);shareCounter.textContent=fmt(s);sViews.textContent=fmt(v)+' vues';sLikes.textContent=fmt(l)+' likes';sFollowers.textContent='+'+fmt(f)+' followers';sComments.textContent=fmt(c)+' commentaires'}counterTimer=setTimeout(tickCounters,1600)}
@@ -71,6 +73,29 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden)tickCounte
 
 function saveSession(s){session=s;if(s)localStorage.setItem('viralplus_session',JSON.stringify(s));else localStorage.removeItem('viralplus_session');updateAccountUI()}
 function storedSession(){try{return JSON.parse(localStorage.getItem('viralplus_session')||'null')}catch{return null}}
+function authRedirectUrl(){return location.origin+location.pathname}
+async function handleAuthCallback(){
+  const hash=new URLSearchParams(location.hash.replace(/^#/,''));
+  const access=hash.get('access_token'), refresh=hash.get('refresh_token');
+  if(access){
+    try{
+      const r=await fetch(SUPABASE_URL+'/auth/v1/user',{headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+access}});
+      const user=await r.json();
+      if(r.ok&&user?.id){
+        const d={access_token:access,refresh_token:refresh||'',expires_in:Number(hash.get('expires_in')||3600),expires_at:Math.floor(Date.now()/1000)+Number(hash.get('expires_in')||3600),user};
+        saveSession(d);
+        history.replaceState({},document.title,location.pathname+location.search);
+        closeAuth();
+        showToast('Email confirmé. Ton compte Viral+ est prêt.');
+        await refreshEntitlement(); await loadHistory();
+        return true;
+      }
+    }catch{}
+  }
+  const error=hash.get('error_description');
+  if(error){showToast(decodeURIComponent(error));history.replaceState({},document.title,location.pathname+location.search)}
+  return false
+}
 function isExpired(s){return !s?.access_token || (s.expires_at && Date.now()/1000 > s.expires_at-60)}
 async function refreshSession(){if(!session?.refresh_token)return false;const r=await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`,{method:'POST',headers:{apikey:SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:session.refresh_token})});if(!r.ok){saveSession(null);return false}const d=await r.json();d.expires_at=Math.floor(Date.now()/1000)+(d.expires_in||3600);saveSession(d);return true}
 async function getToken(){if(isExpired(session)){const ok=await refreshSession();if(!ok)return null}return session?.access_token||null}
@@ -83,7 +108,7 @@ function openAuth(){authModal.classList.remove('hidden')}
 function closeAuth(){authModal.classList.add('hidden')}
 async function ensureAuth(){if(session?.user&&await getToken())return true;openAuth();return false}
 [...document.querySelectorAll('.authTabs button')].forEach(b=>b.addEventListener('click',()=>{authMode=b.dataset.auth;document.querySelectorAll('.authTabs button').forEach(x=>x.classList.toggle('active',x===b));$('authSubmit').textContent=authMode==='login'?'Se connecter':'Créer mon compte';$('authMessage').textContent=''}));
-$('authForm').addEventListener('submit',async e=>{e.preventDefault();const email=$('authEmail').value.trim(),password=$('authPassword').value;const msg=$('authMessage');msg.textContent='Connexion…';try{if(authMode==='signup'){const d=await supa('/auth/v1/signup',{method:'POST',auth:false,body:{email,password}});if(d.access_token){d.expires_at=Math.floor(Date.now()/1000)+(d.expires_in||3600);saveSession(d);closeAuth();await refreshEntitlement();await loadHistory();showToast('Compte créé. Bienvenue dans Viral+.')}else{msg.textContent='Compte créé. Vérifie ton email puis connecte-toi.'}}else{const d=await supa('/auth/v1/token',{method:'POST',auth:false,query:'?grant_type=password',body:{email,password}});d.expires_at=Math.floor(Date.now()/1000)+(d.expires_in||3600);saveSession(d);closeAuth();await refreshEntitlement();await loadHistory();track('login');showToast('Connecté à Viral+.')}}catch(err){msg.textContent=err.message}});
+$('authForm').addEventListener('submit',async e=>{e.preventDefault();const email=$('authEmail').value.trim(),password=$('authPassword').value;const msg=$('authMessage');msg.textContent='Connexion…';try{if(authMode==='signup'){const d=await supa('/auth/v1/signup',{method:'POST',auth:false,body:{email,password,options:{emailRedirectTo:authRedirectUrl()}}});if(d.access_token){d.expires_at=Math.floor(Date.now()/1000)+(d.expires_in||3600);saveSession(d);closeAuth();await refreshEntitlement();await loadHistory();showToast('Compte créé. Bienvenue dans Viral+.')}else{msg.textContent='Compte créé. Vérifie ton email. Le lien te ramènera automatiquement ici.'}}else{const d=await supa('/auth/v1/token',{method:'POST',auth:false,query:'?grant_type=password',body:{email,password}});d.expires_at=Math.floor(Date.now()/1000)+(d.expires_in||3600);saveSession(d);closeAuth();await refreshEntitlement();await loadHistory();track('login');showToast('Connecté à Viral+.')}}catch(err){msg.textContent=err.message}});
 $('closeAuth').addEventListener('click',closeAuth);authModal.addEventListener('click',e=>{if(e.target===authModal)closeAuth()});
 accountBtn.addEventListener('click',async()=>{if(!session?.user){openAuth();return}if(confirm(`Déconnecter ${session.user.email} ?`)){saveSession(null);entitlement=null;loadHistory();showToast('Déconnecté.')}});
 
@@ -113,4 +138,4 @@ function num(id){const v=$(id).value;return v===''?null:Number(v)}$('saveOutcome
 async function loadHistory(){const grid=$('historyGrid');if(!session?.user){grid.innerHTML='<div class="historyEmpty">Connecte-toi pour retrouver tes analyses.</div>';return}try{const rows=await supa('/rest/v1/viralplus_analyses',{query:'?select=id,created_at,video_name,final_score,status,is_reanalysis,baseline_analysis_id,score_version,result_json&order=created_at.desc&limit=30'});if(!rows.length){grid.innerHTML='<div class="historyEmpty">Aucune analyse pour le moment.</div>';return}grid.innerHTML=rows.map(r=>`<article class="historyCard" data-id="${r.id}"><small>${new Date(r.created_at).toLocaleString('fr-FR')}</small><strong>${r.final_score}/100</strong><span>${escapeHtml(r.video_name)} · ${r.is_reanalysis?'Re-score':'Analyse'}</span></article>`).join('');grid.querySelectorAll('.historyCard').forEach(card=>card.addEventListener('click',()=>{const row=rows.find(x=>x.id===card.dataset.id);if(!row)return;const data={...(row.result_json||{}),analysis_id:row.id,final_score:row.final_score,score_version:row.score_version,status:row.status};currentAnalysis=data;renderResult(data);showResultLayer(data);resultEmpty.classList.add('hidden');resultContent.classList.remove('hidden');document.getElementById('workspace').scrollIntoView({behavior:'smooth'});track('history_opened',{analysis_id:row.id})}))}catch(e){grid.innerHTML=`<div class="historyEmpty">${escapeHtml(e.message)}</div>`}}
 $('refreshHistory').addEventListener('click',loadHistory);
 
-(async function init(){session=storedSession();if(session&&isExpired(session))await refreshSession();updateAccountUI();if(session?.user){await refreshEntitlement();await loadHistory();track('page_view',{path:location.pathname})}updateStage();tickCounters()})();
+(async function init(){await handleAuthCallback();if(!session)session=storedSession();if(session&&isExpired(session))await refreshSession();updateAccountUI();if(session?.user){await refreshEntitlement();await loadHistory();track('page_view',{path:location.pathname})}updateStage();tickCounters()})();
