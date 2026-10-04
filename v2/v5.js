@@ -292,7 +292,7 @@ async function runAnalysis(){
     let r=await fetch(`${API_URL}/analyze`,{method:'POST',headers,body:JSON.stringify({storage_url:signedUrl,video_sha256:currentVideoSha256})});
     if(r.status===401&&await refreshSession()){
       headers.Authorization=`Bearer ${session.access_token}`;
-      r=await fetch(`${API_URL}/analyze`,{method:'POST',headers,body:JSON.stringify({storage_url:signedUrl})});
+      r=await fetch(`${API_URL}/analyze`,{method:'POST',headers,body:JSON.stringify({storage_url:signedUrl,video_sha256:currentVideoSha256})});
     }
     const data=await r.json().catch(()=>({}));
     if(!r.ok){
