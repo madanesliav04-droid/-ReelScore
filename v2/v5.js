@@ -84,6 +84,7 @@ async function handleAuthCallback(){
       if(r.ok&&user?.id){
         const d={access_token:access,refresh_token:refresh||'',expires_in:Number(hash.get('expires_in')||3600),expires_at:Math.floor(Date.now()/1000)+Number(hash.get('expires_in')||3600),user};
         saveSession(d);
+        await processPendingFile();
         history.replaceState({},document.title,location.pathname+location.search);
         closeAuth();
         showToast('Email confirmé. Ton compte Viral+ est prêt.');
@@ -111,7 +112,7 @@ async function ensureAuth(){if(session?.user&&await getToken())return true;openA
 [...document.querySelectorAll('.authTabs button')].forEach(b=>b.addEventListener('click',()=>{authMode=b.dataset.auth;document.querySelectorAll('.authTabs button').forEach(x=>x.classList.toggle('active',x===b));$('authSubmit').textContent=authMode==='login'?'Se connecter':'Créer mon compte';$('authMessage').textContent=''}));
 $('authForm').addEventListener('submit',async e=>{e.preventDefault();const email=$('authEmail').value.trim(),password=$('authPassword').value;const msg=$('authMessage');msg.textContent='Connexion…';try{if(authMode==='signup'){const d=await supa('/auth/v1/signup',{method:'POST',auth:false,body:{email,password,options:{emailRedirectTo:authRedirectUrl()}}});if(d.access_token){d.expires_at=Math.floor(Date.now()/1000)+(d.expires_in||3600);saveSession(d);closeAuth();await refreshEntitlement();await loadHistory();showToast('Compte créé. Bienvenue dans Viral+.');await processPendingFile()}else{msg.textContent='Compte créé. Vérifie ton email. Le lien te ramènera automatiquement ici.'}}else{const d=await supa('/auth/v1/token',{method:'POST',auth:false,query:'?grant_type=password',body:{email,password}});d.expires_at=Math.floor(Date.now()/1000)+(d.expires_in||3600);saveSession(d);closeAuth();await refreshEntitlement();await loadHistory();track('login');showToast('Connecté à Viral+.');await processPendingFile()}}catch(err){msg.textContent=err.message}});
 $('closeAuth').addEventListener('click',closeAuth);authModal.addEventListener('click',e=>{if(e.target===authModal)closeAuth()});
-accountBtn.addEventListener('click',async()=>{if(!session?.user){pendingFile=file;pendingReanalysis=isReanalysis;openAuth();return}if(confirm(`Déconnecter ${session.user.email} ?`)){saveSession(null);entitlement=null;loadHistory();showToast('Déconnecté.')}});
+accountBtn.addEventListener('click',async()=>{if(!session?.user){openAuth();return}if(confirm(`Déconnecter ${session.user.email} ?`)){saveSession(null);entitlement=null;loadHistory();showToast('Déconnecté.')}});
 
 async function scrollToAnalysis(){const ok=await ensureAuth();const target=cinematic.offsetTop+(cinematic.offsetHeight-innerHeight)*.87;scrollTo({top:target,behavior:'smooth'});if(ok)track('analyse_clicked')}
 ['heroAnalyse','navAnalyse','resultStart','finalAnalyse'].forEach(id=>$(id).addEventListener('click',scrollToAnalysis));$('heroScroll').addEventListener('click',()=>scrollTo({top:cinematic.offsetTop+innerHeight*.85,behavior:'smooth'}));$('brandHome').addEventListener('click',()=>scrollTo({top:0,behavior:'smooth'}));$('phoneImprove').addEventListener('click',()=>document.getElementById('workspace').scrollIntoView({behavior:'smooth'}));stageResultCta.addEventListener('click',()=>document.getElementById('workspace').scrollIntoView({behavior:'smooth'}));$('historyNav').addEventListener('click',()=>document.getElementById('history').scrollIntoView({behavior:'smooth'}));
@@ -195,7 +196,7 @@ async function prepareVideoUpload(file,isReanalysis,generationArg){
 function setFile(file,isReanalysis=false){
   if(!file)return;
   if(file.size>100*1024*1024){showToast('Vidéo trop lourde : 100 Mo maximum.');return}
-  if(!session?.user){openAuth();return}
+  if(!session?.user){pendingFile=file;pendingReanalysis=isReanalysis;openAuth();return}
   uploadGeneration++;
   if(storageUpload){try{storageUpload.abort(true)}catch{}}
   if(objectUrl)URL.revokeObjectURL(objectUrl);
