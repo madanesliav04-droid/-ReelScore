@@ -121,7 +121,15 @@ $('closeAuth').addEventListener('click',closeAuth);authModal.addEventListener('c
 accountBtn.addEventListener('click',async()=>{if(!session?.user){openAuth();return}if(confirm(`Déconnecter ${session.user.email} ?`)){saveSession(null);entitlement=null;loadHistory();showToast('Déconnecté.')}});
 
 function scrollToAnalysis(){const target=cinematic.offsetTop+(cinematic.offsetHeight-innerHeight)*.87;scrollTo({top:target,behavior:'smooth'});track('analyse_clicked')}
-['heroAnalyse','navAnalyse','resultStart','finalAnalyse'].forEach(id=>$(id).addEventListener('click',scrollToAnalysis));$('heroScroll').addEventListener('click',()=>scrollTo({top:cinematic.offsetTop+innerHeight*.85,behavior:'smooth'}));$('brandHome').addEventListener('click',()=>scrollTo({top:0,behavior:'smooth'}));$('phoneImprove').addEventListener('click',()=>document.getElementById('workspace').scrollIntoView({behavior:'smooth'}));stageResultCta.addEventListener('click',()=>document.getElementById('workspace').scrollIntoView({behavior:'smooth'}));$('historyNav').addEventListener('click',()=>document.getElementById('history').scrollIntoView({behavior:'smooth'}));
+['heroAnalyse','navAnalyse','resultStart','finalAnalyse'].forEach(id=>$(id).addEventListener('click',scrollToAnalysis));/* Robust CTA/dropzone handlers: capture phase prevents stale/duplicate handlers from blocking the primary UX. */
+heroAnalyse.addEventListener('click',e=>{e.preventDefault();e.stopImmediatePropagation();scrollToAnalysis()},{capture:true});
+dropzone.addEventListener('click',e=>{
+  if(e.target.closest('#changeVideo')) return;
+  e.preventDefault();
+  e.stopImmediatePropagation();
+  fileInput.click();
+},{capture:true});
+$('heroScroll').addEventListener('click',()=>scrollTo({top:cinematic.offsetTop+innerHeight*.85,behavior:'smooth'}));$('brandHome').addEventListener('click',()=>scrollTo({top:0,behavior:'smooth'}));$('phoneImprove').addEventListener('click',()=>document.getElementById('workspace').scrollIntoView({behavior:'smooth'}));stageResultCta.addEventListener('click',()=>document.getElementById('workspace').scrollIntoView({behavior:'smooth'}));$('historyNav').addEventListener('click',()=>document.getElementById('history').scrollIntoView({behavior:'smooth'}));
 
 async function uploadVideoToStorage(file,generation){
   const token=await getToken();
