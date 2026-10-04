@@ -1,4 +1,4 @@
-window.VIRAL_API_URL = 'https://viral-plus-api.madanesliav04.workers.dev';
+window.VIRAL_API_URL = 'https://eiypztjpmxdiuaqxjuqx.supabase.co/functions/v1/viralplus-api';
 if (location.pathname.indexOf('/v2/') !== -1) {
   window.addEventListener('load', function () {
     function addCss(href, key) {
