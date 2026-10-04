@@ -289,7 +289,7 @@ async function runAnalysis(){
       'X-Reanalysis':reanalysisMode?'1':'0'
     };
     if(reanalysisMode&&baselineAnalysis?.analysis_id)headers['X-Baseline-Analysis-Id']=baselineAnalysis.analysis_id;
-    let r=await fetch(`${API_URL}/analyze`,{method:'POST',headers,body:JSON.stringify({storage_url:signedUrl})});
+    let r=await fetch(`${API_URL}/analyze`,{method:'POST',headers,body:JSON.stringify({storage_url:signedUrl,video_sha256:currentVideoSha256})});
     if(r.status===401&&await refreshSession()){
       headers.Authorization=`Bearer ${session.access_token}`;
       r=await fetch(`${API_URL}/analyze`,{method:'POST',headers,body:JSON.stringify({storage_url:signedUrl})});
