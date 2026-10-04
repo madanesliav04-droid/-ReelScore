@@ -9,6 +9,13 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="v4.css" />
+<style>
+.phone,.screenLayer,.float,.socialBadge{will-change:transform,opacity}
+.scene,.phone,.screen{contain:layout paint style}
+.phoneLogo{position:absolute;z-index:3;left:50%;top:47%;transform:translate(-50%,-50%);font-family:Sora,Inter,sans-serif;font-weight:800;font-size:clamp(38px,5vw,62px);letter-spacing:-.08em;color:#111;text-shadow:0 8px 24px rgba(255,255,255,.48);pointer-events:none;white-space:nowrap}.phoneLogo b{color:var(--ruby)}
+@media(max-width:900px){.float,.socialBadge,.navpill,.btn,.storyPanel{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}.ring{animation-duration:42s}.phoneLogo{font-size:46px}.socialParticle{box-shadow:0 8px 20px rgba(51,58,75,.12)}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.ring,.float,.socialBadge,.scan{animation:none!important}.screenLayer,.phone{transition:none!important}}
+</style>
 </head>
 <body>
 <nav class="nav">
@@ -34,7 +41,7 @@
             <div class="screenLayer socialScreen active" id="socialLayer">
               <div class="socialTop"><div class="user"><div class="avatar"></div><span>viralplus.media</span></div><span>Pour toi</span></div>
               <div class="stories"><span></span><span></span><span></span><span></span><span></span></div>
-              <div class="reel"><div class="silhouette"></div><div class="reelActions"><div class="reelAction"><i>♥</i><span id="likeCounter">18.9K</span></div><div class="reelAction"><i>💬</i><span id="commentCounter">1.8K</span></div><div class="reelAction"><i>↗</i><span id="shareCounter">5.4K</span></div></div><div class="reelMeta"><strong>Pourquoi certaines vidéos explosent…</strong><small>…et d’autres restent bloquées à 500 vues ?</small></div></div>
+              <div class="reel"><div class="silhouette"></div><div class="phoneLogo">VIRAL<b>+</b></div><div class="reelActions"><div class="reelAction"><i>♥</i><span id="likeCounter">18.9K</span></div><div class="reelAction"><i>💬</i><span id="commentCounter">1.8K</span></div><div class="reelAction"><i>↗</i><span id="shareCounter">5.4K</span></div></div><div class="reelMeta"><strong>Pourquoi certaines vidéos explosent…</strong><small>…et d’autres restent bloquées à 500 vues ?</small></div></div>
             </div>
             <div class="screenLayer analysisScreen" id="analysisLayer">
               <div class="analysisHead">Viral+ · analyse du contenu</div><div class="scan"></div>
