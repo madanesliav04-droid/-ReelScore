@@ -4,157 +4,109 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <meta name="theme-color" content="#eef0f5" />
-<title>Viral+ — Analyse avant publication</title>
+<title>Viral+ — Product Beta</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="v4.css" />
+<link rel="stylesheet" href="v5.css" />
 </head>
 <body>
 <nav class="nav">
-  <div class="brand">VIRAL<b>+</b></div>
+  <button class="brand" id="brandHome">VIRAL<b>+</b></button>
   <div class="navright">
-    <a class="navpill" href="#experience">Expérience</a>
+    <button class="navpill ghost" id="historyNav">Mes vidéos</button>
+    <span class="usagePill hidden" id="usagePill">FREE · 3 analyses</span>
+    <button class="navpill" id="accountBtn">Se connecter</button>
     <button class="navpill primary" id="navAnalyse">Analyser</button>
   </div>
 </nav>
 
 <main>
-<section class="hero" id="top">
-  <div class="heroCopy">
-    <div class="eyebrow"><i></i> Creator intelligence</div>
-    <h1>SACHE CE QUI BLOQUE <span>AVANT DE PUBLIER</span></h1>
-    <p>Viral+ regarde ta vidéo, détecte ce qui freine le hook, la rétention et le partage, puis te dit exactement quoi changer avant publication.</p>
-    <div class="heroActions">
-      <button class="btn primary" id="heroAnalyse">Analyser ma vidéo</button>
-      <a class="btn" href="#experience">Voir l’expérience</a>
-    </div>
-    <div class="heroStats">
-      <div><strong id="heroViews">124K</strong>vues</div>
-      <div><strong id="heroLikes">18.9K</strong>likes</div>
-      <div><strong id="heroFollowers">+4.3K</strong>followers</div>
-    </div>
-  </div>
+<section class="cinematic" id="cinematic">
+  <div class="stickyStage" id="stickyStage">
+    <div class="ambient a1"></div><div class="ambient a2"></div>
+    <div class="halo" id="halo"></div>
+    <div class="orbit o1" id="orbit1"></div><div class="orbit o2" id="orbit2"></div>
+    <div class="mediaGrid" id="mediaGrid"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <div class="sphere" id="sphere"></div>
+    <div class="floor"></div>
 
-  <div class="heroScene" aria-label="Téléphone Viral+ interactif">
-    <div class="scene" id="scene">
-      <div class="halo"></div><div class="ring r1"></div><div class="ring r2"></div><div class="floor"></div>
+    <div class="copy copy0" data-copy="0">
+      <div class="eyebrow"><i></i> Creator intelligence</div>
+      <h1>SACHE CE QUI BLOQUE <span>AVANT DE PUBLIER</span></h1>
+      <p>Viral+ regarde ta vidéo, détecte ce qui freine le hook, la rétention et le partage, puis te dit exactement quoi changer.</p>
+      <div class="heroActions"><button class="btn primary" id="heroAnalyse">Analyser ma vidéo</button><button class="btn" id="heroScroll">Voir l’expérience</button></div>
+      <div class="heroStats"><div><strong id="heroViews">124K</strong>vues</div><div><strong id="heroLikes">18.9K</strong>likes</div><div><strong id="heroFollowers">+4.3K</strong>followers</div></div>
+    </div>
+
+    <div class="copy copy1" data-copy="1"><small>ACTE 02</small><h2>LA VIRALITÉ <span>PEUT S’ARRÊTER NET.</span></h2><p>Un hook trop lent ou un temps mort suffit à casser les premières secondes.</p></div>
+    <div class="copy copy2" data-copy="2"><small>ACTE 03</small><h2>VIRAL+ ENTRE <span>DANS LA VIDÉO.</span></h2><p>Le même téléphone pivote, traverse la scène et devient l’outil d’analyse.</p></div>
+    <div class="copy copy3" data-copy="3"><small>ACTE 04</small><h2>LE DIAGNOSTIC <span>PREND FORME.</span></h2><p>Un problème principal. Un moment précis. Une correction claire.</p></div>
+    <div class="copy copy4" data-copy="4"><small>ACTE 05</small><h2>ANALYSE. CORRIGE. <span>RE-SCORE.</span></h2><p>La meilleure version n’est pas une intuition : elle se compare.</p></div>
+
+    <div class="phoneRig" id="phoneRig">
       <div class="phone" id="phone">
         <div class="screen">
           <div class="screenLayer socialScreen active" id="socialLayer">
             <div class="socialTop"><div class="user"><div class="avatar"></div><span>viralplus.media</span></div><span>Pour toi</span></div>
             <div class="stories"><span></span><span></span><span></span><span></span><span></span></div>
-            <div class="reel">
-              <div class="silhouette"></div>
-              <div class="phoneLogo">VIRAL<b>+</b></div>
-              <div class="reelActions">
-                <div class="reelAction"><i>♥</i><span id="likeCounter">18.9K</span></div>
-                <div class="reelAction"><i>💬</i><span id="commentCounter">1.8K</span></div>
-                <div class="reelAction"><i>↗</i><span id="shareCounter">5.4K</span></div>
-              </div>
-              <div class="reelMeta"><strong>Pourquoi certaines vidéos explosent…</strong><small>…et d’autres restent bloquées à 500 vues ?</small></div>
-            </div>
+            <div class="reel"><div class="silhouette"></div><div class="phoneLogo">VIRAL<b>+</b></div><div class="reelActions"><div class="reelAction"><i>♥</i><span id="likeCounter">18.9K</span></div><div class="reelAction"><i>💬</i><span id="commentCounter">1.8K</span></div><div class="reelAction"><i>↗</i><span id="shareCounter">5.4K</span></div></div><div class="reelMeta"><strong>Pourquoi certaines vidéos explosent…</strong><small>…et d’autres restent bloquées à 500 vues ?</small></div></div>
           </div>
 
           <div class="screenLayer analysisScreen" id="analysisLayer">
             <div class="analysisHead"><span>Viral+</span><small id="analysisState">PRÊT À ANALYSER</small></div>
             <div class="scan" id="scan"></div>
-            <label class="preview" id="dropzone" for="fileInput">
-              <div class="placeholder" id="placeholder">
-                <div class="dropIcon">＋</div>
-                <strong>Dépose ta vidéo ici</strong>
-                <span>ou clique pour l’importer</span>
-                <small>MP4 · MOV · WebM · 95 Mo max</small>
-              </div>
-              <video id="previewVideo" playsinline muted loop controls></video>
-              <div class="videoShade" id="videoShade"><span id="videoFileName">Vidéo chargée</span><button type="button" id="changeVideo">Changer</button></div>
-            </label>
+            <label class="preview" id="dropzone" for="fileInput"><div class="placeholder" id="placeholder"><div class="dropIcon">＋</div><strong>Dépose ta vidéo ici</strong><span>ou clique pour l’importer</span><small>MP4 · MOV · WebM · 95 Mo max</small></div><video id="previewVideo" playsinline muted loop controls></video><div class="videoShade" id="videoShade"><span id="videoFileName">Vidéo chargée</span><button type="button" id="changeVideo">Changer</button></div></label>
             <div class="phoneScore hidden" id="phoneScore"><span>SCORE VIRAL+</span><strong id="scoreNumber">0</strong><small>/100</small></div>
             <div class="timeline"><small id="timelineLabel">Hook</small><div class="timelineBar"><i id="timelineFill"></i></div><small id="timelineText">0:00 → 0:02</small></div>
-            <div class="controls">
-              <button class="analyzeBtn" id="analyzeBtn" disabled>Analyser la vidéo</button>
-            </div>
+            <div class="controls"><button class="analyzeBtn" id="analyzeBtn" disabled>Analyser la vidéo</button></div>
+          </div>
+
+          <div class="screenLayer resultScreen" id="resultLayer">
+            <div class="resultPhoneLogo">VIRAL<b>+</b></div>
+            <div class="resultPhoneScore"><strong id="phoneResultScore">0</strong><small>/100</small></div>
+            <span class="phoneStatus" id="phoneStatus">PRESQUE PRÊTE</span>
+            <h3 id="phoneProblem">Ton hook démarre trop lentement.</h3>
+            <p id="phoneHotspot">00:00 → 00:02</p>
+            <button id="phoneImprove">Voir quoi changer</button>
           </div>
         </div>
       </div>
-
-      <div class="socialBadge b1"><em>IG</em><span id="sViews">124K vues</span></div>
-      <div class="socialBadge b2"><em>TT</em><span id="sLikes">18.9K likes</span></div>
-      <div class="socialBadge b3"><em>YT</em><span id="sFollowers">+4.3K followers</span></div>
-      <div class="socialBadge b4"><em>FB</em><span id="sComments">1.8K commentaires</span></div>
-
-      <div class="float f1" id="cardHook"><div class="k">Hook</div><strong>82</strong><small>Compris immédiatement</small></div>
-      <div class="float f2" id="cardRetention"><div class="k">Rétention</div><strong>71</strong><small>Peut être densifiée</small></div>
-      <div class="float f3" id="cardVisual"><div class="k">Visuel</div><strong>64</strong><small>Ajoute une rupture</small></div>
-      <div class="float f4" id="cardShare"><div class="k">Partage</div><strong>79</strong><small>Bon potentiel</small></div>
     </div>
-  </div>
-</section>
 
-<section class="experience" id="experience">
-  <div class="stickyStage" id="stickyStage">
-    <div class="cinemaBg"><div class="orbital o1"></div><div class="orbital o2"></div><div class="cinemaGlow"></div></div>
-    <div class="cinemaPhoneWrap"><div class="cinemaPhone" id="cinemaPhone"><div class="cinemaScreen"><div class="cinemaLogo">VIRAL<span>+</span></div><div class="cinemaGrid" id="cinemaGrid"><i></i><i></i><i></i><i></i><i></i><i></i></div></div></div></div>
-    <div class="cinemaSphere" id="cinemaSphere"></div>
-    <div class="cinemaCopy" id="cinemaCopy"><small id="cinemaEyebrow">ACTE 01</small><h2 id="cinemaTitle">LA VIRALITÉ ATTIRE.</h2><p id="cinemaText">Mais avant de publier, tu ne sais pas encore ce qui va retenir l’attention.</p></div>
-    <div class="scrollHint">SCROLL <span></span></div>
-  </div>
+    <div class="socialBadge b1"><em>IG</em><span id="sViews">124K vues</span></div><div class="socialBadge b2"><em>TT</em><span id="sLikes">18.9K likes</span></div><div class="socialBadge b3"><em>YT</em><span id="sFollowers">+4.3K followers</span></div><div class="socialBadge b4"><em>FB</em><span id="sComments">1.8K commentaires</span></div>
+    <div class="float f1" id="cardHook"><div class="k">Hook</div><strong>82</strong><small>Compris immédiatement</small></div><div class="float f2" id="cardRetention"><div class="k">Rétention</div><strong>71</strong><small>Peut être densifiée</small></div><div class="float f3" id="cardVisual"><div class="k">Visuel</div><strong>64</strong><small>Ajoute une rupture</small></div><div class="float f4" id="cardShare"><div class="k">Partage</div><strong>79</strong><small>Bon potentiel</small></div>
 
-  <div class="storySteps">
-    <article class="storyStep" data-step="0"><span>01</span><h3>Viralité</h3><p>Les signaux sociaux vivent autour de la vidéo.</p></article>
-    <article class="storyStep" data-step="1"><span>02</span><h3>Blocage</h3><p>Les chiffres ralentissent. Quelque chose casse la rétention.</p></article>
-    <article class="storyStep" data-step="2"><span>03</span><h3>Lecture</h3><p>Le téléphone pivote. Viral+ entre dans le contenu.</p></article>
-    <article class="storyStep" data-step="3"><span>04</span><h3>Diagnostic</h3><p>La scène se reconstruit autour de ce qui compte vraiment.</p></article>
-    <article class="storyStep" data-step="4"><span>05</span><h3>Correction</h3><p>Une meilleure version prend forme avant publication.</p></article>
+    <button class="stageResultCta hidden" id="stageResultCta">Voir le diagnostic complet ↓</button>
+    <div class="scrollRail"><span id="scrollFill"></span></div>
+    <div class="scrollHint" id="scrollHint">SCROLL</div>
   </div>
 </section>
 
 <section class="workspace" id="workspace">
-  <div class="workspaceHead">
-    <div class="eyebrow"><i></i> Une seule scène, jusqu’au résultat</div>
-    <h2>ANALYSE. CORRIGE. <span>RE-SCORE.</span></h2>
-    <p>Le produit devient monétisable quand le score mène à une action claire, puis à une deuxième analyse qui prouve l’amélioration.</p>
-  </div>
-
+  <div class="workspaceHead"><div class="eyebrow"><i></i> Le produit, pas juste le score</div><h2>VOIS LE PROBLÈME. <span>CORRIGE-LE.</span></h2><p>Le rapport complet transforme le diagnostic en actions, puis mesure la nouvelle version.</p></div>
   <div class="resultShell" id="resultShell">
-    <div class="resultEmpty" id="resultEmpty">
-      <strong>Ton diagnostic apparaîtra ici.</strong>
-      <p>Importe une vidéo dans le téléphone puis lance l’analyse.</p>
-      <button class="btn primary" id="resultStart">Choisir une vidéo</button>
-    </div>
-
+    <div class="resultEmpty" id="resultEmpty"><strong>Ton diagnostic apparaîtra ici.</strong><p>Connecte-toi, importe une vidéo et lance l’analyse depuis le téléphone.</p><button class="btn primary" id="resultStart">Analyser une vidéo</button></div>
     <div class="resultContent hidden" id="resultContent">
-      <div class="resultTop">
-        <div class="scoreOrb" id="scoreOrb"><div><strong id="resultScore">0</strong><small>/100</small><span>Score Viral+</span></div></div>
-        <div class="resultVerdict"><span class="statusBadge" id="statusBadge">À retravailler</span><h3 id="resultVerdictTitle">Ta vidéo n’est pas encore prête.</h3><p id="resultVerdictText">Corrige les points prioritaires avant publication.</p></div>
-      </div>
-
-      <div class="diagnosticGrid">
-        <article class="diagnosticCard priority"><div class="cardLabel">Problème principal</div><h4 id="mainProblem">—</h4><p id="mainWhy">—</p></article>
-        <article class="diagnosticCard"><div class="cardLabel">Moment à corriger</div><h4 id="hotspotTime">00:00 → 00:02</h4><p id="hotspotReason">Le hook doit être renforcé.</p></article>
-        <article class="diagnosticCard wide"><div class="cardLabel">Hook recommandé</div><div class="beforeAfter"><div><span>AVANT</span><p id="hookBefore">—</p></div><b>→</b><div><span>APRÈS</span><p id="hookAfter">—</p></div></div></article>
-      </div>
-
-      <div class="actionsBlock">
-        <div class="actionsHead"><div><span>À modifier avant de publier</span><h3>Corrections prioritaires</h3></div><button class="softBtn" id="reanalyseBtn">J’ai corrigé ma vidéo</button></div>
-        <div class="actionList" id="actionList"></div>
-        <div class="premiumTeaser" id="premiumTeaser"><div><small>VIRAL+ CREATOR</small><strong>Débloque toutes les corrections + comparaison avant / après</strong><p>Hook Lab, re-score illimité, historique et mémoire personnalisée.</p></div><div class="price"><strong>19€</strong><span>/mois</span><button id="upgradeBtn">Passer à Creator</button></div></div>
-      </div>
-
+      <div class="resultTop"><div class="scoreOrb" id="scoreOrb"><div><strong id="resultScore">0</strong><small>/100</small><span>Score Viral+</span></div></div><div class="resultVerdict"><span class="statusBadge" id="statusBadge">À retravailler</span><h3 id="resultVerdictTitle">Ta vidéo n’est pas encore prête.</h3><p id="resultVerdictText">Corrige les points prioritaires avant publication.</p><small class="versionLine" id="versionLine"></small></div></div>
+      <div class="diagnosticGrid"><article class="diagnosticCard priority"><div class="cardLabel">CHANGE #1 · Problème principal</div><h4 id="mainProblem">—</h4><p id="mainWhy">—</p></article><article class="diagnosticCard"><div class="cardLabel">Moment à corriger</div><h4 id="hotspotTime">00:00 → 00:02</h4><p id="hotspotReason">Le hook doit être renforcé.</p></article><article class="diagnosticCard wide"><div class="cardLabel">Hook recommandé</div><div class="beforeAfter"><div><span>AVANT</span><p id="hookBefore">—</p></div><b>→</b><div><span>APRÈS</span><p id="hookAfter">—</p></div></div></article></div>
+      <div class="metricDelta hidden" id="metricDelta"></div>
+      <div class="actionsBlock"><div class="actionsHead"><div><span>À modifier avant de publier</span><h3>Corrections prioritaires</h3></div><button class="softBtn" id="reanalyseBtn">J’ai corrigé ma vidéo</button></div><div class="actionList" id="actionList"></div><div class="premiumTeaser hidden" id="premiumTeaser"><div><small>VIRAL+ CREATOR</small><strong>Débloque le diagnostic complet + le re-score</strong><p>20 analyses/mois, corrections complètes, avant/après et historique.</p></div><div class="price"><strong>19€</strong><span>/mois</span><button id="upgradeBtn">Demander l’accès bêta</button></div></div></div>
       <div class="comparePanel hidden" id="comparePanel"><div><small>AVANT</small><strong id="beforeScore">—</strong></div><span>→</span><div><small>APRÈS</small><strong id="afterScore">—</strong></div><b id="deltaScore">+0 points</b></div>
+      <div class="outcomeBlock" id="outcomeBlock"><div><small>APRÈS PUBLICATION</small><h3>Comment cette vidéo a performé ?</h3><p>Ces données servent à vérifier si le score Viral+ prédit réellement une amélioration.</p></div><div class="outcomeForm"><select id="outcomeWindow"><option value="24h">24 h</option><option value="72h">72 h</option><option value="7d">7 jours</option></select><input id="outViews" type="number" min="0" placeholder="Vues"><input id="outShares" type="number" min="0" placeholder="Partages"><input id="outSaves" type="number" min="0" placeholder="Sauvegardes"><input id="outComments" type="number" min="0" placeholder="Commentaires"><input id="outFollowers" type="number" min="0" placeholder="Followers gagnés"><button class="btn primary" id="saveOutcome">Enregistrer</button></div><small id="outcomeStatus"></small></div>
     </div>
   </div>
 </section>
 
-<section class="finalCta"><div><small>VIRAL+</small><h2>PUBLIE UNE VERSION PLUS FORTE.</h2><p>Viral+ ne promet pas la viralité. Il t’aide à publier une meilleure version.</p><button class="btn primary" id="finalAnalyse">Analyser ma prochaine vidéo</button></div></section>
+<section class="historySection" id="history"><div class="historyHead"><div><small>MES VIDÉOS</small><h2>TON HISTORIQUE VIRAL+</h2></div><button class="softBtn" id="refreshHistory">Actualiser</button></div><div class="historyGrid" id="historyGrid"><div class="historyEmpty">Connecte-toi pour retrouver tes analyses.</div></div></section>
+<section class="finalCta"><div><small>VIRAL+</small><h2>PUBLIE UNE VERSION PLUS FORTE.</h2><p>Viral+ ne promet pas la viralité. Il t’aide à améliorer la version que tu choisis de publier.</p><button class="btn primary" id="finalAnalyse">Analyser ma prochaine vidéo</button></div></section>
 </main>
 
-<div class="paywall hidden" id="paywall"><div class="paywallCard"><button class="closePaywall" id="closePaywall">×</button><small>VIRAL+ CREATOR</small><h3>Passe de l’analyse à l’amélioration continue.</h3><p>20 analyses/mois, toutes les corrections, re-score avant/après, Hook Lab et historique.</p><div class="payPrice"><strong>19€</strong><span>/mois</span></div><button class="btn primary" id="paywallCta">Paiement bientôt disponible</button><small class="payNote">Le paiement n’est pas encore activé sur cette version.</small></div></div>
-
+<div class="modal hidden" id="authModal"><div class="modalCard authCard"><button class="closeModal" id="closeAuth">×</button><div class="authBrand">VIRAL<b>+</b></div><h3>Entre dans Viral+</h3><p>3 analyses gratuites pour tester le produit.</p><div class="authTabs"><button class="active" data-auth="login">Connexion</button><button data-auth="signup">Créer un compte</button></div><form id="authForm"><input id="authEmail" type="email" autocomplete="email" placeholder="Email" required><input id="authPassword" type="password" minlength="6" autocomplete="current-password" placeholder="Mot de passe" required><button class="btn primary" id="authSubmit" type="submit">Se connecter</button></form><small id="authMessage"></small></div></div>
+<div class="modal hidden" id="paywall"><div class="modalCard paywallCard"><button class="closeModal" id="closePaywall">×</button><small>VIRAL+ CREATOR</small><h3>Corrige, re-score et compare.</h3><p>20 analyses/mois, toutes les corrections, re-score avant/après et historique complet.</p><div class="payPrice"><strong>19€</strong><span>/mois</span></div><button class="btn primary" id="requestCreator">Demander l’accès bêta Creator</button><small id="upgradeMessage">Le paiement automatique sera activé ensuite.</small></div></div>
+<div class="toast hidden" id="toast"></div>
 <input id="fileInput" class="hidden" type="file" accept="video/*,.mp4,.mov,.webm" />
 <input id="reanalyseInput" class="hidden" type="file" accept="video/*,.mp4,.mov,.webm" />
-<script src="../config.js"></script>
-<script src="../analyzer.js"></script>
-<script src="v4.js"></script>
+<script src="../config.js"></script><script src="product-config.js"></script><script src="v5.js"></script>
 </body>
 </html>
