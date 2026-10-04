@@ -1,0 +1,64 @@
+/* Viral+ V6 — clarity + premium social motion */
+:root{--ig-pink:#ff2f7d;--ig-orange:#ff8a2a;--ig-purple:#7b4dff;--success:#16a36a}
+
+/* Keep the phone as the stable brand object instead of rotating it for decoration. */
+.phoneRig{transform:translate3d(calc(-50% + 19vw),-50%,0) scale(1)!important;transition:transform .45s cubic-bezier(.22,.7,.2,1)}
+.phone{transform:rotateY(-10deg) rotateX(4deg) rotateZ(-1deg)!important;transition:transform .35s ease,box-shadow .35s ease;cursor:pointer}
+.phone:hover{transform:rotateY(-6deg) rotateX(2deg) rotateZ(0deg) scale(1.018)!important;box-shadow:0 55px 130px rgba(74,83,103,.3),inset 0 0 0 1px rgba(255,255,255,.95)}
+
+/* Clearer editorial hierarchy. */
+.copy{max-width:610px}
+.copy h1{font-size:clamp(52px,7.6vw,108px);line-height:.9;max-width:900px}
+.copy h2{font-size:clamp(44px,6.3vw,82px);line-height:.94}
+.copy p{font-size:16px;line-height:1.65;max-width:560px;color:#59616d}
+.copy .eyebrow,.copy>small{font-weight:900}
+.heroStats{margin-top:20px;padding-top:18px;border-top:1px solid rgba(17,17,17,.08);max-width:530px}
+.heroStats strong{font-size:24px}
+
+.v6Promise{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;max-width:600px}
+.v6Promise span{display:inline-flex;align-items:center;gap:7px;padding:8px 11px;border:1px solid rgba(17,17,17,.08);border-radius:999px;background:rgba(255,255,255,.62);backdrop-filter:blur(12px);font-size:10px;font-weight:800;color:#4d5561;box-shadow:0 8px 30px rgba(75,83,100,.06)}
+.v6Promise i{width:6px;height:6px;border-radius:50%;background:linear-gradient(135deg,var(--ig-pink),var(--ig-orange));box-shadow:0 0 12px rgba(255,47,125,.35)}
+
+/* Viral social signals: colorful, restrained and premium. */
+.socialParticle,.viralBurst{position:fixed;z-index:250;pointer-events:none;white-space:nowrap;font-weight:900;letter-spacing:-.02em;filter:drop-shadow(0 10px 16px rgba(45,51,65,.16));animation:viralFly var(--dur,1.55s) cubic-bezier(.16,.75,.25,1) forwards}
+.socialParticle{padding:8px 11px;border-radius:999px;background:rgba(255,255,255,.92);border:1px solid rgba(17,17,17,.08);color:#15171c}
+.viralBurst{font-size:20px;transform:translate(-50%,-50%)}
+.viralBurst.pill{font-size:12px;padding:9px 12px;border-radius:999px;background:rgba(255,255,255,.92);border:1px solid rgba(17,17,17,.08)}
+.viralBurst.like{color:#ff315d}.viralBurst.comment{color:#7b4dff}.viralBurst.share{color:#1686ff}.viralBurst.fire{color:#ff7a1a}
+@keyframes viralFly{0%{opacity:0;transform:translate(-50%,-50%) scale(.72) rotate(0)}12%{opacity:1}70%{opacity:1}100%{opacity:0;transform:translate(calc(-50% + var(--x)),calc(-50% + var(--y))) scale(1.12) rotate(var(--r))}}
+
+.phonePulse{position:fixed;z-index:240;pointer-events:none;width:30px;height:30px;border-radius:50%;border:2px solid rgba(255,49,93,.48);transform:translate(-50%,-50%);animation:pulseRing 900ms ease-out forwards}
+@keyframes pulseRing{0%{opacity:.9;width:24px;height:24px}100%{opacity:0;width:360px;height:360px;border-color:rgba(123,77,255,0)}}
+
+/* Instagram-inspired accents without making the site look like a clone. */
+.avatar{background:linear-gradient(135deg,var(--ig-orange),var(--ig-pink) 48%,var(--ig-purple))!important;box-shadow:0 0 0 2px rgba(255,255,255,.9),0 0 0 3px rgba(255,47,125,.22)}
+.stories span:nth-child(2n){border-color:rgba(255,47,125,.45)}
+.stories span:nth-child(3n){border-color:rgba(123,77,255,.45)}
+.reelAction:nth-child(1) i{background:linear-gradient(135deg,#ff315d,#ff7b67)}
+.reelAction:nth-child(2) i{background:linear-gradient(135deg,#8558ff,#c547ff)}
+.reelAction:nth-child(3) i{background:linear-gradient(135deg,#1b9cff,#4a72ff)}
+
+.v6MicroHint{position:absolute;z-index:25;right:5vw;bottom:5.5vh;display:flex;align-items:center;gap:8px;padding:10px 13px;border-radius:999px;background:rgba(255,255,255,.68);border:1px solid rgba(17,17,17,.08);backdrop-filter:blur(14px);font-size:10px;font-weight:800;color:#68717d;box-shadow:0 12px 36px rgba(63,72,90,.08);pointer-events:none}
+.v6MicroHint b{font-size:15px;color:#ff315d}
+
+.authCard{box-shadow:0 42px 120px rgba(48,55,72,.26),0 0 0 1px rgba(255,255,255,.7)}
+.authCard h3{letter-spacing:-.045em}
+.authTrust{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:12px 0 4px}
+.authTrust span{padding:7px 6px;border-radius:10px;background:#f3f4f7;color:#66707c;font-size:9px;font-weight:800;text-align:center}
+.authSuccess{color:var(--success)!important;font-weight:800}
+
+@media(max-width:900px){
+  .phoneRig{left:50%;top:59%;transform:translate3d(-50%,-50%,0) scale(.82)!important}
+  .phone{transform:rotateY(-4deg) rotateX(2deg) rotateZ(0deg)!important}
+  .phone:hover{transform:rotateY(-4deg) rotateX(2deg) rotateZ(0deg)!important}
+  .copy{left:7vw;right:7vw;top:25%;max-width:none;text-align:left}
+  .copy h1{font-size:clamp(40px,12vw,66px)}
+  .copy h2{font-size:clamp(36px,10vw,56px)}
+  .copy p{font-size:14px;line-height:1.55;max-width:92%}
+  .heroStats{display:none}
+  .v6Promise{gap:5px}.v6Promise span{font-size:8px;padding:6px 8px}
+  .v6MicroHint{right:50%;transform:translateX(50%);bottom:2.2vh}
+  .socialBadge{transform:scale(.86)}
+}
+
+@media(prefers-reduced-motion:reduce){.viralBurst,.phonePulse{display:none}.phone,.phoneRig{transition:none!important}}
