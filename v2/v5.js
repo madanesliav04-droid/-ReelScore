@@ -225,9 +225,15 @@ function setFile(file,isReanalysis=false){
 }
 fileInput.addEventListener('change',e=>{setFile(e.target.files?.[0],false);e.target.value=''});
 reanalyseInput.addEventListener('change',e=>{setFile(e.target.files?.[0],true);e.target.value=''});
+const workspaceUploader=$('workspaceUploader');
 ['dragenter','dragover'].forEach(evt=>dropzone.addEventListener(evt,e=>{e.preventDefault();dropzone.classList.add('dragover')}));
 ['dragleave','drop'].forEach(evt=>dropzone.addEventListener(evt,e=>{e.preventDefault();dropzone.classList.remove('dragover')}));
 dropzone.addEventListener('drop',e=>setFile(e.dataTransfer.files?.[0],false));
+if(workspaceUploader){
+  ['dragenter','dragover'].forEach(evt=>workspaceUploader.addEventListener(evt,e=>{e.preventDefault();workspaceUploader.classList.add('dragover')}));
+  ['dragleave','drop'].forEach(evt=>workspaceUploader.addEventListener(evt,e=>{e.preventDefault();workspaceUploader.classList.remove('dragover')}));
+  workspaceUploader.addEventListener('drop',e=>{e.preventDefault();e.stopPropagation();setFile(e.dataTransfer.files?.[0],false)});
+}
 $('changeVideo').addEventListener('click',e=>{e.preventDefault();e.stopPropagation();fileInput.click()});
 
 function fakeProgress(){
