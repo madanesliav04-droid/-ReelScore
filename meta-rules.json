@@ -2,18 +2,20 @@
   "version": "IG-2026.10.04",
   "platform": "Instagram Reels",
   "last_verified": "2026-10-04",
-  "methodology": "Séparer strictement les signaux officiellement documentés par Meta/Instagram des heuristiques créatives Viral+. Meta ne publie pas les poids exacts de son classement. Viral+ utilise donc les métriques et principes publics de Meta comme garde-fous, puis applique une grille heuristique versionnée pour diagnostiquer le hook, la rétention, la pertinence, l’originalité, le partage et la clarté.",
+  "methodology": "Viral+ ne prétend pas reproduire l’algorithme privé de Meta. Les signaux officiellement documentés servent de garde-fous; le score final est un diagnostic heuristique Viral+ calculé par un moteur déterministe versionné. Une vidéo seule ne fournit pas les vraies métriques de watch time, rétention, likes ou envois: elles ne doivent jamais être présentées comme observées.",
+  "scoring_version": "vp-score-2-strict",
+  "scoring_disclaimer": "Les poids ci-dessous sont propres à Viral+ et ne sont pas les poids de classement de Meta. Les scores 80+ exigent des preuves observables; les scores exceptionnels non suffisamment étayés sont plafonnés.",
   "weights": {
-    "retention": 0.24,
-    "shareability": 0.16,
-    "originality": 0.15,
-    "audience_relevance": 0.12,
-    "spoken_hook": 0.11,
-    "visual_hook": 0.08,
+    "retention": 0.27,
+    "audience_relevance": 0.18,
+    "originality": 0.17,
+    "shareability": 0.14,
+    "spoken_hook": 0.09,
+    "visual_hook": 0.06,
     "clarity": 0.05,
     "value_emotion": 0.04,
-    "title": 0.03,
-    "rhythm": 0.02,
+    "rhythm": 0,
+    "title": 0,
     "cta": 0
   },
   "principles": [
@@ -21,61 +23,63 @@
       "id": "watch_time",
       "status": "official-product-signal",
       "scope": "Instagram Reels insights",
-      "rule": "Traiter le temps de visionnage total et moyen comme des indicateurs de performance importants pour diagnostiquer l’engagement vidéo; utiliser les chutes précoces comme signal de faiblesse du début.",
-      "evidence": "Meta indique que les métriques de temps de visionnage aident les créateurs à comprendre où les spectateurs restent ou décrochent et à ajuster le hook.",
+      "rule": "Le temps de visionnage total et moyen permet de comprendre où les spectateurs restent ou décrochent. Viral+ peut diagnostiquer le potentiel de rétention depuis la vidéo, mais ne peut pas observer le vrai watch time sans données du compte.",
+      "evidence": "Meta présente total watch time et average watch time dans Reels Insights et explique qu’ils aident à comprendre l’engagement et à ajuster le hook.",
       "source": "https://about.fb.com/news/2023/04/instagram-reels-trending-audio-and-gifts-updates/"
     },
     {
       "id": "retention_chart",
       "status": "official-product-signal",
       "scope": "Instagram Reels insights",
-      "rule": "Analyser la rétention moment par moment quand les données de performance du compte sont disponibles; dans une vidéo seule, estimer les moments de friction à partir du contenu sans prétendre disposer de la vraie courbe Instagram.",
-      "evidence": "Meta a déployé une courbe de rétention interactive permettant de voir à quel moment les spectateurs arrêtent de regarder.",
+      "rule": "Quand une courbe de rétention réelle est fournie, l’utiliser comme donnée observée. Sans elle, les points de friction sont des hypothèses éditoriales.",
+      "evidence": "Meta a présenté des outils permettant de voir à quel moment les spectateurs arrêtent de regarder.",
       "source": "https://about.fb.com/news/2023/11/new-ways-to-create-content-on-instagram/"
     },
     {
       "id": "original_content",
       "status": "official-confirmed",
       "scope": "Instagram recommendations",
-      "rule": "Favoriser l’originalité et pénaliser les contenus recyclés ou à faible valeur ajoutée dans le diagnostic de recommandabilité.",
-      "evidence": "Meta a indiqué qu’en Q4 2025, 75% des recommandations Instagram aux États-Unis provenaient de publications originales.",
+      "rule": "L’originalité et l’absence de simple republication sont des éléments importants de recommandabilité.",
+      "evidence": "Meta a indiqué que les recommandations Instagram aux États-Unis comportaient 75% de contenu original au T4 2025 et a détaillé le remplacement des republications par l’original dans les recommandations.",
       "source": "https://about.fb.com/news/2026/01/2026-ai-drives-performance/"
     },
     {
       "id": "recommendation_eligibility",
       "status": "official-confirmed",
       "scope": "Meta recommendations",
-      "rule": "Distinguer performance créative et éligibilité à la recommandation: un contenu peut être autorisé sur la plateforme sans être éligible aux surfaces de recommandation.",
-      "evidence": "Meta explique que ses Recommendation Guidelines déterminent notamment quels contenus peuvent apparaître dans les recommandations.",
+      "rule": "Séparer l’éligibilité aux recommandations de la qualité créative: un contenu peut être autorisé tout en étant exclu de certaines recommandations.",
+      "evidence": "Meta explique publiquement l’existence de Recommendation Guidelines qui déterminent quels contenus sont éligibles aux recommandations.",
       "source": "https://about.fb.com/news/2020/08/recommendation-guidelines/"
     },
     {
       "id": "personalized_relevance",
       "status": "official-confirmed",
       "scope": "Instagram recommendations",
-      "rule": "Évaluer l’adéquation entre sujet, promesse et audience visée; ne pas présenter la viralité comme universelle.",
-      "evidence": "Meta décrit les recommandations comme personnalisées selon les intérêts et interactions des utilisateurs.",
+      "rule": "Les recommandations sont personnalisées; Viral+ doit parler de potentiel pour une audience définie, jamais de viralité universelle.",
+      "evidence": "Meta indique que les recommandations se personnalisent à partir des contenus et comptes avec lesquels les utilisateurs interagissent.",
       "source": "https://about.fb.com/news/2024/11/introducing-recommendations-reset-instagram/"
     },
     {
-      "id": "creator_performance_context",
-      "status": "official-product-signal",
-      "scope": "Creator insights",
-      "rule": "Si des données réelles du compte sont disponibles, les utiliser pour calibrer le diagnostic au contexte de l’audience et aux performances passées du créateur.",
-      "evidence": "Meta développe des outils créateurs utilisant le contenu, les performances, l’audience et les tendances d’engagement pour personnaliser les recommandations.",
-      "source": "https://about.fb.com/news/2026/06/creator-assistant-more-languages-for-ai-translations-on-facebook/"
+      "id": "small_creator_distribution",
+      "status": "official-confirmed",
+      "scope": "Instagram recommendations",
+      "rule": "Le système de recommandation peut tester un contenu éligible auprès d’une petite audience puis élargir sa distribution selon sa performance. Viral+ doit donc évaluer les raisons probables de réussite ou d’échec du contenu, pas promettre un nombre de vues.",
+      "evidence": "Meta a décrit en 2024 un système où du contenu éligible est montré à une petite audience puis à des audiences plus larges selon ses performances.",
+      "source": "https://about.fb.com/news/2024/05/helping-creators-find-new-audiences/"
     },
     {
       "id": "shareability_heuristic",
       "status": "viralplus-heuristic",
       "scope": "Viral+ scoring",
-      "rule": "Évaluer le potentiel de partage comme une heuristique créative — utilité, identité sociale, émotion, surprise ou envie d’envoyer à quelqu’un — et non comme un poids Meta public.",
-      "evidence": "Meta expose des métriques de performance et d’interaction aux créateurs, mais ne publie pas les poids privés de classement.",
-      "source": "https://about.fb.com/news/2023/11/new-ways-to-create-content-on-instagram/"
+      "rule": "Évaluer le potentiel de partage comme une heuristique créative, sans lui attribuer un poids Meta public.",
+      "evidence": "Meta expose des métriques d’interaction aux créateurs, mais ne publie pas la formule ni les poids privés du classement.",
+      "source": "https://about.fb.com/news/2023/04/instagram-reels-trending-audio-and-gifts-updates/"
     }
   ],
   "diagnostics_not_in_distribution_score": {
-    "cta": "CTA is kept as a conversion diagnostic but currently carries no weight in the distribution score because Meta has not published evidence that CTA quality is a recommendation-ranking factor.",
-    "freshness": "Freshness is monitored, but Facebook-specific same-day Reel changes are not automatically applied to Instagram scoring without Instagram-specific confirmation."
+    "cta": "Le CTA reste un diagnostic de conversion et ne pèse pas dans le score de recommandation Viral+.",
+    "production_quality": "La qualité de production seule ne doit pas augmenter artificiellement le score.",
+    "title": "Le titre/texte à l’écran est analysé pour la compréhension, mais ne reçoit pas de poids direct dans le score final.",
+    "real_metrics": "Les vraies métriques de compte (watch time, average watch time, rétention, partages, etc.) doivent être traitées comme données observées uniquement lorsqu’elles sont fournies."
   }
 }
