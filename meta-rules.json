@@ -1,8 +1,8 @@
 {
-  "version": "IG-2026.09.22",
+  "version": "IG-2026.10.04",
   "platform": "Instagram Reels",
-  "last_verified": "2026-09-22",
-  "methodology": "Weights are ReelScore-derived heuristics informed by current official Meta/Instagram signals. Meta does not publish exact ranking weights.",
+  "last_verified": "2026-10-04",
+  "methodology": "Séparer strictement les signaux officiellement documentés par Meta/Instagram des heuristiques créatives Viral+. Meta ne publie pas les poids exacts de son classement. Viral+ utilise donc les métriques et principes publics de Meta comme garde-fous, puis applique une grille heuristique versionnée pour diagnostiquer le hook, la rétention, la pertinence, l’originalité, le partage et la clarté.",
   "weights": {
     "retention": 0.24,
     "shareability": 0.16,
@@ -14,40 +14,64 @@
     "value_emotion": 0.04,
     "title": 0.03,
     "rhythm": 0.02,
-    "cta": 0.00
+    "cta": 0
   },
   "principles": [
+    {
+      "id": "watch_time",
+      "status": "official-product-signal",
+      "scope": "Instagram Reels insights",
+      "rule": "Traiter le temps de visionnage total et moyen comme des indicateurs de performance importants pour diagnostiquer l’engagement vidéo; utiliser les chutes précoces comme signal de faiblesse du début.",
+      "evidence": "Meta indique que les métriques de temps de visionnage aident les créateurs à comprendre où les spectateurs restent ou décrochent et à ajuster le hook.",
+      "source": "https://about.fb.com/news/2023/04/instagram-reels-trending-audio-and-gifts-updates/"
+    },
+    {
+      "id": "retention_chart",
+      "status": "official-product-signal",
+      "scope": "Instagram Reels insights",
+      "rule": "Analyser la rétention moment par moment quand les données de performance du compte sont disponibles; dans une vidéo seule, estimer les moments de friction à partir du contenu sans prétendre disposer de la vraie courbe Instagram.",
+      "evidence": "Meta a déployé une courbe de rétention interactive permettant de voir à quel moment les spectateurs arrêtent de regarder.",
+      "source": "https://about.fb.com/news/2023/11/new-ways-to-create-content-on-instagram/"
+    },
     {
       "id": "original_content",
       "status": "official-confirmed",
       "scope": "Instagram recommendations",
-      "rule": "Original content should be rewarded in analysis. Reposts or low-value transformations should be penalized.",
-      "evidence": "Meta reported that 75% of Instagram recommendations in the US were coming from original posts in Q4 2025, after a 10 percentage point increase.",
+      "rule": "Favoriser l’originalité et pénaliser les contenus recyclés ou à faible valeur ajoutée dans le diagnostic de recommandabilité.",
+      "evidence": "Meta a indiqué qu’en Q4 2025, 75% des recommandations Instagram aux États-Unis provenaient de publications originales.",
       "source": "https://about.fb.com/news/2026/01/2026-ai-drives-performance/"
+    },
+    {
+      "id": "recommendation_eligibility",
+      "status": "official-confirmed",
+      "scope": "Meta recommendations",
+      "rule": "Distinguer performance créative et éligibilité à la recommandation: un contenu peut être autorisé sur la plateforme sans être éligible aux surfaces de recommandation.",
+      "evidence": "Meta explique que ses Recommendation Guidelines déterminent notamment quels contenus peuvent apparaître dans les recommandations.",
+      "source": "https://about.fb.com/news/2020/08/recommendation-guidelines/"
     },
     {
       "id": "personalized_relevance",
       "status": "official-confirmed",
       "scope": "Instagram recommendations",
-      "rule": "Score audience-topic fit and likely relevance; do not treat virality as universal across audiences.",
-      "evidence": "Meta states that recommendations are personalized from user activity and interactions, and has expanded the signals used for personalization.",
-      "source": "https://about.fb.com/news/2025/10/improving-your-recommendations-apps-ai-meta/"
-    },
-    {
-      "id": "broader_personalization",
-      "status": "official-confirmed",
-      "scope": "Meta personalized content",
-      "rule": "Treat audience relevance as dynamic and contextual rather than a fixed content property.",
-      "evidence": "In 2026 Meta announced expanded use of activity from businesses to personalize non-ad content including Feed and AI responses.",
-      "source": "https://about.fb.com/news/2026/06/better-personalization-and-changes-to-controls-for-your-activity-from-other-businesses/"
+      "rule": "Évaluer l’adéquation entre sujet, promesse et audience visée; ne pas présenter la viralité comme universelle.",
+      "evidence": "Meta décrit les recommandations comme personnalisées selon les intérêts et interactions des utilisateurs.",
+      "source": "https://about.fb.com/news/2024/11/introducing-recommendations-reset-instagram/"
     },
     {
       "id": "creator_performance_context",
       "status": "official-product-signal",
-      "scope": "Meta creator insights",
-      "rule": "When account-level performance data becomes available, calibrate recommendations to the creator's own audience and past performance.",
-      "evidence": "Meta's Creator Assistant uses creator content style, performance, audience/community and engagement trends to generate personalized recommendations.",
+      "scope": "Creator insights",
+      "rule": "Si des données réelles du compte sont disponibles, les utiliser pour calibrer le diagnostic au contexte de l’audience et aux performances passées du créateur.",
+      "evidence": "Meta développe des outils créateurs utilisant le contenu, les performances, l’audience et les tendances d’engagement pour personnaliser les recommandations.",
       "source": "https://about.fb.com/news/2026/06/creator-assistant-more-languages-for-ai-translations-on-facebook/"
+    },
+    {
+      "id": "shareability_heuristic",
+      "status": "viralplus-heuristic",
+      "scope": "Viral+ scoring",
+      "rule": "Évaluer le potentiel de partage comme une heuristique créative — utilité, identité sociale, émotion, surprise ou envie d’envoyer à quelqu’un — et non comme un poids Meta public.",
+      "evidence": "Meta expose des métriques de performance et d’interaction aux créateurs, mais ne publie pas les poids privés de classement.",
+      "source": "https://about.fb.com/news/2023/11/new-ways-to-create-content-on-instagram/"
     }
   ],
   "diagnostics_not_in_distribution_score": {
