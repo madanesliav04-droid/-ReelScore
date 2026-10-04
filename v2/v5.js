@@ -120,7 +120,7 @@ $('authForm').addEventListener('submit',async e=>{e.preventDefault();const email
 $('closeAuth').addEventListener('click',closeAuth);authModal.addEventListener('click',e=>{if(e.target===authModal)closeAuth()});
 accountBtn.addEventListener('click',async()=>{if(!session?.user){openAuth();return}if(confirm(`Déconnecter ${session.user.email} ?`)){saveSession(null);entitlement=null;loadHistory();showToast('Déconnecté.')}});
 
-async function scrollToAnalysis(){const ok=await ensureAuth();const target=cinematic.offsetTop+(cinematic.offsetHeight-innerHeight)*.87;scrollTo({top:target,behavior:'smooth'});if(ok)track('analyse_clicked')}
+function scrollToAnalysis(){const target=cinematic.offsetTop+(cinematic.offsetHeight-innerHeight)*.87;scrollTo({top:target,behavior:'smooth'});track('analyse_clicked')}
 ['heroAnalyse','navAnalyse','resultStart','finalAnalyse'].forEach(id=>$(id).addEventListener('click',scrollToAnalysis));$('heroScroll').addEventListener('click',()=>scrollTo({top:cinematic.offsetTop+innerHeight*.85,behavior:'smooth'}));$('brandHome').addEventListener('click',()=>scrollTo({top:0,behavior:'smooth'}));$('phoneImprove').addEventListener('click',()=>document.getElementById('workspace').scrollIntoView({behavior:'smooth'}));stageResultCta.addEventListener('click',()=>document.getElementById('workspace').scrollIntoView({behavior:'smooth'}));$('historyNav').addEventListener('click',()=>document.getElementById('history').scrollIntoView({behavior:'smooth'}));
 
 async function uploadVideoToStorage(file,generation){
