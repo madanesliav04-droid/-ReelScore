@@ -1,5 +1,5 @@
 const GOOGLE_BASE = 'https://generativelanguage.googleapis.com';
-const MAX_BYTES = 95 * 1024 * 1024;
+const MAX_BYTES = 100 * 1024 * 1024;
 const SCORE_FALLBACK = {retention:.24,shareability:.16,originality:.15,audience_relevance:.12,spoken_hook:.11,visual_hook:.08,clarity:.05,value_emotion:.04,title:.03,rhythm:.02,cta:0};
 
 export default {
@@ -39,7 +39,7 @@ export default {
     const displayName = safeName(decodeURIComponentSafe(request.headers.get('x-file-name') || 'video.mp4'));
     if (!mimeType.startsWith('video/')) return await refundAndReturn(env, token, { error: 'Viral+ accepte uniquement les fichiers vidéo.' }, 400, cors);
     if (!Number.isFinite(size) || size <= 0) return await refundAndReturn(env, token, { error: 'Taille de vidéo invalide.' }, 400, cors);
-    if (size > MAX_BYTES) return await refundAndReturn(env, token, { error: `Vidéo trop lourde : ${(size/1048576).toFixed(1)} Mo. Maximum : 95 Mo.` }, 413, cors);
+    if (size > MAX_BYTES) return await refundAndReturn(env, token, { error: `Vidéo trop lourde : ${(size/1048576).toFixed(1)} Mo. Maximum : 100 Mo.` }, 413, cors);
 
     let geminiFileName = null;
     try {
