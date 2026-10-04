@@ -16,7 +16,7 @@ const resultEmpty=$('resultEmpty'),resultContent=$('resultContent'),resultScore=
 const stageResultCta=$('stageResultCta'),phoneResultScore=$('phoneResultScore'),phoneStatus=$('phoneStatus'),phoneProblem=$('phoneProblem'),phoneHotspot=$('phoneHotspot');
 
 let session=null, entitlement=null, authMode='login', lastHoverBurst=0, pendingFile=null, pendingReanalysis=false;
-let currentFile=null, objectUrl=null, currentAnalysis=null, baselineAnalysis=null, reanalysisMode=false, analyzing=false, counterTimer=0, scrollRAF=0, mouseRAF=0, resultMode=false, storagePath=null, storageUpload=null, uploadGeneration=0;
+let currentFile=null, objectUrl=null, currentAnalysis=null, baselineAnalysis=null, reanalysisMode=false, analyzing=false, counterTimer=0, scrollRAF=0, mouseRAF=0, resultMode=false, storagePath=null, storageUpload=null, uploadGeneration=0, analysisStartedAt=0, analysisProgressTimer=null;
 
 function clamp(v,a=0,b=1){return Math.max(a,Math.min(b,v))}
 function mix(a,b,t){return a+(b-a)*t}
@@ -232,20 +232,27 @@ function fakeProgress(){
   timelineFill.classList.add('indeterminate');
   timelineFill.style.width='32%';
   timelineLabel.textContent='Analyse';
-  timelineText.textContent='Lecture audio + visuel';
+  analysisStartedAt=Date.now();
   const steps=[
-    [1200,'LECTURE AUDIO + VISUEL'],
-    [5200,'DÉTECTION DU HOOK'],
-    [9800,'ANALYSE DE LA RÉTENTION'],
-    [14500,'ANALYSE DU PARTAGE'],
-    [20000,'CONSTRUCTION DU DIAGNOSTIC']
+    [0,'PRÉPARATION DU DIAGNOSTIC'],
+    [3500,'LECTURE AUDIO + VISUEL'],
+    [9000,'DÉTECTION DU HOOK'],
+    [16000,'ANALYSE DE LA STRUCTURE'],
+    [24000,'ÉVALUATION DU POTENTIEL DE PARTAGE'],
+    [32000,'CONSTRUCTION DU DIAGNOSTIC'],
+    [45000,'FINALISATION DU SCORE']
   ];
-  return steps.map(([ms,label])=>setTimeout(()=>{
-    analysisState.textContent=label;
-    timelineText.textContent=label.toLowerCase();
-  },ms));
+  steps.forEach(([ms,label])=>setTimeout(()=>{if(analyzing){analysisState.textContent=label;timelineText.textContent=label.toLowerCase()}},ms));
+  clearInterval(analysisProgressTimer);
+  analysisProgressTimer=setInterval(()=>{
+    if(!analyzing)return;
+    const elapsed=Math.floor((Date.now()-analysisStartedAt)/1000);
+    timelineText.textContent=`analyse en cours · ${elapsed}s`;
+    analysisState.textContent=elapsed>45?'LE MOTEUR FINALISE LE DIAGNOSTIC':'ANALYSE VIDÉO RÉELLE';
+  },1000);
+  return [];
 }
-function clearTimers(ts){ts.forEach(clearTimeout)}
+function clearTimers(ts){ts.forEach(clearTimeout);clearInterval(analysisProgressTimer);analysisProgressTimer=null}
 async function runAnalysis(){
   if(!currentFile||analyzing)return;
   if(!await ensureAuth())return;
