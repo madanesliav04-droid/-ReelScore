@@ -14,3 +14,24 @@
 @media(max-width:980px){.phoneRig{transform:translate3d(13vw,-50%,0)}.copy{left:4vw;max-width:520px}.copy h1{font-size:10vw}.float{min-width:116px}.historyGrid{grid-template-columns:1fr 1fr}.outcomeBlock{grid-template-columns:1fr}}
 @media(max-width:720px){.nav{left:10px;right:10px}.navright .ghost,.usagePill{display:none}.navpill{padding:0 12px}.cinematic{height:460vh}.copy{left:16px;right:16px;top:15%;transform:none;max-width:none}.copy h1,.copy h2{font-size:14vw}.copy p{font-size:13px;max-width:88%}.phoneRig{left:50%;top:61%;transform:translate(-50%,-50%)}.phone{width:min(304px,78vw)}.socialBadge{display:none}.float{min-width:102px;padding:9px 10px}.float strong{font-size:22px}.f1{left:2px;top:44vh}.f2{right:2px;top:46vh}.f3{left:2px;bottom:8vh}.f4{right:2px;bottom:9vh}.mediaGrid{width:90vw}.sphere{width:78vw}.workspace,.historySection{padding-left:16px;padding-right:16px}.workspaceHead h2,.historyHead h2{font-size:14vw}.resultContent{padding:20px}.resultTop{grid-template-columns:1fr;text-align:center}.scoreOrb{margin:auto}.diagnosticGrid{grid-template-columns:1fr}.diagnosticCard.wide{grid-column:auto}.beforeAfter{grid-template-columns:1fr}.beforeAfter b{transform:rotate(90deg)}.actionsHead{align-items:flex-start;flex-direction:column}.premiumTeaser{flex-direction:column;align-items:flex-start}.price{text-align:left}.comparePanel{flex-wrap:wrap}.outcomeForm{grid-template-columns:1fr 1fr}.historyGrid{grid-template-columns:1fr}.historyHead{align-items:flex-start;flex-direction:column}.stageResultCta{right:16px}.scrollRail{right:8px}.scrollHint{display:none}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.scan,.socialParticle{animation:none!important}}
+
+/* V6.2 — Instagram-native phone scene */
+.igAppBar{position:absolute;z-index:5;top:12px;left:18px;right:18px;height:25px;display:flex;align-items:center;justify-content:space-between;color:#111}
+.igWordmark{font-family:Georgia,serif;font-size:19px;font-weight:700;letter-spacing:-.04em}
+.igAppIcons{display:flex;gap:12px;font-size:17px;line-height:1}
+.igProfile{position:absolute;z-index:4;top:43px;left:16px;right:16px;height:112px;padding:0 2px}
+.igProfileTop{display:flex;align-items:center;gap:12px}
+.igAvatar{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;color:#fff;font-family:Sora,sans-serif;font-size:19px;font-weight:800;background:linear-gradient(145deg,#111 20%,#b31326 65%,#c9d3f2);box-shadow:0 0 0 3px #fff,0 0 0 5px rgba(179,19,38,.45)}
+.igStats{display:flex;flex:1;justify-content:space-around;text-align:center}
+.igStats b{display:block;font-size:11px}.igStats span{display:block;font-size:7px;color:#68707d;margin-top:2px}
+.igName{display:inline-flex;align-items:center;gap:5px;font-size:11px;margin-top:5px}.verified{display:grid;place-items:center;width:12px;height:12px;border-radius:50%;background:#111;color:#fff;font-size:8px}
+.igHandle{font-size:8px;color:#68707d;margin-top:1px}
+.igBio{font-size:8px;line-height:1.35;margin-top:3px;color:#2d3138}
+.igFollowRow{display:flex;gap:5px;margin-top:5px}.igFollowRow button{height:21px;padding:0 18px;border:1px solid #d7dbe1;border-radius:6px;background:#fff;font-size:8px;font-weight:700}.igFollowRow span{margin-left:auto;font-size:12px;letter-spacing:1px}
+.reel{top:164px!important;bottom:16px!important;border-radius:23px}
+.reelAccount{position:absolute;z-index:5;left:13px;right:13px;top:10px;display:flex;align-items:center;gap:7px;color:#fff;text-shadow:0 1px 8px rgba(0,0,0,.35)}
+.miniAvatar{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(145deg,#111,#b31326);font-size:7px;font-weight:800}
+.reelAccount span:not(.miniAvatar){display:flex;flex-direction:column;font-size:9px}.reelAccount small{font-size:7px;opacity:.72;margin-top:1px}.reelAccount i{font-style:normal;margin-left:auto;font-size:11px}
+.reelMeta{bottom:18px!important}
+.reelActions{bottom:76px!important}
+@media(max-width:720px){.igProfile{top:42px}.reel{top:160px!important}.igStats b{font-size:10px}.igStats span{font-size:6px}}
