@@ -120,54 +120,52 @@ async function scrollToAnalysis(){const ok=await ensureAuth();const target=cinem
 async function uploadVideoToStorage(file,generation){
   const token=await getToken();
   if(!token) throw new Error('Session expirée. Reconnecte-toi.');
-  if(!window.tus?.Upload) throw new Error('Le module d’upload n’est pas disponible. Recharge la page.');
   const safeBase=(file.name||'video.mp4').replace(/[^a-zA-Z0-9._-]/g,'_').slice(-100);
   const path=`${session.user.id}/${Date.now()}-${Math.random().toString(36).slice(2,10)}-${safeBase}`;
-  const endpoint=`https://eiypztjpmxdiuaqxjuqx.storage.supabase.co/storage/v1/upload/resumable`;
   analyzeBtn.disabled=true;
   analyzeBtn.textContent='Upload 0%…';
   analysisState.textContent='UPLOAD DE LA VIDÉO';
   return new Promise((resolve,reject)=>{
-    const upload=new tus.Upload(file,{
-      endpoint,
-      retryDelays:[0,3000,5000,10000,20000],
-      chunkSize:6*1024*1024,
-      uploadDataDuringCreation:true,
-      removeFingerprintOnSuccess:true,
-      headers:{Authorization:`Bearer ${token}`,apikey:SUPABASE_KEY,'x-upsert':'true'},
-      metadata:{bucketName:'viralplus-videos',objectName:path,contentType:file.type||'video/mp4',cacheControl:'3600'},
-      onProgress:(uploaded,total)=>{
-        if(generation!==uploadGeneration)return;
-        const pct=Math.max(0,Math.min(100,Math.round(uploaded/total*100)));
-        analyzeBtn.textContent=`Upload ${pct}%…`;
-        timelineLabel.textContent='Upload';
-        timelineText.textContent=`${pct}%`;
-        timelineFill.style.width=pct+'%';
-      },
-      onError:(err)=>{
-        if(generation!==uploadGeneration)return;
-        reject(new Error('Échec de l’upload. Vérifie ta connexion puis réessaie.'));
-      },
-      onSuccess:async()=>{
-        if(generation!==uploadGeneration)return;
-        try{
-          const parts=path.split('/').map(encodeURIComponent).join('/');
-          const r=await fetch(`${SUPABASE_URL}/storage/v1/object/sign/viralplus-videos/${parts}`,{
-            method:'POST',headers:{apikey:SUPABASE_KEY,Authorization:`Bearer ${token}`,'Content-Type':'application/json'},
-            body:JSON.stringify({expiresIn:900})
-          });
-          const d=await r.json().catch(()=>({}));
-          if(!r.ok||!d.signedURL)throw new Error(d.message||d.error||'Impossible de préparer l’analyse.');
-          storagePath=path;
-          resolve(d.signedURL.startsWith('http')?d.signedURL:`${SUPABASE_URL}/storage/v1${d.signedURL}`);
-        }catch(e){reject(e)}
+    const xhr=new XMLHttpRequest();
+    const endpoint=`${SUPABASE_URL}/storage/v1/object/viralplus-videos/${path.split('/').map(encodeURIComponent).join('/')}`;
+    xhr.open('POST',endpoint,true);
+    xhr.setRequestHeader('Authorization',`Bearer ${token}`);
+    xhr.setRequestHeader('apikey',SUPABASE_KEY);
+    xhr.setRequestHeader('Content-Type',file.type||'video/mp4');
+    xhr.setRequestHeader('x-upsert','true');
+    xhr.upload.onprogress=(e)=>{
+      if(generation!==uploadGeneration)return;
+      if(!e.lengthComputable)return;
+      const pct=Math.max(0,Math.min(100,Math.round(e.loaded/e.total*100)));
+      analyzeBtn.textContent=`Upload ${pct}%…`;
+      timelineLabel.textContent='Upload';
+      timelineText.textContent=`${pct}%`;
+      timelineFill.style.width=pct+'%';
+    };
+    xhr.onerror=()=>{if(generation===uploadGeneration)reject(new Error('Échec de l’upload. Vérifie ta connexion puis réessaie.'))};
+    xhr.onabort=()=>{if(generation===uploadGeneration)reject(new Error('Upload interrompu.'))};
+    xhr.onload=async()=>{
+      if(generation!==uploadGeneration)return;
+      let d={};try{d=JSON.parse(xhr.responseText||'{}')}catch{}
+      if(xhr.status<200||xhr.status>=300){
+        reject(new Error(d.message||d.error||`Échec de l’upload (${xhr.status}).`));
+        return;
       }
-    });
-    storageUpload=upload;
-    upload.findPreviousUploads().then(prev=>{
-      if(prev.length)upload.resumeFromPreviousUpload(prev[0]);
-      upload.start();
-    }).catch(()=>upload.start());
+      try{
+        const parts=path.split('/').map(encodeURIComponent).join('/');
+        const r=await fetch(`${SUPABASE_URL}/storage/v1/object/sign/viralplus-videos/${parts}`,{
+          method:'POST',
+          headers:{apikey:SUPABASE_KEY,Authorization:`Bearer ${token}`,'Content-Type':'application/json'},
+          body:JSON.stringify({expiresIn:900})
+        });
+        const sd=await r.json().catch(()=>({}));
+        if(!r.ok||!sd.signedURL)throw new Error(sd.message||sd.error||'Impossible de préparer l’analyse.');
+        storagePath=path;
+        resolve(sd.signedURL.startsWith('http')?sd.signedURL:`${SUPABASE_URL}/storage/v1${sd.signedURL}`);
+      }catch(e){reject(e)}
+    };
+    storageUpload={abort:()=>xhr.abort()};
+    xhr.send(file);
   });
 }
 async function prepareVideoUpload(file,isReanalysis,generationArg){
