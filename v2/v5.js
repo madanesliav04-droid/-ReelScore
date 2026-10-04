@@ -115,11 +115,10 @@ accountBtn.addEventListener('click',async()=>{if(!session?.user){openAuth();retu
 async function scrollToAnalysis(){const ok=await ensureAuth();const target=cinematic.offsetTop+(cinematic.offsetHeight-innerHeight)*.87;scrollTo({top:target,behavior:'smooth'});if(ok)track('analyse_clicked')}
 ['heroAnalyse','navAnalyse','resultStart','finalAnalyse'].forEach(id=>$(id).addEventListener('click',scrollToAnalysis));$('heroScroll').addEventListener('click',()=>scrollTo({top:cinematic.offsetTop+innerHeight*.85,behavior:'smooth'}));$('brandHome').addEventListener('click',()=>scrollTo({top:0,behavior:'smooth'}));$('phoneImprove').addEventListener('click',()=>document.getElementById('workspace').scrollIntoView({behavior:'smooth'}));stageResultCta.addEventListener('click',()=>document.getElementById('workspace').scrollIntoView({behavior:'smooth'}));$('historyNav').addEventListener('click',()=>document.getElementById('history').scrollIntoView({behavior:'smooth'}));
 
-async function uploadVideoToStorage(file){
+async function uploadVideoToStorage(file,generation){
   const token=await getToken();
   if(!token) throw new Error('Session expirée. Reconnecte-toi.');
   if(!window.tus?.Upload) throw new Error('Le module d’upload n’est pas disponible. Recharge la page.');
-  const generation=++uploadGeneration;
   const safeBase=(file.name||'video.mp4').replace(/[^a-zA-Z0-9._-]/g,'_').slice(-100);
   const path=`${session.user.id}/${Date.now()}-${Math.random().toString(36).slice(2,10)}-${safeBase}`;
   const endpoint=`https://eiypztjpmxdiuaqxjuqx.storage.supabase.co/storage/v1/upload/resumable`;
@@ -169,12 +168,12 @@ async function uploadVideoToStorage(file){
     }).catch(()=>upload.start());
   });
 }
-async function prepareVideoUpload(file,isReanalysis){
+async function prepareVideoUpload(file,isReanalysis,generationArg){
   storagePath=null;
   storageUpload=null;
-  const myGeneration=++uploadGeneration;
+  const myGeneration=generationArg||uploadGeneration;
   try{
-    await uploadVideoToStorage(file);
+    await uploadVideoToStorage(file,myGeneration);
     if(myGeneration!==uploadGeneration)return false;
     analyzeBtn.disabled=false;
     analyzeBtn.textContent=isReanalysis?'Re-analyser cette version':'Analyser la vidéo';
@@ -215,7 +214,8 @@ function setFile(file,isReanalysis=false){
   showAnalysisLayer();
   previewVideo.play().catch(()=>{});
   track('video_selected',{name:file.name,size:file.size,reanalysis:isReanalysis});
-  prepareVideoUpload(file,isReanalysis);
+  const generation=uploadGeneration;
+  prepareVideoUpload(file,isReanalysis,generation);
 }
 fileInput.addEventListener('change',e=>{setFile(e.target.files?.[0],false);e.target.value=''});
 reanalyseInput.addEventListener('change',e=>{setFile(e.target.files?.[0],true);e.target.value=''});
