@@ -268,6 +268,7 @@ async function runAnalysis(){
       'Content-Type':'application/json',
       'X-File-Name':encodeURIComponent(currentFile.name||'video.mp4'),
       'X-File-Size':String(currentFile.size),
+      'X-Video-Mime-Type':currentFile.type||'video/mp4',
       'X-Reanalysis':reanalysisMode?'1':'0'
     };
     if(reanalysisMode&&baselineAnalysis?.analysis_id)headers['X-Baseline-Analysis-Id']=baselineAnalysis.analysis_id;
