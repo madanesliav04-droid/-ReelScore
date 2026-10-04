@@ -1,4 +1,4 @@
 window.LIAV_CONFIG = {
-  SUPABASE_URL: "",
-  SUPABASE_ANON_KEY: ""
+  LEAD_INTAKE_URL: "https://eiypztjpmxdiuaqxjuqx.supabase.co/functions/v1/lead-intake",
+  CRM_API_URL: "https://eiypztjpmxdiuaqxjuqx.supabase.co/functions/v1/crm-api"
 };
