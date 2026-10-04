@@ -16,7 +16,7 @@ const resultEmpty=$('resultEmpty'),resultContent=$('resultContent'),resultScore=
 const stageResultCta=$('stageResultCta'),phoneResultScore=$('phoneResultScore'),phoneStatus=$('phoneStatus'),phoneProblem=$('phoneProblem'),phoneHotspot=$('phoneHotspot');
 
 let session=null, entitlement=null, authMode='login', lastHoverBurst=0;
-let currentFile=null, objectUrl=null, currentAnalysis=null, baselineAnalysis=null, reanalysisMode=false, analyzing=false, counterTimer=0, scrollRAF=0, mouseRAF=0, resultMode=false;
+let currentFile=null, objectUrl=null, currentAnalysis=null, baselineAnalysis=null, reanalysisMode=false, analyzing=false, counterTimer=0, scrollRAF=0, mouseRAF=0, resultMode=false, storagePath=null, storageUpload=null, uploadGeneration=0;
 
 function clamp(v,a=0,b=1){return Math.max(a,Math.min(b,v))}
 function mix(a,b,t){return a+(b-a)*t}
@@ -115,8 +115,114 @@ accountBtn.addEventListener('click',async()=>{if(!session?.user){openAuth();retu
 async function scrollToAnalysis(){const ok=await ensureAuth();const target=cinematic.offsetTop+(cinematic.offsetHeight-innerHeight)*.87;scrollTo({top:target,behavior:'smooth'});if(ok)track('analyse_clicked')}
 ['heroAnalyse','navAnalyse','resultStart','finalAnalyse'].forEach(id=>$(id).addEventListener('click',scrollToAnalysis));$('heroScroll').addEventListener('click',()=>scrollTo({top:cinematic.offsetTop+innerHeight*.85,behavior:'smooth'}));$('brandHome').addEventListener('click',()=>scrollTo({top:0,behavior:'smooth'}));$('phoneImprove').addEventListener('click',()=>document.getElementById('workspace').scrollIntoView({behavior:'smooth'}));stageResultCta.addEventListener('click',()=>document.getElementById('workspace').scrollIntoView({behavior:'smooth'}));$('historyNav').addEventListener('click',()=>document.getElementById('history').scrollIntoView({behavior:'smooth'}));
 
-function setFile(file,isReanalysis=false){if(!file)return;if(file.size>95*1024*1024){showToast('Vidéo trop lourde : 95 Mo maximum.');return}if(!session?.user){openAuth();return}if(objectUrl)URL.revokeObjectURL(objectUrl);objectUrl=URL.createObjectURL(file);currentFile=file;reanalysisMode=isReanalysis;previewVideo.src=objectUrl;dropzone.classList.add('hasVideo');placeholder.classList.add('hidden');videoShade.classList.remove('hidden');videoFileName.textContent=file.name;analyzeBtn.disabled=false;analyzeBtn.textContent=isReanalysis?'Re-analyser cette version':'Analyser la vidéo';analysisState.textContent=isReanalysis?'VERSION CORRIGÉE CHARGÉE':'VIDÉO CHARGÉE';resultMode=false;showAnalysisLayer();previewVideo.play().catch(()=>{});track('video_uploaded',{name:file.name,size:file.size,reanalysis:isReanalysis})}
-fileInput.addEventListener('change',e=>setFile(e.target.files?.[0],false));reanalyseInput.addEventListener('change',e=>setFile(e.target.files?.[0],true));['dragenter','dragover'].forEach(evt=>dropzone.addEventListener(evt,e=>{e.preventDefault();dropzone.classList.add('dragover')}));['dragleave','drop'].forEach(evt=>dropzone.addEventListener(evt,e=>{e.preventDefault();dropzone.classList.remove('dragover')}));dropzone.addEventListener('drop',e=>setFile(e.dataTransfer.files?.[0],false));$('changeVideo').addEventListener('click',e=>{e.preventDefault();e.stopPropagation();fileInput.click()});
+async function uploadVideoToStorage(file){
+  const token=await getToken();
+  if(!token) throw new Error('Session expirée. Reconnecte-toi.');
+  if(!window.tus?.Upload) throw new Error('Le module d’upload n’est pas disponible. Recharge la page.');
+  const generation=++uploadGeneration;
+  const safeBase=(file.name||'video.mp4').replace(/[^a-zA-Z0-9._-]/g,'_').slice(-100);
+  const path=`${session.user.id}/${Date.now()}-${Math.random().toString(36).slice(2,10)}-${safeBase}`;
+  const endpoint=`https://eiypztjpmxdiuaqxjuqx.storage.supabase.co/storage/v1/upload/resumable`;
+  analyzeBtn.disabled=true;
+  analyzeBtn.textContent='Upload 0%…';
+  analysisState.textContent='UPLOAD DE LA VIDÉO';
+  return new Promise((resolve,reject)=>{
+    const upload=new tus.Upload(file,{
+      endpoint,
+      retryDelays:[0,3000,5000,10000,20000],
+      chunkSize:6*1024*1024,
+      uploadDataDuringCreation:true,
+      removeFingerprintOnSuccess:true,
+      headers:{Authorization:`Bearer ${token}`,apikey:SUPABASE_KEY,'x-upsert':'true'},
+      metadata:{bucketName:'viralplus-videos',objectName:path,contentType:file.type||'video/mp4',cacheControl:'3600'},
+      onProgress:(uploaded,total)=>{
+        if(generation!==uploadGeneration)return;
+        const pct=Math.max(0,Math.min(100,Math.round(uploaded/total*100)));
+        analyzeBtn.textContent=`Upload ${pct}%…`;
+        timelineLabel.textContent='Upload';
+        timelineText.textContent=`${pct}%`;
+        timelineFill.style.width=pct+'%';
+      },
+      onError:(err)=>{
+        if(generation!==uploadGeneration)return;
+        reject(new Error('Échec de l’upload. Vérifie ta connexion puis réessaie.'));
+      },
+      onSuccess:async()=>{
+        if(generation!==uploadGeneration)return;
+        try{
+          const parts=path.split('/').map(encodeURIComponent).join('/');
+          const r=await fetch(`${SUPABASE_URL}/storage/v1/object/sign/viralplus-videos/${parts}`,{
+            method:'POST',headers:{apikey:SUPABASE_KEY,Authorization:`Bearer ${token}`,'Content-Type':'application/json'},
+            body:JSON.stringify({expiresIn:900})
+          });
+          const d=await r.json().catch(()=>({}));
+          if(!r.ok||!d.signedURL)throw new Error(d.message||d.error||'Impossible de préparer l’analyse.');
+          storagePath=path;
+          resolve(d.signedURL.startsWith('http')?d.signedURL:`${SUPABASE_URL}/storage/v1${d.signedURL}`);
+        }catch(e){reject(e)}
+      }
+    });
+    storageUpload=upload;
+    upload.findPreviousUploads().then(prev=>{
+      if(prev.length)upload.resumeFromPreviousUpload(prev[0]);
+      upload.start();
+    }).catch(()=>upload.start());
+  });
+}
+async function prepareVideoUpload(file,isReanalysis){
+  storagePath=null;
+  storageUpload=null;
+  const myGeneration=++uploadGeneration;
+  try{
+    await uploadVideoToStorage(file);
+    if(myGeneration!==uploadGeneration)return false;
+    analyzeBtn.disabled=false;
+    analyzeBtn.textContent=isReanalysis?'Re-analyser cette version':'Analyser la vidéo';
+    analysisState.textContent=isReanalysis?'VERSION CORRIGÉE CHARGÉE':'VIDÉO CHARGÉE';
+    timelineLabel.textContent='Prête';
+    timelineFill.style.width='100%';
+    timelineText.textContent='Upload terminé';
+    return true;
+  }catch(e){
+    if(myGeneration!==uploadGeneration)return false;
+    analyzeBtn.disabled=true;
+    analyzeBtn.textContent='Réessayer l’upload';
+    analysisState.textContent='ERREUR UPLOAD';
+    showToast(e.message||'Échec de l’upload.');
+    return false;
+  }
+}
+function setFile(file,isReanalysis=false){
+  if(!file)return;
+  if(file.size>100*1024*1024){showToast('Vidéo trop lourde : 100 Mo maximum.');return}
+  if(!session?.user){openAuth();return}
+  uploadGeneration++;
+  if(storageUpload){try{storageUpload.abort(true)}catch{}}
+  if(objectUrl)URL.revokeObjectURL(objectUrl);
+  objectUrl=URL.createObjectURL(file);
+  currentFile=file;
+  storagePath=null;
+  reanalysisMode=isReanalysis;
+  previewVideo.src=objectUrl;
+  dropzone.classList.add('hasVideo');
+  placeholder.classList.add('hidden');
+  videoShade.classList.remove('hidden');
+  videoFileName.textContent=file.name;
+  analyzeBtn.disabled=true;
+  analyzeBtn.textContent='Upload 0%…';
+  analysisState.textContent='UPLOAD DE LA VIDÉO';
+  resultMode=false;
+  showAnalysisLayer();
+  previewVideo.play().catch(()=>{});
+  track('video_selected',{name:file.name,size:file.size,reanalysis:isReanalysis});
+  prepareVideoUpload(file,isReanalysis);
+}
+fileInput.addEventListener('change',e=>{setFile(e.target.files?.[0],false);e.target.value=''});
+reanalyseInput.addEventListener('change',e=>{setFile(e.target.files?.[0],true);e.target.value=''});
+['dragenter','dragover'].forEach(evt=>dropzone.addEventListener(evt,e=>{e.preventDefault();dropzone.classList.add('dragover')}));
+['dragleave','drop'].forEach(evt=>dropzone.addEventListener(evt,e=>{e.preventDefault();dropzone.classList.remove('dragover')}));
+dropzone.addEventListener('drop',e=>setFile(e.dataTransfer.files?.[0],false));
+$('changeVideo').addEventListener('click',e=>{e.preventDefault();e.stopPropagation();fileInput.click()});
 
 function fakeProgress(){
   analysisState.textContent='ANALYSE VIDÉO RÉELLE';
@@ -140,7 +246,58 @@ function fakeProgress(){
   },ms));
 }
 function clearTimers(ts){ts.forEach(clearTimeout)}
-async function runAnalysis(){if(!currentFile||analyzing)return;if(!await ensureAuth())return;const token=await getToken();if(!token)return;analyzing=true;analyzeBtn.disabled=true;analyzeBtn.textContent='Analyse en cours…';track('analysis_started',{reanalysis:reanalysisMode});const timers=fakeProgress();try{const headers={Authorization:`Bearer ${token}`,'Content-Type':currentFile.type||'video/mp4','X-File-Name':encodeURIComponent(currentFile.name||'video.mp4'),'X-File-Size':String(currentFile.size),'X-Reanalysis':reanalysisMode?'1':'0'};if(reanalysisMode&&baselineAnalysis?.analysis_id)headers['X-Baseline-Analysis-Id']=baselineAnalysis.analysis_id;let r=await fetch(`${API_URL}/analyze`,{method:'POST',headers,body:currentFile});if(r.status===401&&await refreshSession()){headers.Authorization=`Bearer ${session.access_token}`;r=await fetch(`${API_URL}/analyze`,{method:'POST',headers,body:currentFile})}const data=await r.json().catch(()=>({}));if(!r.ok){if(data.code==='CREATOR_REQUIRED'||data.code==='QUOTA_EXHAUSTED'){openPaywall();await refreshEntitlement()}throw new Error(data.error||`Erreur ${r.status}`)}clearTimers(timers);timelineFill.classList.remove('indeterminate');currentAnalysis=data;await animateScore(data.final_score||0);renderPhoneMetrics(data);renderResult(data);showResultLayer(data);resultEmpty.classList.add('hidden');resultContent.classList.remove('hidden');if(reanalysisMode&&baselineAnalysis)renderComparison(baselineAnalysis,data);else{baselineAnalysis=data;comparePanel.classList.add('hidden');metricDelta.classList.add('hidden')}analysisState.textContent='ANALYSE TERMINÉE';analyzeBtn.textContent='Analyse terminée';burstSocial(lowPower?6:10);await refreshEntitlement();await loadHistory();track('analysis_completed',{score:data.final_score,reanalysis:reanalysisMode,score_version:data.score_version});}catch(err){showToast(err.message);analysisState.textContent='ERREUR';analyzeBtn.textContent='Réessayer';analyzeBtn.disabled=false}finally{clearTimers(timers);timelineFill.classList.remove('indeterminate');analysisLayer.classList.remove('busy');analyzing=false}}
+async function runAnalysis(){
+  if(!currentFile||analyzing)return;
+  if(!await ensureAuth())return;
+  const token=await getToken();if(!token)return;
+  if(!storagePath){showToast('La vidéo n’est pas encore prête. Attends la fin de l’upload.');return}
+  analyzing=true;analyzeBtn.disabled=true;analyzeBtn.textContent='Analyse en cours…';
+  track('analysis_started',{reanalysis:reanalysisMode});
+  const timers=fakeProgress();
+  try{
+    const signedParts=storagePath.split('/').map(encodeURIComponent).join('/');
+    const sr=await fetch(`${SUPABASE_URL}/storage/v1/object/sign/viralplus-videos/${signedParts}`,{
+      method:'POST',headers:{apikey:SUPABASE_KEY,Authorization:`Bearer ${token}`,'Content-Type':'application/json'},
+      body:JSON.stringify({expiresIn:900})
+    });
+    const sd=await sr.json().catch(()=>({}));
+    if(!sr.ok||!sd.signedURL)throw new Error(sd.message||sd.error||'Impossible de préparer la vidéo.');
+    const signedUrl=sd.signedURL.startsWith('http')?sd.signedURL:`${SUPABASE_URL}/storage/v1${sd.signedURL}`;
+    const headers={
+      Authorization:`Bearer ${token}`,
+      'Content-Type':'application/json',
+      'X-File-Name':encodeURIComponent(currentFile.name||'video.mp4'),
+      'X-File-Size':String(currentFile.size),
+      'X-Reanalysis':reanalysisMode?'1':'0'
+    };
+    if(reanalysisMode&&baselineAnalysis?.analysis_id)headers['X-Baseline-Analysis-Id']=baselineAnalysis.analysis_id;
+    let r=await fetch(`${API_URL}/analyze`,{method:'POST',headers,body:JSON.stringify({storage_url:signedUrl})});
+    if(r.status===401&&await refreshSession()){
+      headers.Authorization=`Bearer ${session.access_token}`;
+      r=await fetch(`${API_URL}/analyze`,{method:'POST',headers,body:JSON.stringify({storage_url:signedUrl})});
+    }
+    const data=await r.json().catch(()=>({}));
+    if(!r.ok){
+      if(data.code==='CREATOR_REQUIRED'||data.code==='QUOTA_EXHAUSTED'){openPaywall();await refreshEntitlement()}
+      throw new Error(data.error||`Erreur ${r.status}`);
+    }
+    clearTimers(timers);timelineFill.classList.remove('indeterminate');currentAnalysis=data;
+    await animateScore(data.final_score||0);renderPhoneMetrics(data);renderResult(data);showResultLayer(data);
+    resultEmpty.classList.add('hidden');resultContent.classList.remove('hidden');
+    if(reanalysisMode&&baselineAnalysis)renderComparison(baselineAnalysis,data);
+    else{baselineAnalysis=data;comparePanel.classList.add('hidden');metricDelta.classList.add('hidden')}
+    analysisState.textContent='ANALYSE TERMINÉE';analyzeBtn.textContent='Analyse terminée';burstSocial(lowPower?6:10);
+    await refreshEntitlement();await loadHistory();
+    track('analysis_completed',{score:data.final_score,reanalysis:reanalysisMode,score_version:data.score_version});
+    try{
+      const parts=storagePath.split('/').map(encodeURIComponent).join('/');
+      await fetch(`${SUPABASE_URL}/storage/v1/object/viralplus-videos/${parts}`,{method:'DELETE',headers:{apikey:SUPABASE_KEY,Authorization:`Bearer ${token}`}});
+    }catch{}
+    storagePath=null;
+  }catch(err){
+    showToast(err.message);analysisState.textContent='ERREUR';analyzeBtn.textContent='Réessayer';analyzeBtn.disabled=false;
+  }finally{clearTimers(timers);timelineFill.classList.remove('indeterminate');analysisLayer.classList.remove('busy');analyzing=false}
+}
 analyzeBtn.addEventListener('click',runAnalysis);
 function animateScore(target){return new Promise(resolve=>{const start=performance.now(),dur=800;function f(now){const t=Math.min(1,(now-start)/dur),v=Math.round(target*(1-Math.pow(1-t,3)));scoreNumber.textContent=v;if(t<1)requestAnimationFrame(f);else resolve()}requestAnimationFrame(f)})}
 function renderPhoneMetrics(data){const s=data.scores||{};setCard(0,s.spoken_hook??data.final_score,'Hook parlé');setCard(1,s.retention??data.final_score,'Rétention');setCard(2,s.visual_hook??data.final_score,'Hook visuel');setCard(3,s.shareability??data.final_score,'Partage');timelineFill.style.width=Math.max(8,data.final_score)+'%';timelineLabel.textContent='Score';timelineText.textContent=data.final_score+'/100'}
