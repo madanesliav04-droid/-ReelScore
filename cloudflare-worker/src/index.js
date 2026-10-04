@@ -1,307 +1,108 @@
 const GOOGLE_BASE = 'https://generativelanguage.googleapis.com';
 const MAX_BYTES = 95 * 1024 * 1024;
+const SCORE_FALLBACK = {retention:.24,shareability:.16,originality:.15,audience_relevance:.12,spoken_hook:.11,visual_hook:.08,clarity:.05,value_emotion:.04,title:.03,rhythm:.02,cta:0};
 
 export default {
   async fetch(request, env) {
     const origin = request.headers.get('Origin') || '';
     const cors = corsHeaders(origin, env.ALLOWED_ORIGIN);
-
-    if (request.method === 'OPTIONS') {
-      return new Response(null, { status: 204, headers: cors });
-    }
+    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
 
     const url = new URL(request.url);
     if (request.method === 'GET' && url.pathname === '/health') {
-      const primaryModel = env.MODEL || 'gemini-3.8-flash';
-      const fallbackModel = env.FALLBACK_MODEL || 'gemini-3.5-flash-lite';
-      const health = {
-        ok: true,
-        service: 'Viral+ API',
-        model: primaryModel,
-        fallback_model: fallbackModel,
-        gemini_secret_configured: Boolean(env.GEMINI_API_KEY)
-      };
-      if (url.searchParams.get('deep') === '1' && env.GEMINI_API_KEY) {
-        try {
-          const check = await fetch(`${GOOGLE_BASE}/v1beta/models/${encodeURIComponent(primaryModel)}`, {
-            headers: { 'x-goog-api-key': String(env.GEMINI_API_KEY).trim() }
-          });
-          health.gemini_auth_ok = check.ok;
-          health.gemini_status = check.status;
-          if (!check.ok) {
-            try {
-              const body = await check.json();
-              health.gemini_error = classifyGoogleAuth(body?.error?.message || body?.message || '');
-            } catch {
-              health.gemini_error = 'UNKNOWN_AUTH_ERROR';
-            }
-          }
-        } catch {
-          health.gemini_auth_ok = false;
-          health.gemini_error = 'NETWORK_ERROR';
-        }
-      }
-      return json(health, 200, cors);
+      return json({ok:true,service:'Viral+ API',auth_required:true,supabase_configured:Boolean(env.SUPABASE_URL&&env.SUPABASE_PUBLISHABLE_KEY),gemini_secret_configured:Boolean(env.GEMINI_API_KEY),model:env.MODEL||'gemini-3.8-flash',fallback_model:env.FALLBACK_MODEL||'gemini-3.5-flash-lite',score_version:'vp-score-1'},200,cors);
     }
 
-    if (url.pathname !== '/analyze' || request.method !== 'POST') {
-      return json({ error: 'Not found' }, 404, cors);
-    }
+    if (url.pathname !== '/analyze' || request.method !== 'POST') return json({ error: 'Not found' }, 404, cors);
+    if (origin && env.ALLOWED_ORIGIN && origin !== env.ALLOWED_ORIGIN) return json({ error: 'Origin non autorisée.' }, 403, cors);
+    if (!env.GEMINI_API_KEY) return json({ error: 'GEMINI_API_KEY non configurée.' }, 500, cors);
+    if (!env.SUPABASE_URL || !env.SUPABASE_PUBLISHABLE_KEY) return json({ error: 'Backend utilisateur Viral+ non configuré.' }, 500, cors);
 
-    if (origin && env.ALLOWED_ORIGIN && origin !== env.ALLOWED_ORIGIN) {
-      return json({ error: 'Origin non autorisée.' }, 403, cors);
-    }
+    const token = bearer(request.headers.get('Authorization'));
+    if (!token) return json({ error: 'Connecte-toi pour analyser une vidéo.', code: 'AUTH_REQUIRED' }, 401, cors);
+    const auth = await getSupabaseUser(env, token);
+    if (!auth.ok) return json({ error: 'Session expirée. Reconnecte-toi.', code: 'AUTH_REQUIRED' }, 401, cors);
 
-    if (!env.GEMINI_API_KEY) {
-      return json({ error: 'Le secret GEMINI_API_KEY n’est pas configuré sur Cloudflare.' }, 500, cors);
-    }
+    const isReanalysis = request.headers.get('X-Reanalysis') === '1';
+    const baselineAnalysisId = safeUuid(request.headers.get('X-Baseline-Analysis-Id'));
+    const entitlement = await rpc(env, token, 'viralplus_get_entitlement', {});
+    const ent = Array.isArray(entitlement) ? entitlement[0] : entitlement;
+    if (!ent) return json({ error: 'Impossible de vérifier ton offre Viral+.' }, 500, cors);
+    if (isReanalysis && ent.plan !== 'creator') return json({ error: 'Le re-score avant/après est inclus dans Viral+ Creator.', code: 'CREATOR_REQUIRED', plan: ent.plan }, 402, cors);
 
-    const apiKey = String(env.GEMINI_API_KEY).trim().replace(/^['"]|['"]$/g, '');
+    const credit = await rpc(env, token, 'viralplus_consume_credit', {});
+    const c = Array.isArray(credit) ? credit[0] : credit;
+    if (!c?.allowed) return json({ error: 'Tu as utilisé toutes tes analyses disponibles.', code: 'QUOTA_EXHAUSTED', entitlement: c || ent }, 402, cors);
+
     const mimeType = (request.headers.get('content-type') || '').split(';')[0].trim();
-    const rawSize = request.headers.get('x-file-size') || request.headers.get('content-length') || '0';
-    const size = Number(rawSize);
-    const encodedName = request.headers.get('x-file-name') || 'video.mp4';
-    const displayName = safeName(decodeURIComponentSafe(encodedName));
-
-    if (!mimeType.startsWith('video/')) {
-      return json({ error: 'Viral+ accepte uniquement les fichiers vidéo.' }, 400, cors);
-    }
-    if (!Number.isFinite(size) || size <= 0) {
-      return json({ error: 'Taille de vidéo invalide.' }, 400, cors);
-    }
-    if (size > MAX_BYTES) {
-      return json({ error: `Vidéo trop lourde : ${(size / 1048576).toFixed(1)} Mo. Maximum Viral+ : 95 Mo.` }, 413, cors);
-    }
+    const size = Number(request.headers.get('x-file-size') || request.headers.get('content-length') || '0');
+    const displayName = safeName(decodeURIComponentSafe(request.headers.get('x-file-name') || 'video.mp4'));
+    if (!mimeType.startsWith('video/')) return await refundAndReturn(env, token, { error: 'Viral+ accepte uniquement les fichiers vidéo.' }, 400, cors);
+    if (!Number.isFinite(size) || size <= 0) return await refundAndReturn(env, token, { error: 'Taille de vidéo invalide.' }, 400, cors);
+    if (size > MAX_BYTES) return await refundAndReturn(env, token, { error: `Vidéo trop lourde : ${(size/1048576).toFixed(1)} Mo. Maximum : 95 Mo.` }, 413, cors);
 
     let geminiFileName = null;
     try {
+      const apiKey = String(env.GEMINI_API_KEY).trim().replace(/^['"]|['"]$/g, '');
       const rules = await loadRulebook(env.RULEBOOK_URL);
-      const uploaded = await uploadToGemini(request.body, {
-        apiKey,
-        size,
-        mimeType,
-        displayName,
-      });
-
+      const uploaded = await uploadToGemini(request.body, { apiKey, size, mimeType, displayName });
       geminiFileName = uploaded.name;
       const activeFile = await waitForFile(uploaded.name, apiKey);
-      const prompt = buildPrompt(rules);
-      const analysis = await generateAnalysisWithFallback({
-        apiKey,
-        primaryModel: env.MODEL || 'gemini-3.8-flash',
-        fallbackModel: env.FALLBACK_MODEL || 'gemini-3.5-flash-lite',
-        fileUri: activeFile.uri,
-        mimeType: activeFile.mimeType || activeFile.mime_type || mimeType,
-        prompt,
-      });
+      const analysis = await generateAnalysisWithFallback({apiKey,primaryModel:env.MODEL||'gemini-3.8-flash',fallbackModel:env.FALLBACK_MODEL||'gemini-3.5-flash-lite',fileUri:activeFile.uri,mimeType:activeFile.mimeType||activeFile.mime_type||mimeType,prompt:buildPrompt(rules)});
 
       analysis.rulebook_version = analysis.rulebook_version || rules.version || 'unknown';
-      return json(analysis, 200, cors);
+      const finalScore = scoreFinal(analysis.scores || {}, rules.weights || SCORE_FALLBACK);
+      const scoreVersion = `${analysis.rulebook_version}|vp-score-1`;
+      const status = finalScore >= 78 ? 'ready' : finalScore >= 60 ? 'almost' : 'rework';
+      const filtered = filterForPlan(analysis, ent.plan);
+      filtered.final_score = finalScore;
+      filtered.score_version = scoreVersion;
+      filtered.status = status;
+      filtered.plan = ent.plan;
+      filtered.entitlement = {plan:ent.plan,used:c.used,limit:c.analysis_limit,remaining:c.remaining,period_start:c.period_start};
+
+      const hotspot = firstHotspot(filtered.timeline || []);
+      const row = {user_id:auth.user.id,video_name:displayName,final_score:finalScore,score_version:scoreVersion,model_used:analysis.model_used||null,rulebook_version:analysis.rulebook_version||null,is_reanalysis:isReanalysis,baseline_analysis_id:baselineAnalysisId||null,status,main_problem:filtered.main_problem||null,why:filtered.why||null,detected_spoken_hook:filtered.detected_spoken_hook||null,recommended_hook:filtered.recommended_hook||null,hotspot_time:hotspot.time||null,hotspot_reason:hotspot.reason||hotspot.label||null,scores:filtered.scores||{},action_items:filtered.action_items||[],result_json:filtered};
+      const inserted = await supabaseInsert(env, token, 'viralplus_analyses', row);
+      const saved = Array.isArray(inserted) ? inserted[0] : inserted;
+      filtered.analysis_id = saved?.id || null;
+      filtered.baseline_analysis_id = baselineAnalysisId || null;
+      return json(filtered, 200, cors);
     } catch (err) {
       console.error('Viral+ analysis error', err);
+      try { await rpc(env, token, 'viralplus_refund_credit', {}); } catch (refundErr) { console.warn('Refund credit failed', refundErr); }
       return json({ error: friendlyError(err) }, err?.status || 500, cors);
     } finally {
       if (geminiFileName) {
-        try { await deleteGeminiFile(geminiFileName, apiKey); } catch (e) { console.warn('Gemini cleanup failed', e); }
+        try {const apiKey=String(env.GEMINI_API_KEY).trim().replace(/^['"]|['"]$/g,'');await deleteGeminiFile(geminiFileName,apiKey);} catch (e) { console.warn('Gemini cleanup failed', e); }
       }
     }
   }
 };
 
-function corsHeaders(origin, allowedOrigin) {
-  const allowed = origin && allowedOrigin && origin === allowedOrigin ? origin : (allowedOrigin || '*');
-  return {
-    'Access-Control-Allow-Origin': allowed,
-    'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type,X-File-Name,X-File-Size',
-    'Access-Control-Max-Age': '86400',
-    'Vary': 'Origin',
-  };
-}
-
-function json(data, status = 200, extra = {}) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', ...extra },
-  });
-}
-
-function safeName(value) {
-  return String(value || 'video.mp4').replace(/[\r\n]/g, '').slice(0, 120);
-}
-
-function decodeURIComponentSafe(value) {
-  try { return decodeURIComponent(value); } catch { return value; }
-}
-
-async function loadRulebook(url) {
-  if (!url) return fallbackRules();
-  try {
-    const res = await fetch(url, { headers: { 'Accept': 'application/json' }, cf: { cacheTtl: 300, cacheEverything: true } });
-    if (!res.ok) throw new Error(`Rulebook ${res.status}`);
-    return await res.json();
-  } catch (e) {
-    console.warn('Rulebook fallback', e);
-    return fallbackRules();
-  }
-}
-
-function fallbackRules() {
-  return {
-    version: 'fallback',
-    methodology: 'Distinguer les informations officiellement documentées par Meta des heuristiques Viral+. Ne jamais prétendre connaître les poids privés de classement.',
-    principles: [],
-  };
-}
-
-async function uploadToGemini(body, { apiKey, size, mimeType, displayName }) {
-  const start = await fetch(`${GOOGLE_BASE}/upload/v1beta/files`, {
-    method: 'POST',
-    headers: {
-      'x-goog-api-key': apiKey,
-      'X-Goog-Upload-Protocol': 'resumable',
-      'X-Goog-Upload-Command': 'start',
-      'X-Goog-Upload-Header-Content-Length': String(size),
-      'X-Goog-Upload-Header-Content-Type': mimeType,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ file: { display_name: displayName } }),
-  });
-  if (!start.ok) throw await googleError(start, 'Impossible de préparer l’upload Gemini.');
-
-  const uploadUrl = start.headers.get('x-goog-upload-url');
-  if (!uploadUrl) throw new Error('Gemini n’a pas renvoyé d’URL d’upload.');
-
-  const uploadedRes = await fetch(uploadUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': mimeType,
-      'X-Goog-Upload-Offset': '0',
-      'X-Goog-Upload-Command': 'upload, finalize',
-    },
-    body,
-  });
-  if (!uploadedRes.ok) throw await googleError(uploadedRes, 'Échec de l’upload vidéo vers Gemini.');
-
-  const uploaded = await uploadedRes.json();
-  if (!uploaded?.file?.name || !uploaded?.file?.uri) throw new Error('Réponse d’upload Gemini incomplète.');
-  return uploaded.file;
-}
-
-async function waitForFile(name, apiKey) {
-  for (let i = 0; i < 36; i++) {
-    const res = await fetch(`${GOOGLE_BASE}/v1beta/${name}`, { headers: { 'x-goog-api-key': apiKey } });
-    if (!res.ok) throw await googleError(res, 'Impossible de vérifier la vidéo Gemini.');
-    const file = await res.json();
-    const state = String(file.state || '').toUpperCase();
-    if (state === 'ACTIVE') return file;
-    if (state === 'FAILED') throw new Error('Gemini n’a pas réussi à traiter cette vidéo.');
-    await sleep(2500);
-  }
-  throw new Error('Le traitement vidéo Gemini a dépassé le délai prévu. Réessaie avec une vidéo plus courte.');
-}
-
-async function generateAnalysisWithFallback({ apiKey, primaryModel, fallbackModel, fileUri, mimeType, prompt }) {
-  const models = [...new Set([primaryModel, fallbackModel].filter(Boolean))];
-  let lastError = null;
-
-  for (const model of models) {
-    for (let attempt = 0; attempt < 2; attempt++) {
-      try {
-        const analysis = await generateAnalysis({ apiKey, model, fileUri, mimeType, prompt });
-        analysis.model_used = model;
-        return analysis;
-      } catch (err) {
-        lastError = err;
-        if (!isTransientModelError(err)) throw err;
-        if (attempt === 0) await sleep(1500);
-      }
-    }
-  }
-
-  throw lastError || new Error('Tous les modèles Gemini sont temporairement indisponibles.');
-}
-
-async function generateAnalysis({ apiKey, model, fileUri, mimeType, prompt }) {
-  const res = await fetch(`${GOOGLE_BASE}/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
-    method: 'POST',
-    headers: { 'x-goog-api-key': apiKey, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{
-        role: 'user',
-        parts: [
-          { file_data: { mime_type: mimeType, file_uri: fileUri } },
-          { text: prompt },
-        ],
-      }],
-      generationConfig: {
-        temperature: 0.2,
-        responseMimeType: 'application/json',
-      },
-    }),
-  });
-  if (!res.ok) throw await googleError(res, 'Gemini n’a pas pu analyser la vidéo.');
-  const payload = await res.json();
-  const text = (payload?.candidates || []).flatMap(c => c?.content?.parts || []).map(p => p?.text || '').join('').trim();
-  if (!text) throw new Error('Gemini n’a renvoyé aucun diagnostic exploitable.');
-  return parseJsonText(text);
-}
-
-function isTransientModelError(err) {
-  const msg = String(err?.message || err || '');
-  return [429, 500, 502, 503, 504].includes(Number(err?.status)) || /high demand|temporar|overload|unavailable|resource exhausted|try again later/i.test(msg);
-}
-
-function buildPrompt(rules) {
-  const principles = (rules?.principles || []).map(p => `- ${p.id || 'signal'}: ${p.rule || ''} | preuve: ${p.evidence || ''}`).join('\n');
-  return `Tu es le moteur d’analyse de Viral+. Analyse CETTE VIDÉO RÉELLE destinée à Instagram Reels. Tu n’as pas accès à l’algorithme privé de Meta. Ne prétends jamais connaître ses poids secrets et ne promets jamais qu’une vidéo sera virale. Évalue uniquement son potentiel de recommandation/distribution à partir de la vidéo et du référentiel fourni.\n\nRÉFÉRENTIEL VIRAL+ / META ${rules?.version || 'unknown'}\n${rules?.methodology || ''}\n${principles}\n\nDistingue toujours : (A) éléments cohérents avec des informations officielles Meta/Instagram, (B) heuristiques créatives Viral+. Analyse réellement ce qui est visible ET audible. Si un élément n’est pas détectable, écris INDETECTABLE au lieu de l’inventer.\n\nAttribue des scores de 0 à 100 pour : retention, shareability, originality, audience_relevance, spoken_hook, visual_hook, clarity, value_emotion, title, rhythm et cta. Le CTA mesure la conversion et ne doit pas être présenté comme un signal Meta de distribution.\n\nRéponds UNIQUEMENT en JSON valide avec exactement cette structure :\n{"detected_spoken_hook":"...","detected_visual_hook":"...","detected_title_text":"...","detected_cta":"...","scores":{"retention":0,"shareability":0,"originality":0,"audience_relevance":0,"spoken_hook":0,"visual_hook":0,"clarity":0,"value_emotion":0,"title":0,"rhythm":0,"cta":0},"verdict":"...","main_problem":"...","why":"...","meta_alignment":"...","recommended_hook":"...","alternative_hooks":["...","...","..."],"recommended_title":"...","recommended_cta":"...","timeline":[{"time":"0:00","status":"red","label":"Ouverture","reason":"..."}],"action_items":["..."],"confidence":{"audio":0,"visual":0,"text":0,"meta_evidence":0},"rulebook_version":"${rules?.version || 'unknown'}"}`;
-}
-
-function parseJsonText(text) {
-  let cleaned = text.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '');
-  const start = cleaned.indexOf('{');
-  const end = cleaned.lastIndexOf('}');
-  if (start >= 0 && end > start) cleaned = cleaned.slice(start, end + 1);
-  return JSON.parse(cleaned);
-}
-
-async function deleteGeminiFile(name, apiKey) {
-  await fetch(`${GOOGLE_BASE}/v1beta/${name}`, { method: 'DELETE', headers: { 'x-goog-api-key': apiKey } });
-}
-
-async function googleError(response, fallback) {
-  let detail = '';
-  let reason = '';
-  try {
-    const body = await response.json();
-    detail = body?.error?.message || body?.message || '';
-    reason = body?.error?.status || body?.error?.details?.[0]?.reason || '';
-  } catch {}
-  const err = new Error(detail ? `${fallback} ${detail}` : fallback);
-  err.status = response.status >= 400 && response.status < 600 ? response.status : 500;
-  err.googleReason = reason;
-  return err;
-}
-
-function classifyGoogleAuth(msg) {
-  const s = String(msg || '');
-  if (/reported as leaked|leaked/i.test(s)) return 'KEY_BLOCKED_AS_LEAKED';
-  if (/project has been denied access|denied access/i.test(s)) return 'PROJECT_DENIED';
-  if (/api key not valid|invalid api key|API_KEY_INVALID/i.test(s)) return 'KEY_INVALID';
-  if (/access_token_type_unsupported/i.test(s)) return 'AUTH_KEY_FORMAT_OR_COPY_ERROR';
-  if (/permission|unauth|forbidden/i.test(s)) return 'PERMISSION_DENIED';
-  return 'AUTH_ERROR';
-}
-
-function friendlyError(err) {
-  const msg = String(err?.message || err || 'Erreur inconnue');
-  if (/high demand|temporar|overload|unavailable|try again later/i.test(msg)) return 'Les modèles Gemini sont momentanément saturés. Viral+ a déjà essayé le modèle de secours ; réessaie dans quelques minutes.';
-  if (/quota|resource exhausted|429/i.test(msg)) return 'Quota Gemini temporairement atteint. Réessaie dans quelques minutes.';
-  if (/reported as leaked|leaked/i.test(msg)) return 'La clé Gemini a été bloquée par Google car elle est considérée comme exposée. Crée une nouvelle clé Auth dans Google AI Studio puis remplace GEMINI_API_KEY dans Cloudflare.';
-  if (/project has been denied access|denied access/i.test(msg)) return 'Google refuse actuellement l’accès Gemini à ce projet. Dans Google AI Studio, crée ou sélectionne un autre projet puis génère une nouvelle clé Auth.';
-  if (/api key not valid|invalid api key|API_KEY_INVALID|access_token_type_unsupported/i.test(msg)) return 'La clé Gemini est invalide, incomplète ou obsolète. Crée une nouvelle clé Auth dans Google AI Studio et remplace GEMINI_API_KEY dans Cloudflare.';
-  if (/api key|permission|unauth|401|403/i.test(msg)) return 'Gemini refuse la clé du backend. Utilise une nouvelle clé Auth créée dans Google AI Studio (format actuel), puis remplace le secret GEMINI_API_KEY dans Cloudflare.';
-  return msg;
-}
-
-function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+function corsHeaders(origin,allowedOrigin){const allowed=origin&&allowedOrigin&&origin===allowedOrigin?origin:(allowedOrigin||'*');return {'Access-Control-Allow-Origin':allowed,'Access-Control-Allow-Methods':'GET,POST,OPTIONS','Access-Control-Allow-Headers':'Authorization,Content-Type,X-File-Name,X-File-Size,X-Reanalysis,X-Baseline-Analysis-Id','Access-Control-Max-Age':'86400','Vary':'Origin'}}
+function json(data,status=200,extra={}){return new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store',...extra}})}
+function bearer(v=''){const m=String(v).match(/^Bearer\s+(.+)$/i);return m?.[1]||''}
+function safeName(v){return String(v||'video.mp4').replace(/[\r\n]/g,'').slice(0,120)}
+function safeUuid(v){return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(v||''))?String(v):null}
+function decodeURIComponentSafe(v){try{return decodeURIComponent(v)}catch{return v}}
+async function getSupabaseUser(env,token){const r=await fetch(`${env.SUPABASE_URL}/auth/v1/user`,{headers:{apikey:env.SUPABASE_PUBLISHABLE_KEY,Authorization:`Bearer ${token}`}});if(!r.ok)return{ok:false};return{ok:true,user:await r.json()}}
+async function rpc(env,token,fn,body){const r=await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/${fn}`,{method:'POST',headers:{apikey:env.SUPABASE_PUBLISHABLE_KEY,Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify(body||{})});if(!r.ok){const t=await r.text();const e=new Error(`Supabase RPC ${fn}: ${t}`);e.status=r.status;throw e}return await r.json()}
+async function supabaseInsert(env,token,table,row){const r=await fetch(`${env.SUPABASE_URL}/rest/v1/${table}`,{method:'POST',headers:{apikey:env.SUPABASE_PUBLISHABLE_KEY,Authorization:`Bearer ${token}`,'Content-Type':'application/json',Prefer:'return=representation'},body:JSON.stringify(row)});if(!r.ok){const t=await r.text();const e=new Error(`Supabase insert ${table}: ${t}`);e.status=r.status;throw e}return await r.json()}
+async function refundAndReturn(env,token,payload,status,cors){try{await rpc(env,token,'viralplus_refund_credit',{})}catch{}return json(payload,status,cors)}
+function scoreFinal(scores,weights){let total=0,sum=0;for(const[k,wRaw]of Object.entries(weights||SCORE_FALLBACK)){const w=Number(wRaw)||0;total+=w;sum+=(Number(scores?.[k])||0)*w}return Math.round(Math.max(0,Math.min(100,total?sum/total:0)))}
+function firstHotspot(timeline){return timeline.find(x=>/red|orange|weak|bad/i.test(String(x?.status||'')))||timeline[0]||{}}
+function filterForPlan(analysis,plan){const copy=JSON.parse(JSON.stringify(analysis||{}));if(plan==='creator'){copy.locked=[];return copy}copy.action_items=(copy.action_items||[]).slice(0,2);copy.alternative_hooks=[];delete copy.recommended_title;delete copy.recommended_cta;copy.locked=['full_corrections','alternative_hooks','recommended_title','recommended_cta','rescore','history_insights'];return copy}
+async function loadRulebook(url){if(!url)return fallbackRules();try{const r=await fetch(url,{headers:{Accept:'application/json'},cf:{cacheTtl:300,cacheEverything:true}});if(!r.ok)throw new Error(`Rulebook ${r.status}`);return await r.json()}catch(e){console.warn('Rulebook fallback',e);return fallbackRules()}}
+function fallbackRules(){return{version:'fallback',methodology:'Distinguer informations officielles Meta et heuristiques Viral+.',principles:[],weights:SCORE_FALLBACK}}
+async function uploadToGemini(body,{apiKey,size,mimeType,displayName}){const start=await fetch(`${GOOGLE_BASE}/upload/v1beta/files`,{method:'POST',headers:{'x-goog-api-key':apiKey,'X-Goog-Upload-Protocol':'resumable','X-Goog-Upload-Command':'start','X-Goog-Upload-Header-Content-Length':String(size),'X-Goog-Upload-Header-Content-Type':mimeType,'Content-Type':'application/json'},body:JSON.stringify({file:{display_name:displayName}})});if(!start.ok)throw await googleError(start,'Impossible de préparer l’upload Gemini.');const uploadUrl=start.headers.get('x-goog-upload-url');if(!uploadUrl)throw new Error('Gemini n’a pas renvoyé d’URL d’upload.');const uploadedRes=await fetch(uploadUrl,{method:'POST',headers:{'Content-Type':mimeType,'X-Goog-Upload-Offset':'0','X-Goog-Upload-Command':'upload, finalize'},body});if(!uploadedRes.ok)throw await googleError(uploadedRes,'Échec de l’upload vidéo vers Gemini.');const uploaded=await uploadedRes.json();if(!uploaded?.file?.name||!uploaded?.file?.uri)throw new Error('Réponse d’upload Gemini incomplète.');return uploaded.file}
+async function waitForFile(name,apiKey){for(let i=0;i<36;i++){const r=await fetch(`${GOOGLE_BASE}/v1beta/${name}`,{headers:{'x-goog-api-key':apiKey}});if(!r.ok)throw await googleError(r,'Impossible de vérifier la vidéo Gemini.');const f=await r.json();const s=String(f.state||'').toUpperCase();if(s==='ACTIVE')return f;if(s==='FAILED')throw new Error('Gemini n’a pas réussi à traiter cette vidéo.');await sleep(2500)}throw new Error('Le traitement vidéo a dépassé le délai prévu.')}
+async function generateAnalysisWithFallback({apiKey,primaryModel,fallbackModel,fileUri,mimeType,prompt}){const models=[...new Set([primaryModel,fallbackModel].filter(Boolean))];let lastError;for(const model of models){for(let a=0;a<2;a++){try{const x=await generateAnalysis({apiKey,model,fileUri,mimeType,prompt});x.model_used=model;return x}catch(e){lastError=e;if(!isTransientModelError(e))throw e;if(a===0)await sleep(1500)}}}throw lastError||new Error('Tous les modèles sont temporairement indisponibles.')}
+async function generateAnalysis({apiKey,model,fileUri,mimeType,prompt}){const r=await fetch(`${GOOGLE_BASE}/v1beta/models/${encodeURIComponent(model)}:generateContent`,{method:'POST',headers:{'x-goog-api-key':apiKey,'Content-Type':'application/json'},body:JSON.stringify({contents:[{role:'user',parts:[{file_data:{mime_type:mimeType,file_uri:fileUri}},{text:prompt}]}],generationConfig:{temperature:.2,responseMimeType:'application/json'}})});if(!r.ok)throw await googleError(r,'Gemini n’a pas pu analyser la vidéo.');const p=await r.json();const text=(p?.candidates||[]).flatMap(c=>c?.content?.parts||[]).map(x=>x?.text||'').join('').trim();if(!text)throw new Error('Aucun diagnostic exploitable.');return parseJsonText(text)}
+function isTransientModelError(e){const m=String(e?.message||e||'');return[429,500,502,503,504].includes(Number(e?.status))||/high demand|temporar|overload|unavailable|resource exhausted|try again later/i.test(m)}
+function buildPrompt(rules){const principles=(rules?.principles||[]).map(p=>`- ${p.id||'signal'}: ${p.rule||''} | preuve: ${p.evidence||''}`).join('\n');return `Tu es le moteur d’analyse de Viral+. Analyse CETTE VIDÉO RÉELLE destinée à Instagram Reels. Tu n’as pas accès à l’algorithme privé de Meta. Ne prétends jamais connaître ses poids secrets et ne promets jamais la viralité.\n\nRÉFÉRENTIEL ${rules?.version||'unknown'}\n${rules?.methodology||''}\n${principles}\n\nAnalyse ce qui est visible ET audible. Si un élément n’est pas détectable, écris INDETECTABLE. Attribue 0-100 pour retention, shareability, originality, audience_relevance, spoken_hook, visual_hook, clarity, value_emotion, title, rhythm, cta. CTA reste un diagnostic de conversion.\n\nRéponds UNIQUEMENT en JSON valide : {"detected_spoken_hook":"...","detected_visual_hook":"...","detected_title_text":"...","detected_cta":"...","scores":{"retention":0,"shareability":0,"originality":0,"audience_relevance":0,"spoken_hook":0,"visual_hook":0,"clarity":0,"value_emotion":0,"title":0,"rhythm":0,"cta":0},"verdict":"...","main_problem":"...","why":"...","meta_alignment":"...","recommended_hook":"...","alternative_hooks":["...","...","..."],"recommended_title":"...","recommended_cta":"...","timeline":[{"time":"0:00","status":"red","label":"Ouverture","reason":"..."}],"action_items":["..."],"confidence":{"audio":0,"visual":0,"text":0,"meta_evidence":0},"rulebook_version":"${rules?.version||'unknown'}"}`}
+function parseJsonText(text){let c=text.trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/i,'');const s=c.indexOf('{'),e=c.lastIndexOf('}');if(s>=0&&e>s)c=c.slice(s,e+1);return JSON.parse(c)}
+async function deleteGeminiFile(name,apiKey){await fetch(`${GOOGLE_BASE}/v1beta/${name}`,{method:'DELETE',headers:{'x-goog-api-key':apiKey}})}
+async function googleError(response,fallback){let detail='';try{const b=await response.json();detail=b?.error?.message||b?.message||''}catch{}const e=new Error(detail?`${fallback} ${detail}`:fallback);e.status=response.status>=400&&response.status<600?response.status:500;return e}
+function friendlyError(err){const m=String(err?.message||err||'Erreur inconnue');if(/high demand|temporar|overload|unavailable|try again later/i.test(m))return 'Les modèles Gemini sont momentanément saturés. Réessaie dans quelques minutes.';if(/quota|resource exhausted|429/i.test(m))return 'Quota Gemini temporairement atteint.';if(/leaked/i.test(m))return 'La clé Gemini est bloquée et doit être remplacée.';return m}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
