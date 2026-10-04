@@ -7,7 +7,7 @@ const problemText={
 const routeText={
  classplus:{label:'Commencer gratuitement avec CLASS+',lead:'Tu n’as pas besoin d’acheter quoi que ce soit aujourd’hui. Commence par observer, apprendre et exécuter une chose.'},
  method:{label:'Comprendre la méthode',lead:'Tu veux d’abord comprendre la logique. Garde le parcours comme filtre : objectif, diagnostic, voie, roadmap, mission, preuve, résultat.'},
- coaching:{label:'Être accompagné',lead:'Tu es déjà dans une logique d’accompagnement. La prochaine étape sera de vérifier si ta situation correspond à la prochaine session.'}
+ coaching:{label:'Être accompagné',lead:'Tu es déjà dans une logique d’accompagnement. La prochaine étape est de préparer ta candidature pour la prochaine session.'}
 };
 function applyState(){
  document.querySelectorAll('[data-problem]').forEach(el=>el.classList.toggle('active',el.dataset.problem===state.problem));
@@ -26,7 +26,8 @@ document.querySelectorAll('[data-problem]').forEach(btn=>btn.addEventListener('c
 }));
 document.querySelectorAll('[data-route]').forEach(btn=>btn.addEventListener('click',()=>{
  state.route=btn.dataset.route;localStorage.setItem('liav_route',state.route);applyState();
- const target=state.route==='classplus'?'classplus':state.route==='coaching'?'session':'roadmap';
+ if(state.route==='coaching'){setTimeout(()=>{location.href='./apply/';},220);return;}
+ const target=state.route==='classplus'?'classplus':'roadmap';
  setTimeout(()=>document.getElementById(target).scrollIntoView({behavior:'smooth'}),180);
 }));
 const revealObs=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');revealObs.unobserve(e.target)}}),{threshold:.14});
