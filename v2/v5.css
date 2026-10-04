@@ -35,3 +35,9 @@
 .reelMeta{bottom:18px!important}
 .reelActions{bottom:76px!important}
 @media(max-width:720px){.igProfile{top:42px}.reel{top:160px!important}.igStats b{font-size:10px}.igStats span{font-size:6px}}
+
+
+/* Viral+ analysis progress: visualizes active work without inventing a fake score. */
+.timelineFill.indeterminate{position:relative;overflow:hidden;transition:none!important}
+.timelineFill.indeterminate::after{content:"";position:absolute;inset:0;width:45%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.95),transparent);transform:translateX(-120%);animation:viralScan 1.35s ease-in-out infinite}
+@keyframes viralScan{to{transform:translateX(320%)}}
