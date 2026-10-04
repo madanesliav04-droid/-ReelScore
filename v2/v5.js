@@ -264,6 +264,9 @@ async function runAnalysis(){
   if(!await ensureAuth())return;
   const token=await getToken();if(!token)return;
   if(!storagePath){showToast('La vidéo n’est pas encore prête. Attends la fin de l’upload.');return}
+  if(!currentVideoSha256){
+    try{currentVideoSha256=await sha256File(currentFile)}catch{showToast('Impossible de préparer l’empreinte vidéo. Réessaie.');return}
+  }
   analyzing=true;analyzeBtn.disabled=true;analyzeBtn.textContent='Analyse en cours…';
   track('analysis_started',{reanalysis:reanalysisMode});
   const timers=fakeProgress();
