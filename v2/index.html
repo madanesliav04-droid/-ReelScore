@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="v5.css?v=20261004-17" />
+<link rel="stylesheet" href="v5.css?v=20261004-19" />
 </head>
 <body>
 <nav class="nav">
@@ -115,6 +115,51 @@
 <div class="modal hidden" id="paywall"><div class="modalCard paywallCard"><button class="closeModal" id="closePaywall">×</button><small>VIRAL+ CREATOR</small><h3>Corrige, re-score et compare.</h3><p>20 analyses/mois, toutes les corrections, re-score avant/après et historique complet.</p><div class="payPrice"><strong>19€</strong><span>/mois</span></div><button class="btn primary" id="requestCreator">Demander l’accès bêta Creator</button><small id="upgradeMessage">Le paiement automatique sera activé ensuite.</small></div></div>
 <div class="toast hidden" id="toast"></div>
 <input id="reanalyseInput" class="hidden" type="file" accept="video/*,.mp4,.mov,.webm" />
-<script src="../../config.js?v=20261004-12"></script><script src="product-config.js"></script><script src=""></script><script src="v5.js?v=20261004-17"></script>
+<script src="../../config.js?v=20261004-12"></script><script src="product-config.js"></script><script src=""></script><script src="v5.js?v=20261004-19"></script>
+
+<!-- Viral+ inline upload hardening -->
+<style>
+@media (min-width:721px){.phoneRig{top:48%!important}.phone{height:min(66vh,620px)!important}}
+@media (max-width:720px){.phoneRig{top:47%!important}.phone{height:min(63vh,560px)!important}}
+</style>
+<script>
+(function(){
+  function bootUploadFallback(){
+    var dz=document.getElementById('dropzone');
+    if(!dz)return;
+    var input=document.getElementById('fileInput');
+    if(!input){
+      input=document.createElement('input');
+      input.id='fileInput';input.className='dropFileInput';input.type='file';input.accept='video/*,.mp4,.mov,.webm';
+      input.style.position='fixed';input.style.left='-10000px';input.style.width='1px';input.style.height='1px';
+      document.body.appendChild(input);
+    }
+    window.openVideoPicker=function(){
+      var el=document.getElementById('fileInput');
+      if(el)el.click();
+    };
+    if(!dz.__viralPickerBound){
+      dz.__viralPickerBound=true;
+      dz.addEventListener('click',function(e){
+        if(e.target.closest && e.target.closest('#changeVideo'))return;
+        e.preventDefault();e.stopPropagation();window.openVideoPicker();
+      },true);
+    }
+    if(!input.__viralChangeBound){
+      input.__viralChangeBound=true;
+      input.addEventListener('change',function(e){
+        var file=e.target.files&&e.target.files[0];
+        if(!file)return;
+        if(typeof window.setFile==='function'){window.setFile(file,false);return;}
+        var ev=new Event('change',{bubbles:true});
+        input.dispatchEvent(ev);
+      });
+    }
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bootUploadFallback);else bootUploadFallback();
+  setTimeout(bootUploadFallback,500);
+  setTimeout(bootUploadFallback,1500);
+})();
+</script>
 </body>
 </html>
