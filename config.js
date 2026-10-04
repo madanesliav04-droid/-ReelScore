@@ -1,20 +1,27 @@
 window.VIRAL_API_URL = 'https://eiypztjpmxdiuaqxjuqx.supabase.co/functions/v1/viralplus-api';
 
-// V6 product polish is loaded after the existing product code so the live beta can be upgraded safely.
+// Viral+ progressive product polish. V6 handles auth/social interaction; V6.1 cleans hierarchy and scroll narrative.
 if (location.pathname.includes('/v2/')) {
   window.addEventListener('load', () => {
-    if (!document.querySelector('link[data-viral-v6]')) {
+    const addCss = (href, key) => {
+      if (document.querySelector(`link[data-${key}]`)) return;
       const css = document.createElement('link');
       css.rel = 'stylesheet';
-      css.href = 'v6.css';
-      css.dataset.viralV6 = '1';
+      css.href = href;
+      css.setAttribute(`data-${key}`, '1');
       document.head.appendChild(css);
-    }
-    if (!document.querySelector('script[data-viral-v6]')) {
+    };
+    const addJs = (src, key, onload) => {
+      if (document.querySelector(`script[data-${key}]`)) { onload?.(); return; }
       const js = document.createElement('script');
-      js.src = 'v6-patch.js';
-      js.dataset.viralV6 = '1';
+      js.src = src;
+      js.setAttribute(`data-${key}`, '1');
+      if (onload) js.onload = onload;
       document.body.appendChild(js);
-    }
+    };
+
+    addCss('v6.css', 'viral-v6');
+    addCss('v6-1.css', 'viral-v61');
+    addJs('v6-patch.js', 'viral-v6', () => addJs('v6-1-patch.js', 'viral-v61'));
   }, { once: true });
 }
