@@ -42,3 +42,13 @@
 .timelineFill.indeterminate::after{content:"";position:absolute;inset:0;width:45%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.95),transparent);transform:translateX(-120%);animation:viralScan 1.35s ease-in-out infinite}
 @keyframes viralScan{to{transform:translateX(320%)}}
 .dropFileInput{position:fixed;left:-10000px;top:-10000px;width:1px;height:1px;opacity:0;pointer-events:auto}.preview.hasVideo .dropFileInput{position:fixed;left:-10000px;top:-10000px;width:1px;height:1px;opacity:0;pointer-events:auto}.videoShade{pointer-events:none}.videoShade button{pointer-events:auto;position:relative;z-index:25}
+
+/* Final viewport correction: keep the complete hero phone inside the sticky viewport. */
+@media(min-width:721px){
+  .phoneRig{top:48%;}
+  .phone{height:min(66vh,620px);}
+}
+@media(max-width:720px){
+  .phoneRig{top:47%;}
+  .phone{height:min(63vh,560px);}
+}
