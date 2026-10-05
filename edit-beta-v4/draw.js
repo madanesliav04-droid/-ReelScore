@@ -3,8 +3,28 @@ import {els,state,PRESETS} from './state.js';
 export function wordIndexAt(t){let i=state.words.findIndex(w=>t>=w.start&&t<=w.end+.06);if(i<0){const n=state.words.findIndex(w=>w.start>t);i=n>0?n-1:-1}return i}
 function wordAt(t){const i=wordIndexAt(t);if(i<0)return null;const style=els.captionStyle.value,rad=style==='monoline'?1:style==='multiline'?4:2,from=Math.max(0,i-rad),to=Math.min(state.words.length,i+rad+1);return{list:state.words.slice(from,to),current:i-from,index:i}}
 export function punchScale(t){const z=PRESETS[state.preset].zoom;for(const p of state.punchTimes)if(Math.abs(t-p)<.55)return z;return 1}
-export function drawCover(ctx,v,w,h,z=1){const vw=v.videoWidth||1080,vh=v.videoHeight||1920,ta=w/h,sa=vw/vh;let sw,sh,sx,sy;if(sa>ta){sh=vh;sw=vh*ta;sx=(vw-sw)/2;sy=0}else{sw=vw;sh=vw/ta;sx=0;sy=(vh-sh)/2}sw/=z;sh/=z;sx=(vw-sw)/2;sy=(vh-sh)/2;ctx.drawImage(v,sx,sy,sw,sh,0,0,w,h)}
-function drawGenericCover(ctx,media,w,h){const vw=media.videoWidth||media.naturalWidth||1080,vh=media.videoHeight||media.naturalHeight||1920,ta=w/h,sa=vw/vh;let sw,sh,sx,sy;if(sa>ta){sh=vh;sw=vh*ta;sx=(vw-sw)/2;sy=0}else{sw=vw;sh=vw/ta;sx=0;sy=(vh-sh)/2}ctx.drawImage(media,sx,sy,sw,sh,0,0,w,h)}
+
+function sourceSize(media){return[media.videoWidth||media.naturalWidth||1080,media.videoHeight||media.naturalHeight||1920]}
+function orientation(media){const[vw,vh]=sourceSize(media);return vh>vw*1.08?'portrait':vw>vh*1.08?'landscape':'square'}
+function drawFit(ctx,media,w,h,z=1){const[vw,vh]=sourceSize(media),scale=Math.min(w/vw,h/vh)*z,dw=vw*scale,dh=vh*scale,x=(w-dw)/2,y=(h-dh)/2;ctx.drawImage(media,0,0,vw,vh,x,y,dw,dh)}
+function drawFill(ctx,media,w,h,z=1){const[vw,vh]=sourceSize(media),ta=w/h,sa=vw/vh;let sw,sh,sx,sy;if(sa>ta){sh=vh;sw=vh*ta;sx=(vw-sw)/2;sy=0}else{sw=vw;sh=vw/ta;sx=0;sy=(vh-sh)/2}sw/=z;sh/=z;sx=(vw-sw)/2;sy=(vh-sh)/2;ctx.drawImage(media,sx,sy,sw,sh,0,0,w,h)}
+function drawFramed(ctx,media,w,h,z=1,isBroll=false){
+ const mode=els.framingMode?.value||'auto',ori=orientation(media),targetPortrait=h>w;
+ ctx.fillStyle='#07080c';ctx.fillRect(0,0,w,h);
+ if(mode==='fit'){drawFit(ctx,media,w,h,z);return}
+ if(mode==='fill'){drawFill(ctx,media,w,h,z);return}
+ if(mode==='vertical'){
+  if(ori==='portrait'&&targetPortrait){drawFit(ctx,media,w,h,z);return}
+  drawFill(ctx,media,w,h,z);return
+ }
+ // Auto: portrait sources stay intact in portrait outputs; landscape sources fill unless the crop would be extreme.
+ if(targetPortrait&&ori==='portrait'){drawFit(ctx,media,w,h,z);return}
+ if(isBroll&&targetPortrait&&ori==='square'){drawFit(ctx,media,w,h,z);return}
+ drawFill(ctx,media,w,h,z)
+}
+
+export function drawCover(ctx,v,w,h,z=1){drawFramed(ctx,v,w,h,z,false)}
+function drawGenericCover(ctx,media,w,h){drawFramed(ctx,media,w,h,1,true)}
 function roundRect(ctx,x,y,w,h,r){ctx.beginPath();if(ctx.roundRect)ctx.roundRect(x,y,w,h,r);else ctx.rect(x,y,w,h)}
 function wrapText(ctx,text,cx,cy,maxW,lineH){const words=text.split(/\s+/),lines=[];let line='';for(const w of words){const test=line?line+' '+w:w;if(ctx.measureText(test).width>maxW&&line){lines.push(line);line=w}else line=test}if(line)lines.push(line);const y0=cy-(lines.length-1)*lineH/2;lines.slice(0,3).forEach((l,i)=>ctx.fillText(l,cx,y0+i*lineH))}
 function nearestText(t){if(!state.words.length)return state.preset==='podcast'?'MOMENT CLÉ':state.preset==='punch'?'À RETENIR':'POINT IMPORTANT';const i=Math.max(0,wordIndexAt(t));return state.words.slice(i,Math.min(state.words.length,i+6)).map(w=>w.text.toUpperCase()).join(' ')}
