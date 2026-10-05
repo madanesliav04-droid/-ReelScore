@@ -2,7 +2,10 @@ import {els,state,applyAspectUI,updatePresetUI,setProgress,showError,clearError}
 import {handleFile,handleBroll,analyseAudio,transcribeLocal,manualWords,buildVisualPlan} from './media.js';
 import {runRenderWithCompatibility} from './render.js';
 
-els.aspectRatio.addEventListener('change',applyAspectUI);els.quality.addEventListener('change',applyAspectUI);applyAspectUI();
+els.aspectRatio.addEventListener('change',()=>{state.userAspectLocked=true;applyAspectUI()});
+els.quality.addEventListener('change',applyAspectUI);
+els.framingMode.addEventListener('change',()=>{if(els.framingMode.value==='vertical'){els.aspectRatio.value='9:16';state.userAspectLocked=true}applyAspectUI()});
+applyAspectUI();
 els.presetGrid.addEventListener('click',e=>{const b=e.target.closest('.preset');if(!b)return;document.querySelectorAll('.preset').forEach(x=>x.classList.remove('active'));b.classList.add('active');state.preset=b.dataset.preset;updatePresetUI()});updatePresetUI();
 els.videoInput.addEventListener('change',e=>handleFile(e.target.files?.[0]));
 els.brollInput.addEventListener('change',e=>handleBroll(e.target.files));
