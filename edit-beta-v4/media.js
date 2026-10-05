@@ -1,4 +1,4 @@
-import {els,state,PRESETS,clamp,once,bytes,fmt,setProgress,showError,clearError,applyAspectUI} from './state.js';
+import {els,state,PRESETS,clamp,once,bytes,fmt,setProgress,showError,clearError,applyAspectUI} from './state.js?v=43';
 
 function orientationOf(w,h){if(!w||!h)return'unknown';if(h>w*1.08)return'portrait';if(w>h*1.08)return'landscape';return'square'}
 
@@ -12,10 +12,14 @@ export async function handleFile(file){
  try{
   v.load();if(v.readyState<1)await once(v,'loadedmetadata');state.duration=Number(v.duration)||0;if(!state.duration)throw new Error('Durée illisible');if(state.duration>300)throw new Error('Maximum 5 minutes pour cette bêta.');
   state.sourceOrientation=orientationOf(v.videoWidth,v.videoHeight);
-  if(state.sourceOrientation==='portrait'&&!state.userAspectLocked){els.aspectRatio.value='9:16';if(els.framingMode)els.framingMode.value='vertical';applyAspectUI()}
-  else if(state.sourceOrientation==='landscape'&&els.framingMode?.value==='vertical'){els.framingMode.value='auto';applyAspectUI()}
-  const label=state.sourceOrientation==='portrait'?'vertical portrait':state.sourceOrientation==='landscape'?'horizontal paysage':state.sourceOrientation==='square'?'carré':'indéterminée';
-  if(els.orientationState)els.orientationState.innerHTML=`Orientation : <strong>${label}</strong> · ${v.videoWidth||'?'}×${v.videoHeight||'?'}`;
+  if(state.sourceOrientation==='portrait'){
+   if(!state.userAspectLocked)els.aspectRatio.value='9:16';
+   if(!state.userFramingLocked&&els.framingMode)els.framingMode.value='vertical';
+   if(!state.userRotationLocked&&els.sourceRotation)els.sourceRotation.value='auto';
+   applyAspectUI();
+  }
+  const label=state.sourceOrientation==='portrait'?'vertical portrait':state.sourceOrientation==='landscape'?'horizontal/paysage déclaré par Safari':state.sourceOrientation==='square'?'carré':'indéterminée';
+  if(els.orientationState)els.orientationState.innerHTML=`Orientation lue : <strong>${label}</strong> · ${v.videoWidth||'?'}×${v.videoHeight||'?'}${state.sourceOrientation==='landscape'?' · si ton rush est visuellement vertical, utilise Vertical natif + rotation Auto':''}`;
   els.fileMeta.textContent=`${bytes(file.size)} · ${fmt(state.duration)} · ${v.videoWidth||'?'}×${v.videoHeight||'?'} · ${label}`;els.createBtn.disabled=false;els.previewMode.textContent='Rush original';
  }catch(e){showError(`Safari ne peut pas lire correctement ce rush : ${e.message}`)}
 }
