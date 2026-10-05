@@ -9,7 +9,7 @@ async function analyzeWithAI(file,setProgress){
  const ticket=await tr.json();if(!tr.ok||!ticket?.path||!ticket?.token)throw new Error(ticket?.error||'Impossible de préparer l’upload.');
  const uploadUrl=`${base}/storage/v1/object/upload/sign/viralplus-videos/${ticket.path}?token=${encodeURIComponent(ticket.token)}`;
  setProgress('Upload direct…',8);
- await new Promise((resolve,reject)=>{const x=new XMLHttpRequest();x.open('POST',uploadUrl,true);x.setRequestHeader('Content-Type',type);x.upload.onprogress=e=>{if(e.lengthComputable)setProgress('Upload direct…',8+Math.round((e.loaded/e.total)*57))};x.onload=()=>x.status>=200&&x.status<300?resolve():reject(new Error(`Upload impossible (${x.status}).`));x.onerror=()=>reject(new Error('Connexion interrompue pendant l’upload.'));x.send(file)});
+ await new Promise((resolve,reject)=>{const x=new XMLHttpRequest();x.open('POST',uploadUrl,true);x.setRequestHeader('Content-Type',type);x.setRequestHeader('Authorization',`Bearer ${ticket.token}`);x.upload.onprogress=e=>{if(e.lengthComputable)setProgress('Upload direct…',8+Math.round((e.loaded/e.total)*57))};x.onload=()=>{if(x.status>=200&&x.status<300)resolve();else{let msg=`Upload impossible (${x.status}).`;try{const d=JSON.parse(x.responseText||'{}');if(d.message||d.error)msg+=` ${d.message||d.error}`}catch{}reject(new Error(msg))}};x.onerror=()=>reject(new Error('Connexion interrompue pendant l’upload.'));x.send(file)});
  setProgress('Vidéo reçue · traitement IA…',68);
  const pr=await fetch(`${base}/functions/v1/viralplus-process`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:ticket.path,type})});
  let data={};try{data=await pr.json()}catch{}
