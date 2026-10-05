@@ -1,6 +1,6 @@
 'use strict';
 (function(){
-  const loaded=new Set(['Inter']);
+  const loaded=new Set();
   const map={
     'Inter':'Inter:wght@400;500;600;700;800;900',
     'Manrope':'Manrope:wght@400;500;600;700;800',
@@ -19,10 +19,26 @@
     const link=document.createElement('link');
     link.rel='stylesheet';
     link.href=`https://fonts.googleapis.com/css2?family=${family}&display=swap`;
-    document.head.appendChild(link);loaded.add(name);
+    document.head.appendChild(link);
+    loaded.add(name);
+  }
+  function loadPresetFont(select){
+    try{
+      const key=select?.value;
+      const font=window.SUBTITLE_PRESETS?.[key]?.font || (typeof SUBTITLE_PRESETS!=='undefined' ? SUBTITLE_PRESETS[key]?.font : null);
+      if(font)loadFont(font);
+    }catch{}
   }
   window.__editplusLoadFont=loadFont;
   document.addEventListener('change',e=>{
     if(e.target?.id==='captionFont'||e.target?.id==='brandFont')loadFont(e.target.value);
+    if(e.target?.id==='subtitlePreset'||e.target?.id==='editorSubtitlePreset')loadPresetFont(e.target);
+  });
+  // Only load the currently-used caption font after the editor is actually opened.
+  document.addEventListener('click',e=>{
+    if(e.target?.id==='generatePreviewBtn'){
+      const s=document.getElementById('subtitlePreset');
+      loadPresetFont(s);
+    }
   });
 })();
