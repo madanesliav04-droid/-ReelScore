@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#07080c" />
+  <title>Edit Beta V3 — Reel automatique</title>
+  <meta name="description" content="Transforme un rush brut en Reel/TikTok/Short prêt à poster." />
+  <link rel="stylesheet" href="../edit-beta-v2/styles.css" />
+  <style>
+    .format-choice{grid-column:1/-1}.format-choice select{width:100%}.phone-screen{transition:aspect-ratio .25s ease,max-height .25s ease;overflow:hidden;margin:auto;width:100%}.output-area[hidden]{display:none!important}.output-area video{width:100%;display:block;border-radius:20px;background:#000}.result-lock{padding:12px 14px;border-radius:14px;background:rgba(83,214,155,.09);border:1px solid rgba(83,214,155,.2);margin-bottom:12px;font-size:13px;color:#c9f6df}
+  </style>
+</head>
+<body>
+<header class="nav" id="top"><a class="brand" href="#top"><span class="brand-mark">E+</span><span class="brand-name">EDIT <b>BETA V3</b></span></a><div class="nav-actions"><button class="primary-btn compact" onclick="document.getElementById('editor').scrollIntoView({behavior:'smooth'})">Créer un Reel</button></div></header>
+<main>
+<section class="hero"><div class="hero-glow glow-a"></div><div class="hero-glow glow-b"></div><div class="hero-copy"><span class="eyebrow"><i></i> Short-form editor · bêta locale</span><h1>TON RUSH.<br><span>PRÊT À POSTER.</span></h1><p>Choisis le style, le format et la qualité. L’éditeur gère cuts, rythme, punch-ins, captions et export.</p><div class="hero-actions"><button class="primary-btn xl" onclick="document.getElementById('editor').scrollIntoView({behavior:'smooth'})">Importer mon rush →</button></div><div class="platforms"><span>Instagram Reels</span><span>TikTok</span><span>YouTube Shorts</span></div></div></section>
+<section class="editor-section section-pad" id="editor"><div class="editor-head"><div><span class="eyebrow"><i></i> ÉDITEUR</span><h2>Crée ton Reel</h2></div><div class="beta-pill">V3 · MOTEUR IPHONE</div></div>
+<div class="editor-grid"><section class="control-column">
+<article class="panel upload-panel"><div class="panel-head"><span>01</span><div><h3>Rush</h3><p>MP4 / MOV / M4V / WebM · jusqu’à 5 min.</p></div></div><label class="dropzone" for="videoInput"><input id="videoInput" type="file" accept="video/*,.mp4,.mov,.m4v,.webm" /><div class="upload-plus">+</div><strong>Choisir une vidéo</strong><span>Photothèque ou Fichiers</span></label><div class="file-state" id="fileState" hidden><div><strong id="fileName"></strong><span id="fileMeta"></span></div><label for="videoInput">Remplacer</label></div></article>
+<article class="panel"><div class="panel-head"><span>02</span><div><h3>Langage de montage</h3><p>Le preset change réellement le rythme, les cuts et les punch-ins.</p></div></div><div class="preset-grid" id="presetGrid"><button class="preset active" data-preset="authority" type="button"><strong>Authority</strong><small>Facecam · narratif</small></button><button class="preset" data-preset="punch" type="button"><strong>Punch</strong><small>Nerveux · dense</small></button><button class="preset" data-preset="story" type="button"><strong>Story</strong><small>Respirant</small></button><button class="preset" data-preset="ugc" type="button"><strong>UGC Native</strong><small>Naturel</small></button><button class="preset" data-preset="podcast" type="button"><strong>Podcast</strong><small>Conversation</small></button><button class="preset" data-preset="minimal" type="button"><strong>Minimal</strong><small>Clean</small></button></div></article>
+<article class="panel"><div class="panel-head"><span>03</span><div><h3>Format & captions</h3><p>Le format de sortie est maintenant indépendant de la qualité.</p></div></div><div class="setting-grid">
+<label class="format-choice"><span>Format de sortie</span><select id="aspectRatio"><option value="9:16">9:16 · Reel / TikTok / Shorts</option><option value="4:5">4:5 · Feed Instagram</option><option value="1:1">1:1 · Carré</option><option value="16:9">16:9 · YouTube / paysage</option></select></label>
+<label><span>Captions</span><select id="captionStyle"><option value="highlight">Highlight</option><option value="classic">Classic</option><option value="minimal">Minimal</option></select></label>
+<label><span>Police</span><select id="fontStyle"><option value="modern">Modern Bold</option><option value="impact">Impact Clean</option><option value="editorial">Editorial</option></select></label>
+<label><span>Position</span><select id="captionPosition"><option value="low">Bas sécurisé</option><option value="midlow">Centre bas</option><option value="middle">Centre</option></select></label>
+<label><span>Qualité</span><select id="quality"><option value="1080">1080p · recommandé</option><option value="2160">4K · qualité max</option><option value="720">720p · rapide</option></select></label>
+</div><div class="toggle-list"><label class="toggle-row"><input id="removeSilences" type="checkbox" checked><i></i><span><b>Supprimer les temps morts</b><small>Les respirations courtes restent naturelles.</small></span></label></div><details class="manual-transcript"><summary>Ajouter / corriger le texte <span>optionnel</span></summary><textarea id="manualTranscript" rows="5" placeholder="Colle le texte si tu veux des captions synchronisées dans cette V3."></textarea></details></article>
+<article class="panel create-panel"><button class="primary-btn xl full" id="createBtn" type="button" disabled><span>✦</span> Monter automatiquement</button><div class="progress-wrap" id="progressWrap" hidden><div><strong id="progressLabel">Préparation…</strong><span id="progressPct">0%</span></div><div class="progress-track"><i id="progressBar"></i></div><p id="progressDetail"></p></div><div class="error-box" id="errorBox" hidden></div></article>
+</section>
+<aside class="preview-column"><article class="panel preview-panel"><div class="preview-top"><div><small>PREVIEW</small><strong id="previewMode">Rush original</strong></div><span id="formatPill">9:16 · 1080p</span></div><div class="phone-frame"><div class="phone-screen" id="phoneScreen"><video id="sourceVideo" playsinline webkit-playsinline controls preload="metadata"></video><div class="preview-placeholder" id="previewPlaceholder"><div>▶</div><strong>Ton rush apparaîtra ici</strong><span>Le rendu reste sur ton appareil.</span></div><canvas id="renderCanvas" width="1080" height="1920" hidden></canvas></div></div>
+<div class="output-area" id="outputArea" hidden><div class="result-lock">✓ Le rendu est affiché uniquement après création réelle du fichier.</div><div class="output-title"><i></i><div><strong>Reel généré</strong><span id="outputMeta"></span></div></div><video id="outputVideo" playsinline webkit-playsinline controls preload="metadata"></video><a class="download-btn" id="downloadBtn" download>Enregistrer le Reel</a></div></article></aside>
+</div></section>
+<section class="promise section-pad"><div><span>LA PROMESSE</span><h2>Un rush brut → un format choisi → un fichier réellement exporté.</h2><p>La V3 vérifie le fichier final avant d’annoncer que le rendu est terminé.</p></div></section>
+</main>
+<script type="module" src="./app.js"></script>
+</body></html>
