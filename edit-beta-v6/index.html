@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#07070a">
+<title>Edit — AI Short-form Editor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;600;700;800&family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700;800;900&family=League+Spartan:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&family=Montserrat:wght@500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./styles.css?v=6001">
+</head>
+<body>
+<header class="topbar">
+  <a class="logo" href="#">EDIT<span>+</span></a>
+  <div class="statusPill"><i></i><span id="appStatus">Prêt</span></div>
+  <button id="modeToggle" class="ghostBtn" type="button" hidden>Mode avancé</button>
+</header>
+
+<div class="stepper" aria-label="Progression">
+  <button class="step active" data-step="upload"><b>1</b><span>Upload</span></button>
+  <button class="step" data-step="style" disabled><b>2</b><span>Style</span></button>
+  <button class="step" data-step="preview" disabled><b>3</b><span>Preview</span></button>
+  <button class="step" data-step="export" disabled><b>4</b><span>Export</span></button>
+</div>
+
+<main>
+  <section id="uploadStage" class="stage uploadStage">
+    <div class="stageIntro">
+      <span class="kicker">MONTEUR AUTOMATIQUE</span>
+      <h1>Dépose ton rush.<br><em>On s’occupe du montage.</em></h1>
+      <p>Tu choisis le résultat. Le moteur décide des cuts, captions, cadrages et visuels qui ont une vraie raison d’être.</p>
+    </div>
+
+    <label id="dropZone" class="dropZone" for="videoInput">
+      <input id="videoInput" type="file" accept="video/mp4,video/quicktime,video/x-m4v,video/webm,.mp4,.mov,.m4v,.webm">
+      <div id="dropIdle" class="dropIdle">
+        <div class="uploadIcon">↑</div>
+        <strong>Dépose ta vidéo</strong>
+        <span>ou touche pour choisir un fichier</span>
+        <small>MP4 · MOV · M4V · WebM · jusqu’à 5 min pour la bêta</small>
+      </div>
+      <div id="filePreview" class="filePreview" hidden>
+        <img id="thumb" alt="Miniature de la vidéo">
+        <div class="fileCopy">
+          <strong id="fileName"></strong>
+          <span id="fileMeta"></span>
+          <div class="uploadBar"><i id="uploadBarFill"></i></div>
+          <small id="uploadLabel">Préparation du fichier…</small>
+        </div>
+      </div>
+    </label>
+
+    <section id="analysisCard" class="analysisCard" hidden>
+      <div class="analysisHead"><div><span class="kicker">ANALYSE</span><h2 id="analysisTitle">Compréhension de la vidéo</h2></div><strong id="analysisPct">0%</strong></div>
+      <div class="analysisTrack"><i id="analysisBar"></i></div>
+      <div id="analysisSteps" class="analysisSteps">
+        <div data-k="media"><i></i><span>Analyse de la vidéo</span></div>
+        <div data-k="transcript"><i></i><span>Transcription</span></div>
+        <div data-k="moments"><i></i><span>Détection des moments clés</span></div>
+        <div data-k="captions"><i></i><span>Création des sous-titres</span></div>
+        <div data-k="rhythm"><i></i><span>Construction du rythme</span></div>
+        <div data-k="visuals"><i></i><span>Opportunités visuelles</span></div>
+      </div>
+      <div id="analysisSummary" class="analysisSummary" hidden></div>
+    </section>
+  </section>
+
+  <section id="styleStage" class="stage" hidden>
+    <div class="stageHeader">
+      <div><span class="kicker">STYLE</span><h2>Quel résultat tu veux ?</h2><p>Auto est recommandé. Tu pourras encore ajuster après la preview.</p></div>
+      <button id="backToUpload" class="textBtn" type="button">Changer de rush</button>
+    </div>
+    <div id="transcriptFallbackBox" class="transcriptFallback" hidden>
+      <div><strong>Transcription automatique indisponible</strong><span>Le montage continue. Tu peux aussi coller le texte parlé pour activer les captions et les décisions sémantiques.</span></div>
+      <textarea id="transcriptFallback" rows="3" placeholder="Texte parlé dans la vidéo…"></textarea>
+      <button id="applyTranscriptBtn" class="secondaryBtn" type="button">Utiliser ce transcript</button>
+    </div>
+    <div id="styleGrid" class="styleGrid"></div>
+    <div class="simpleChoices">
+      <label class="choiceField"><span>Intensité</span><input id="intensity" type="range" min="0" max="3" step="1" value="1"><div class="rangeLabels"><small>Minimal</small><small>Balanced</small><small>Dynamic</small><small>High energy</small></div></label>
+      <label class="choiceField"><span>Sous-titres</span><select id="subtitlePreset"></select></label>
+      <label class="choiceField"><span>B-roll</span><select id="brollLevel"><option value="none">Aucun</option><option value="light">Léger</option><option value="balanced">Équilibré</option><option value="important">Important</option><option value="auto" selected>Auto · recommandé</option></select></label>
+    </div>
+    <button id="generatePreviewBtn" class="primaryBtn" type="button">Générer mon montage <span>→</span></button>
+  </section>
+
+  <section id="editorStage" class="stage editorStage" hidden>
+    <div class="editorTop">
+      <div class="editorTitle"><span class="kicker">PREVIEW</span><h2 id="projectTitle">Montage Auto</h2><span id="projectSummary"></span></div>
+      <div class="topActions"><button id="saveVersionBtn" class="ghostBtn" type="button">Sauvegarder V</button><button id="exportBtn" class="primarySmall" type="button">Exporter</button></div>
+    </div>
+
+    <div class="editorLayout">
+      <aside id="simplePanel" class="controlPanel">
+        <div class="controlGroup"><label>Style</label><select id="styleSelect"></select></div>
+        <div class="controlGroup"><label>Intensité</label><input id="editorIntensity" type="range" min="0" max="3" step="1" value="1"><small id="intensityLabel">Balanced</small></div>
+        <div class="controlGroup"><label>Captions</label><select id="editorSubtitlePreset"></select></div>
+        <div class="controlGroup"><label>B-roll</label><select id="editorBrollLevel"><option value="none">Aucun</option><option value="light">Léger</option><option value="balanced">Équilibré</option><option value="important">Important</option><option value="auto">Auto</option></select></div>
+        <div class="quickActions">
+          <button data-action="more-dynamic" type="button">Plus dynamique</button>
+          <button data-action="simpler" type="button">Plus simple</button>
+          <button data-action="more-broll" type="button">Plus de B-roll</button>
+          <button data-action="less-effects" type="button">Réduire les effets</button>
+        </div>
+      </aside>
+
+      <section class="previewColumn">
+        <div class="phoneShell">
+          <canvas id="previewCanvas" width="540" height="960"></canvas>
+          <video id="sourceVideo" playsinline webkit-playsinline preload="metadata" hidden></video>
+          <div id="previewLoading" class="previewLoading" hidden><div class="spinner"></div><span>Préparation de la preview…</span></div>
+        </div>
+        <div class="playerControls">
+          <button id="playBtn" class="roundBtn" type="button">▶</button>
+          <span id="currentTime">0:00</span>
+          <input id="scrubber" type="range" min="0" max="1000" value="0">
+          <span id="durationLabel">0:00</span>
+        </div>
+        <div id="versions" class="versions"></div>
+      </section>
+
+      <aside id="advancedPanel" class="advancedPanel" hidden>
+        <div class="advancedTabs"><button class="active" data-tab="captions">Captions</button><button data-tab="media">Médias</button><button data-tab="brand">Mon style</button></div>
+        <section class="advancedSection active" data-panel="captions">
+          <label>Police<select id="captionFont"></select></label>
+          <label>Taille<input id="captionSize" type="range" min="32" max="84" value="56"></label>
+          <label>Graisse<select id="captionWeight"><option value="600">Semi-bold</option><option value="700">Bold</option><option value="800" selected>Extra-bold</option><option value="900">Black</option></select></label>
+          <div class="two"><label>Texte<input id="captionColor" type="color" value="#ffffff"></label><label>Accent<input id="captionAccent" type="color" value="#ffd54a"></label></div>
+          <label>Position<select id="captionPosition"><option value="0.68">Centre bas</option><option value="0.76" selected>Bas</option><option value="0.56">Centre</option></select></label>
+          <div class="toggles"><label><input id="captionBg" type="checkbox"> Fond</label><label><input id="captionOutline" type="checkbox" checked> Contour</label><label><input id="captionShadow" type="checkbox" checked> Ombre</label></div>
+          <label>Animation<select id="captionAnimation"><option value="none">Aucune</option><option value="pop" selected>Pop</option><option value="fade">Fade</option></select></label>
+          <label>Lignes max<select id="captionLines"><option value="1">1</option><option value="2" selected>2</option></select></label>
+        </section>
+        <section class="advancedSection" data-panel="media">
+          <label class="assetDrop" for="brollInput">+ Ajouter B-roll / screenshots<input id="brollInput" type="file" multiple accept="video/*,image/*" hidden></label>
+          <div id="assetList" class="assetList"></div>
+          <label class="assetDrop" for="musicInput">+ Importer une musique<input id="musicInput" type="file" accept="audio/*" hidden></label>
+          <label>Volume musique<input id="musicVolume" type="range" min="0" max="0.35" step="0.01" value="0.08"></label>
+          <label class="toggleLine"><span>Améliorer ma voix</span><input id="voiceEnhance" type="checkbox" checked></label>
+        </section>
+        <section class="advancedSection" data-panel="brand">
+          <label>Police principale<select id="brandFont"></select></label>
+          <div class="two"><label>Couleur 1<input id="brandPrimary" type="color" value="#8d6fff"></label><label>Couleur 2<input id="brandSecondary" type="color" value="#ff5fa7"></label></div>
+          <label class="assetDrop" for="logoInput">+ Ajouter un logo<input id="logoInput" type="file" accept="image/png,image/jpeg,image/webp" hidden></label>
+          <label class="toggleLine"><span>Utiliser mon style automatiquement</span><input id="useBrand" type="checkbox"></label>
+          <button id="saveBrandBtn" class="secondaryBtn" type="button">Enregistrer mon style</button>
+        </section>
+      </aside>
+    </div>
+
+    <section class="timelinePanel">
+      <div class="timelineHead"><div><span class="kicker">TIMELINE</span><h3>Décisions de montage</h3></div><button id="regenerateBtn" class="ghostBtn" type="button">Regénérer le montage</button></div>
+      <div id="timeline" class="timeline"></div>
+      <div id="eventInspector" class="eventInspector" hidden></div>
+    </section>
+  </section>
+
+  <section id="exportStage" class="stage exportStage" hidden>
+    <div class="exportCard">
+      <span class="kicker">EXPORT</span><h2>Prêt à publier.</h2>
+      <div class="exportOptions"><label>Qualité<select id="exportQuality"><option value="1080" selected>High · 1080 × 1920</option><option value="720">Standard · 720 × 1280</option></select></label><div><span>Format</span><strong>MP4 · H.264 · AAC</strong></div></div>
+      <button id="renderBtn" class="primaryBtn" type="button">Lancer l’export</button>
+      <div id="renderProgress" class="renderProgress" hidden><div class="analysisHead"><div><strong id="renderLabel">Préparation</strong><small id="renderDetail"></small></div><b id="renderPct">0%</b></div><div class="analysisTrack"><i id="renderBar"></i></div></div>
+      <div id="renderError" class="friendlyError" hidden></div>
+      <div id="renderResult" class="renderResult" hidden><video id="outputVideo" controls playsinline webkit-playsinline></video><div id="outputMeta"></div><a id="downloadBtn" class="primaryBtn" download>Télécharger la vidéo</a><button id="backToEditor" class="textBtn" type="button">Retour au montage</button></div>
+    </div>
+  </section>
+</main>
+
+<div id="toast" class="toast" hidden></div>
+<script type="module" src="./app.js?v=6001"></script>
+</body>
+</html>
