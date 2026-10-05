@@ -1,4 +1,6 @@
-import {els,state,PRESETS,clamp,once,bytes,fmt,setProgress,showError,clearError} from './state.js';
+import {els,state,PRESETS,clamp,once,bytes,fmt,setProgress,showError,clearError,applyAspectUI} from './state.js';
+
+function orientationOf(w,h){if(!w||!h)return'unknown';if(h>w*1.08)return'portrait';if(w>h*1.08)return'landscape';return'square'}
 
 export async function handleFile(file){
  if(!file)return;clearError();
@@ -7,12 +9,23 @@ export async function handleFile(file){
  state.originalFile=file;state.file=file;state.normalized=false;state.audioBuffer=null;state.audio16k=null;state.words=[];state.transcript='';state.objectUrl=URL.createObjectURL(file);
  const v=els.sourceVideo;v.pause();v.src=state.objectUrl;v.playsInline=true;v.preload='auto';v.style.display='block';v.style.visibility='visible';els.previewPlaceholder.style.display='none';
  els.fileState.hidden=false;els.fileName.textContent=file.name;els.fileMeta.textContent=`${bytes(file.size)} · lecture…`;els.createBtn.disabled=true;
- try{v.load();if(v.readyState<1)await once(v,'loadedmetadata');state.duration=Number(v.duration)||0;if(!state.duration)throw new Error('Durée illisible');if(state.duration>300)throw new Error('Maximum 5 minutes pour cette bêta.');els.fileMeta.textContent=`${bytes(file.size)} · ${fmt(state.duration)} · ${v.videoWidth||'?'}×${v.videoHeight||'?'}`;els.createBtn.disabled=false;els.previewMode.textContent='Rush original'}
- catch(e){showError(`Safari ne peut pas lire correctement ce rush : ${e.message}`)}
+ try{
+  v.load();if(v.readyState<1)await once(v,'loadedmetadata');state.duration=Number(v.duration)||0;if(!state.duration)throw new Error('Durée illisible');if(state.duration>300)throw new Error('Maximum 5 minutes pour cette bêta.');
+  state.sourceOrientation=orientationOf(v.videoWidth,v.videoHeight);
+  if(state.sourceOrientation==='portrait'&&!state.userAspectLocked){els.aspectRatio.value='9:16';if(els.framingMode)els.framingMode.value='vertical';applyAspectUI()}
+  else if(state.sourceOrientation==='landscape'&&els.framingMode?.value==='vertical'){els.framingMode.value='auto';applyAspectUI()}
+  const label=state.sourceOrientation==='portrait'?'vertical portrait':state.sourceOrientation==='landscape'?'horizontal paysage':state.sourceOrientation==='square'?'carré':'indéterminée';
+  if(els.orientationState)els.orientationState.innerHTML=`Orientation : <strong>${label}</strong> · ${v.videoWidth||'?'}×${v.videoHeight||'?'}`;
+  els.fileMeta.textContent=`${bytes(file.size)} · ${fmt(state.duration)} · ${v.videoWidth||'?'}×${v.videoHeight||'?'} · ${label}`;els.createBtn.disabled=false;els.previewMode.textContent='Rush original';
+ }catch(e){showError(`Safari ne peut pas lire correctement ce rush : ${e.message}`)}
 }
 
-async function prepareAsset(file){const url=URL.createObjectURL(file);if(file.type.startsWith('image/')){const img=new Image();img.src=url;await once(img,'load',10000);return{type:'image',file,url,el:img,duration:Infinity}}const v=document.createElement('video');v.src=url;v.muted=true;v.playsInline=true;v.preload='auto';v.load();await once(v,'loadedmetadata',10000);return{type:'video',file,url,el:v,duration:Number(v.duration)||1}}
-export async function handleBroll(filesLike){const files=[...(filesLike||[])].slice(0,8);for(const a of state.assets)URL.revokeObjectURL(a.url);state.assets=[];els.assetList.innerHTML='';for(const f of files){try{const a=await prepareAsset(f);state.assets.push(a);const c=document.createElement('span');c.className='asset-chip';c.textContent=`${a.type==='video'?'🎬':'🖼️'} ${f.name}`;els.assetList.appendChild(c)}catch(err){console.warn('asset failed',f.name,err)}}if(state.assets.length){const c=document.createElement('span');c.className='asset-chip';c.textContent=`${state.assets.length} média(s) prêt(s)`;els.assetList.appendChild(c)}}
+async function prepareAsset(file){
+ const url=URL.createObjectURL(file);
+ if(file.type.startsWith('image/')){const img=new Image();img.src=url;await once(img,'load',10000);return{type:'image',file,url,el:img,duration:Infinity,width:img.naturalWidth,height:img.naturalHeight,orientation:orientationOf(img.naturalWidth,img.naturalHeight)}}
+ const v=document.createElement('video');v.src=url;v.muted=true;v.playsInline=true;v.preload='auto';v.load();await once(v,'loadedmetadata',10000);return{type:'video',file,url,el:v,duration:Number(v.duration)||1,width:v.videoWidth,height:v.videoHeight,orientation:orientationOf(v.videoWidth,v.videoHeight)}
+}
+export async function handleBroll(filesLike){const files=[...(filesLike||[])].slice(0,8);for(const a of state.assets)URL.revokeObjectURL(a.url);state.assets=[];els.assetList.innerHTML='';for(const f of files){try{const a=await prepareAsset(f);state.assets.push(a);const c=document.createElement('span');c.className='asset-chip';const ori=a.orientation==='portrait'?'↕ vertical':a.orientation==='landscape'?'↔ horizontal':'□ carré';c.textContent=`${a.type==='video'?'🎬':'🖼️'} ${f.name} · ${ori}`;els.assetList.appendChild(c)}catch(err){console.warn('asset failed',f.name,err)}}if(state.assets.length){const c=document.createElement('span');c.className='asset-chip';c.textContent=`${state.assets.length} média(s) prêt(s)`;els.assetList.appendChild(c)}}
 
 function percentile(vals,p){if(!vals.length)return 0;const a=[...vals].sort((x,y)=>x-y);return a[Math.floor((a.length-1)*p)]||0}
 export async function analyseAudio(){
