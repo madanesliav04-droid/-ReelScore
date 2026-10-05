@@ -1,5 +1,5 @@
-import {els,state,once,wait,setProgress,showError,bytes,fmt} from './state.js';
-import {dims,drawCover,drawVisual,drawCaptions,punchScale,transitionOverlay} from './draw.js';
+import {els,state,once,wait,setProgress,showError,bytes,fmt} from './state.js?v=43';
+import {dims,drawCover,drawVisual,drawCaptions,punchScale,transitionOverlay} from './draw.js?v=43';
 
 function mimeChoice(){
   if(!window.MediaRecorder)return null;
@@ -71,10 +71,7 @@ async function normalizeForSafari(){
   }finally{state.normalizing=false}
 }
 
-function isCutTime(t){
-  for(const [a,b] of state.cutRanges){if(t>=a&&t<b)return true}
-  return false;
-}
+function isCutTime(t){for(const[a,b]of state.cutRanges){if(t>=a&&t<b)return true}return false}
 
 async function rewindOnce(v){
   v.pause();
@@ -86,141 +83,47 @@ async function rewindOnce(v){
 
 async function renderContinuous(){
   if(!window.MediaRecorder||!els.renderCanvas.captureStream)throw new Error('Ce navigateur ne permet pas le rendu local.');
-  const [w,h]=dims();
-  const canvas=els.renderCanvas,ctx=canvas.getContext('2d',{alpha:false});
-  canvas.width=w;canvas.height=h;
-  const mime=mimeChoice();
-  if(mime===null)throw new Error('MediaRecorder indisponible');
-  const ext=mime.includes('mp4')?'mp4':'webm';
+  const[w,h]=dims();
+  const canvas=els.renderCanvas,ctx=canvas.getContext('2d',{alpha:false});canvas.width=w;canvas.height=h;
+  const mime=mimeChoice();if(mime===null)throw new Error('MediaRecorder indisponible');const ext=mime.includes('mp4')?'mp4':'webm';
   const v=els.sourceVideo;
-  setProgress(58,'Préparation du rendu V4.2…',`${els.aspectRatio.value} · ${w}×${h} · lecture continue iPhone`);
-  const dest=await ensureAudio(v);
-  if(state.gain)state.gain.gain.value=0;
-  const cvs=canvas.captureStream(30);
-  const tracks=[...cvs.getVideoTracks()];
-  if(dest?.stream.getAudioTracks().length)tracks.push(dest.stream.getAudioTracks()[0]);
+  setProgress(58,'Préparation du rendu V4.3…',`${els.aspectRatio.value} · ${w}×${h} · lecture continue · ${els.framingMode?.value||'auto'}`);
+  const dest=await ensureAudio(v);if(state.gain)state.gain.gain.value=0;
+  const cvs=canvas.captureStream(30),tracks=[...cvs.getVideoTracks()];if(dest?.stream.getAudioTracks().length)tracks.push(dest.stream.getAudioTracks()[0]);
   const out=new MediaStream(tracks),chunks=[];
-  const rec=new MediaRecorder(out,mime?{
-    mimeType:mime,
-    videoBitsPerSecond:w>=2160?18000000:8000000,
-    audioBitsPerSecond:160000
-  }:{videoBitsPerSecond:8000000});
+  const rec=new MediaRecorder(out,mime?{mimeType:mime,videoBitsPerSecond:w>=2160?18000000:8000000,audioBitsPerSecond:160000}:{videoBitsPerSecond:8000000});
   rec.ondataavailable=e=>{if(e.data?.size)chunks.push(e.data)};
-  let stopResolve,stopReject;
-  const stopped=new Promise((res,rej)=>{stopResolve=res;stopReject=rej});
-  rec.onstop=stopResolve;
-  rec.onerror=()=>stopReject(new Error('Encodage interrompu'));
+  let stopResolve,stopReject;const stopped=new Promise((res,rej)=>{stopResolve=res;stopReject=rej});rec.onstop=stopResolve;rec.onerror=()=>stopReject(new Error('Encodage interrompu'));
 
   const keptDuration=Math.max(.01,state.duration-state.cutRanges.reduce((s,[a,b])=>s+(b-a),0));
   let raf=0,drawing=true,lastCut=null,segStart=0,renderError=null;
-  const draw=()=>{
-    if(!drawing)return;
-    const t=v.currentTime||0;
-    ctx.fillStyle='#07080c';ctx.fillRect(0,0,w,h);
-    const hasVisual=drawVisual(ctx,w,h,t);
-    if(!hasVisual)drawCover(ctx,v,w,h,punchScale(t));
-    drawCaptions(ctx,w,h,t);
-    transitionOverlay(ctx,w,h,t,segStart);
-    raf=requestAnimationFrame(draw);
-  };
+  const draw=()=>{if(!drawing)return;const t=v.currentTime||0;ctx.fillStyle='#07080c';ctx.fillRect(0,0,w,h);const hasVisual=drawVisual(ctx,w,h,t);if(!hasVisual)drawCover(ctx,v,w,h,punchScale(t));drawCaptions(ctx,w,h,t);transitionOverlay(ctx,w,h,t,segStart);raf=requestAnimationFrame(draw)};
 
-  els.outputArea.hidden=true;
-  els.renderCanvas.hidden=false;
-  els.previewMode.textContent='Rendu V4.2 en cours';
-  v.style.visibility='hidden';v.controls=false;
-
+  els.outputArea.hidden=true;els.renderCanvas.hidden=false;els.previewMode.textContent='Rendu V4.3 en cours';v.style.visibility='hidden';v.controls=false;
   try{
-    await rewindOnce(v);
-    rec.start(800);
-    const initiallyCut=isCutTime(0);
-    if(initiallyCut&&rec.state==='recording')rec.pause();
-    lastCut=initiallyCut;
-    draw();
-    await v.play();
-
+    await rewindOnce(v);rec.start(800);const initiallyCut=isCutTime(0);if(initiallyCut&&rec.state==='recording')rec.pause();lastCut=initiallyCut;draw();await v.play();
     await new Promise((resolve,reject)=>{
       let lastTime=v.currentTime||0,stalls=0,lastTick=performance.now();
       const tick=()=>{
         if(v.error){reject(new Error('Decoding failed'));return}
-        const t=v.currentTime||0;
-        const cut=isCutTime(t);
-
-        if(cut!==lastCut){
-          try{
-            if(cut&&rec.state==='recording')rec.pause();
-            if(!cut&&rec.state==='paused'){segStart=t;rec.resume()}
-          }catch(e){reject(new Error(`Erreur pause/resume encodeur : ${e.message||e}`));return}
-          lastCut=cut;
-        }
-
-        if(Math.abs(t-lastTime)<.004){
-          if(performance.now()-lastTick>250)stalls++;
-        }else{
-          stalls=0;lastTick=performance.now();lastTime=t;
-        }
+        const t=v.currentTime||0,cut=isCutTime(t);
+        if(cut!==lastCut){try{if(cut&&rec.state==='recording')rec.pause();if(!cut&&rec.state==='paused'){segStart=t;rec.resume()}}catch(e){reject(new Error(`Erreur pause/resume encodeur : ${e.message||e}`));return}lastCut=cut}
+        if(Math.abs(t-lastTime)<.004){if(performance.now()-lastTick>250)stalls++}else{stalls=0;lastTick=performance.now();lastTime=t}
         if(stalls>45){reject(new Error('Lecture bloquée pendant le rendu'));return}
-
-        const cutBefore=state.cutRanges.reduce((sum,[a,b])=>{
-          if(t<=a)return sum;
-          return sum+Math.max(0,Math.min(t,b)-a);
-        },0);
-        const outputTime=Math.max(0,t-cutBefore);
-        const pct=62+(outputTime/keptDuration)*32;
-        setProgress(pct,'Montage V4.2…',`lecture continue · ${fmt(outputTime)} / ${fmt(keptDuration)} · captions + visuels`);
-
-        if(v.ended||t>=state.duration-.04){resolve();return}
-        requestAnimationFrame(tick);
-      };
-      tick();
+        const cutBefore=state.cutRanges.reduce((sum,[a,b])=>{if(t<=a)return sum;return sum+Math.max(0,Math.min(t,b)-a)},0);
+        const outputTime=Math.max(0,t-cutBefore),pct=62+(outputTime/keptDuration)*32;
+        setProgress(pct,'Montage V4.3…',`lecture continue · ${fmt(outputTime)} / ${fmt(keptDuration)} · portrait/captions/visuels`);
+        if(v.ended||t>=state.duration-.04){resolve();return}requestAnimationFrame(tick)
+      };tick()
     });
   }catch(e){renderError=e}
   finally{
-    drawing=false;if(raf)cancelAnimationFrame(raf);
-    v.pause();
-    try{if(rec.state==='paused')rec.resume()}catch{}
-    await wait(90);
-    try{if(rec.state!=='inactive')rec.stop()}catch{}
-    try{await Promise.race([stopped,wait(2000)])}catch{}
-    if(state.gain)state.gain.gain.value=1;
-    v.style.visibility='visible';v.controls=true;els.renderCanvas.hidden=true;
-    for(const a of state.assets)if(a.type==='video')a.el.pause();
+    drawing=false;if(raf)cancelAnimationFrame(raf);v.pause();try{if(rec.state==='paused')rec.resume()}catch{}await wait(90);try{if(rec.state!=='inactive')rec.stop()}catch{}try{await Promise.race([stopped,wait(2000)])}catch{}if(state.gain)state.gain.gain.value=1;v.style.visibility='visible';v.controls=true;els.renderCanvas.hidden=true;for(const a of state.assets)if(a.type==='video')a.el.pause()
   }
-
-  if(renderError)throw renderError;
-  if(!chunks.length)throw new Error('Aucun fichier final produit');
-
-  const blob=new Blob(chunks,{type:mime||chunks[0].type||'video/webm'});
-  setProgress(96,'Validation du Reel…','Vérification du fichier final.');
-  const playable=await verifyOutput(blob);
-  if(state.outputUrl)URL.revokeObjectURL(state.outputUrl);
-  state.outputUrl=URL.createObjectURL(blob);
-  els.outputArea.hidden=false;
-  els.outputVideo.style.display='block';
-  els.outputVideo.poster=canvas.toDataURL('image/jpeg',.84);
-  els.outputVideo.src=state.outputUrl;els.outputVideo.load();
-  els.downloadBtn.href=state.outputUrl;
-  els.downloadBtn.download=`reel-v42-${Date.now()}.${ext}`;
-  els.downloadBtn.textContent=`Enregistrer le Reel · ${bytes(blob.size)}`;
-  els.outputMeta.textContent=`${state.preset} · ${els.aspectRatio.value} · ${w}×${h} · ${state.words.length} mots · ${state.visualPlan.length} visuels · moteur continu`;
-  els.previewMode.textContent='Reel V4.2 généré';
-  els.outputArea.scrollIntoView({behavior:'smooth',block:'center'});
-
-  if(playable){
-    setProgress(100,'Reel V4.2 terminé',`${state.words.length} mots captionnés · ${state.visualPlan.length} visuels · rendu sans seeks`);
-  }else{
-    setProgress(100,'Reel V4.2 généré','Preview Safari limitée, fichier disponible.');
-    showError('Le fichier est généré mais Safari refuse sa preview. Utilise “Enregistrer le Reel”.');
-  }
+  if(renderError)throw renderError;if(!chunks.length)throw new Error('Aucun fichier final produit');
+  const blob=new Blob(chunks,{type:mime||chunks[0].type||'video/webm'});setProgress(96,'Validation du Reel…','Vérification du fichier final.');const playable=await verifyOutput(blob);
+  if(state.outputUrl)URL.revokeObjectURL(state.outputUrl);state.outputUrl=URL.createObjectURL(blob);els.outputArea.hidden=false;els.outputVideo.style.display='block';els.outputVideo.poster=canvas.toDataURL('image/jpeg',.84);els.outputVideo.src=state.outputUrl;els.outputVideo.load();els.downloadBtn.href=state.outputUrl;els.downloadBtn.download=`reel-v43-${Date.now()}.${ext}`;els.downloadBtn.textContent=`Enregistrer le Reel · ${bytes(blob.size)}`;els.outputMeta.textContent=`${state.preset} · ${els.aspectRatio.value} · ${w}×${h} · ${els.framingMode?.value||'auto'} · rotation ${els.sourceRotation?.value||'auto'} · ${state.words.length} mots · ${state.visualPlan.length} visuels`;els.previewMode.textContent='Reel V4.3 généré';els.outputArea.scrollIntoView({behavior:'smooth',block:'center'});
+  if(playable)setProgress(100,'Reel V4.3 terminé',`${w}×${h} · cadrage ${els.framingMode?.value||'auto'} · rendu sans seeks`);else{setProgress(100,'Reel V4.3 généré','Preview Safari limitée, fichier disponible.');showError('Le fichier est généré mais Safari refuse sa preview. Utilise “Enregistrer le Reel”.')}
 }
 
-export async function runRenderWithCompatibility(){
-  try{return await renderContinuous()}
-  catch(e){
-    const msg=String(e?.message||e);
-    if(!state.normalized&&/Decoding failed|Lecture bloquée|decode/i.test(msg)){
-      await normalizeForSafari();
-      return await renderContinuous();
-    }
-    throw e;
-  }
-}
+export async function runRenderWithCompatibility(){try{return await renderContinuous()}catch(e){const msg=String(e?.message||e);if(!state.normalized&&/Decoding failed|Lecture bloquée|decode/i.test(msg)){await normalizeForSafari();return await renderContinuous()}throw e}}
