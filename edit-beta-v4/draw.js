@@ -1,4 +1,4 @@
-import {els,state,PRESETS} from './state.js';
+import {els,state,PRESETS} from './state.js?v=43';
 
 export function wordIndexAt(t){let i=state.words.findIndex(w=>t>=w.start&&t<=w.end+.06);if(i<0){const n=state.words.findIndex(w=>w.start>t);i=n>0?n-1:-1}return i}
 function wordAt(t){const i=wordIndexAt(t);if(i<0)return null;const style=els.captionStyle.value,rad=style==='monoline'?1:style==='multiline'?4:2,from=Math.max(0,i-rad),to=Math.min(state.words.length,i+rad+1);return{list:state.words.slice(from,to),current:i-from,index:i}}
@@ -6,21 +6,39 @@ export function punchScale(t){const z=PRESETS[state.preset].zoom;for(const p of 
 
 function sourceSize(media){return[media.videoWidth||media.naturalWidth||1080,media.videoHeight||media.naturalHeight||1920]}
 function orientation(media){const[vw,vh]=sourceSize(media);return vh>vw*1.08?'portrait':vw>vh*1.08?'landscape':'square'}
-function drawFit(ctx,media,w,h,z=1){const[vw,vh]=sourceSize(media),scale=Math.min(w/vw,h/vh)*z,dw=vw*scale,dh=vh*scale,x=(w-dw)/2,y=(h-dh)/2;ctx.drawImage(media,0,0,vw,vh,x,y,dw,dh)}
-function drawFill(ctx,media,w,h,z=1){const[vw,vh]=sourceSize(media),ta=w/h,sa=vw/vh;let sw,sh,sx,sy;if(sa>ta){sh=vh;sw=vh*ta;sx=(vw-sw)/2;sy=0}else{sw=vw;sh=vw/ta;sx=0;sy=(vh-sh)/2}sw/=z;sh/=z;sx=(vw-sw)/2;sy=(vh-sh)/2;ctx.drawImage(media,sx,sy,sw,sh,0,0,w,h)}
+function rotationFor(media,isBroll,w,h){
+ if(isBroll)return 0;
+ const val=els.sourceRotation?.value||'auto';
+ if(val!=='auto')return Number(val)||0;
+ const[vw,vh]=sourceSize(media),targetPortrait=h>w,verticalMode=els.framingMode?.value==='vertical';
+ // Some iPhone MOV files report landscape dimensions even though the visual is portrait.
+ // In explicit Vertical native mode, rotate automatically so the effective frame is portrait.
+ if(verticalMode&&targetPortrait&&vw>vh*1.08)return 90;
+ return 0;
+}
+function orientedSize(media,rot){const[vw,vh]=sourceSize(media);return Math.abs(rot)%180===90?[vh,vw]:[vw,vh]}
+function drawTransformed(ctx,media,w,h,z=1,fit=true,rot=0){
+ const[vw,vh]=sourceSize(media),[ow,oh]=orientedSize(media,rot);
+ const scale=(fit?Math.min(w/ow,h/oh):Math.max(w/ow,h/oh))*z;
+ ctx.save();
+ ctx.translate(w/2,h/2);
+ ctx.rotate(rot*Math.PI/180);
+ ctx.drawImage(media,-vw*scale/2,-vh*scale/2,vw*scale,vh*scale);
+ ctx.restore();
+}
 function drawFramed(ctx,media,w,h,z=1,isBroll=false){
- const mode=els.framingMode?.value||'auto',ori=orientation(media),targetPortrait=h>w;
+ const mode=els.framingMode?.value||'auto',rot=rotationFor(media,isBroll,w,h),[ow,oh]=orientedSize(media,rot),ori=oh>ow*1.08?'portrait':ow>oh*1.08?'landscape':'square',targetPortrait=h>w;
  ctx.fillStyle='#07080c';ctx.fillRect(0,0,w,h);
- if(mode==='fit'){drawFit(ctx,media,w,h,z);return}
- if(mode==='fill'){drawFill(ctx,media,w,h,z);return}
+ if(mode==='fit'){drawTransformed(ctx,media,w,h,z,true,rot);return}
+ if(mode==='fill'){drawTransformed(ctx,media,w,h,z,false,rot);return}
  if(mode==='vertical'){
-  if(ori==='portrait'&&targetPortrait){drawFit(ctx,media,w,h,z);return}
-  drawFill(ctx,media,w,h,z);return
+  // Vertical native = force portrait output and preserve the full portrait composition.
+  // If Safari exposes an iPhone portrait clip as landscape dimensions, rotationFor() fixes it first.
+  drawTransformed(ctx,media,w,h,z,true,rot);return;
  }
- // Auto: portrait sources stay intact in portrait outputs; landscape sources fill unless the crop would be extreme.
- if(targetPortrait&&ori==='portrait'){drawFit(ctx,media,w,h,z);return}
- if(isBroll&&targetPortrait&&ori==='square'){drawFit(ctx,media,w,h,z);return}
- drawFill(ctx,media,w,h,z)
+ if(targetPortrait&&ori==='portrait'){drawTransformed(ctx,media,w,h,z,true,rot);return}
+ if(isBroll&&targetPortrait&&ori==='square'){drawTransformed(ctx,media,w,h,z,true,rot);return}
+ drawTransformed(ctx,media,w,h,z,false,rot)
 }
 
 export function drawCover(ctx,v,w,h,z=1){drawFramed(ctx,v,w,h,z,false)}
