@@ -1,6 +1,6 @@
-import {els,state,applyAspectUI,updatePresetUI,setProgress,showError,clearError} from './state.js?v=43';
-import {handleFile,handleBroll,analyseAudio,transcribeLocal,manualWords,buildVisualPlan} from './media.js?v=43';
-import {runRenderWithCompatibility} from './render.js?v=43';
+import {els,state,applyAspectUI,updatePresetUI,setProgress,showError,clearError} from './state.js?v=44';
+import {handleFile,handleBroll,analyseAudio,transcribeLocal,manualWords,buildVisualPlan} from './media.js?v=44';
+import {runRenderWithCompatibility} from './render.js?v=44';
 
 els.aspectRatio.addEventListener('change',()=>{state.userAspectLocked=true;applyAspectUI()});
 els.quality.addEventListener('change',applyAspectUI);
@@ -18,11 +18,11 @@ els.brollInput.addEventListener('change',e=>handleBroll(e.target.files));
 els.createBtn.addEventListener('click',async()=>{
  if(state.rendering||!state.file)return;state.rendering=true;els.createBtn.disabled=true;clearError();els.outputArea.hidden=true;
  try{
-  setProgress(2,'Analyse du rush…','Création du plan de montage V4.3.');const buffer=await analyseAudio();
+  setProgress(2,'Analyse du rush…','Création du plan de montage V4.4.');const buffer=await analyseAudio();
   if(els.autoCaptions.checked&&buffer){try{await transcribeLocal(buffer)}catch(e){console.warn('captions auto failed',e);els.captionStatus.textContent='Captions auto indisponibles sur cet appareil — fallback texte manuel.';if(els.manualTranscript.value.trim())manualWords()}}
   else if(els.manualTranscript.value.trim())manualWords();
   if(!state.words.length&&els.manualTranscript.value.trim())manualWords();
-  buildVisualPlan();setProgress(52,'Plan V4.3 prêt',`${state.cutRanges.length} cuts · ${state.punchTimes.length} punch-ins · ${state.visualPlan.length} visuels · ${state.words.length} mots`);
+  buildVisualPlan();setProgress(52,'Plan V4.4 prêt',`${state.cutRanges.length} cuts · ${state.punchTimes.length} punch-ins · ${state.visualPlan.length} visuels · ${state.words.length} mots`);
   await runRenderWithCompatibility();
  }catch(e){console.error(e);showError(e.message||'Erreur de rendu');setProgress(0,'Rendu interrompu','Le rush original reste intact.')}
  finally{state.rendering=false;els.createBtn.disabled=!state.file;if(state.gain)state.gain.gain.value=1;els.sourceVideo.style.visibility='visible';els.sourceVideo.controls=true;els.renderCanvas.hidden=true}
