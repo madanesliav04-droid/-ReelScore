@@ -1,7 +1,7 @@
 {
-  "version": "IG-2026.10.04",
+  "version": "IG-2026.10.05",
   "platform": "Instagram Reels",
-  "last_verified": "2026-10-04",
+  "last_verified": "2026-10-05",
   "methodology": "Viral+ ne prétend pas reproduire l’algorithme privé de Meta. Les signaux officiellement documentés servent de garde-fous; le score final est un diagnostic heuristique Viral+ calculé par un moteur déterministe versionné. Une vidéo seule ne fournit pas les vraies métriques de watch time, rétention, likes ou envois: elles ne doivent jamais être présentées comme observées.",
   "scoring_version": "vp-score-2-strict",
   "scoring_disclaimer": "Les poids ci-dessous sont propres à Viral+ et ne sont pas les poids de classement de Meta. Les scores 80+ exigent des preuves observables; les scores exceptionnels non suffisamment étayés sont plafonnés.",
@@ -40,7 +40,7 @@
       "status": "official-confirmed",
       "scope": "Instagram recommendations",
       "rule": "L’originalité et l’absence de simple republication sont des éléments importants de recommandabilité.",
-      "evidence": "Meta a indiqué que les recommandations Instagram aux États-Unis comportaient 75% de contenu original au T4 2025 et a détaillé le remplacement des republications par l’original dans les recommandations.",
+      "evidence": "Meta a indiqué que les recommandations Instagram aux États-Unis comportaient 75% de contenu original au T4 2025.",
       "source": "https://about.fb.com/news/2026/01/2026-ai-drives-performance/"
     },
     {
@@ -55,9 +55,25 @@
       "id": "personalized_relevance",
       "status": "official-confirmed",
       "scope": "Instagram recommendations",
-      "rule": "Les recommandations sont personnalisées; Viral+ doit parler de potentiel pour une audience définie, jamais de viralité universelle.",
-      "evidence": "Meta indique que les recommandations se personnalisent à partir des contenus et comptes avec lesquels les utilisateurs interagissent.",
-      "source": "https://about.fb.com/news/2024/11/introducing-recommendations-reset-instagram/"
+      "rule": "Les recommandations sont personnalisées et évoluent avec les intérêts de chaque personne. Viral+ doit parler de potentiel pour une audience définie, jamais de viralité universelle.",
+      "evidence": "Meta indique que les interactions avec le contenu sur Instagram façonnent déjà les recommandations; les interactions avec Meta AI peuvent aussi être utilisées pour personnaliser les recommandations de contenu, notamment les Reels. Cette utilisation a commencé à prendre effet le 16 décembre 2025 dans la plupart des régions.",
+      "source": "https://about.fb.com/news/2025/10/improving-recommendations-apps-ai-meta/"
+    },
+    {
+      "id": "user_algorithm_controls",
+      "status": "official-confirmed",
+      "scope": "Instagram Reels personalization",
+      "rule": "Le système de recommandation doit être considéré comme explicitement pilotable par les intérêts déclarés de l’utilisateur: Instagram permet de voir les thèmes associés à l’algorithme et de demander plus ou moins de contenu sur certains thèmes. Viral+ doit donc éviter de présenter l’audience cible comme un segment fixe et universel.",
+      "evidence": "Le 13 janvier 2026, Meta a annoncé 'Your Algorithm' pour Reels: les utilisateurs peuvent consulter leurs principaux centres d’intérêt et indiquer les thèmes qu’ils veulent voir davantage ou moins; Instagram précise que ces choix se reflètent dans les Reels recommandés.",
+      "source": "https://about.fb.com/de/news/2026/01/eine-neue-moeglichkeit-deinen-algorithmus-einzusehen-und-zu-steuern/"
+    },
+    {
+      "id": "cross_surface_personalization",
+      "status": "official-confirmed",
+      "scope": "Instagram recommendations",
+      "rule": "La pertinence d’audience ne doit pas être modélisée comme dépendant uniquement des interactions Instagram observées: Meta élargit aussi les sources de personnalisation du contenu à l’activité que des entreprises partagent avec Meta, lorsque l’utilisateur autorise cet usage. Viral+ ne doit pas transformer cette information en poids chiffré.",
+      "evidence": "En juin 2026, Meta a annoncé qu’elle utiliserait, dans certains marchés, l’activité déjà partagée par d’autres entreprises pour personnaliser aussi le contenu du Feed et donner notamment des recommandations de Reels plus pertinentes. Meta précise qu’il ne s’agit pas de collecter de nouvelles données.",
+      "source": "https://about.fb.com/news/2026/06/better-personalization-and-changes-to-controls-for-your-activity-from-other-businesses/"
     },
     {
       "id": "small_creator_distribution",
@@ -80,6 +96,7 @@
     "cta": "Le CTA reste un diagnostic de conversion et ne pèse pas dans le score de recommandation Viral+.",
     "production_quality": "La qualité de production seule ne doit pas augmenter artificiellement le score.",
     "title": "Le titre/texte à l’écran est analysé pour la compréhension, mais ne reçoit pas de poids direct dans le score final.",
-    "real_metrics": "Les vraies métriques de compte (watch time, average watch time, rétention, partages, etc.) doivent être traitées comme données observées uniquement lorsqu’elles sont fournies."
+    "real_metrics": "Les vraies métriques de compte (watch time, average watch time, rétention, partages, etc.) doivent être traitées comme données observées uniquement lorsqu’elles sont fournies.",
+    "meta_algorithm_weights": "Aucun poids de Meta ne doit être déduit ou présenté comme officiel à partir de ces changements."
   }
 }
