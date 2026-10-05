@@ -39,27 +39,23 @@ function updateStage(){
   const p=stageProgress(); scrollFill.style.height=(p*100)+'%';
   if(resultMode){ copies.forEach((_,i)=>setCopy(i,0)); stageResultCta.classList.remove('hidden'); return; }
   stageResultCta.classList.add('hidden');
-  const phase0=1-seg(p,.08,.18), phase1=Math.min(seg(p,.14,.23),1-seg(p,.28,.36)), phase2=Math.min(seg(p,.34,.43),1-seg(p,.48,.57)), phase3=Math.min(seg(p,.55,.63),1-seg(p,.68,.76)), phase4=seg(p,.76,.88);
-  setCopy(0,phase0,0,-20*seg(p,.08,.18)); setCopy(1,phase1); setCopy(2,phase2); setCopy(3,phase3); setCopy(4,phase4);
-
-  let x=19,y=-50,ry=-16,rx=6,rz=-2,scale=1;
-  if(p<.22){const t=ease(seg(p,0,.22));x=mix(19,10,t);ry=mix(-16,18,t);scale=mix(1,.92,t)}
-  else if(p<.46){const t=ease(seg(p,.22,.46));x=mix(10,0,t);y=mix(-50,-54,t);ry=mix(18,0,t);rz=mix(-2,90,t);scale=mix(.92,1.22,t)}
-  else if(p<.68){const t=ease(seg(p,.46,.68));x=mix(0,-18,t);y=mix(-54,-59,t);ry=mix(0,-30,t);rz=mix(90,0,t);scale=mix(1.22,.76,t)}
-  else {const t=ease(seg(p,.68,.88));x=mix(-18,0,t);y=mix(-59,-50,t);ry=mix(-30,0,t);rx=mix(6,0,t);rz=0;scale=mix(.76,1.03,t)}
-  if(lowPower){x*=.58;scale=Math.min(scale,1.06)}
-  phoneRig.style.transform=`translate3d(calc(-50% + ${x}vw),${y}%,0) scale(${scale})`;
-  phone.style.transform=`rotateY(${ry}deg) rotateX(${rx}deg) rotateZ(${rz}deg)`;
-
-  const gridIn=seg(p,.31,.44), gridOut=1-seg(p,.65,.78); mediaGrid.style.opacity=String(Math.min(gridIn,gridOut)); mediaGrid.style.transform=`translate(-50%,-50%) scale(${mix(.78,1.08,gridIn)}) rotate(${mix(-4,3,gridIn)}deg)`;
-  const sphIn=seg(p,.50,.62), sphOut=1-seg(p,.72,.84); sphere.style.opacity=String(Math.min(sphIn,sphOut)); sphere.style.transform=`translate(-50%,-50%) scale(${mix(0,1,sphIn)})`;
-  halo.style.opacity=String(mix(1,.45,seg(p,.42,.72))); orbit1.style.transform=`translate(-50%,-50%) rotate(${p*170}deg)`; orbit2.style.transform=`translate(-50%,-50%) rotate(${-p*110}deg)`;
-
-  const socialFade=1-seg(p,.12,.34); badges.forEach((b,i)=>{b.style.opacity=String(socialFade);b.style.transform=`translate3d(${(i%2?1:-1)*p*45}px,${p*20}px,0)`});
-  const metricOpacity=p<.72?Math.max(.15,1-seg(p,.10,.35)):seg(p,.72,.84);floats.forEach((f,i)=>{f.style.opacity=String(metricOpacity);f.style.transform=`translateY(${Math.sin(p*6+i)*8}px)`});
-
-  if(p>.76){showAnalysisLayer()} else if(!analyzing){showSocialLayer()}
-  scrollHint.style.opacity=String(1-seg(p,.04,.16));
+  setCopy(0,1);
+  for(let k=1;k<copies.length;k++)setCopy(k,0);
+  phoneRig.style.transform='translate3d(-50%,-50%,0) scale(1)';
+  phone.style.transform='rotateY(-7deg) rotateX(3deg) rotateZ(-1deg)';
+  mediaGrid.style.opacity='.12';
+  mediaGrid.style.transform='translate(-50%,-50%) scale(1)';
+  sphere.style.opacity='.65';
+  sphere.style.transform='translate(-50%,-50%) scale(1)';
+  halo.style.opacity='.9';
+  orbit1.style.transform='translate(-50%,-50%) rotate('+(p*170)+'deg)';
+  orbit2.style.transform='translate(-50%,-50%) rotate('+(-p*110)+'deg)';
+  const socialFade=1-seg(p,.62,.76);
+  badges.forEach((b,idx)=>{b.style.opacity=String(socialFade);b.style.transform='translate3d('+((idx%2?1:-1)*p*18)+'px,'+(p*8)+'px,0)'});
+  const metricOpacity=.55+.45*Math.sin(p*Math.PI);
+  floats.forEach((f,idx)=>{f.style.opacity=String(metricOpacity);f.style.transform='translateY('+Math.sin(p*6+idx)*8+'px)'});
+  if(p>.62){showAnalysisLayer()} else if(!analyzing){showSocialLayer()}
+  scrollHint.style.opacity=String(1-seg(p,.02,.12));
 }
 function requestStage(){if(scrollRAF)return;scrollRAF=requestAnimationFrame(()=>{updateStage();scrollRAF=0})}
 addEventListener('scroll',requestStage,{passive:true}); addEventListener('resize',requestStage,{passive:true});
