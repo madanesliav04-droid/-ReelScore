@@ -34,7 +34,7 @@ function showToast(msg){toast.textContent=msg;toast.classList.remove('hidden');c
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[m]))}
 
 function stageProgress(){const r=cinematic.getBoundingClientRect(), total=cinematic.offsetHeight-innerHeight;return clamp(-r.top/Math.max(1,total))}
-function setCopy(index,opacity,dx=0,dy=0){const el=copies[index];if(!el)return;el.style.opacity=String(opacity);el.style.transform=`translate3d(${dx}px,calc(-50% + ${dy}px),0)`;el.style.pointerEvents=opacity>.7?'auto':'none'}
+function setCopy(index,opacity,dx=0,dy=0){const el=copies[index];if(!el)return;el.style.opacity=String(opacity);el.style.transform=index===0?'translate3d(-50%,0,0)':`translate3d(${dx}px,calc(-50% + ${dy}px),0)`;el.style.pointerEvents=opacity>.7?'auto':'none'}
 function updateStage(){
   const p=stageProgress(); scrollFill.style.height=(p*100)+'%';
   if(resultMode){ copies.forEach((_,i)=>setCopy(i,0)); stageResultCta.classList.remove('hidden'); return; }
