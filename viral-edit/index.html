@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#08090d" />
+  <title>Viral Edit — transforme ton brut en Reel</title>
+  <meta name="description" content="Montage de Reels directement dans ton navigateur. Aucun upload serveur obligatoire." />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#top"><span class="brandMark">V+</span><span>Viral Edit</span></a>
+    <div class="privacyPill"><span class="dot"></span> Traitement local · bêta gratuite</div>
+  </header>
+
+  <main id="top" class="shell">
+    <section class="hero">
+      <div class="eyebrow">AI VIDEO EDITOR · SANS CONNECTEUR PAYANT</div>
+      <h1>Ta vidéo brute.<br><span>Ton Reel monté.</span></h1>
+      <p>Ajoute ta vidéo. Viral Edit coupe les temps morts, crée les punch-ins, génère les sous-titres et fabrique un Reel 9:16 directement sur ton appareil.</p>
+      <div class="heroBadges"><span>Facecam first</span><span>Captions modernes</span><span>Export local</span></div>
+    </section>
+
+    <section class="workspace">
+      <div class="leftCol">
+        <article class="panel uploadPanel">
+          <div class="stepHead"><div class="stepIndex">01</div><div><h2>Ajoute ton rush</h2><p>MP4 / MOV · 90 s max conseillé · 250 MB max</p></div></div>
+          <label class="dropzone" id="dropzone" for="videoInput">
+            <input id="videoInput" type="file" accept="video/*,.mp4,.mov,.m4v" />
+            <div class="plus">+</div><strong>Choisir une vidéo</strong><span>Photothèque ou Fichiers</span>
+          </label>
+          <div id="fileState" class="fileState" hidden><div><strong id="fileName"></strong><span id="fileMeta"></span></div><label class="replaceBtn" for="videoInput">Remplacer</label></div>
+        </article>
+
+        <article class="panel settingsPanel">
+          <div class="stepHead"><div class="stepIndex">02</div><div><h2>Choisis ton langage de montage</h2><p>Un style éditorial, pas une collection d'effets.</p></div></div>
+          <div class="presetGrid" id="presetGrid">
+            <button class="preset active" data-preset="codie" type="button"><span class="presetTag">STANDARD</span><strong>Codie Sanchez</strong><small>Facecam centrale · cuts narratifs · punch-ins sur phrases fortes.</small></button>
+            <button class="preset" data-preset="clean" type="button"><strong>Clean Founder</strong><small>Moins de cuts · cadrage premium · respiration naturelle.</small></button>
+            <button class="preset" data-preset="viral" type="button"><strong>Viral Punch</strong><small>Plus nerveux · captions fortes · crops plus présents.</small></button>
+          </div>
+          <div class="controlGrid">
+            <label><span>Sous-titres</span><select id="captionStyle"><option value="highlight">Mot-clé surligné</option><option value="minimal">Blanc minimal</option><option value="boxed">Bloc contrasté</option></select></label>
+            <label><span>Police</span><select id="fontStyle"><option value="modern">Modern Bold</option><option value="impact">Impact Clean</option><option value="editorial">Editorial</option></select></label>
+            <label><span>Position</span><select id="captionPosition"><option value="low">Bas sécurisé</option><option value="midlow">Centre bas</option><option value="middle">Centre</option></select></label>
+            <label><span>B-roll</span><select id="brollMode"><option value="suggest">Suggestions intelligentes</option><option value="off">Désactivé</option></select></label>
+          </div>
+          <div class="switchRow"><label class="switchLabel"><input id="autoTranscript" type="checkbox" checked /><span class="switch"></span><span><b>Sous-titres automatiques locaux</b><small>Whisper téléchargé une fois sur l'appareil. Aucune clé API.</small></span></label></div>
+          <details class="transcriptBox"><summary>Texte / correction manuelle <span>fallback</span></summary><textarea id="manualTranscript" rows="5" placeholder="Colle ton script ici si tu veux garantir les captions même sans Whisper."></textarea></details>
+        </article>
+
+        <article class="panel actionPanel">
+          <div class="stepHead compact"><div class="stepIndex">03</div><div><h2>Crée le Reel</h2><p>L'analyse et le rendu se font réellement sur ton appareil.</p></div></div>
+          <button id="createBtn" class="primaryBtn" type="button" disabled><span>✦</span> Créer mon Reel</button>
+          <div id="progressWrap" class="progressWrap" hidden><div class="progressTop"><strong id="progressLabel">Préparation…</strong><span id="progressPct">0%</span></div><div class="progressTrack"><div id="progressBar"></div></div><p id="progressDetail"></p></div>
+          <div id="errorBox" class="errorBox" hidden></div>
+        </article>
+
+        <article id="analysisPanel" class="panel analysisPanel" hidden>
+          <div class="analysisHead"><div><span class="miniLabel">PLAN DE MONTAGE</span><h2>Décisions prises</h2></div><span id="savedTime" class="savedTime"></span></div>
+          <div class="statsGrid"><div><strong id="statCuts">0</strong><span>cuts</span></div><div><strong id="statPunches">0</strong><span>punch-ins</span></div><div><strong id="statCaptions">0</strong><span>mots caption</span></div></div>
+          <div id="brollSuggestions" class="brollSuggestions"></div>
+        </article>
+      </div>
+
+      <aside class="rightCol">
+        <article class="previewPanel panel">
+          <div class="previewTop"><div><span class="miniLabel">PREVIEW</span><strong id="previewMode">Rush original</strong></div><span class="formatPill">9:16</span></div>
+          <div class="phoneFrame"><div class="phoneScreen"><video id="sourceVideo" playsinline webkit-playsinline controls preload="metadata"></video><div id="previewPlaceholder" class="previewPlaceholder"><div class="previewGlyph">▶</div><strong>Ta vidéo apparaîtra ici</strong><span>Pas dans un faux mockup.</span></div><canvas id="renderCanvas" width="720" height="1280" hidden></canvas></div></div>
+          <div id="sourceTimeline" class="timeline" hidden><div class="timelineTrack" id="timelineTrack"></div><div class="timelineLegend"><span><i class="keep"></i> Gardé</span><span><i class="cut"></i> Coupé</span><span><i class="punch"></i> Punch-in</span></div></div>
+          <div id="outputArea" class="outputArea" hidden><div class="outputTitle"><span class="successDot"></span><strong>Reel généré</strong></div><video id="outputVideo" playsinline controls></video><a id="downloadBtn" class="downloadBtn" download="viral-edit-reel.mp4">Télécharger le Reel</a></div>
+        </article>
+        <article class="localCard panel"><strong>Ta vidéo reste locale</strong><p>Le rush n'est pas envoyé à une API de montage. Le modèle de transcription, s'il est utilisé, est téléchargé depuis Hugging Face puis exécuté dans ton navigateur.</p></article>
+      </aside>
+    </section>
+
+    <section class="betaStrip"><div><span>FREE BETA</span><strong>Le moteur d'édition est ouvert pour les tests.</strong></div><p>Architecture prête pour Free / Creator / Pro plus tard. Aucun paiement connecté aujourd'hui.</p></section>
+  </main>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
