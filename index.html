@@ -136,7 +136,7 @@
     }
     window.openVideoPicker=function(){
       var el=document.getElementById('fileInput');
-      if(el)el.click();
+      if(el){try{if(typeof el.showPicker==='function'){el.showPicker();return}}catch(e){}el.click();}
     };
     if(!dz.__viralPickerBound){
       dz.__viralPickerBound=true;
