@@ -15,7 +15,7 @@
   <button class="brand" id="brandHome">VIRAL<b>+</b></button>
   <div class="navright">
     <button class="navpill ghost" id="historyNav">Mes vidéos</button>
-    <span class="usagePill hidden" id="usagePill">ESSAI · 14 JOURS</span>
+    <span class="usagePill hidden" id="usagePill">BÊTA GRATUITE</span>
     <button class="navpill" id="accountBtn">Se connecter</button>
     <button class="navpill primary" id="navAnalyse">Analyser</button>
   </div>
@@ -111,8 +111,8 @@
 <section class="finalCta"><div><small>VIRAL+</small><h2>PUBLIE UNE VERSION PLUS FORTE.</h2><p>Viral+ ne promet pas la viralité. Il t’aide à améliorer la version que tu choisis de publier.</p><button class="btn primary" id="finalAnalyse">Analyser ma prochaine vidéo</button></div></section>
 </main>
 
-<div class="modal hidden" id="authModal"><div class="modalCard authCard"><button class="closeModal" id="closeAuth">×</button><div class="authBrand">VIRAL<b>+</b></div><h3>Entre dans Viral+</h3><p>14 jours gratuits pour tester Viral+.</p><div class="authTabs"><button class="active" data-auth="login">Connexion</button><button data-auth="signup">Créer un compte</button></div><form id="authForm"><input id="authEmail" type="email" autocomplete="email" placeholder="Email" required><input id="authPassword" type="password" minlength="6" autocomplete="current-password" placeholder="Mot de passe" required><button class="btn primary" id="authSubmit" type="submit">Se connecter</button></form><small id="authMessage"></small></div></div>
-<div class="modal hidden" id="paywall"><div class="modalCard paywallCard"><button class="closeModal" id="closePaywall">×</button><small>VIRAL+ CREATOR</small><h3>Corrige, re-score et compare.</h3><p>20 analyses/mois, toutes les corrections, re-score avant/après et historique complet.</p><div class="payPrice"><strong>19€</strong><span>/mois</span></div><button class="btn primary" id="requestCreator">Demander l’accès bêta Creator</button><small id="upgradeMessage">Le paiement automatique sera activé ensuite.</small></div></div>
+<div class="modal hidden" id="authModal"><div class="modalCard authCard"><button class="closeModal" id="closeAuth">×</button><div class="authBrand">VIRAL<b>+</b></div><h3>Entre dans Viral+</h3><p>Viral+ est gratuit pendant la bêta.</p><div class="authTabs"><button class="active" data-auth="login">Connexion</button><button data-auth="signup">Créer un compte</button></div><form id="authForm"><input id="authEmail" type="email" autocomplete="email" placeholder="Email" required><input id="authPassword" type="password" minlength="6" autocomplete="current-password" placeholder="Mot de passe" required><button class="btn primary" id="authSubmit" type="submit">Se connecter</button></form><small id="authMessage"></small></div></div>
+<div class="modal hidden" id="paywall"><div class="modalCard paywallCard"><button class="closeModal" id="closePaywall">×</button><small>VIRAL+ CREATOR</small><h3>Corrige, re-score et compare.</h3><p>20 analyses/mois, toutes les corrections, re-score avant/après et historique complet.</p><div class="payPrice"><strong>19€</strong><span>/mois</span></div><button class="btn primary" id="requestCreator">Fermer</button><small id="upgradeMessage">Aucun paiement. Toutes les fonctions disponibles sont gratuites pendant la bêta.</small></div></div>
 <div class="toast hidden" id="toast"></div>
 <input id="reanalyseInput" class="hidden" type="file" accept="video/*,.mp4,.mov,.webm" />
 <script src="config.js?v=20261004-22"></script><script src="viralplus-product-config.js"></script><script src="viralplus-ui.js?v=20261004-22"></script>
@@ -161,5 +161,6 @@
   setTimeout(bootUploadFallback,1500);
 })();
 </script>
+<style>#premiumTeaser,#paywall{display:none!important}</style>
 </body>
 </html>
