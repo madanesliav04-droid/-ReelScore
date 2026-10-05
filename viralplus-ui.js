@@ -240,6 +240,7 @@ function openVideoPicker(){
     document.body.appendChild(input);
     input.addEventListener('change',e=>{setFile(e.target.files?.[0],false);e.target.value=''});
   }
+  try{ if(typeof input.showPicker==='function'){ input.showPicker(); return; } }catch(e){}
   input.click();
 }
 dropzone.addEventListener('click',e=>{
