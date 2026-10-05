@@ -244,6 +244,7 @@ function openVideoPicker(){
 }
 dropzone.addEventListener('click',e=>{
   if(e.target.closest('#changeVideo')) return;
+  if(e.target===fileInput) return;
   e.preventDefault();
   e.stopPropagation();
   openVideoPicker();
