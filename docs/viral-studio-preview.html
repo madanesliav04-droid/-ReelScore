@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#07080b">
+<title>Viral Studio — Advanced Preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>:root{--bg:#07080b;--panel:#0d1016;--panel2:#121620;--line:rgba(255,255,255,.09);--text:#f7f8fb;--muted:#8f97a8;--violet:#775cff;--cyan:#37d9ff;--pink:#ff55cf;--green:#65e8c5}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif;overflow-x:hidden}button,input,select{font:inherit}button,a{color:inherit}.noise{position:fixed;inset:0;pointer-events:none;opacity:.025;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");z-index:100}
+.nav{position:fixed;z-index:50;left:50%;top:16px;transform:translateX(-50%);width:min(1180px,calc(100% - 24px));height:64px;background:rgba(7,8,11,.76);border:1px solid var(--line);backdrop-filter:blur(20px);border-radius:18px;display:flex;align-items:center;justify-content:space-between;padding:0 14px 0 20px}.brand{font-weight:900;text-decoration:none;letter-spacing:-.045em}.brand span{background:linear-gradient(90deg,#fff,#9d89ff,#57e2ff,#ff82dd);-webkit-background-clip:text;color:transparent}.navlinks{display:flex;gap:28px}.navlinks a{text-decoration:none;font-size:13px;color:#b0b6c3}.navright{display:flex;gap:8px}.primary,.ghost{border:1px solid var(--line);border-radius:12px;padding:11px 15px;font-weight:800;cursor:pointer;background:transparent}.primary{border:0;background:linear-gradient(100deg,#684dff,#3374ff 50%,#20d3ed);box-shadow:0 12px 36px rgba(74,89,255,.28)}.ghost{background:rgba(255,255,255,.035)}.big{padding:14px 19px;text-decoration:none}.wide{width:100%;margin-top:16px}.primary:disabled{opacity:.35;cursor:not-allowed}.hero{min-height:100svh;max-width:1220px;margin:auto;padding:125px 24px 70px;display:grid;grid-template-columns:1.06fr .94fr;align-items:center;position:relative}.heroGlow{position:absolute;width:650px;height:650px;right:-80px;top:14%;background:conic-gradient(from 30deg,rgba(119,92,255,.35),rgba(55,217,255,.16),rgba(255,85,207,.2),rgba(119,92,255,.35));filter:blur(90px);border-radius:50%;animation:pulse 6s ease-in-out infinite}.eyebrow{font-size:11px;font-weight:900;letter-spacing:.15em;color:#bcc2ce;margin-bottom:22px}.heroCopy{position:relative;z-index:3}.hero h1{font-size:clamp(54px,6.4vw,96px);line-height:.9;letter-spacing:-.073em;margin:0;font-weight:900}.hero h1 span{background:linear-gradient(90deg,#fff,#9beaff 30%,#a08cff 62%,#ff85dc);-webkit-background-clip:text;color:transparent}.hero p{font-size:20px;color:var(--muted);margin:27px 0}.heroBtns{display:flex;gap:10px}.trust{font-size:9px;letter-spacing:.18em;color:#586071;margin-top:22px}.scene{height:650px;position:relative;display:grid;place-items:center;perspective:1200px}.phone{width:300px;height:610px;border-radius:48px;padding:10px;background:linear-gradient(145deg,#333640,#07080b 55%,#424654);box-shadow:0 70px 140px rgba(0,0,0,.66),0 0 90px rgba(101,79,255,.2);transform:rotateY(-8deg) rotateZ(5deg);transition:.25s}.screen{height:100%;border-radius:39px;overflow:hidden;position:relative;background:radial-gradient(circle at 55% 22%,#242b63,transparent 28%),linear-gradient(165deg,#111327,#060609 70%)}.island{position:absolute;z-index:2;top:18px;left:50%;transform:translateX(-50%);width:92px;height:25px;background:#030304;border-radius:20px}.profile{position:absolute;z-index:2;top:55px;left:18px;display:flex;gap:9px;align-items:center;font-size:11px}.profile>span{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:900;background:linear-gradient(135deg,var(--pink),var(--violet),var(--cyan))}.profile small{display:block;color:#939baa}.visualCore{position:absolute;top:41%;left:50%;transform:translate(-50%,-50%);font-size:38px;font-weight:950;letter-spacing:-.08em}.visualCore span{color:#6ee3ff}.social{position:absolute;right:17px;bottom:120px;display:grid;gap:18px}.social div{font-size:20px;text-align:center}.social small{display:block;font-size:9px;color:#d5d8e0}.caption{position:absolute;left:18px;right:48px;bottom:46px;font-size:13px;line-height:1.35}.caption b{font-size:18px}.chip{position:absolute;z-index:4;min-width:140px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:rgba(12,14,20,.83);backdrop-filter:blur(18px);box-shadow:0 20px 50px rgba(0,0,0,.35);animation:float 4s ease-in-out infinite}.chip small{display:block;color:#858ea0;font-size:9px;letter-spacing:.12em}.chip b{font-size:20px}.c1{left:-2%;top:18%}.c2{right:-4%;top:34%;animation-delay:-1s}.c3{left:-4%;bottom:22%;animation-delay:-2s}
+.flow{padding:130px 24px;max-width:1180px;margin:auto;text-align:center}.flow>small,.workspaceHead small,.module small,.paneTitle small{font-size:10px;letter-spacing:.15em;font-weight:900;color:#7d8698}.flow h2{font-size:clamp(42px,6vw,78px);letter-spacing:-.06em;margin:10px 0}.flow h2 i{font-style:normal;color:#555d6d}.flow>p{max-width:700px;margin:auto;color:var(--muted);font-size:17px;line-height:1.6}.flowGrid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:64px}.flowGrid article{border-top:1px solid rgba(255,255,255,.14);min-height:145px;padding:18px;text-align:left;background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.01))}.flowGrid b{font-size:10px;color:#5d6678;display:block;margin-bottom:60px}.flowGrid span{font-size:12px;font-weight:800}.modules{max-width:1180px;margin:auto;padding:0 24px 100px}.module{border-top:1px solid var(--line);min-height:560px;padding:84px 0;display:grid;grid-template-columns:.82fr 1.18fr;gap:65px;align-items:center}.module h3{font-size:clamp(44px,5vw,70px);letter-spacing:-.055em;line-height:.96;margin:14px 0 20px}.module p{color:var(--muted);font-size:16px;line-height:1.65;max-width:450px}.textBtn{border:0;background:none;padding:0;margin-top:20px;font-weight:900;cursor:pointer}.demo{height:410px;border:1px solid var(--line);background:radial-gradient(circle at 75% 20%,rgba(112,84,255,.14),transparent 30%),#0b0e14;position:relative;overflow:hidden;padding:20px}.sourceBar{height:120px;margin-top:45px;border-radius:12px;background:linear-gradient(90deg,#192040,#492b6b,#1d6070)}.miniClips{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:52px}.miniClips span{border:1px solid var(--line);background:#10131a;padding:18px;font-size:11px;color:#777f92}.miniClips b{display:block;color:#fff;font-size:28px}.previewCard{height:220px;margin-top:26px;border-radius:12px;display:grid;place-items:center;background:radial-gradient(circle at 50% 40%,#3d2b60,#10131a 60%);font-weight:900}.timeline{display:flex;gap:6px;align-items:center;margin-top:34px}.timeline i{height:24px;border-radius:4px;background:linear-gradient(90deg,#6f54ff,#29cfe7);flex:1}.timeline i:nth-child(2){flex:1.6}.timeline i:nth-child(4){flex:1.4}.preset{position:absolute;bottom:18px;right:18px;font-size:10px;color:#9ca4b4}.scoreRing{width:180px;height:180px;margin:34px auto 28px;border-radius:50%;border:14px solid rgba(110,84,255,.24);box-shadow:inset 0 0 0 4px rgba(42,213,237,.16);display:grid;place-items:center;font-size:58px;font-weight:900}.scoreRing small{font-size:11px}.bars{display:grid;gap:12px}.bars label{display:grid;grid-template-columns:80px 1fr;gap:10px;align-items:center;font-size:11px;color:#949caf}.bars i{height:5px;background:#191d26}.bars b{display:block;height:100%;background:linear-gradient(90deg,var(--violet),var(--cyan))}
+.workspace{max-width:1220px;margin:auto;padding:100px 24px 140px}.workspaceHead{display:flex;justify-content:space-between;align-items:end;margin-bottom:30px}.workspaceHead h2{font-size:clamp(40px,5vw,62px);letter-spacing:-.055em;margin:6px 0 0}.accountState{border:1px solid var(--line);border-radius:12px;padding:9px 12px;color:#a3aaba;font-size:12px}.actionGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}.actionGrid button{min-height:150px;text-align:left;border:1px solid var(--line);background:linear-gradient(145deg,#10131a,#0b0d12);border-radius:16px;padding:18px;cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between}.actionGrid span{font-size:24px}.actionGrid b{font-size:19px}.actionGrid small{color:#747e91}.appShell{display:grid;grid-template-columns:150px 1fr 270px;border:1px solid var(--line);border-radius:18px;overflow:hidden;background:#090b10;min-height:600px}.side{border-right:1px solid var(--line);padding:14px;display:flex;flex-direction:column;gap:7px}.tab{border:0;border-radius:10px;background:transparent;color:#8992a4;padding:11px;text-align:left;cursor:pointer}.tab.active{color:#fff;background:#151925}.sideFoot{margin-top:auto;border-top:1px solid var(--line);padding-top:12px;display:flex;justify-content:space-between;font-size:10px;color:#6f788a}.online{color:var(--green)}.workPanel{padding:24px}.pane{display:none}.pane.active{display:block}.paneTitle{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:22px}.paneTitle h3{font-size:32px;letter-spacing:-.04em;margin:6px 0}.badge{border:1px solid var(--line);border-radius:999px;padding:6px 9px;font-size:9px;color:#85dcff}.uploadZone{min-height:260px;border:1px dashed rgba(255,255,255,.16);border-radius:15px;display:grid;place-items:center;align-content:center;text-align:center;position:relative;background:radial-gradient(circle at 50% 20%,rgba(101,78,255,.09),transparent 35%)}.uploadZone input{position:absolute;inset:0;opacity:0;cursor:pointer}.uploadIcon{font-size:34px;margin-bottom:10px}.uploadZone b{font-size:20px}.uploadZone span{font-size:12px;color:#7e8798;margin-top:5px}.progressWrap{margin-top:12px}.progress{height:6px;border-radius:999px;background:#181c24;overflow:hidden}.progress i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--violet),var(--cyan));transition:.2s}.progressWrap small{display:block;margin-top:6px;color:#7d8698}.hidden{display:none!important}.controlsGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.controlsGrid label{font-size:11px;color:#858ea0}.controlsGrid select,.field{display:block;width:100%;margin-top:6px;border:1px solid var(--line);border-radius:11px;background:#0a0c11;color:#fff;padding:12px;outline:none}.selectedMedia{border:1px solid var(--line);padding:16px;border-radius:12px;margin-bottom:14px;color:#98a0b1}.rights{display:flex;gap:8px;align-items:center;color:#969eaf;font-size:12px;margin:14px 0}.result{margin-top:18px;border:1px solid var(--line);border-radius:14px;padding:18px;background:#0b0e14}.resultScore{font-size:64px;font-weight:900;letter-spacing:-.06em}.resultScore small{font-size:13px;color:#7f8899}.result h4{font-size:20px;margin:12px 0 6px}.result p{color:#9aa2b1;line-height:1.55}.clipCards{display:grid;gap:8px}.clipCard{border-top:1px solid var(--line);padding:12px 0}.clipCard:first-child{border-top:0}.clipCard b{font-size:22px}.clipCard small{color:#7b8496}.livePanel{border-left:1px solid var(--line);padding:18px}.livePanel>small{font-size:9px;letter-spacing:.15em;color:#6e7789}.livePanel>div:not(.jobLog){display:flex;justify-content:space-between;padding:13px 0;border-bottom:1px solid var(--line);font-size:12px;color:#8e97a8}.livePanel b{color:#e8eaf0}.jobLog{margin-top:16px;border:1px solid var(--line);background:#07090d;padding:12px;border-radius:11px;font-size:11px;color:#7f889a;line-height:1.5;word-break:break-all}
+.modal{position:fixed;z-index:80;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(12px);display:grid;place-items:center;padding:20px}.modalCard{width:min(430px,100%);border:1px solid var(--line);background:#0c0f15;border-radius:20px;padding:26px;position:relative;box-shadow:0 50px 100px rgba(0,0,0,.5)}.close{position:absolute;right:15px;top:12px;border:0;background:none;color:#8e96a7;font-size:26px;cursor:pointer}.modalBrand{font-size:19px}.modalCard h3{font-size:32px;margin:30px 0 4px;letter-spacing:-.04em}.modalCard p{color:#8d95a6;font-size:13px}.authTabs{display:flex;gap:6px;margin:18px 0}.authTabs button{flex:1;border:1px solid var(--line);background:#0a0c11;color:#7d8698;padding:10px;border-radius:10px;cursor:pointer}.authTabs button.active{color:#fff;background:#171b25}.authMessage{display:block;margin-top:10px;color:#ff8dad}.toast{position:fixed;z-index:90;bottom:24px;left:50%;transform:translateX(-50%);padding:12px 16px;border-radius:12px;background:#151922;border:1px solid var(--line);box-shadow:0 20px 50px rgba(0,0,0,.45);font-size:12px}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}@keyframes pulse{0%,100%{opacity:.8;transform:scale(1)}50%{opacity:1;transform:scale(1.05)}}
+@media(max-width:950px){.navlinks{display:none}.hero{grid-template-columns:1fr;text-align:center}.heroCopy{display:flex;flex-direction:column;align-items:center}.scene{height:590px}.module{grid-template-columns:1fr;gap:30px}.flowGrid{grid-template-columns:1fr 1fr}.appShell{grid-template-columns:110px 1fr}.livePanel{grid-column:1/-1;border-left:0;border-top:1px solid var(--line)}}
+@media(max-width:650px){.nav{height:58px}.navright .ghost{display:none}.hero{padding:120px 16px 55px}.hero h1{font-size:49px}.hero p{font-size:16px}.heroBtns{flex-direction:column;width:100%}.heroBtns>*{width:100%}.scene{height:540px;transform:scale(.86);margin:0 -20px}.chip{transform:scale(.84)}.flow,.modules,.workspace{padding-left:16px;padding-right:16px}.flowGrid{grid-template-columns:1fr}.flowGrid article{min-height:90px}.flowGrid b{margin-bottom:24px}.module{padding:62px 0}.demo{height:350px}.miniClips{grid-template-columns:1fr 1fr}.miniClips span:last-child{display:none}.workspaceHead{display:block}.accountState{display:inline-block;margin-top:12px}.actionGrid{grid-template-columns:1fr}.appShell{display:block}.side{flex-direction:row;border-right:0;border-bottom:1px solid var(--line)}.sideFoot{display:none}.workPanel{padding:16px}.controlsGrid{grid-template-columns:1fr}.livePanel{border-top:1px solid var(--line)}.paneTitle h3{font-size:27px}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}</style>
+</head>
+<body>
+<div class="noise"></div>
+<header class="nav">
+  <a class="brand" href="#home">VIRAL <span>STUDIO</span></a>
+  <nav class="navlinks"><a href="#product">Product</a><a href="#workspace">Viral+</a><a href="#workspace">Edit+</a><a href="#workspace">Clip+</a></nav>
+  <div class="navright"><button class="ghost" id="authBtn">Sign in</button><button class="primary" id="startBtn">Start free ↗</button></div>
+</header>
+
+<main id="home">
+<section class="hero">
+  <div class="heroGlow"></div>
+  <div class="heroCopy">
+    <div class="eyebrow">✦ CREATOR OPERATING SYSTEM</div>
+    <h1>TURN ANY VIDEO<br>INTO CONTENT<br><span>THAT PERFORMS.</span></h1>
+    <p>Clip it. Edit it. Analyze it. Export it.</p>
+    <div class="heroBtns"><button class="primary big" id="heroStart">Start Creating ↗</button><a class="ghost big" href="#product">See how it works</a></div>
+    <div class="trust">REAL BACKEND · RESUMABLE UPLOAD · LIVE JOB STATES</div>
+  </div>
+
+  <div class="scene" id="scene">
+    <div class="chip c1"><small>VIRAL SCORE</small><b>87</b></div>
+    <div class="chip c2"><small>RETENTION</small><b>+24%</b></div>
+    <div class="chip c3"><small>HOOK</small><b>STRONG</b></div>
+    <div class="phone">
+      <div class="island"></div>
+      <div class="screen">
+        <div class="profile"><span>V+</span><div><b>viralstudio</b><small>original audio</small></div></div>
+        <div class="visualCore">VIRAL<span>+</span></div>
+        <div class="social"><div>♥<small>24.8K</small></div><div>●<small>1.9K</small></div><div>↗<small>6.4K</small></div></div>
+        <div class="caption"><b>DON'T POST</b><br>before you know what breaks retention.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="product" class="flow">
+  <small>THE FLOW</small>
+  <h2>CLIP <i>→</i> EDIT <i>→</i> ANALYZE <i>→</i> EXPORT</h2>
+  <p>Un seul workspace. Une seule vidéo. Une boucle complète pour produire une version plus forte.</p>
+  <div class="flowGrid">
+    <article><b>01</b><span>LONG VIDEO</span></article><article><b>02</b><span>BEST MOMENTS</span></article><article><b>03</b><span>AUTO EDIT</span></article><article><b>04</b><span>VIRAL DIAGNOSIS</span></article><article><b>05</b><span>READY TO POST</span></article>
+  </div>
+</section>
+
+<section class="modules">
+  <article class="module"><div><small>FIND · CLIP+</small><h3>One video.<br>Multiple opportunities.</h3><p>Colle un lien et laisse Clip+ trouver les moments les plus exploitables.</p><button class="textBtn" data-open="clip">Open Clip+ →</button></div><div class="demo clipsDemo"><div class="sourceBar"></div><div class="miniClips"><span><b>91</b> Clip 01</span><span><b>87</b> Clip 02</span><span><b>82</b> Clip 03</span></div></div></article>
+  <article class="module"><div><small>BUILD · EDIT+</small><h3>Your editor,<br>without the editing.</h3><p>Choisis un style, génère le job de montage et suis le rendu réel.</p><button class="textBtn" data-open="edit">Open Edit+ →</button></div><div class="demo editDemo"><div class="previewCard">RAW → EDITED</div><div class="timeline"><i></i><i></i><i></i><i></i><i></i></div><div class="preset">CODIE · MODERN BOLD</div></div></article>
+  <article class="module"><div><small>LEARN · VIRAL+</small><h3>Stop guessing why<br>content isn't working.</h3><p>Score déterministe, diagnostic, timeline et corrections prioritaires.</p><button class="textBtn" data-open="viral">Open Viral+ →</button></div><div class="demo scoreDemo"><div class="scoreRing">78<small>/100</small></div><div class="bars"><label>Hook<i><b style="width:84%"></b></i></label><label>Retention<i><b style="width:68%"></b></i></label><label>Clarity<i><b style="width:76%"></b></i></label></div></div></article>
+</section>
+
+<section id="workspace" class="workspace">
+  <div class="workspaceHead">
+    <div><small>VIRAL STUDIO WORKSPACE</small><h2>What are we creating today?</h2></div>
+    <div class="accountState" id="accountState">Not signed in</div>
+  </div>
+
+  <div class="actionGrid">
+    <button data-module="viral"><span>◎</span><b>Analyze a Reel</b><small>Viral+</small></button>
+    <button data-module="edit"><span>◫</span><b>Create an Edit</b><small>Edit+</small></button>
+    <button data-module="clip"><span>✂</span><b>Generate Clips</b><small>Clip+</small></button>
+  </div>
+
+  <div class="appShell">
+    <aside class="side">
+      <button class="tab active" data-tab="viral">Viral+</button>
+      <button class="tab" data-tab="edit">Edit+</button>
+      <button class="tab" data-tab="clip">Clip+</button>
+      <div class="sideFoot"><span>Backend</span><b class="online">LIVE</b></div>
+    </aside>
+
+    <section class="workPanel">
+      <div class="pane active" data-pane="viral">
+        <div class="paneTitle"><div><small>VIRAL+</small><h3>Analyze your next Reel.</h3></div><span class="badge">REAL JOB</span></div>
+        <label class="uploadZone" id="viralDrop">
+          <input id="viralFile" type="file" accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm">
+          <div class="uploadIcon">＋</div><b id="viralFileName">Drop your video here</b><span>MP4 · MOV · WebM · resumable upload</span>
+        </label>
+        <div class="progressWrap hidden" id="uploadWrap"><div class="progress"><i id="uploadProgress"></i></div><small id="uploadText">0%</small></div>
+        <button class="primary wide" id="analyzeBtn" disabled>Analyze video</button>
+        <div id="viralResult" class="result hidden"></div>
+      </div>
+
+      <div class="pane" data-pane="edit">
+        <div class="paneTitle"><div><small>EDIT+</small><h3>Create an automatic edit.</h3></div><span class="badge">CODIE MODE</span></div>
+        <div class="selectedMedia" id="editMedia">Upload a video in Viral+ first, or use the same media here.</div>
+        <div class="controlsGrid">
+          <label>Style<select id="editStyle"><option value="codie">Codie</option><option value="creator_clean">Creator Clean</option><option value="business_viral">Business Viral</option><option value="podcast_authority">Podcast / Authority</option></select></label>
+          <label>Captions<select id="captionPreset"><option value="modern_bold">Modern Bold</option><option value="minimal">Minimal</option><option value="creator">Creator</option><option value="karaoke">Karaoke</option><option value="authority">Authority</option><option value="ugc">UGC</option></select></label>
+        </div>
+        <button class="primary wide" id="editBtn" disabled>Create edit</button>
+        <div id="editResult" class="result hidden"></div>
+      </div>
+
+      <div class="pane" data-pane="clip">
+        <div class="paneTitle"><div><small>CLIP+</small><h3>Turn long content into short-form.</h3></div><span class="badge">URL INGESTION</span></div>
+        <input class="field" id="clipUrl" placeholder="Paste YouTube, TikTok or Instagram URL">
+        <div class="rights"><input type="checkbox" id="rights"><label for="rights">I own this content or have permission to process it.</label></div>
+        <div class="controlsGrid"><label>Clips<select id="clipCount"><option>3</option><option selected>5</option><option>8</option></select></label><label>Captions<select id="clipCaption"><option value="modern_bold">Modern Bold</option><option value="minimal">Minimal</option><option value="creator">Creator</option></select></label></div>
+        <button class="primary wide" id="clipBtn">Generate clips</button>
+        <div id="clipResult" class="result hidden"></div>
+      </div>
+    </section>
+
+    <aside class="livePanel">
+      <small>LIVE BACKEND STATE</small>
+      <div><span>Media</span><b id="stateMedia">—</b></div>
+      <div><span>Job</span><b id="stateJob">—</b></div>
+      <div><span>Stage</span><b id="stateStage">—</b></div>
+      <div><span>Progress</span><b id="stateProgress">—</b></div>
+      <div class="jobLog" id="jobLog">No job running.</div>
+    </aside>
+  </div>
+</section>
+</main>
+
+<div class="modal hidden" id="authModal">
+  <div class="modalCard">
+    <button class="close" id="closeAuth">×</button>
+    <div class="brand modalBrand">VIRAL <span>STUDIO</span></div>
+    <h3 id="authTitle">Sign in</h3>
+    <p>Use a Viral Studio account to run the real backend.</p>
+    <div class="authTabs"><button class="active" data-authmode="login">Sign in</button><button data-authmode="signup">Create account</button></div>
+    <form id="authForm"><input class="field" id="email" type="email" placeholder="Email" required><input class="field" id="password" type="password" placeholder="Password" minlength="6" required><button class="primary wide" id="authSubmit">Sign in</button></form>
+    <small class="authMessage" id="authMessage"></small>
+  </div>
+</div>
+
+<div class="toast hidden" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tus-js-client@4.3.1/dist/tus.min.js"></script>
+<script>const SUPABASE_URL="https://eiypztjpmxdiuaqxjuqx.supabase.co";
+const KEY="sb_publishable_Wl8iv037-iZ59iStDPu96A_RMn-US2C";
+const PROJECT_REF="eiypztjpmxdiuaqxjuqx";
+const BUCKET="viralplus-videos";
+const client=window.supabase.createClient(SUPABASE_URL,KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+
+let session=null,media=null,currentJob=null,poller=null,authMode="login",analysis=null;
+const $=s=>document.querySelector(s), $=s=>[...document.querySelectorAll(s)];
+
+function toast(msg){const el=$("#toast");el.textContent=msg;el.classList.remove("hidden");clearTimeout(el._t);el._t=setTimeout(()=>el.classList.add("hidden"),3200)}
+function showAuth(){ $("#authModal").classList.remove("hidden") }
+function hideAuth(){ $("#authModal").classList.add("hidden") }
+function token(){return session?.access_token||""}
+function fn(name,path=""){return `${SUPABASE_URL}/functions/v1/${name}${path?"/"+String(path).replace(/^\//,""):""}`}
+async function api(url,opts={}){
+  const headers={apikey:KEY,Authorization:`Bearer ${token()}`,"Content-Type":"application/json",...(opts.headers||{})};
+  const r=await fetch(url,{...opts,headers});
+  const body=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(body.error||body.message||`Request failed (${r.status})`);
+  return body;
+}
+function setTab(name){
+  $(".tab").forEach(x=>x.classList.toggle("active",x.dataset.tab===name));
+  $(".pane").forEach(x=>x.classList.toggle("active",x.dataset.pane===name));
+  document.querySelector("#workspace").scrollIntoView({behavior:"smooth",block:"start"});
+}
+function setState(job){
+  $("#stateMedia").textContent=media?.id?"Registered":"—";
+  $("#stateJob").textContent=job?.status||"—";
+  $("#stateStage").textContent=job?.stage||"—";
+  $("#stateProgress").textContent=Number.isFinite(Number(job?.progress))?Number(job.progress)+"%":"—";
+  $("#jobLog").textContent=job?[`${job.kind||"job"} · ${job.status}`,job.stage||"",job.id||"",job.error||""].filter(Boolean).join("\n"):"No job running.";
+}
+function requireAuth(){if(!session){showAuth();toast("Connecte-toi pour utiliser le vrai moteur.");return false}return true}
+
+async function refreshSession(){
+  const {data}=await client.auth.getSession();session=data.session;
+  const el=$("#accountState"),btn=$("#authBtn");
+  if(session){el.textContent=session.user.email||"Signed in";btn.textContent="Sign out"}
+  else{el.textContent="Not signed in";btn.textContent="Sign in"}
+}
+client.auth.onAuthStateChange((_e,s)=>{session=s;refreshSession()});
+refreshSession();
+
+$("#authBtn").onclick=async()=>{if(session){await client.auth.signOut();toast("Déconnecté")}else showAuth()};
+$("#startBtn").onclick=$("#heroStart").onclick=()=>{if(!session)showAuth();else setTab("viral")};
+$("#closeAuth").onclick=hideAuth;
+$("#authModal").addEventListener("click",e=>{if(e.target===$("#authModal"))hideAuth()});
+$("[data-authmode]").forEach(b=>b.onclick=()=>{
+  authMode=b.dataset.authmode;$("[data-authmode]").forEach(x=>x.classList.toggle("active",x===b));
+  $("#authTitle").textContent=authMode==="login"?"Sign in":"Create your studio.";
+  $("#authSubmit").textContent=authMode==="login"?"Sign in":"Create account";
+  $("#authMessage").textContent="";
+});
+$("#authForm").onsubmit=async e=>{
+  e.preventDefault();$("#authMessage").textContent="";$("#authSubmit").disabled=true;
+  try{
+    const email=$("#email").value.trim(),password=$("#password").value;
+    const res=authMode==="login"?await client.auth.signInWithPassword({email,password}):await client.auth.signUp({email,password});
+    if(res.error)throw res.error;
+    await refreshSession();hideAuth();toast(authMode==="login"?"Connecté.":"Compte créé.");setTab("viral");
+  }catch(err){$("#authMessage").textContent=err.message||String(err)}
+  finally{$("#authSubmit").disabled=false}
+};
+
+$(".tab").forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
+$("[data-module]").forEach(b=>b.onclick=()=>{if(!session)showAuth();setTab(b.dataset.module)});
+$("[data-open]").forEach(b=>b.onclick=()=>{if(!session)showAuth();setTab(b.dataset.open)});
+
+const scene=$("#scene");
+window.addEventListener("mousemove",e=>{
+  if(innerWidth<900)return;
+  const dx=(e.clientX-innerWidth/2)/innerWidth,dy=(e.clientY-innerHeight/2)/innerHeight;
+  scene.style.transform=`translate3d(${dx*12}px,${dy*8}px,0)`;
+  const p=scene.querySelector(".phone"); if(p)p.style.transform=`rotateY(${-8+dx*7}deg) rotateX(${-dy*5}deg) rotateZ(5deg)`;
+},{passive:true});
+
+function safeName(name){return name.replace(/[^a-zA-Z0-9._-]+/g,"-").slice(-120)}
+async function uploadVideo(file){
+  if(!requireAuth())return;
+  $("#viralFileName").textContent=file.name;$("#uploadWrap").classList.remove("hidden");$("#uploadProgress").style.width="0%";$("#uploadText").textContent="0%";
+  $("#analyzeBtn").disabled=true;$("#editBtn").disabled=true;media=null;analysis=null;setState(null);
+  const objectName=`${session.user.id}/${crypto.randomUUID()}-${safeName(file.name)}`;
+  const upload=new tus.Upload(file,{
+    endpoint:`https://${PROJECT_REF}.storage.supabase.co/storage/v1/upload/resumable`,
+    retryDelays:[0,3000,5000,10000,20000],
+    headers:{authorization:`Bearer ${token()}`,"x-upsert":"false"},
+    uploadDataDuringCreation:true,removeFingerprintOnSuccess:true,chunkSize:6*1024*1024,
+    metadata:{bucketName:BUCKET,objectName,contentType:file.type||"video/mp4",cacheControl:"3600"},
+    onError(err){toast("Upload impossible: "+(err.message||err));$("#uploadText").textContent="Failed"},
+    onProgress(sent,total){const p=Math.round(sent/total*100);$("#uploadProgress").style.width=p+"%";$("#uploadText").textContent=p+"%"},
+    async onSuccess(){
+      try{
+        const body=await api(fn("viral-edit-jobs","media"),{method:"POST",body:JSON.stringify({storage_path:objectName,mime_type:file.type||"video/mp4",size_bytes:file.size,original_name:file.name,module:"shared"})});
+        media=body.media;$("#uploadText").textContent="Uploaded · Ready";$("#analyzeBtn").disabled=false;$("#editBtn").disabled=false;$("#editMedia").textContent=file.name+" · media registered";setState(null);toast("Vidéo prête.");
+      }catch(err){toast(err.message)}
+    }
+  });
+  try{const prev=await upload.findPreviousUploads();if(prev.length)upload.resumeFromPreviousUpload(prev[0])}catch{}
+  upload.start();
+}
+$("#viralFile").onchange=e=>{const f=e.target.files?.[0];if(f)uploadVideo(f)};
+
+async function pollJob(id,kind,projectId=null,onDone){
+  if(poller)clearInterval(poller);
+  const tick=async()=>{
+    try{
+      const path=kind==="clip"?fn("clip-jobs",`jobs/${id}`):fn("viral-edit-jobs",`jobs/${id}`);
+      const body=await api(path);currentJob=body.job;setState(currentJob);
+      if(["completed","failed"].includes(currentJob.status)){
+        clearInterval(poller);poller=null;
+        if(currentJob.status==="failed"){throw new Error(currentJob.error||currentJob.error_code||"Job failed")}
+        await onDone?.(currentJob,projectId);
+      }
+    }catch(err){if(poller)clearInterval(poller);poller=null;toast(err.message);setState({...currentJob,status:"failed",error:err.message})}
+  };
+  await tick();if(currentJob&&!["completed","failed"].includes(currentJob.status))poller=setInterval(tick,2200);
+}
+
+$("#analyzeBtn").onclick=async()=>{
+  if(!requireAuth()||!media)return;$("#analyzeBtn").disabled=true;$("#viralResult").classList.add("hidden");
+  try{
+    const body=await api(fn("viral-edit-jobs","analysis"),{method:"POST",body:JSON.stringify({video_id:media.id})});
+    currentJob=body.job;setState(currentJob);toast("Analyse lancée.");
+    await pollJob(body.job.id,"core",null,async job=>{
+      const {data,error}=await client.from("viralplus_analyses").select("*").eq("job_id",job.id).maybeSingle();if(error)throw error;
+      analysis=data?.result_json?{...data.result_json,id:data.id,analysis_id:data.id}:data;
+      const r=$("#viralResult");r.classList.remove("hidden");
+      r.innerHTML=`<div class="resultScore">${analysis?.final_score??data?.final_score??"—"}<small>/100</small></div><small>MAIN PROBLEM</small><h4>${escapeHtml(analysis?.main_problem||data?.main_problem||"Analysis completed")}</h4><p>${escapeHtml(analysis?.why||data?.why||"")}</p><button class="primary" id="fixBtn">FIX WITH EDIT+ →</button>`;
+      $("#fixBtn").onclick=()=>setTab("edit");$("#analyzeBtn").disabled=false;toast("Analyse terminée.");
+    });
+  }catch(err){toast(err.message);$("#analyzeBtn").disabled=false}
+};
+
+$("#editBtn").onclick=async()=>{
+  if(!requireAuth()||!media)return;$("#editBtn").disabled=true;$("#editResult").classList.remove("hidden");$("#editResult").innerHTML="Creating edit job…";
+  try{
+    const body=await api(fn("viral-edit-jobs","edit"),{method:"POST",body:JSON.stringify({video_id:media.id,analysis_id:analysis?.analysis_id||analysis?.id||null,style:$("#editStyle").value,caption_preset:$("#captionPreset").value})});
+    currentJob=body.job;setState(currentJob);toast("Montage lancé.");
+    await pollJob(body.job.id,"core",null,async job=>{
+      $("#editResult").innerHTML=`<small>EDIT+ COMPLETED</small><h4>Render job completed.</h4><p>Job ${escapeHtml(job.id)} terminé. Le rendu est enregistré dans le backend Viral Studio.</p>`;$("#editBtn").disabled=false;toast("Montage terminé.");
+    });
+  }catch(err){toast(err.message);$("#editBtn").disabled=false}
+};
+
+$("#clipBtn").onclick=async()=>{
+  if(!requireAuth())return;const url=$("#clipUrl").value.trim();if(!url)return toast("Colle un lien vidéo.");if(!$("#rights").checked)return toast("Confirme tes droits sur le contenu.");
+  $("#clipBtn").disabled=true;$("#clipResult").classList.remove("hidden");$("#clipResult").innerHTML="Finding best moments…";
+  try{
+    const body=await api(fn("clip-jobs","create"),{method:"POST",body:JSON.stringify({source_url:url,confirm_rights:true,clip_count:Number($("#clipCount").value),min_duration_sec:20,max_duration_sec:60,caption_preset:$("#clipCaption").value,add_captions:true})});
+    currentJob=body.job;setState(currentJob);toast("Clip+ lancé.");
+    await pollJob(body.job.id,"clip",body.project.id,async(_job,projectId)=>{
+      const detail=await api(fn("clip-jobs",`projects/${projectId}`));const clips=detail.clips||[];
+      $("#clipResult").innerHTML=`<small>CLIP+ RESULTS</small><h4>${clips.length} clips generated</h4><div class="clipCards">${clips.map(c=>`<div class="clipCard"><b>${c.viral_score??"—"}</b> <small>VIRAL POTENTIAL · CLIP 0${c.rank}</small><h4>${escapeHtml(c.title||"Untitled")}</h4><p>${escapeHtml(c.hook||c.rationale||"")}</p></div>`).join("")}</div>`;$("#clipBtn").disabled=false;toast("Clips générés.");
+    });
+  }catch(err){toast(err.message);$("#clipBtn").disabled=false}
+};
+
+function escapeHtml(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+</script>
+</body>
+</html>
