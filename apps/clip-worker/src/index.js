@@ -294,8 +294,8 @@ async function processVizardYouTube({
     .from('clip_projects')
     .update({
       status:'analyzing',
-      metadata:{
-        ...(project.metadata||{}),
+      settings:{
+        ...(project.settings||{}),
         provider:'vizard',
         provider_project_id:providerProjectId
       },
@@ -304,7 +304,7 @@ async function processVizardYouTube({
     .eq('id',project.id);
 
   let result=null;
-  for(let attempt=0;attempt<80;attempt++){
+  for(let attempt=0;attempt<40;attempt++){
     await progress(
       job,
       'analyzing',
@@ -342,7 +342,7 @@ async function processVizardYouTube({
       );
     }
 
-    await sleep(10000);
+    await sleep(30000);
   }
 
   if(!result){
