@@ -65,7 +65,7 @@ export function StudioLanding(){
 
     <section className="module-stack">
       {modules.map((m,i)=>{const Icon=m.icon; return <article key={m.name} id={m.name==="Clip+"?"clip":m.name==="Edit+"?"edit":"viral"} className="module-panel">
-        <div className="module-copy"><small>{m.kicker} · {m.name}</small><h3>{m.title}</h3><p>{m.copy}</p><Link href="/dashboard" className="text-link">Open {m.name} <ArrowRight size={16}/></Link></div>
+        <div className="module-copy"><small>{m.kicker} · {m.name}</small><h3>{m.title}</h3><p>{m.copy}</p><Link href={`/dashboard?tool=${m.name==="Clip+"?"clip":m.name==="Edit+"?"edit":"viral"}`} className="text-link">Open {m.name} <ArrowRight size={16}/></Link></div>
         <div className={"module-demo demo-"+i}>
           <div className="demo-top"><span>{m.name}</span><Icon size={18}/></div>
           {i===0 && <><div className="longbar"/><div className="clip-grid">{["BEST","STRONG","READY"].map((label,n)=><div key={label}><span>0{n+1}</span><b>{label}</b><small>selected moment</small></div>)}</div></>}

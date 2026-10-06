@@ -52,6 +52,8 @@ export function Dashboard(){
   const pollRef=useRef<ReturnType<typeof setInterval>|null>(null);
 
   useEffect(()=>{
+    const requested=new URLSearchParams(window.location.search).get("tool");
+    if(requested==="viral"||requested==="edit"||requested==="clip")setActive(requested);
     supabase.auth.getSession().then(({data})=>setSession(data.session));
     const {data}=supabase.auth.onAuthStateChange((_event,next)=>setSession(next));
     return ()=>data.subscription.unsubscribe();
@@ -74,6 +76,21 @@ export function Dashboard(){
   const selectedModel=EDIT_MODELS.find(x=>x.id===editModel)||EDIT_MODELS[0];
   const score=useMemo(()=>analysis?.final_score??analysis?.score??null,[analysis]);
   const safeZone=analysis?.safe_zone||null;
+
+  function switchModule(next:Module){
+    if(busy)return;
+    setActive(next);
+    setError("");
+    setJob(null);
+    history.replaceState(null,"",`/dashboard?tool=${next}`);
+  }
+
+  function displayJobError(current:Job){
+    const code=String(current?.error_code||"");
+    if(code==="NO_CLIPS_FOUND")return "Aucun passage suffisamment fort n’a été détecté dans cette vidéo.";
+    if(code==="YOUTUBE_EGRESS_REQUIRED"||code==="YOUTUBE_IMPORT_FAILED")return "Cette vidéo YouTube n’a pas pu être importée automatiquement. Essaie une autre vidéo YouTube pour le moment.";
+    return String(current?.error||code||"Le traitement a échoué.");
+  }
 
   async function authenticate(e:React.FormEvent){
     e.preventDefault();setAuthError("");
@@ -114,7 +131,7 @@ export function Dashboard(){
         if(!done)return false;
         if(pollRef.current)clearInterval(pollRef.current);pollRef.current=null;setBusy(false);
         try{localStorage.removeItem("viral-studio-active-job")}catch{}
-        if(body.job.status==="failed"){setError(String(body.job.error||body.job.error_code||"Le traitement a échoué."));return true}
+        if(body.job.status==="failed"){setError(displayJobError(body.job));return true}
         if(body.job.kind==="viral_analysis"){
           const {data,error:analysisError}=await supabase.from("viralplus_analyses").select("*").eq("job_id",id).maybeSingle();
           if(analysisError)throw analysisError;
@@ -191,16 +208,16 @@ export function Dashboard(){
     <aside className="sidebar">
       <div className="side-brand">VIRAL <span>STUDIO</span></div>
       <div className="side-group"><small>CREATE</small>
-        <button className="side-link" onClick={()=>setActive("viral")}><BarChart3 size={16}/> Viral+</button>
-        <button className="side-link" onClick={()=>setActive("edit")}><Clapperboard size={16}/> Edit+</button>
-        <button className="side-link" onClick={()=>setActive("clip")}><Scissors size={16}/> Clip+</button>
+        <button className="side-link" onClick={()=>switchModule("viral")}><BarChart3 size={16}/> Viral+</button>
+        <button className="side-link" onClick={()=>switchModule("edit")}><Clapperboard size={16}/> Edit+</button>
+        <button className="side-link" onClick={()=>switchModule("clip")}><Scissors size={16}/> Clip+</button>
       </div>
       <div className="side-group"><small>ACCOUNT</small><button className="side-link" onClick={()=>supabase.auth.signOut()}><LogOut size={16}/> Sign out</button></div>
     </aside>
 
     <section className="dash-main">
       <header className="dash-top"><div><h1>What are we creating today?</h1><p>Three tools. One simple workflow.</p></div><div className="user-pill">{session.user.email}</div></header>
-      <div className="module-tabs"><button className={active==="viral"?"active":""} onClick={()=>setActive("viral")}>Viral+</button><button className={active==="edit"?"active":""} onClick={()=>setActive("edit")}>Edit+</button><button className={active==="clip"?"active":""} onClick={()=>setActive("clip")}>Clip+</button></div>
+      <div className="module-tabs"><button className={active==="viral"?"active":""} onClick={()=>switchModule("viral")}>Viral+</button><button className={active==="edit"?"active":""} onClick={()=>switchModule("edit")}>Edit+</button><button className={active==="clip"?"active":""} onClick={()=>switchModule("clip")}>Clip+</button></div>
 
       {active==="viral"&&<div className="workspace-grid">
         <section className="panel">
@@ -255,7 +272,7 @@ export function Dashboard(){
 
       {active==="edit"&&editExportUrl&&<section className="result-panel edit-result"><div className="result-copy"><small>EDIT+ · READY</small><h2>{selectedModel.name} render ready.</h2><p>The final video was rendered with the locked {selectedModel.name} model.</p><div className="result-actions"><a className="btn primary" href={editExportUrl} target="_blank" rel="noreferrer">Open MP4 ↗</a></div></div><video className="result-video" src={editExportUrl} controls playsInline/></section>}
 
-      {active==="viral"&&analysis&&<><section className="result-panel"><div><small>VIRAL SCORE</small><div className="score-big">{score??"—"}<span>/100</span></div></div><div className="result-copy"><small>MAIN PROBLEM</small><h2>{analysis.main_problem||"Diagnostic completed"}</h2><p>{analysis.why}</p><button className="btn primary" onClick={()=>setActive("edit")}>FIX WITH EDIT+ →</button></div></section>
+      {active==="viral"&&analysis&&<><section className="result-panel"><div><small>VIRAL SCORE</small><div className="score-big">{score??"—"}<span>/100</span></div></div><div className="result-copy"><small>MAIN PROBLEM</small><h2>{analysis.main_problem||"Diagnostic completed"}</h2><p>{analysis.why}</p><button className="btn primary" onClick={()=>switchModule("edit")}>FIX WITH EDIT+ →</button></div></section>
         {safeZone&&<section className="safe-zone-panel"><div className="safe-phone"><div className="unsafe top"/><div className="safe-frame"><span>UNIVERSAL SAFE</span></div><div className="unsafe right"/><div className="unsafe bottom"/></div><div className="safe-copy"><small>SAFE ZONE</small><h2>{safeZone.score??"—"}<span>/100</span></h2><p>{safeZone.summary||"Framing, text and caption placement checked for short-form UI risk."}</p><div className="safe-metrics"><span>Framing <b>{safeZone.framing}</b></span><span>Text <b>{safeZone.text_safety}</b></span><span>Captions <b>{safeZone.caption_safety}</b></span><span>Platform fit <b>{safeZone.platform_fit}</b></span></div>{safeZone.issues?.length>0&&<div className="safe-issues">{safeZone.issues.slice(0,4).map((x:any,i:number)=><div className={`safe-issue ${x.severity}`} key={i}><strong>{x.element}</strong><span>{x.problem}</span><small>{x.correction}</small></div>)}</div>}</div></section>}
       </>}
 
