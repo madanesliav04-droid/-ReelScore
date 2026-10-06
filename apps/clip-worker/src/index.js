@@ -241,7 +241,10 @@ async function importSource(url,dir){
     '--max-filesize','500M',
     '--merge-output-format','mp4',
     '--remux-video','mp4',
-    '--print','after_move:filepath'
+    '--print','after_move:filepath',
+    '--socket-timeout','20',
+    '--retries','3',
+    '--fragment-retries','3'
   ];
 
   if(!youtube){
@@ -259,7 +262,7 @@ async function importSource(url,dir){
 
   const provider=[
     '--extractor-args',
-    'youtubepot-bgutilscript:server_home=/opt/bgutil-ytdlp-pot-provider/server'
+    'youtubepot-bgutilhttp:base_url=http://127.0.0.1:4416'
   ];
 
   const strategies=[
@@ -302,7 +305,7 @@ async function importSource(url,dir){
 
   throw tagged(
     'YOUTUBE_IMPORT_FAILED',
-    'YouTube a refusé l’import automatique. Essaie l’upload direct dans Clip+. '+failures.at(-1)
+    'YouTube a refusé l’import automatique après plusieurs stratégies URL. '+failures.at(-1)
   );
 }
 
