@@ -1,7 +1,6 @@
 const $ = id => document.getElementById(id);
 const SUPABASE_URL = String(window.VIRAL_SUPABASE_URL || '').replace(/\/$/,'');
 const SUPABASE_KEY = String(window.VIRAL_SUPABASE_KEY || '');
-const API_URL = 'https://eiypztjpmxdiuaqxjuqx.supabase.co/functions/v1/viralplus-api';
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const lowPower = innerWidth < 900;
 
