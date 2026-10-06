@@ -21,7 +21,7 @@ const WEIGHTS={
 const clamp=n=>Math.max(0,Math.min(100,Math.round(Number(n)||0)));
 const avg=(...xs)=>xs.reduce((a,b)=>a+b,0)/Math.max(1,xs.length);
 
-export async function analyzeVideo({filePath,mimeType,fileName,geminiKey,model='gemini-2.5-flash',fallbackModel='gemini-2.5-flash-lite',onProgress=async()=>{}}){
+export async function analyzeVideo({filePath,mimeType,fileName,geminiKey,model='gemini-3.8-flash',fallbackModel='gemini-3.5-flash-lite',onProgress=async()=>{}}){
   await onProgress('processing',12,'Extraction des signaux mesurables');
   const measurable=await extractMeasurableSignals(filePath);
 
