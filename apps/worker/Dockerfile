@@ -11,4 +11,4 @@ RUN npm install --omit=dev
 COPY src ./src
 
 ENV NODE_ENV=production
-CMD ["npm","start"]
+CMD ["node","src/index.js"]
