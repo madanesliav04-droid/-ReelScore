@@ -458,9 +458,34 @@ function buildAss(words,clipStartMs,clipEndMs,preset){
 }
 
 async function renderClip({sourcePath,outputPath,startSec,endSec,assPath}){
-  const duration=Math.max(.1,endSec-startSec),ass=assPath?`,ass='${filterEscape(assPath)}'`:'';
-  const filter=`[0:v]split=2[bg][fg];[bg]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=18:2[bgv];[fg]scale=1080:1920:force_original_aspect_ratio=decrease[fgv];[bgv][fgv]overlay=(W-w)/2:(H-h)/2${ass}[v]`;
-  await run('ffmpeg',['-hide_banner','-loglevel','error','-y','-ss',String(startSec),'-i',sourcePath,'-t',String(duration),'-filter_complex',filter,'-map','[v]','-map','0:a?','-c:v','libx264','-preset','veryfast','-crf','20','-pix_fmt','yuv420p','-c:a','aac','-b:a','160k','-af','loudnorm=I=-14:TP=-1.5:LRA=11','-movflags','+faststart',outputPath]);
+  const duration=Math.max(.1,endSec-startSec);
+  const vf=[
+    'scale=1080:1920:force_original_aspect_ratio=increase:flags=lanczos',
+    'crop=1080:1920:(iw-1080)/2:(ih-1920)*0.42',
+    'setsar=1',
+    ...(assPath?[`ass='${filterEscape(assPath)}'`]:[])
+  ].join(',');
+
+  await run('ffmpeg',[
+    '-hide_banner','-loglevel','error','-y',
+    '-ss',String(startSec),
+    '-i',sourcePath,
+    '-t',String(duration),
+    '-map','0:v:0',
+    '-map','0:a:0?',
+    '-vf',vf,
+    '-r','30',
+    '-c:v','libx264',
+    '-preset','ultrafast',
+    '-crf','20',
+    '-pix_fmt','yuv420p',
+    '-threads','1',
+    '-c:a','aac',
+    '-b:a','160k',
+    '-af','loudnorm=I=-14:TP=-1.5:LRA=11',
+    '-movflags','+faststart',
+    outputPath
+  ]);
 }
 
 async function persistClip({job,project,candidate,rank,filePath}){
@@ -625,5 +650,5 @@ function round(n,p=2){return Number(Number(n||0).toFixed(p))}
 function assEscape(v){return String(v||'').replace(/\\/g,'\\\\').replace(/[{}]/g,'').replace(/\n/g,' ')}
 function assTime(sec){const s=Math.max(0,Number(sec)||0),h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=(s%60).toFixed(2).padStart(5,'0');return `${h}:${String(m).padStart(2,'0')}:${x}`}
 function filterEscape(v){return String(v).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/:/g,'\\:')}
-function run(cmd,args){return new Promise((resolve,reject)=>{const p=spawn(cmd,args);let err='';p.stderr.on('data',d=>err+=d);p.on('error',reject);p.on('close',code=>code===0?resolve():reject(new Error(`${cmd} exited ${code}: ${err.slice(-2500)}`)))})}
+function run(cmd,args){return new Promise((resolve,reject)=>{const p=spawn(cmd,args);let err='';p.stderr.on('data',d=>err+=d);p.on('error',reject);p.on('close',(code,signal)=>code===0?resolve():reject(new Error(`${cmd} exited ${code??'null'}${signal?` (signal ${signal})`:''}: ${err.slice(-2500)}`)))})}
 function runStdout(cmd,args){return new Promise((resolve,reject)=>{const p=spawn(cmd,args);let out='',err='';p.stdout.on('data',d=>out+=d);p.stderr.on('data',d=>err+=d);p.on('error',reject);p.on('close',code=>code===0?resolve(out):reject(new Error(`${cmd} exited ${code}: ${err.slice(-2500)}`)))})}
