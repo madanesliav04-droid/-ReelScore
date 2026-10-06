@@ -103,6 +103,8 @@ async function refreshSession(){if(!session?.refresh_token)return false;const r=
 async function getToken(){if(isExpired(session)){const ok=await refreshSession();if(!ok)return null}return session?.access_token||null}
 function updateAccountUI(){if(session?.user){accountBtn.textContent=(session.user.email||'Compte').split('@')[0];}else{accountBtn.textContent='Se connecter';usagePill.classList.add('hidden')}}
 async function supa(path,{method='GET',body,prefer,query='',auth=true}={}){const token=auth?await getToken():null;const headers={apikey:SUPABASE_KEY,'Content-Type':'application/json'};if(token)headers.Authorization=`Bearer ${token}`;if(prefer)headers.Prefer=prefer;const r=await fetch(`${SUPABASE_URL}${path}${query}`,{method,headers,body:body===undefined?undefined:JSON.stringify(body)});let data=null;try{data=await r.json()}catch{}if(!r.ok)throw new Error(data?.msg||data?.message||data?.error_description||data?.error||`Erreur ${r.status}`);return data}
+async function jobsApi(route,{method='GET',body}={}){return supa('/functions/v1/viral-edit-jobs/'+String(route||'').replace(/^\//,''),{method,body})}
+
 async function track(name,properties={}){if(!session?.user)return;try{await supa('/rest/v1/viralplus_events',{method:'POST',body:{user_id:session.user.id,event_name:name,properties}})}catch{}}
 async function refreshEntitlement(){if(!session?.user)return;try{const d=await supa('/rest/v1/rpc/viralplus_get_entitlement',{method:'POST',body:{}});entitlement=Array.isArray(d)?d[0]:d;if(entitlement){usagePill.classList.remove('hidden');const days=entitlement.trial_active&&entitlement.trial_ends_at?Math.max(0,Math.ceil((new Date(entitlement.trial_ends_at)-Date.now())/86400000)):0;usagePill.textContent=`BÊTA GRATUITE · ${entitlement.remaining}/${entitlement.analysis_limit} analyses`}}catch(e){console.warn(e)}}
 
@@ -393,6 +395,7 @@ async function pollProcessingJob(jobId){
 function normalizeAnalysisRow(row){
   const data={...(row?.result_json||{})};
   data.analysis_id=row?.id||data.analysis_id;
+  data.video_id=row?.video_id||data.video_id||null;
   data.final_score=Number(row?.final_score??data.final_score??0);
   data.score_version=row?.score_version||data.score_version;
   data.model_used=row?.model_used||data.model_used;
@@ -410,7 +413,7 @@ async function fetchAnalysisForJob(job){
   const analysisId=job?.result?.analysis_id;
   const filter=analysisId?`id=eq.${encodeURIComponent(analysisId)}`:`job_id=eq.${encodeURIComponent(job.id)}`;
   const rows=await supa('/rest/v1/viralplus_analyses',{
-    query:`?select=id,created_at,video_name,final_score,status,is_reanalysis,baseline_analysis_id,score_version,model_used,result_json&${filter}&limit=1`
+    query:`?select=id,video_id,created_at,video_name,final_score,status,is_reanalysis,baseline_analysis_id,score_version,model_used,result_json&${filter}&limit=1`
   });
   if(!rows?.[0])throw new Error('Rapport terminé mais résultat introuvable.');
   return normalizeAnalysisRow(rows[0]);
@@ -452,6 +455,7 @@ async function runAnalysis(){
     const finished=await pollProcessingJob(job.id);
     const data=await fetchAnalysisForJob(finished);
     currentAnalysis=data;
+    if(data.video_id)currentVideoId=data.video_id;
 
     await animateScore(data.final_score||0);
     renderPhoneMetrics(data);
@@ -507,7 +511,7 @@ $('requestCreator').addEventListener('click',async()=>{if(!await ensureAuth())re
 async function saveOutcome(){if(!currentAnalysis?.analysis_id){showToast('Analyse une vidéo avant d’enregistrer ses résultats.');return}const row={analysis_id:currentAnalysis.analysis_id,user_id:session.user.id,outcome_window:$('outcomeWindow').value,views:num('outViews'),shares:num('outShares'),saves:num('outSaves'),comments:num('outComments'),followers_gained:num('outFollowers')};try{await supa('/rest/v1/viralplus_outcomes',{method:'POST',body:row,prefer:'resolution=merge-duplicates,return=representation',query:'?on_conflict=analysis_id,outcome_window'});$('outcomeStatus').textContent='Résultat enregistré. Merci — ça aide Viral+ à devenir plus fiable.';track('outcome_saved',{window:row.outcome_window,views:row.views})}catch(e){$('outcomeStatus').textContent=e.message}}
 function num(id){const v=$(id).value;return v===''?null:Number(v)}$('saveOutcome').addEventListener('click',saveOutcome);
 
-async function loadHistory(){const grid=$('historyGrid');if(!session?.user){grid.innerHTML='<div class="historyEmpty">Connecte-toi pour retrouver tes analyses.</div>';return}try{const rows=await supa('/rest/v1/viralplus_analyses',{query:'?select=id,created_at,video_name,final_score,status,is_reanalysis,baseline_analysis_id,score_version,result_json&order=created_at.desc&limit=30'});if(!rows.length){grid.innerHTML='<div class="historyEmpty">Aucune analyse pour le moment.</div>';return}grid.innerHTML=rows.map(r=>`<article class="historyCard" data-id="${r.id}"><small>${new Date(r.created_at).toLocaleString('fr-FR')}</small><strong>${r.final_score}/100</strong><span>${escapeHtml(r.video_name)} · ${r.is_reanalysis?'Re-score':'Analyse'}</span></article>`).join('');grid.querySelectorAll('.historyCard').forEach(card=>card.addEventListener('click',()=>{const row=rows.find(x=>x.id===card.dataset.id);if(!row)return;const data={...(row.result_json||{}),analysis_id:row.id,final_score:row.final_score,score_version:row.score_version,status:row.status};currentAnalysis=data;renderResult(data);showResultLayer(data);resultEmpty.classList.add('hidden');resultContent.classList.remove('hidden');document.getElementById('workspace').scrollIntoView({behavior:'smooth'});track('history_opened',{analysis_id:row.id})}))}catch(e){grid.innerHTML=`<div class="historyEmpty">${escapeHtml(e.message)}</div>`}}
+async function loadHistory(){const grid=$('historyGrid');if(!session?.user){grid.innerHTML='<div class="historyEmpty">Connecte-toi pour retrouver tes analyses.</div>';return}try{const rows=await supa('/rest/v1/viralplus_analyses',{query:'?select=id,video_id,created_at,video_name,final_score,status,is_reanalysis,baseline_analysis_id,score_version,result_json&order=created_at.desc&limit=30'});if(!rows.length){grid.innerHTML='<div class="historyEmpty">Aucune analyse pour le moment.</div>';return}grid.innerHTML=rows.map(r=>`<article class="historyCard" data-id="${r.id}"><small>${new Date(r.created_at).toLocaleString('fr-FR')}</small><strong>${r.final_score}/100</strong><span>${escapeHtml(r.video_name)} · ${r.is_reanalysis?'Re-score':'Analyse'}</span></article>`).join('');grid.querySelectorAll('.historyCard').forEach(card=>card.addEventListener('click',()=>{const row=rows.find(x=>x.id===card.dataset.id);if(!row)return;const data={...(row.result_json||{}),analysis_id:row.id,video_id:row.video_id,final_score:row.final_score,score_version:row.score_version,status:row.status};currentAnalysis=data;currentVideoId=row.video_id||null;renderResult(data);showResultLayer(data);resultEmpty.classList.add('hidden');resultContent.classList.remove('hidden');document.getElementById('workspace').scrollIntoView({behavior:'smooth'});track('history_opened',{analysis_id:row.id})}))}catch(e){grid.innerHTML=`<div class="historyEmpty">${escapeHtml(e.message)}</div>`}}
 $('refreshHistory').addEventListener('click',loadHistory);
 
 (async function init(){await handleAuthCallback();if(!session)session=storedSession();if(session&&isExpired(session))await refreshSession();updateAccountUI();if(session?.user){await refreshEntitlement();await loadHistory();track('page_view',{path:location.pathname})}updateStage();tickCounters()})();
@@ -516,7 +520,133 @@ $('refreshHistory').addEventListener('click',loadHistory);
 (function(){
   const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const num=v=>Math.max(0,Math.min(100,Math.round(Number(v)||0)));
-  const metrics=[['Hook parlé','spoken_hook'],['Rétention','retention'],['Hook visuel','visual_hook'],['Partage','shareability']];
+  const metrics=[['Hook','hook'],['Rétention','retention'],['Visuel','visual'],['Scroll stop','scroll_stop']];
+  async function runEditPlus(style='creator_clean',captionPreset='modern_bold'){
+    if(!currentAnalysis?.analysis_id){showToast('Analyse Viral+ requise avant Edit+.');return}
+    const videoId=currentAnalysis.video_id||currentVideoId;
+    if(!videoId){showToast('Vidéo source introuvable.');return}
+    if(!await ensureAuth())return;
+
+    const buttons=[...document.querySelectorAll('.v8EditLaunch')];
+    buttons.forEach(b=>{b.disabled=true;b.textContent='Préparation Edit+…'});
+    track('edit_started',{analysis_id:currentAnalysis.analysis_id,video_id:videoId,style,caption_preset:captionPreset});
+
+    try{
+      const created=await jobsApi('edit',{
+        method:'POST',
+        body:{
+          video_id:videoId,
+          analysis_id:currentAnalysis.analysis_id,
+          style,
+          caption_preset:captionPreset
+        }
+      });
+      const job=created?.job;
+      if(!job?.id)throw new Error('Impossible de créer le montage Edit+.');
+
+      currentJobId=job.id;
+      analysisWaitUI();
+      updateJobUI(job);
+      let renderTracked=false;
+      const deadline=Date.now()+45*60*1000;
+      let finished=null;
+
+      while(Date.now()<deadline){
+        const state=await jobsApi('jobs/'+job.id);
+        const live=state?.job;
+        if(!live)throw new Error('Job Edit+ introuvable.');
+        updateJobUI(live);
+        if(!renderTracked&&(live.status==='rendering'||live.status==='encoding')){
+          renderTracked=true;
+          track('render_started',{job_id:job.id,style});
+        }
+        if(live.status==='completed'){finished=live;break}
+        if(live.status==='failed'||live.status==='cancelled'){
+          const err=new Error(live.error||'Le montage Edit+ a échoué.');
+          err.code=live.error_code||live.status;
+          throw err;
+        }
+        await new Promise(resolve=>setTimeout(resolve,1500));
+      }
+      if(!finished)throw new Error('Le render prend plus de temps que prévu. Il reste enregistré dans ton compte.');
+
+      const exportId=finished.result?.export_id;
+      const outputVideoId=finished.result?.output_video_id;
+      if(!exportId||!outputVideoId)throw new Error('Render terminé mais export introuvable.');
+
+      const access=await jobsApi('exports/'+exportId+'/url');
+      if(!access?.signed_url)throw new Error('Impossible de préparer l’export.');
+
+      track('render_completed',{job_id:job.id,export_id:exportId,style});
+      showEditResult({
+        url:access.signed_url,
+        exportId,
+        outputVideoId,
+        style,
+        captionPreset,
+        jobId:job.id
+      });
+    }catch(err){
+      track('render_failed',{message:String(err?.message||err).slice(0,300),style});
+      showToast(err.message||'Échec Edit+.');
+      buttons.forEach(b=>{b.disabled=false;b.textContent='Corriger avec Edit+ →'});
+    }finally{
+      analysisLayer.classList.remove('busy');
+    }
+  }
+
+  function showEditResult(result){
+    const existing=document.getElementById('v8EditResult');
+    if(existing)existing.remove();
+    const panel=document.createElement('div');
+    panel.id='v8EditResult';
+    panel.className='v8LabCard';
+    panel.style.marginTop='18px';
+    panel.innerHTML=
+      '<span class="v8Kicker">EDIT+ TERMINÉ</span>'+
+      '<h3>Ta version montée est prête.</h3>'+
+      '<p>Style '+esc(result.style)+' · sous-titres '+esc(result.captionPreset)+'.</p>'+
+      '<div class="v8Actions">'+
+      '<a class="v8Action primary" id="v8OpenExport" href="'+esc(result.url)+'" target="_blank" rel="noopener">Ouvrir / enregistrer la vidéo</a>'+
+      '<button class="v8Action" id="v8ReanalyseEdit">Ré-analyser avec Viral+</button>'+
+      '</div>';
+    const hubEl=document.getElementById('v8Hub');
+    hubEl?.appendChild(panel);
+
+    document.getElementById('v8OpenExport')?.addEventListener('click',()=>track('export_downloaded',{export_id:result.exportId,job_id:result.jobId}));
+    document.getElementById('v8ReanalyseEdit')?.addEventListener('click',async()=>{
+      try{
+        const key='viral:'+result.outputVideoId+':'+currentAnalysis.analysis_id;
+        const created=await supa('/rest/v1/rpc/create_processing_job',{
+          method:'POST',
+          body:{
+            p_kind:'viral_analysis',
+            p_video_id:result.outputVideoId,
+            p_payload:{reanalysis:true,baseline_analysis_id:currentAnalysis.analysis_id,source:'editplus'},
+            p_idempotency_key:key
+          }
+        });
+        const job=Array.isArray(created)?created[0]:created;
+        if(!job?.id)throw new Error('Impossible de lancer le re-score.');
+        currentJobId=job.id;
+        const finished=await pollProcessingJob(job.id);
+        const data=await fetchAnalysisForJob(finished);
+        currentVideoId=result.outputVideoId;
+        currentAnalysis=data;
+        await animateScore(data.final_score||0);
+        renderPhoneMetrics(data);
+        renderResult(data);
+        showResultLayer(data);
+        hub(data);
+        track('analysis_completed',{score:data.final_score,reanalysis:true,source:'editplus',job_id:job.id});
+      }catch(err){
+        showToast(err.message||'Échec du re-score.');
+      }
+    });
+
+    panel.scrollIntoView({behavior:'smooth',block:'nearest'});
+  }
+
   function hub(data){
     if(!resultContent||!data)return;
     let el=document.getElementById('v8Hub');
@@ -531,15 +661,22 @@ $('refreshHistory').addEventListener('click',loadHistory);
     el.innerHTML=
       '<div class="v8HubTop"><div><div class="v8Brandline"><i class="v8BrandDot"></i>VIRAL+</div><div class="v8Live">CREATOR INTELLIGENCE · ANALYSE ACTIONNABLE</div></div><div class="v8Live">SCORE '+esc(data.score_version||'stable')+'</div></div>'+
       '<div class="v8Tabs"><button class="v8Tab active" data-tab="overview">Vue d’ensemble</button><button class="v8Tab" data-tab="diagnostic">Diagnostic</button><button class="v8Tab" data-tab="hook">Hook Lab</button><button class="v8Tab" data-tab="structure">Structure</button><button class="v8Tab" data-tab="rescore">Re-score</button></div>'+
-      '<section class="v8Page active" data-page="overview"><div class="v8HeroResult"><div class="v8ScoreCard"><div class="v8ScoreRing" style="--v8deg:'+score*3.6+'deg"><div><div><strong>'+score+'</strong><small>/100</small></div></div></div><div class="v8ScoreLabel">POTENTIEL VIRAL+ · HEURISTIQUE</div></div><div class="v8Problem"><div><span class="v8Kicker">BLOCAGE PRINCIPAL</span><h3>'+esc(data.main_problem||'Le hook doit être renforcé.')+'</h3><p>'+esc(data.why||'La tension ou la promesse arrive trop tard.')+'</p><div class="v8Hotspot"><b>'+esc(hot.time||'00:00 → 00:02')+'</b><span>'+esc(hot.reason||hot.label||'Zone prioritaire')+'</span></div></div><div class="v8Actions"><button class="v8Action primary" data-page="hook">Corriger le hook →</button><button class="v8Action" data-page="diagnostic">Voir les preuves</button></div></div></div><div class="v8SectionTitle"><div><h3>Les signaux qui tirent le score</h3><p>Chaque carte ouvre le diagnostic correspondant.</p></div></div><div class="v8MetricGrid">'+cards+'</div><div class="v8Disclaimer">Viral+ utilise des signaux observables et des heuristiques propriétaires. Il ne reproduit pas l’algorithme privé de Meta et ne promet pas la viralité.</div></section>'+
+      '<section class="v8Page active" data-page="overview"><div class="v8HeroResult"><div class="v8ScoreCard"><div class="v8ScoreRing" style="--v8deg:'+score*3.6+'deg"><div><div><strong>'+score+'</strong><small>/100</small></div></div></div><div class="v8ScoreLabel">POTENTIEL VIRAL+ · HEURISTIQUE</div></div><div class="v8Problem"><div><span class="v8Kicker">BLOCAGE PRINCIPAL</span><h3>'+esc(data.main_problem||'Le hook doit être renforcé.')+'</h3><p>'+esc(data.why||'La tension ou la promesse arrive trop tard.')+'</p><div class="v8Hotspot"><b>'+esc(hot.time||'00:00 → 00:02')+'</b><span>'+esc(hot.reason||hot.label||'Zone prioritaire')+'</span></div></div><div class="v8Actions"><button class="v8Action primary v8EditLaunch">Corriger avec Edit+ →</button><button class="v8Action" data-page="hook">Hook Lab</button><button class="v8Action" data-page="diagnostic">Voir les preuves</button></div></div></div><div class="v8SectionTitle"><div><h3>Les signaux qui tirent le score</h3><p>Chaque carte ouvre le diagnostic correspondant.</p></div></div><div class="v8MetricGrid">'+cards+'</div><div class="v8Disclaimer">Viral+ utilise des signaux observables et des heuristiques propriétaires. Il ne reproduit pas l’algorithme privé de Meta et ne promet pas la viralité.</div></section>'+
       '<section class="v8Page" data-page="diagnostic"><div class="v8SectionTitle"><div><h3>Où la vidéo perd de la force</h3><p>Le diagnostic priorise ce que tu peux réellement modifier.</p></div></div><div class="v8Timeline"><div class="v8TimelineRow">'+bars+'</div><div class="v8TimelineLegend"><span>Début</span><span>Milieu</span><span>Fin</span></div></div><div class="v8Lab"><div class="v8LabCard"><span class="v8Kicker">À FAIRE MAINTENANT</span><h3>Corrections prioritaires</h3>'+rows+'</div><div class="v8LabCard"><span class="v8Kicker">MOMENT CRITIQUE</span><h3>'+esc(hot.time||'00:00 → 00:02')+'</h3><p>'+esc(hot.reason||hot.label||'Cette zone concentre la priorité de correction.')+'</p><div class="v8Actions"><button class="v8Action primary" data-page="hook">Ouvrir Hook Lab</button></div></div></div></section>'+
       '<section class="v8Page" data-page="hook"><div class="v8SectionTitle"><div><h3>Hook Lab</h3><p>Une formulation concrète à tester, pas juste une note.</p></div></div><div class="v8HookGrid"><article class="v8Hook before"><label>ACTUEL</label><p>'+esc(before)+'</p></article><article class="v8Hook after"><label>VERSION À TESTER</label><p>'+esc(after)+'</p></article></div><div class="v8Actions"><button class="v8Action primary" id="v8ReanalyseHook">J’ai corrigé → Re-scorer</button><button class="v8Action" data-page="rescore">Comparer les versions</button></div></section>'+
-      '<section class="v8Page" data-page="structure"><div class="v8SectionTitle"><div><h3>Structure</h3><p>Supprimer les secondes faibles et renforcer la promesse.</p></div></div><div class="v8Lab"><div class="v8LabCard"><span class="v8Kicker">CE QUE VIRAL+ CHERCHE</span><h3>Une séquence qui mérite de rester</h3><div class="v8Rule"><b>01</b><span>Hook compréhensible sans contexte.</span></div><div class="v8Rule"><b>02</b><span>Promesse tenue rapidement.</span></div><div class="v8Rule"><b>03</b><span>Preuve, tension ou utilité qui justifie de rester.</span></div><div class="v8Rule"><b>04</b><span>Moment naturellement partageable.</span></div></div><div class="v8LabCard"><span class="v8Kicker">PROCHAINE ACTION</span><h3>Transforme le diagnostic</h3><div class="v8Rule"><b>↗</b><span>Coupe autour du hotspot.</span></div><div class="v8Rule"><b>↗</b><span>Teste le Hook Lab.</span></div><div class="v8Rule"><b>↗</b><span>Reviens lancer un re-score.</span></div></div></div></section>'+
+      '<section class="v8Page" data-page="structure"><div class="v8SectionTitle"><div><h3>Structure</h3><p>Supprimer les secondes faibles et renforcer la promesse.</p></div></div><div class="v8Lab"><div class="v8LabCard"><span class="v8Kicker">CE QUE VIRAL+ CHERCHE</span><h3>Une séquence qui mérite de rester</h3><div class="v8Rule"><b>01</b><span>Hook compréhensible sans contexte.</span></div><div class="v8Rule"><b>02</b><span>Promesse tenue rapidement.</span></div><div class="v8Rule"><b>03</b><span>Preuve, tension ou utilité qui justifie de rester.</span></div><div class="v8Rule"><b>04</b><span>Moment naturellement partageable.</span></div></div><div class="v8LabCard"><span class="v8Kicker">PROCHAINE ACTION</span><h3>Transforme le diagnostic</h3><div class="v8Rule"><b>↗</b><span>Coupe autour du hotspot.</span></div><div class="v8Rule"><b>↗</b><span>Teste le Hook Lab.</span></div><div class="v8Rule"><b>↗</b><span>Reviens lancer un re-score.</span></div><div style="display:grid;gap:10px;margin-top:18px"><select id="v8EditStyle" class="v8Action"><option value="creator_clean">Creator Clean</option><option value="codie">Codie</option><option value="business_viral">Business Viral</option><option value="podcast_authority">Podcast / Authority</option></select><select id="v8CaptionPreset" class="v8Action"><option value="modern_bold">Modern Bold</option><option value="minimal">Minimal</option><option value="creator">Creator</option><option value="karaoke">Karaoke</option><option value="authority">Authority</option><option value="ugc">UGC</option></select><button class="v8Action primary v8EditLaunch">Corriger avec Edit+ →</button></div></div></div></section>'+
       '<section class="v8Page" data-page="rescore"><div class="v8SectionTitle"><div><h3>Re-score</h3><p>Mesure l’écart entre ta version de départ et ta version corrigée.</p></div></div><div class="v8ReScore"><div class="v8Version"><small>VERSION DE DÉPART</small><strong>'+num(baselineAnalysis?.final_score||score)+'</strong><span>/100</span></div><div class="v8Arrow">→</div><div class="v8Version after"><small>VERSION ACTUELLE</small><strong>'+score+'</strong><span>/100</span></div></div><div class="v8Actions"><button class="v8Action primary" id="v8Reanalyse">Importer ma version corrigée</button><button class="v8Action" data-page="overview">Retour au diagnostic</button></div><div class="v8Disclaimer">Une hausse du score signifie que la version correspond mieux aux critères Viral+. Elle ne garantit pas une hausse réelle des vues.</div></section>';
     function tab(name){el.querySelectorAll('.v8Tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===name));el.querySelectorAll('.v8Page').forEach(x=>x.classList.toggle('active',x.dataset.page===name))}
     el.querySelectorAll('.v8Tab').forEach(x=>x.onclick=()=>tab(x.dataset.tab));
     el.querySelectorAll('[data-page]').forEach(x=>x.onclick=()=>{if(x.dataset.page)tab(x.dataset.page)});
     const re=el.querySelector('#v8Reanalyse,#v8ReanalyseHook');if(re)re.onclick=()=>document.getElementById('reanalyseBtn')?.click();
+    el.querySelectorAll('.v8EditLaunch').forEach(btn=>btn.addEventListener('click',e=>{
+      e.preventDefault();
+      e.stopPropagation();
+      const style=el.querySelector('#v8EditStyle')?.value||'creator_clean';
+      const caption=el.querySelector('#v8CaptionPreset')?.value||'modern_bold';
+      runEditPlus(style,caption);
+    }));
   }
   let last=null;
   setInterval(()=>{if(currentAnalysis&&currentAnalysis.analysis_id!==last){last=currentAnalysis.analysis_id;hub(currentAnalysis)}},300);
