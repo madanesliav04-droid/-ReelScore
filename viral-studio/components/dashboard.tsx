@@ -6,7 +6,7 @@ import * as tus from "tus-js-client";
 import { functionUrl, supabase, SUPABASE_PROJECT_REF, VIDEO_BUCKET } from "@/lib/supabase";
 
 type Module = "viral"|"edit"|"clip";
-type Job = {id:string;status:string;progress?:number;stage?:string;result?:any;error?:any;error_code?:string};
+type Job = {id:string;kind?:string;status:string;progress?:number;stage?:string;result?:any;error?:any;error_code?:string};
 type Media = {id:string;storage_path:string;mime_type:string;size_bytes:number;original_name?:string};
 
 async function api(path:string, token:string, init:RequestInit={}){
