@@ -55,7 +55,7 @@ RÈGLES:
 - Retourne uniquement du JSON valide.
 
 FORMAT:
-{"cues":[{"start_sec":4.2,"end_sec":6.8,"query_en":"New York stock exchange trading floor","alt_queries_en":["stock exchange traders","trading floor screens"],"reason":"illustre la bourse citée"}]}
+{"cues":[{"start_sec":4.2,"end_sec":6.8,"query_en":"New York stock exchange trading floor","alt_queries_en":["stock exchange traders","trading floor screens","stock traders"],"reason":"illustre la bourse citée"}]}
 
 TRANSCRIPTION MONTÉE:
 ${transcript}`;
@@ -525,7 +525,7 @@ async function findOpenverseAsset(
           :variant.split(/\s+/).length<=2
             ?0.18
             :0.22;
-      if(relevance<Math.min(minRelevance,0.12))continue;
+      if(relevance<minRelevance)continue;
 
       return {
         assetUrl,
@@ -718,8 +718,7 @@ async function validateBrollAsset({
     const r=await fetch(asset.assetUrl,{
       signal:AbortSignal.timeout(8000),
       headers:{
-        'User-Agent':'ViralStudio-EditPlus/1.0',
-        'Accept':'image/*'
+        'User-Agent':'ViralStudio-EditPlus/1.0'
       }
     });
     if(!r.ok){
