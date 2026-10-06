@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion, useScroll, useTransform } from "motion/react";
 import { ArrowRight, BarChart3, Captions, Clapperboard, Scissors, Sparkles, WandSparkles } from "lucide-react";
 
 const modules = [
