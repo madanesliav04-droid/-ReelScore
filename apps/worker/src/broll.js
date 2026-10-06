@@ -466,6 +466,10 @@ async function findOpenverseAsset(
         variant,
         searchable
       );
+      const hitStats=lexicalHitStats(
+        variant,
+        searchable
+      );
       const originalRelevance=lexicalRelevance(
         query,
         searchable
@@ -481,6 +485,8 @@ async function findOpenverseAsset(
             ?0.18
             :0.22;
       if(relevance<minRelevance)continue;
+      if(hitStats.termCount>=3&&hitStats.hits<2)continue;
+      if(hitStats.termCount===2&&hitStats.hits<1)continue;
       if(originalRelevance<0.16)continue;
 
       return {
@@ -509,6 +515,23 @@ async function findOpenverseAsset(
   }
 
   return null;
+}
+
+function lexicalHitStats(query,text){
+  const stop=new Set([
+    'the','and','with','from','into','photo','photograph',
+    'business','modern','professional'
+  ]);
+  const terms=[...new Set(
+    String(query||'')
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g,' ')
+      .split(/\s+/)
+      .filter(x=>x.length>2&&!stop.has(x))
+  )];
+  const hay=String(text||'').toLowerCase();
+  const hits=terms.filter(term=>hay.includes(term)).length;
+  return {termCount:terms.length,hits};
 }
 
 function lexicalRelevance(query,text){
@@ -592,6 +615,7 @@ async function findCommonsAsset(
       );
       const searchable=[title,description].filter(Boolean).join(' ');
       const relevance=lexicalRelevance(variant,searchable);
+      const hitStats=lexicalHitStats(variant,searchable);
       const originalRelevance=lexicalRelevance(query,searchable);
       const minRelevance=
         variant===query
@@ -600,6 +624,8 @@ async function findCommonsAsset(
             ?0.12
             :0.16;
       if(relevance<minRelevance)continue;
+      if(hitStats.termCount>=3&&hitStats.hits<2)continue;
+      if(hitStats.termCount===2&&hitStats.hits<1)continue;
       if(originalRelevance<0.16)continue;
 
       const badVisual=/\b(map|coat of arms|flag|logo|diagram|scan|manuscript|painting|engraving|cartoon|poster|stamp)\b/i;
