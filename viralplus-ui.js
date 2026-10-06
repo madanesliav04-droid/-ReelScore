@@ -16,7 +16,7 @@ const resultEmpty=$('resultEmpty'),resultContent=$('resultContent'),resultScore=
 const stageResultCta=$('stageResultCta'),phoneResultScore=$('phoneResultScore'),phoneStatus=$('phoneStatus'),phoneProblem=$('phoneProblem'),phoneHotspot=$('phoneHotspot');
 
 let session=null, entitlement=null, authMode='login', lastHoverBurst=0, pendingFile=null, pendingReanalysis=false, currentVideoSha256=null;
-let currentFile=null, objectUrl=null, currentAnalysis=null, baselineAnalysis=null, reanalysisMode=false, analyzing=false, counterTimer=0, scrollRAF=0, mouseRAF=0, resultMode=false, storagePath=null, storageUpload=null, uploadGeneration=0, analysisStartedAt=0, analysisProgressTimer=null;
+let currentFile=null, objectUrl=null, currentAnalysis=null, baselineAnalysis=null, reanalysisMode=false, analyzing=false, counterTimer=0, scrollRAF=0, mouseRAF=0, resultMode=false, storagePath=null, storageUpload=null, currentVideoId=null, currentJobId=null, currentAnalysisIdempotencyKey=null, uploadGeneration=0, analysisStartedAt=0, analysisProgressTimer=null;
 
 function clamp(v,a=0,b=1){return Math.max(a,Math.min(b,v))}
 async function sha256File(file){
@@ -213,6 +213,7 @@ async function uploadVideoToStorage(file,generation){
     if(generation!==uploadGeneration)return null;
     sessionStorage.removeItem(resumeKey);
     storagePath=path;
+    currentVideoId=await registerMediaAsset(file,path);
     updateUploadUI(100);
     track('video_upload_completed',{name:file.name,size:file.size,mime_type:file.type||'video/mp4'});
     return path;
@@ -221,6 +222,33 @@ async function uploadVideoToStorage(file,generation){
     throw error;
   }
 }
+async function registerMediaAsset(file,path){
+  const existing=await supa('/rest/v1/media_assets',{
+    query:`?select=id&storage_bucket=eq.viralplus-videos&storage_path=eq.${encodeURIComponent(path)}&limit=1`
+  });
+  if(existing?.[0]?.id)return existing[0].id;
+
+  const rows=await supa('/rest/v1/media_assets',{
+    method:'POST',
+    prefer:'return=representation',
+    body:{
+      user_id:session.user.id,
+      module:'viralplus',
+      kind:'source',
+      storage_bucket:'viralplus-videos',
+      storage_path:path,
+      original_name:file.name||'video.mp4',
+      mime_type:file.type||'video/mp4',
+      size_bytes:file.size,
+      status:'uploaded',
+      metadata:{source:'web',upload_protocol:window.tus?.Upload?'tus':'standard'}
+    }
+  });
+  const asset=Array.isArray(rows)?rows[0]:rows;
+  if(!asset?.id)throw new Error('Impossible d’enregistrer la vidéo.');
+  return asset.id;
+}
+
 async function prepareVideoUpload(file,isReanalysis,generationArg){
   storagePath=null;
   storageUpload=null;
@@ -246,7 +274,7 @@ async function prepareVideoUpload(file,isReanalysis,generationArg){
 }
 function setFile(file,isReanalysis=false){
   if(!file)return;
-  if(file.size>95*1024*1024){showToast('Vidéo trop lourde : 95 Mo maximum pour cette version.');return}
+  if(file.size>500*1024*1024){showToast('Vidéo trop lourde : 500 Mo maximum pour cette version.');return}
   if(!session?.user){pendingFile=file;pendingReanalysis=isReanalysis;openAuth();return}
   uploadGeneration++;
   if(storageUpload){try{storageUpload.abort(true)}catch{}}
@@ -255,6 +283,9 @@ function setFile(file,isReanalysis=false){
   currentFile=file;
   currentVideoSha256=null;
   storagePath=null;
+  currentVideoId=null;
+  currentJobId=null;
+  currentAnalysisIdempotencyKey=null;
   reanalysisMode=isReanalysis;
   previewVideo.src=objectUrl;
   dropzone.classList.add('hasVideo');
@@ -308,89 +339,167 @@ if(workspaceUploader){
 $('changeVideo').addEventListener('click',e=>{e.preventDefault();e.stopPropagation();fileInput.click()});
 
 function analysisWaitUI(){
-  analysisState.textContent='ANALYSE EN COURS';
+  analysisState.textContent='MISE EN FILE';
   analysisLayer.classList.add('busy');
   phoneScore.classList.remove('hidden');
   scoreNumber.textContent='—';
-  timelineFill.classList.add('indeterminate');
-  timelineFill.style.width='32%';
-  timelineLabel.textContent='Analyse';
-  analysisStartedAt=Date.now();
-  timelineText.textContent='traitement backend en cours';
-  clearInterval(analysisProgressTimer);
-  analysisProgressTimer=setInterval(()=>{
-    if(!analyzing)return;
-    const elapsed=Math.floor((Date.now()-analysisStartedAt)/1000);
-    timelineText.textContent=`analyse en cours · ${elapsed}s`;
-    analysisState.textContent='ANALYSE EN COURS';
-  },1000);
-  return [];
+  timelineFill.classList.remove('indeterminate');
+  timelineFill.style.width='0%';
+  timelineLabel.textContent='Job';
+  timelineText.textContent='mise en file…';
 }
-function clearTimers(ts){ts.forEach(clearTimeout);clearInterval(analysisProgressTimer);analysisProgressTimer=null}
+function jobLabel(status){
+  return ({
+    uploaded:'Upload',
+    queued:'En file',
+    processing:'Préparation',
+    transcribing:'Transcription',
+    analyzing:'Analyse',
+    generating_report:'Rapport',
+    planning:'Plan de montage',
+    rendering:'Rendu',
+    encoding:'Encodage',
+    completed:'Terminé',
+    failed:'Échec',
+    cancelled:'Annulé'
+  })[status]||String(status||'Traitement');
+}
+function updateJobUI(job){
+  const pct=Math.max(0,Math.min(100,Number(job?.progress)||0));
+  timelineFill.style.width=pct+'%';
+  timelineLabel.textContent=jobLabel(job?.status);
+  timelineText.textContent=job?.stage||`${pct}%`;
+  analysisState.textContent=jobLabel(job?.status).toUpperCase();
+}
+async function pollProcessingJob(jobId){
+  const deadline=Date.now()+30*60*1000;
+  while(Date.now()<deadline){
+    if(currentJobId!==jobId)throw new Error('Analyse remplacée par une nouvelle demande.');
+    const rows=await supa('/rest/v1/processing_jobs',{
+      query:`?select=id,status,progress,stage,result,error,error_code,updated_at&id=eq.${encodeURIComponent(jobId)}&limit=1`
+    });
+    const job=rows?.[0];
+    if(!job)throw new Error('Job d’analyse introuvable.');
+    updateJobUI(job);
+    if(job.status==='completed')return job;
+    if(job.status==='failed'||job.status==='cancelled'){
+      const e=new Error(job.error||'Le traitement a échoué.');
+      e.code=job.error_code||job.status;
+      throw e;
+    }
+    await new Promise(resolve=>setTimeout(resolve,1200));
+  }
+  throw new Error('L’analyse prend plus de temps que prévu. Elle reste enregistrée dans ton compte.');
+}
+function normalizeAnalysisRow(row){
+  const data={...(row?.result_json||{})};
+  data.analysis_id=row?.id||data.analysis_id;
+  data.final_score=Number(row?.final_score??data.final_score??0);
+  data.score_version=row?.score_version||data.score_version;
+  data.model_used=row?.model_used||data.model_used;
+  data.status=row?.status||data.status;
+  if(Array.isArray(data.timeline)){
+    data.timeline=data.timeline.map(x=>{
+      if(x.time)return x;
+      const s=Number(x.start_sec||0),e=Number(x.end_sec||s);
+      return {...x,time:`${s.toFixed(1)}s → ${e.toFixed(1)}s`,status:x.status||x.severity,reason:x.reason||x.problem||x.correction};
+    });
+  }
+  return data;
+}
+async function fetchAnalysisForJob(job){
+  const analysisId=job?.result?.analysis_id;
+  const filter=analysisId?`id=eq.${encodeURIComponent(analysisId)}`:`job_id=eq.${encodeURIComponent(job.id)}`;
+  const rows=await supa('/rest/v1/viralplus_analyses',{
+    query:`?select=id,created_at,video_name,final_score,status,is_reanalysis,baseline_analysis_id,score_version,model_used,result_json&${filter}&limit=1`
+  });
+  if(!rows?.[0])throw new Error('Rapport terminé mais résultat introuvable.');
+  return normalizeAnalysisRow(rows[0]);
+}
 async function runAnalysis(){
   if(!currentFile||analyzing)return;
   if(!await ensureAuth())return;
-  const token=await getToken();if(!token)return;
-  if(!storagePath){showToast('La vidéo n’est pas encore prête. Attends la fin de l’upload.');return}
-  if(!currentVideoSha256){
-    try{currentVideoSha256=await sha256File(currentFile)}catch{showToast('Impossible de préparer l’empreinte vidéo. Réessaie.');return}
-  }
-  analyzing=true;analyzeBtn.disabled=true;analyzeBtn.textContent='Analyse en cours…';
-  track('analysis_started',{reanalysis:reanalysisMode});
-  const timers=analysisWaitUI();
+  if(!storagePath||!currentVideoId){showToast('La vidéo n’est pas encore prête. Attends la fin de l’upload.');return}
+
+  analyzing=true;
+  analyzeBtn.disabled=true;
+  analyzeBtn.textContent='Analyse en cours…';
+  analysisWaitUI();
+  track('analysis_started',{reanalysis:reanalysisMode,video_id:currentVideoId});
+
   try{
-    const signedParts=storagePath.split('/').map(encodeURIComponent).join('/');
-    const sr=await fetch(`${SUPABASE_URL}/storage/v1/object/sign/viralplus-videos/${signedParts}`,{
-      method:'POST',headers:{apikey:SUPABASE_KEY,Authorization:`Bearer ${token}`,'Content-Type':'application/json'},
-      body:JSON.stringify({expiresIn:900})
-    });
-    const sd=await sr.json().catch(()=>({}));
-    if(!sr.ok||!sd.signedURL)throw new Error(sd.message||sd.error||'Impossible de préparer la vidéo.');
-    const signedUrl=sd.signedURL.startsWith('http')?sd.signedURL:`${SUPABASE_URL}/storage/v1${sd.signedURL}`;
-    const headers={
-      Authorization:`Bearer ${token}`,
-      'Content-Type':'application/json',
-      'X-File-Name':encodeURIComponent(currentFile.name||'video.mp4'),
-      'X-File-Size':String(currentFile.size),
-      'X-Video-Mime-Type':currentFile.type||'video/mp4',
-      'X-Video-SHA256':currentVideoSha256,
-      'X-Reanalysis':reanalysisMode?'1':'0'
+    if(!currentAnalysisIdempotencyKey){
+      const suffix=reanalysisMode&&baselineAnalysis?.analysis_id?baselineAnalysis.analysis_id:'initial';
+      currentAnalysisIdempotencyKey=`viral:${currentVideoId}:${suffix}`;
+    }
+    const payload={
+      reanalysis:reanalysisMode,
+      baseline_analysis_id:reanalysisMode&&baselineAnalysis?.analysis_id?baselineAnalysis.analysis_id:null
     };
-    if(reanalysisMode&&baselineAnalysis?.analysis_id)headers['X-Baseline-Analysis-Id']=baselineAnalysis.analysis_id;
-    let r=await fetch(`${API_URL}/analyze`,{method:'POST',headers,body:JSON.stringify({storage_url:signedUrl,video_sha256:currentVideoSha256})});
-    if(r.status===401&&await refreshSession()){
-      headers.Authorization=`Bearer ${session.access_token}`;
-      r=await fetch(`${API_URL}/analyze`,{method:'POST',headers,body:JSON.stringify({storage_url:signedUrl,video_sha256:currentVideoSha256})});
-    }
-    const data=await r.json().catch(()=>({}));
-    if(!r.ok){
-      if(data.code==='QUOTA_EXHAUSTED'){await refreshEntitlement();showToast('Limite gratuite atteinte pour ce mois.');}
-      throw new Error(data.error||`Erreur ${r.status}`);
-    }
-    clearTimers(timers);timelineFill.classList.remove('indeterminate');currentAnalysis=data;
-    await animateScore(data.final_score||0);renderPhoneMetrics(data);renderResult(data);showResultLayer(data);
-    resultEmpty.classList.add('hidden');resultContent.classList.remove('hidden');
+    const created=await supa('/rest/v1/rpc/create_processing_job',{
+      method:'POST',
+      body:{
+        p_kind:'viral_analysis',
+        p_video_id:currentVideoId,
+        p_payload:payload,
+        p_idempotency_key:currentAnalysisIdempotencyKey
+      }
+    });
+    const job=Array.isArray(created)?created[0]:created;
+    if(!job?.id)throw new Error('Impossible de créer le job d’analyse.');
+    currentJobId=job.id;
+    updateJobUI(job);
+
+    const finished=await pollProcessingJob(job.id);
+    const data=await fetchAnalysisForJob(finished);
+    currentAnalysis=data;
+
+    await animateScore(data.final_score||0);
+    renderPhoneMetrics(data);
+    renderResult(data);
+    showResultLayer(data);
+    resultEmpty.classList.add('hidden');
+    resultContent.classList.remove('hidden');
+
     if(reanalysisMode&&baselineAnalysis)renderComparison(baselineAnalysis,data);
-    else{baselineAnalysis=data;comparePanel.classList.add('hidden');metricDelta.classList.add('hidden')}
-    analysisState.textContent='ANALYSE TERMINÉE';analyzeBtn.textContent='Analyse terminée';burstSocial(lowPower?6:10);
-    await refreshEntitlement();await loadHistory();
-    track('analysis_completed',{score:data.final_score,reanalysis:reanalysisMode,score_version:data.score_version});
-    try{
-      const parts=storagePath.split('/').map(encodeURIComponent).join('/');
-      await fetch(`${SUPABASE_URL}/storage/v1/object/viralplus-videos/${parts}`,{method:'DELETE',headers:{apikey:SUPABASE_KEY,Authorization:`Bearer ${token}`}});
-    }catch{}
-    storagePath=null;
+    else{
+      baselineAnalysis=data;
+      comparePanel.classList.add('hidden');
+      metricDelta.classList.add('hidden');
+    }
+
+    analysisState.textContent='ANALYSE TERMINÉE';
+    analyzeBtn.textContent='Analyse terminée';
+    timelineFill.style.width='100%';
+    burstSocial(lowPower?6:10);
+    await refreshEntitlement();
+    await loadHistory();
+    track('analysis_completed',{
+      score:data.final_score,
+      reanalysis:reanalysisMode,
+      score_version:data.score_version,
+      job_id:job.id,
+      video_id:currentVideoId
+    });
   }catch(err){
-    track('analysis_failed',{message:String(err?.message||err).slice(0,300),reanalysis:reanalysisMode});
-    showToast(err.message);analysisState.textContent='ERREUR';analyzeBtn.textContent='Réessayer';analyzeBtn.disabled=false;
-  }finally{clearTimers(timers);timelineFill.classList.remove('indeterminate');analysisLayer.classList.remove('busy');analyzing=false}
+    if(String(err?.message||'').includes('quota_exhausted'))await refreshEntitlement();
+    currentAnalysisIdempotencyKey=null;
+    track('analysis_failed',{message:String(err?.message||err).slice(0,300),reanalysis:reanalysisMode,job_id:currentJobId});
+    showToast(err.message||'Échec de l’analyse.');
+    analysisState.textContent='ERREUR';
+    analyzeBtn.textContent='Réessayer';
+    analyzeBtn.disabled=false;
+  }finally{
+    analysisLayer.classList.remove('busy');
+    analyzing=false;
+  }
 }
 analyzeBtn.addEventListener('click',runAnalysis);
 function animateScore(target){return new Promise(resolve=>{const start=performance.now(),dur=800;function f(now){const t=Math.min(1,(now-start)/dur),v=Math.round(target*(1-Math.pow(1-t,3)));scoreNumber.textContent=v;if(t<1)requestAnimationFrame(f);else resolve()}requestAnimationFrame(f)})}
-function renderPhoneMetrics(data){const s=data.scores||{};setCard(0,s.spoken_hook??data.final_score,'Hook parlé');setCard(1,s.retention??data.final_score,'Rétention');setCard(2,s.visual_hook??data.final_score,'Hook visuel');setCard(3,s.shareability??data.final_score,'Partage');timelineFill.style.width=Math.max(8,data.final_score)+'%';timelineLabel.textContent='Score';timelineText.textContent=data.final_score+'/100'}
+function renderPhoneMetrics(data){const s=data.scores||{};setCard(0,s.hook??s.spoken_hook??data.final_score,'Hook');setCard(1,s.retention??data.final_score,'Rétention');setCard(2,s.visual??s.visual_hook??data.final_score,'Visuel');setCard(3,s.scroll_stop??s.shareability??data.final_score,'Scroll stop');timelineFill.style.width=Math.max(8,data.final_score)+'%';timelineLabel.textContent='Score';timelineText.textContent=data.final_score+'/100'}
 function statusFor(score){return score>=78?['Prête','Ta vidéo est prête à être publiée.','Le diagnostic est solide. Vérifie les dernières recommandations.']:score>=60?['Presque prête','Ta vidéo est proche d’une bonne version.','Quelques corrections ciblées peuvent encore renforcer la vidéo.']:['À retravailler','Ta vidéo n’est pas encore prête.','Corrige les points prioritaires avant publication.']}
 function renderResult(data){const score=data.final_score||0,[status,title,text]=statusFor(score);resultScore.textContent=score;scoreOrb.style.setProperty('--scoreDeg',(score*3.6)+'deg');statusBadge.textContent=status;resultVerdictTitle.textContent=title;resultVerdictText.textContent=data.verdict||text;versionLine.textContent=`Score ${data.score_version||'non versionné'} · ${data.model_used||''}`;mainProblem.textContent=data.main_problem||'Le hook doit être renforcé.';mainWhy.textContent=data.why||'L’idée principale arrive trop tard.';const hot=(data.timeline||[]).find(x=>/red|orange/i.test(String(x.status)))||(data.timeline||[])[0]||{};hotspotTime.textContent=hot.time||'00:00 → 00:02';hotspotReason.textContent=hot.reason||hot.label||'Le début doit être renforcé.';hookBefore.textContent=data.detected_spoken_hook||data.detected_title_text||'Hook non détecté';hookAfter.textContent=data.recommended_hook||'Raccourcis l’ouverture et annonce immédiatement la promesse.';actionList.innerHTML='';(data.action_items||[]).forEach((item,i)=>{const el=document.createElement('div');el.className='actionItem';el.innerHTML=`<b>${i+1}</b><span>${escapeHtml(item)}</span>`;actionList.appendChild(el)});if((data.locked||[]).length){for(let i=0;i<3;i++){const ph=document.createElement('div');ph.className='lockedPlaceholder';actionList.appendChild(ph)}premiumTeaser.classList.remove('hidden')}else premiumTeaser.classList.add('hidden');}
-function renderComparison(before,after){if(before.score_version!==after.score_version){comparePanel.classList.add('hidden');metricDelta.classList.remove('hidden');metricDelta.innerHTML='<span class="deltaChip">Comparaison non affichée : version de score différente.</span>';return}comparePanel.classList.remove('hidden');beforeScore.textContent=before.final_score+'/100';afterScore.textContent=after.final_score+'/100';const d=after.final_score-before.final_score;deltaScore.textContent=(d>=0?'+':'')+d+' points';const keys=[['Hook','spoken_hook'],['Rétention','retention'],['Visuel','visual_hook'],['Partage','shareability']];metricDelta.classList.remove('hidden');metricDelta.innerHTML=keys.map(([l,k])=>{const x=(Number(after.scores?.[k])||0)-(Number(before.scores?.[k])||0);return `<span class="deltaChip">${l} <b>${x>=0?'+':''}${x}</b></span>`}).join('');}
+function renderComparison(before,after){if(before.score_version!==after.score_version){comparePanel.classList.add('hidden');metricDelta.classList.remove('hidden');metricDelta.innerHTML='<span class="deltaChip">Comparaison non affichée : version de score différente.</span>';return}comparePanel.classList.remove('hidden');beforeScore.textContent=before.final_score+'/100';afterScore.textContent=after.final_score+'/100';const d=after.final_score-before.final_score;deltaScore.textContent=(d>=0?'+':'')+d+' points';const aliases={hook:'spoken_hook',scroll_stop:'shareability'};const keys=[['Hook','hook'],['Rétention','retention'],['Rythme','rhythm'],['Scroll stop','scroll_stop']];metricDelta.classList.remove('hidden');metricDelta.innerHTML=keys.map(([l,k])=>{const bv=Number(before.scores?.[k]??before.scores?.[aliases[k]]??0);const av=Number(after.scores?.[k]??after.scores?.[aliases[k]]??0);const x=av-bv;return `<span class="deltaChip">${l} <b>${x>=0?'+':''}${x}</b></span>`}).join('')}
 
 $('reanalyseBtn').addEventListener('click',async()=>{if(!await ensureAuth())return;reanalysisMode=true;reanalyseInput.click()});
 function openPaywall(){paywall.classList.remove('hidden')}$('upgradeBtn').addEventListener('click',openPaywall);$('closePaywall').addEventListener('click',()=>paywall.classList.add('hidden'));paywall.addEventListener('click',e=>{if(e.target===paywall)paywall.classList.add('hidden')});
