@@ -11,7 +11,7 @@ import {analyzeVideo} from './viral.js';
 import {buildEditTimeline} from './edit.js';
 import {
   preprocessVideo,
-  renderWithRemotion,
+  renderNativeEdit,
   finalEncode,
   fileSize
 } from './render.js';
@@ -480,7 +480,7 @@ async function runEdit(job,media,sourcePath,dir){
     'Application du style Edit+'
   );
 
-  await renderWithRemotion({
+  await renderNativeEdit({
     sourcePath:preparedPath,
     outputPath:renderedPath,
     durationMs:timeline.outputDurationMs,
