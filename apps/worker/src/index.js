@@ -293,7 +293,7 @@ async function runViral(job,media,filePath){
     job_id:job.id,
     video_name:media.original_name||'video',
     video_sha256:null,
-    is_reanalysis:Boolean(payload.reanalysis),
+    is_reanalysis:Boolean(payload.reanalysis||payload.is_reanalysis),
     baseline_analysis_id:baselineAnalysisId,
     final_score:result.final_score,
     score_version:result.score_version,
