@@ -322,7 +322,7 @@ alter table public.viralplus_analyses
 create index if not exists viralplus_analyses_video_id_idx
   on public.viralplus_analyses(video_id)
   where video_id is not null;
-create index if not exists viralplus_analyses_job_id_idx
+create unique index if not exists viralplus_analyses_job_id_idx
   on public.viralplus_analyses(job_id)
   where job_id is not null;
 
