@@ -128,6 +128,13 @@ ${transcript}`;
       if(cleaned.length>=maxCues)break;
     }
 
+    console.log(JSON.stringify({
+      event:'broll_plan_created',
+      style,
+      planned:cleaned.length,
+      queries:cleaned.map(x=>x.query)
+    }));
+
     const resolved=[];
     const used=new Set();
 
@@ -136,13 +143,32 @@ ${transcript}`;
         cue.query,
         used
       );
-      if(!asset)continue;
+      if(!asset){
+        console.warn(JSON.stringify({
+          event:'broll_asset_not_found',
+          query:cue.query
+        }));
+        continue;
+      }
       used.add(asset.assetUrl);
       resolved.push({
         ...cue,
         ...asset
       });
     }
+
+    console.log(JSON.stringify({
+      event:'broll_assets_resolved',
+      style,
+      planned:cleaned.length,
+      resolved:resolved.length,
+      assets:resolved.map(x=>({
+        query:x.query,
+        provider:x.provider,
+        license:x.license,
+        sourcePage:x.sourcePage
+      }))
+    }));
 
     return resolved;
   }catch(error){
@@ -408,10 +434,11 @@ async function findCommonsAsset(
       ''
     );
 
-    if(
-      !/cc0|public domain|pd-/i
-        .test(license)
-    )continue;
+    const reusable=
+      /cc0|public domain|pd-|cc by|cc-by|cc by-sa|cc-by-sa/i
+        .test(license);
+
+    if(!reusable)continue;
 
     const assetUrl=
       info.thumburl||
@@ -447,6 +474,8 @@ async function findCommonsAsset(
         meta.Credit?.value||
         ''
       ).slice(0,180),
+      attributionRequired:
+        !/cc0|public domain|pd-/i.test(license),
       provider:'wikimedia_commons'
     };
   }
