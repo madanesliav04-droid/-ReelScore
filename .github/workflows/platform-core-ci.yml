@@ -1,0 +1,24 @@
+name: Platform Core Frontend CI
+on:
+  push:
+    branches: [platform-core]
+  pull_request:
+    branches: [viralplus-vf]
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: JavaScript syntax
+        run: node --check viralplus-ui.js
+      - name: Upload architecture checks
+        run: |
+          grep -q "storage.supabase.co/storage/v1/upload/resumable" viralplus-ui.js
+          grep -q "tus-js-client@4.3.1" index.html
+          if grep -q "x-upsert','true" viralplus-ui.js; then
+            echo "Legacy upsert remains in upload path" >&2
+            exit 1
+          fi
