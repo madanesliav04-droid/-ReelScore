@@ -70,7 +70,7 @@ box-shadow:0 35px 55px rgba(74,92,121,.26),inset 14px 18px 28px rgba(255,255,255
 <div class="shell">
 <header class="nav">
   <a class="brand" href="#home">VIRAL <span>STUDIO</span></a>
-  <nav class="navlinks"><a href="#system">System</a><a href="viral-plus.html">Viral+</a><a href="edit-plus.html">Edit+</a><a href="clip-plus.html">Clip+</a></nav>
+  <nav class="navlinks"><a href="#system">System</a><a href="#module-explorer" data-product-link="viral">Viral+</a><a href="#module-explorer" data-product-link="edit">Edit+</a><a href="#module-explorer" data-product-link="clip">Clip+</a></nav>
   <div class="navright"><span class="free-pill">FREE BETA · NO CARD</span><button class="ghost" id="authBtn">Sign in</button><button class="btn primary" id="startBtn">Open Studio ↗</button></div>
 </header>
 
@@ -87,9 +87,9 @@ box-shadow:0 35px 55px rgba(74,92,121,.26),inset 14px 18px 28px rgba(255,255,255
     <div class="motion-grid"></div>
     <div class="scan-beam"></div>
     <div class="signal-line sl1"></div><div class="signal-line sl2"></div><div class="signal-line sl3"></div>
-    <a class="orbit-badge ob1" href="viral-plus.html"><span>◎</span><b>VIRAL+</b></a>
-    <a class="orbit-badge ob2" href="edit-plus.html"><span>◫</span><b>EDIT+</b></a>
-    <a class="orbit-badge ob3" href="clip-plus.html"><span>✂</span><b>CLIP+</b></a>
+    <button class="orbit-badge ob1" data-product-link="viral"><span>◎</span><b>VIRAL+</b></button>
+    <button class="orbit-badge ob2" data-product-link="edit"><span>◫</span><b>EDIT+</b></button>
+    <button class="orbit-badge ob3" data-product-link="clip"><span>✂</span><b>CLIP+</b></button>
     <div class="hero-status"><small>SYSTEM STATUS</small><b id="heroStatusText">ANALYZING SIGNAL</b><i><em id="heroStatusBar"></em></i></div>
     <div class="halo"></div><div class="tickring"></div><div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div>
     <span class="spark s1"></span><span class="spark s2"></span><span class="spark s3"></span>
@@ -131,12 +131,12 @@ box-shadow:0 35px 55px rgba(74,92,121,.26),inset 14px 18px 28px rgba(255,255,255
   <div class="product-shell reveal">
     <aside class="product-nav">
       <div class="chapter-label">PRODUCTS / 03</div>
-      <h2>THREE<br>MISSIONS.</h2>
-      <p>Un même studio, mais trois outils avec trois objectifs clairement différents.</p>
+      <h2>WHAT DO<br>YOU NEED?</h2>
+      <p>Tu n’as pas besoin des trois. Choisis simplement le problème que tu veux résoudre aujourd’hui.</p>
       <div class="product-tabs">
-        <button class="product-tab active" data-product="viral"><span>01</span><b>Viral+</b><small>Understand & improve</small></button>
-        <button class="product-tab" data-product="edit"><span>02</span><b>Edit+</b><small>Turn raw into ready</small></button>
-        <button class="product-tab" data-product="clip"><span>03</span><b>Clip+</b><small>Long-form to short-form</small></button>
+        <button class="product-tab active" data-product="viral"><span>01</span><b>Viral+</b><small>Je veux comprendre pourquoi mon Reel bloque</small></button>
+        <button class="product-tab" data-product="edit"><span>02</span><b>Edit+</b><small>Je veux monter ma vidéo plus vite</small></button>
+        <button class="product-tab" data-product="clip"><span>03</span><b>Clip+</b><small>Je veux transformer du long en shorts</small></button>
       </div>
     </aside>
 
@@ -159,7 +159,7 @@ box-shadow:0 35px 55px rgba(74,92,121,.26),inset 14px 18px 28px rgba(255,255,255
           <div class="diagnostic-line dl3"><span>RHYTHM</span><i><b style="width:84%"></b></i><em>84</em></div>
           <div class="scan-dot"></div>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap"><a class="ghost" href="viral-plus.html">Discover Viral+ →</a><button class="btn primary product-open" data-open-tab="viral">Open Viral+ ↗</button></div>
+        <button class="btn primary product-open" data-open-tab="viral">Use Viral+ ↗</button>
       </article>
 
       <article class="product-pane edit-pane" data-product-pane="edit">
@@ -177,7 +177,7 @@ box-shadow:0 35px 55px rgba(74,92,121,.26),inset 14px 18px 28px rgba(255,255,255
           <div class="edit-track"><i></i><i></i><i></i><i></i><i></i><div class="playhead"></div></div>
           <div class="edit-label el1">CUT</div><div class="edit-label el2">PUNCH</div><div class="edit-label el3">CAPTION</div>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap"><a class="ghost" href="edit-plus.html">Discover Edit+ →</a><button class="btn primary product-open" data-open-tab="edit">Open Edit+ ↗</button></div>
+        <button class="btn primary product-open" data-open-tab="edit">Use Edit+ ↗</button>
       </article>
 
       <article class="product-pane clip-pane" data-product-pane="clip">
@@ -196,7 +196,7 @@ box-shadow:0 35px 55px rgba(74,92,121,.26),inset 14px 18px 28px rgba(255,255,255
           <div class="clip-window cw2"><small>CLIP 02</small><b>87</b><span>04:08 → 04:47</span></div>
           <div class="clip-window cw3"><small>CLIP 03</small><b>82</b><span>12:31 → 13:02</span></div>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap"><a class="ghost" href="clip-plus.html">Discover Clip+ →</a><button class="btn primary product-open" data-open-tab="clip">Open Clip+ ↗</button></div>
+        <button class="btn primary product-open" data-open-tab="clip">Use Clip+ ↗</button>
       </article>
     </div>
   </div>
@@ -207,7 +207,7 @@ box-shadow:0 35px 55px rgba(74,92,121,.26),inset 14px 18px 28px rgba(255,255,255
 </section>
 
 <section class="workspace-wrap" id="workspace">
-  <div class="workspace-title reveal"><div><div class="chapter-label">WORKSPACE / 04</div><h2>CREATE NOW.</h2></div><div class="account" id="accountState">Not signed in</div></div>
+  <div class="workspace-title reveal"><div><div class="chapter-label">WORKSPACE / 04</div><h2 id="workspaceHeadline">UNDERSTAND YOUR REEL.</h2><p id="workspaceSubhead" style="max-width:650px;color:#6f7989;margin:8px 0 0">Viral+ est fait pour diagnostiquer une vidéo. Tu peux l’utiliser sans Edit+ ni Clip+.</p></div><div class="account" id="accountState">Not signed in</div></div>
   <div class="app">
     <aside class="side">
       <small>CREATE</small>
@@ -226,7 +226,7 @@ box-shadow:0 35px 55px rgba(74,92,121,.26),inset 14px 18px 28px rgba(255,255,255
       </div>
       <div class="pane" data-pane="edit">
         <div class="pane-head"><div><small>EDIT+ · AUTO EDIT</small><h3>Create an edit.</h3></div><span class="badge">REMOTION + FFMPEG</span></div>
-        <div class="selected" id="editMedia">Upload a video in Viral+ first.</div>
+        <label class="upload" id="editUploadZone"><input id="editFile" type="file" accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm"><div class="upload-mark">＋</div><strong id="editFileName">Drop a raw video for Edit+</strong><span>Tu n’as pas besoin de passer par Viral+ avant.</span></label><div class="selected hidden" id="editMedia"></div>
         <div class="form-grid">
           <label>Editing style<select id="editStyle"><option value="codie">Codie</option><option value="creator_clean">Creator Clean</option><option value="business_viral">Business Viral</option><option value="podcast_authority">Podcast Authority</option></select></label>
           <label>Captions<select id="captionPreset"><option value="modern_bold">Modern Bold</option><option value="authority">Authority</option><option value="minimal">Minimal</option><option value="creator">Creator</option><option value="karaoke">Karaoke</option><option value="ugc">UGC</option></select></label>
@@ -259,43 +259,7 @@ box-shadow:0 35px 55px rgba(74,92,121,.26),inset 14px 18px 28px rgba(255,255,255
 <div class="modal hidden" id="authModal"><div class="modal-card"><button class="close" id="closeAuth">×</button><div class="brand">VIRAL <span>STUDIO</span></div><h3 id="authTitle">Sign in.</h3><p>Accède gratuitement au studio pendant la bêta.</p><div class="auth-tabs"><button class="active" data-authmode="login">Sign in</button><button data-authmode="signup">Create account</button></div><form id="authForm"><input class="field" id="email" type="email" placeholder="Email" required><input class="field" id="password" type="password" placeholder="Password" minlength="6" required><button class="btn primary wide" id="authSubmit">Sign in</button></form><small class="auth-msg" id="authMessage"></small></div></div>
 <div class="toast hidden" id="toast"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js">
-function activateProduct(name,scroll=true){
-  $(".product-tab").forEach(b=>b.classList.toggle("active",b.dataset.product===name));
-  $(".product-pane").forEach(p=>p.classList.toggle("active",p.dataset.productPane===name));
-  if(scroll)$("#module-explorer")?.scrollIntoView({behavior:"smooth",block:"center"});
-}
-$("[data-product]").forEach(b=>b.addEventListener("click",()=>activateProduct(b.dataset.product,false)));
-$("[data-product-link]").forEach(b=>b.addEventListener("click",e=>{e.preventDefault();activateProduct(b.dataset.productLink,true)}));
-$(".product-open").forEach(b=>b.addEventListener("click",()=>setTab(b.dataset.openTab)));
-
-(function heroCinema(){
-  const hero=document.querySelector(".hero"), stage=$("#heroStage");
-  const words=$(".hero-copy h1 span");
-  const onScroll=()=>{
-    if(!hero||!stage)return;
-    const rect=hero.getBoundingClientRect();
-    const p=Math.max(0,Math.min(1,-rect.top/Math.max(1,hero.offsetHeight*.78)));
-    stage.style.filter=`saturate(${1+p*.12}) contrast(${1+p*.04})`;
-    stage.style.opacity=String(1-p*.33);
-    stage.style.marginTop=(-p*36)+"px";
-    words.forEach((w,i)=>{
-      w.style.transform=`translate3d(0,${-p*(12+i*10)}px,0)`;
-      w.style.opacity=String(1-p*(.08+i*.05));
-    });
-    document.querySelectorAll(".ring").forEach((r,i)=>r.style.rotate=(p*(i%2?95:-75))+"deg");
-  };
-  window.addEventListener("scroll",onScroll,{passive:true});onScroll();
-
-  const states=["ANALYZING SIGNAL","FINDING MOMENTS","BUILDING TIMELINE","SCORING HOOK","READY TO EXPORT"];
-  let idx=0;
-  setInterval(()=>{idx=(idx+1)%states.length;const el=$("#heroStatusText");if(el){el.animate([{opacity:.25,transform:"translateY(4px)"},{opacity:1,transform:"translateY(0)"}],{duration:420});el.textContent=states[idx]}},2400);
-
-  const nums=[[".fc1 b",87,94],[".fc2 b",24,31]];
-  nums.forEach(([sel,a,b])=>{const el=$(sel);if(!el)return;let up=true;setInterval(()=>{const val=up?b:a;up=!up;el.animate([{transform:"scale(.94)",opacity:.55},{transform:"scale(1)",opacity:1}],{duration:360});el.textContent=sel.includes("fc2")?"+"+val+"%":String(val)},3600)});
-})();
-
-</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tus-js-client@4.3.1/dist/tus.min.js"></script>
 <script>
 const SUPABASE_URL="https://eiypztjpmxdiuaqxjuqx.supabase.co";
@@ -355,7 +319,7 @@ async function refreshSession(){
 client.auth.onAuthStateChange((_e,s)=>{session=s;refreshSession()});refreshSession();
 
 $("#authBtn").onclick=async()=>{if(session){await client.auth.signOut();toast("Déconnecté.")}else showAuth()};
-["#startBtn","#heroStart","#freeStart"].forEach(sel=>$(sel).onclick=()=>session?setTab("viral"):showAuth());
+["#startBtn","#heroStart","#freeStart"].forEach(sel=>$(sel).onclick=()=>$("#module-explorer")?.scrollIntoView({behavior:"smooth",block:"center"}));
 $("#closeAuth").onclick=hideAuth;
 $("#authModal").addEventListener("click",e=>{if(e.target===$("#authModal"))hideAuth()});
 $$("[data-authmode]").forEach(b=>b.onclick=()=>{authMode=b.dataset.authmode;$$("[data-authmode]").forEach(x=>x.classList.toggle("active",x===b));$("#authTitle").textContent=authMode==="login"?"Sign in.":"Create your studio.";$("#authSubmit").textContent=authMode==="login"?"Sign in":"Create account";$("#authMessage").textContent=""});
@@ -397,6 +361,55 @@ $("#analyzeBtn").onclick=async()=>{if(!requireAuth()||!media)return;$("#analyzeB
 $("#editBtn").onclick=async()=>{if(!requireAuth()||!media)return;$("#editBtn").disabled=true;const result=$("#editResult");result.classList.remove("hidden");result.innerHTML="Creating edit job…";try{const body=await api(fn("viral-edit-jobs","edit"),{method:"POST",body:JSON.stringify({video_id:media.id,analysis_id:analysis?.analysis_id||analysis?.id||null,style:$("#editStyle").value,caption_preset:$("#captionPreset").value})});currentJob=body.job;setState(currentJob);toast("Montage lancé.");await pollJob(body.job.id,"core",async job=>{let preview="";if(job.result?.export_id){const signed=await api(fn("viral-edit-jobs",`exports/${job.result.export_id}/url`));preview=`<div class="media-preview"><video controls playsinline src="${escapeHtml(signed.signed_url)}"></video></div><a class="btn primary wide" href="${escapeHtml(signed.signed_url)}" download target="_blank">Download MP4 ↗</a>`}result.innerHTML=`<div class="advice"><small>EDIT+ COMPLETED</small><h4>Your edit is ready.</h4><p>${escapeHtml(job.result?.style||$("#editStyle").value)} · ${escapeHtml(job.result?.caption_preset||$("#captionPreset").value)}</p></div>${preview}<button class="ghost wide" id="reanalyzeBtn">Analyze this edit with Viral+ →</button>`;const b=$("#reanalyzeBtn");if(b)b.onclick=()=>toast("Re-analysis handoff sera branché dans la prochaine passe.");$("#editBtn").disabled=false;toast("Montage terminé.")})}catch(err){toast(err.message);$("#editBtn").disabled=false}};
 
 $("#clipBtn").onclick=async()=>{if(!requireAuth())return;const url=$("#clipUrl").value.trim();if(!url)return toast("Colle un lien vidéo.");if(!$("#rights").checked)return toast("Confirme que tu as les droits.");$("#clipBtn").disabled=true;const result=$("#clipResult");result.classList.remove("hidden");result.textContent="Finding best moments…";try{const body=await api(fn("clip-jobs","create"),{method:"POST",body:JSON.stringify({source_url:url,confirm_rights:true,clip_count:Number($("#clipCount").value),min_duration_sec:20,max_duration_sec:60,caption_preset:$("#clipCaption").value,add_captions:true})});currentJob=body.job;setState(currentJob);toast("Clip+ lancé.");await pollJob(body.job.id,"clip",async job=>{const projectId=job.result?.clip_project_id||body.project.id;const detail=await api(fn("clip-jobs",`projects/${projectId}`));const clips=detail.clips||[];result.innerHTML=`<div class="advice"><small>CLIP+ COMPLETED</small><h4>${clips.length} clips ready.</h4></div><div class="clip-list">${clips.map(c=>`<article class="clip-card"><div class="clip-card-head"><div><small>CLIP 0${c.rank}</small><h4>${escapeHtml(c.title||"Untitled")}</h4></div><b>${escapeHtml(c.viral_score??"—")}</b></div><p>${escapeHtml(c.hook||c.rationale||"")}</p><div class="clip-actions"><button class="ghost clip-preview" data-id="${escapeHtml(c.id)}">Preview</button><button class="ghost clip-download" data-id="${escapeHtml(c.id)}">Download</button></div><div class="media-preview hidden" id="clip-${escapeHtml(c.id)}"></div></article>`).join("")}</div>`;$$(".clip-preview").forEach(btn=>btn.onclick=async()=>{try{const d=await api(fn("clip-jobs",`clips/${btn.dataset.id}/url`));const box=$("#clip-"+btn.dataset.id);box.classList.remove("hidden");box.innerHTML=`<video controls playsinline src="${escapeHtml(d.signed_url)}"></video>`}catch(err){toast(err.message)}});$$(".clip-download").forEach(btn=>btn.onclick=async()=>{try{const d=await api(fn("clip-jobs",`clips/${btn.dataset.id}/url`));window.open(d.signed_url,"_blank")}catch(err){toast(err.message)}});$("#clipBtn").disabled=false;toast("Clips générés.")})}catch(err){toast(err.message);$("#clipBtn").disabled=false}};
+
+function activateProduct(name,scroll=true){
+  $$(".product-tab").forEach(b=>b.classList.toggle("active",b.dataset.product===name));
+  $$(".product-pane").forEach(p=>p.classList.toggle("active",p.dataset.productPane===name));
+  if(scroll)$("#module-explorer")?.scrollIntoView({behavior:"smooth",block:"center"});
+}
+$$("[data-product]").forEach(b=>b.addEventListener("click",()=>activateProduct(b.dataset.product,false)));
+$$("[data-product-link]").forEach(b=>b.addEventListener("click",e=>{e.preventDefault();activateProduct(b.dataset.productLink,true)}));
+
+const moduleCopy={
+  viral:{headline:"UNDERSTAND YOUR REEL.",sub:"Viral+ diagnostique ta vidéo. Utilise-le seul si ton besoin est de comprendre ce qui bloque avant de publier."},
+  edit:{headline:"TURN RAW INTO READY.",sub:"Edit+ monte ta vidéo brute. Utilise-le seul si ton besoin est de gagner du temps sur le montage."},
+  clip:{headline:"TURN LONG INTO SHORT.",sub:"Clip+ extrait les meilleurs moments d’un contenu long. Utilise-le seul si ton besoin est de créer plusieurs shorts."}
+};
+function setProductWorkspace(name){
+  setTab(name);
+  const copy=moduleCopy[name];
+  if(copy){$("#workspaceHeadline").textContent=copy.headline;$("#workspaceSubhead").textContent=copy.sub;}
+}
+$$(".product-open").forEach(b=>b.addEventListener("click",()=>setProductWorkspace(b.dataset.openTab)));
+$$(".tab").forEach(b=>b.addEventListener("click",()=>{const copy=moduleCopy[b.dataset.tab];if(copy){$("#workspaceHeadline").textContent=copy.headline;$("#workspaceSubhead").textContent=copy.sub;}}));
+
+$("#editFile")?.addEventListener("change",e=>{
+  const file=e.target.files?.[0];
+  if(!file)return;
+  $("#editFileName").textContent=file.name;
+  uploadVideo(file).then(()=>{
+    if(media){
+      $("#editMedia").classList.remove("hidden");
+      $("#editMedia").textContent=file.name+" · ready for Edit+";
+      $("#editBtn").disabled=false;
+    }
+  });
+});
+
+(function heroCinemaV4(){
+  const hero=document.querySelector(".hero"),stage=$("#heroStage"),words=$$(".hero-copy h1 span");
+  const onScroll=()=>{
+    if(!hero||!stage)return;
+    const rect=hero.getBoundingClientRect();
+    const p=Math.max(0,Math.min(1,-rect.top/Math.max(1,hero.offsetHeight*.78)));
+    stage.style.filter=`saturate(${1+p*.12}) contrast(${1+p*.04})`;
+    stage.style.opacity=String(1-p*.33);
+    stage.style.marginTop=(-p*36)+"px";
+    words.forEach((w,i)=>{w.style.transform=`translate3d(0,${-p*(12+i*10)}px,0)`;w.style.opacity=String(1-p*(.08+i*.05));});
+  };
+  window.addEventListener("scroll",onScroll,{passive:true});onScroll();
+})();
+
 </script>
 </body>
 </html>
