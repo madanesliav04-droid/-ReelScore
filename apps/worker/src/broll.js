@@ -48,6 +48,8 @@ RÈGLES:
 - Préfère les noms concrets: lieux, objets, marques, métiers, technologies, personnes historiques, actions observables.
 - Évite les concepts abstraits comme "succès", "motivation", "business" seuls.
 - Chaque query_en doit être une recherche d'image courte et concrète en ANGLAIS.
+- Pour CHAQUE cue, fournis aussi exactement 3 alt_queries_en, du plus précis au plus simple.
+- La 3e alternative doit contenir seulement 1 à 3 noms concrets faciles à trouver en photo (ex: "calculator price", "laptop analytics", "product boxes").
 - Une image doit illustrer exactement la phrase prononcée.
 - Évite deux B-rolls trop proches.
 - Retourne uniquement du JSON valide.
@@ -206,14 +208,14 @@ ${transcript}`;
 function buildSearchVariants(query,alternates=[]){
   const base=String(query||'').replace(/[\r\n]+/g,' ').trim();
   const words=base.split(/\s+/).filter(Boolean);
+  const meaningful=words.filter(w=>!/^(business|professional|modern|photo|photograph|image|different|side|numbers|declining|with|on|of|the|a|an)$/i.test(w));
   const variants=[
     base,
     ...alternates,
-    words.slice(0,4).join(' '),
-    words.slice(0,3).join(' '),
-    words.slice(0,2).join(' '),
-    base+' photo',
-    words.slice(0,3).join(' ')+' photo'
+    meaningful.slice(0,4).join(' '),
+    meaningful.slice(0,3).join(' '),
+    meaningful.slice(-3).join(' '),
+    meaningful.slice(-2).join(' ')
   ];
 
   return variants
@@ -464,6 +466,10 @@ async function findOpenverseAsset(
         variant,
         searchable
       );
+      const originalRelevance=lexicalRelevance(
+        query,
+        searchable
+      );
 
       const badVisual=/\b(map|historical|archive|archival|cartoon|illustration|diagram|projection|blueprint|manuscript|painting|poster|engraving|etching|satellite|aerial map)\b/i;
       const queryAllowsBad=/\b(map|historical|cartoon|illustration|diagram|blueprint|painting|poster)\b/i.test(variant);
@@ -475,6 +481,7 @@ async function findOpenverseAsset(
             ?0.18
             :0.22;
       if(relevance<minRelevance)continue;
+      if(originalRelevance<0.16)continue;
 
       return {
         assetUrl,
@@ -495,7 +502,8 @@ async function findOpenverseAsset(
         provider:'openverse',
         source:String(item?.source||item?.provider||'').slice(0,80),
         searchQuery:variant,
-        relevance
+        relevance,
+        originalRelevance
       };
     }
   }
@@ -584,6 +592,7 @@ async function findCommonsAsset(
       );
       const searchable=[title,description].filter(Boolean).join(' ');
       const relevance=lexicalRelevance(variant,searchable);
+      const originalRelevance=lexicalRelevance(query,searchable);
       const minRelevance=
         variant===query
           ?0.2
@@ -591,6 +600,7 @@ async function findCommonsAsset(
             ?0.12
             :0.16;
       if(relevance<minRelevance)continue;
+      if(originalRelevance<0.16)continue;
 
       const badVisual=/\b(map|coat of arms|flag|logo|diagram|scan|manuscript|painting|engraving|cartoon|poster|stamp)\b/i;
       const queryAllowsBad=/\b(map|logo|diagram|painting|cartoon|poster|flag)\b/i.test(variant);
@@ -618,7 +628,8 @@ async function findCommonsAsset(
         title:title.slice(0,220),
         provider:'wikimedia_commons',
         searchQuery:variant,
-        relevance
+        relevance,
+        originalRelevance
       };
     }
   }
