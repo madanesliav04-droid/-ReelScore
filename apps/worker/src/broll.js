@@ -438,8 +438,7 @@ async function findOpenverseAsset(
       license:'pdm,cc0,by',
       page_size:'30',
       mature:'false',
-      categories:'photograph',
-      excluded_source:'wikimedia'
+      categories:'photograph'
     });
 
     let response;
@@ -457,7 +456,15 @@ async function findOpenverseAsset(
       continue;
     }
 
-    if(!response.ok)continue;
+    if(!response.ok){
+      console.warn(JSON.stringify({
+        event:'openverse_search_failed',
+        status:response.status,
+        query:variant,
+        body:(await response.text()).slice(0,240)
+      }));
+      continue;
+    }
     const body=await response.json();
     const results=Array.isArray(body?.results)?body.results:[];
 
@@ -473,7 +480,9 @@ async function findOpenverseAsset(
       if(!['pdm','cc0','by'].includes(license))continue;
 
       const assetUrl=
-        `https://api.openverse.org/v1/images/${id}/thumb/?compressed=true`;
+        String(item?.thumbnail||'').startsWith('https://')
+          ?String(item.thumbnail)
+          :`https://api.openverse.org/v1/images/${id}/thumb/?compressed=true`;
 
       if(used.has(assetUrl))continue;
 
@@ -505,10 +514,7 @@ async function findOpenverseAsset(
           :variant.split(/\s+/).length<=2
             ?0.18
             :0.22;
-      if(relevance<minRelevance)continue;
-      if(hitStats.termCount>=3&&hitStats.hits<2)continue;
-      if(hitStats.termCount===2&&hitStats.hits<1)continue;
-      if(originalRelevance<0.16)continue;
+      if(relevance<Math.min(minRelevance,0.12))continue;
 
       return {
         assetUrl,
