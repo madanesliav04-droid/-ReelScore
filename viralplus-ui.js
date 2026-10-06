@@ -1,7 +1,6 @@
 const $ = id => document.getElementById(id);
 const SUPABASE_URL = String(window.VIRAL_SUPABASE_URL || '').replace(/\/$/,'');
 const SUPABASE_KEY = String(window.VIRAL_SUPABASE_KEY || '');
-const API_URL = 'https://eiypztjpmxdiuaqxjuqx.supabase.co/functions/v1/viralplus-api';
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const lowPower = innerWidth < 900;
 
@@ -15,16 +14,10 @@ const authModal=$('authModal'),paywall=$('paywall'),toast=$('toast'),usagePill=$
 const resultEmpty=$('resultEmpty'),resultContent=$('resultContent'),resultScore=$('resultScore'),scoreOrb=$('scoreOrb'),statusBadge=$('statusBadge'),resultVerdictTitle=$('resultVerdictTitle'),resultVerdictText=$('resultVerdictText'),versionLine=$('versionLine'),mainProblem=$('mainProblem'),mainWhy=$('mainWhy'),hotspotTime=$('hotspotTime'),hotspotReason=$('hotspotReason'),hookBefore=$('hookBefore'),hookAfter=$('hookAfter'),actionList=$('actionList'),premiumTeaser=$('premiumTeaser'),comparePanel=$('comparePanel'),beforeScore=$('beforeScore'),afterScore=$('afterScore'),deltaScore=$('deltaScore'),metricDelta=$('metricDelta');
 const stageResultCta=$('stageResultCta'),phoneResultScore=$('phoneResultScore'),phoneStatus=$('phoneStatus'),phoneProblem=$('phoneProblem'),phoneHotspot=$('phoneHotspot');
 
-let session=null, entitlement=null, authMode='login', lastHoverBurst=0, pendingFile=null, pendingReanalysis=false, currentVideoSha256=null;
-let currentFile=null, objectUrl=null, currentAnalysis=null, baselineAnalysis=null, reanalysisMode=false, analyzing=false, counterTimer=0, scrollRAF=0, mouseRAF=0, resultMode=false, storagePath=null, storageUpload=null, uploadGeneration=0, analysisStartedAt=0, analysisProgressTimer=null;
+let session=null, entitlement=null, authMode='login', lastHoverBurst=0, pendingFile=null, pendingReanalysis=false;
+let currentFile=null, objectUrl=null, currentAnalysis=null, baselineAnalysis=null, reanalysisMode=false, analyzing=false, counterTimer=0, scrollRAF=0, mouseRAF=0, resultMode=false, storagePath=null, storageUpload=null, currentVideoId=null, currentJobId=null, currentAnalysisIdempotencyKey=null, uploadGeneration=0, analysisStartedAt=0, analysisProgressTimer=null;
 
 function clamp(v,a=0,b=1){return Math.max(a,Math.min(b,v))}
-async function sha256File(file){
-  const buffer=await file.arrayBuffer();
-  const digest=await crypto.subtle.digest('SHA-256',buffer);
-  return [...new Uint8Array(digest)].map(b=>b.toString(16).padStart(2,'0')).join('');
-}
-
 function mix(a,b,t){return a+(b-a)*t}
 function ease(t){return t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2}
 function seg(p,a,b){return clamp((p-a)/(b-a))}
@@ -104,6 +97,8 @@ async function refreshSession(){if(!session?.refresh_token)return false;const r=
 async function getToken(){if(isExpired(session)){const ok=await refreshSession();if(!ok)return null}return session?.access_token||null}
 function updateAccountUI(){if(session?.user){accountBtn.textContent=(session.user.email||'Compte').split('@')[0];}else{accountBtn.textContent='Se connecter';usagePill.classList.add('hidden')}}
 async function supa(path,{method='GET',body,prefer,query='',auth=true}={}){const token=auth?await getToken():null;const headers={apikey:SUPABASE_KEY,'Content-Type':'application/json'};if(token)headers.Authorization=`Bearer ${token}`;if(prefer)headers.Prefer=prefer;const r=await fetch(`${SUPABASE_URL}${path}${query}`,{method,headers,body:body===undefined?undefined:JSON.stringify(body)});let data=null;try{data=await r.json()}catch{}if(!r.ok)throw new Error(data?.msg||data?.message||data?.error_description||data?.error||`Erreur ${r.status}`);return data}
+async function jobsApi(route,{method='GET',body}={}){return supa('/functions/v1/viral-edit-jobs/'+String(route||'').replace(/^\//,''),{method,body})}
+
 async function track(name,properties={}){if(!session?.user)return;try{await supa('/rest/v1/viralplus_events',{method:'POST',body:{user_id:session.user.id,event_name:name,properties}})}catch{}}
 async function refreshEntitlement(){if(!session?.user)return;try{const d=await supa('/rest/v1/rpc/viralplus_get_entitlement',{method:'POST',body:{}});entitlement=Array.isArray(d)?d[0]:d;if(entitlement){usagePill.classList.remove('hidden');const days=entitlement.trial_active&&entitlement.trial_ends_at?Math.max(0,Math.ceil((new Date(entitlement.trial_ends_at)-Date.now())/86400000)):0;usagePill.textContent=`BÊTA GRATUITE · ${entitlement.remaining}/${entitlement.analysis_limit} analyses`}}catch(e){console.warn(e)}}
 
@@ -121,57 +116,134 @@ function scrollToAnalysis(){const target=cinematic.offsetTop+(cinematic.offsetHe
 heroAnalyse.addEventListener('click',e=>{e.preventDefault();e.stopImmediatePropagation();scrollToAnalysis()},{capture:true});
 $('heroScroll').addEventListener('click',()=>scrollTo({top:cinematic.offsetTop+innerHeight*.85,behavior:'smooth'}));$('brandHome').addEventListener('click',()=>scrollTo({top:0,behavior:'smooth'}));$('phoneImprove').addEventListener('click',()=>document.getElementById('workspace').scrollIntoView({behavior:'smooth'}));stageResultCta.addEventListener('click',()=>document.getElementById('workspace').scrollIntoView({behavior:'smooth'}));$('historyNav').addEventListener('click',()=>document.getElementById('history').scrollIntoView({behavior:'smooth'}));
 
+function updateUploadUI(pct){
+  const value=Math.max(0,Math.min(100,Math.round(Number(pct)||0)));
+  analyzeBtn.textContent=`Upload ${value}%…`;
+  timelineLabel.textContent='Upload';
+  timelineText.textContent=`${value}%`;
+  timelineFill.style.width=value+'%';
+}
+function resumableEndpoint(){
+  const projectRef=new URL(SUPABASE_URL).hostname.split('.')[0];
+  return `https://${projectRef}.storage.supabase.co/storage/v1/upload/resumable`;
+}
 async function uploadVideoToStorage(file,generation){
   const token=await getToken();
   if(!token) throw new Error('Session expirée. Reconnecte-toi.');
   const safeBase=(file.name||'video.mp4').replace(/[^a-zA-Z0-9._-]/g,'_').slice(-100);
-  const path=`${session.user.id}/${Date.now()}-${Math.random().toString(36).slice(2,10)}-${safeBase}`;
+  const resumeKey=`viralplus_upload_${session.user.id}_${file.size}_${file.lastModified}_${safeBase}`;
+  let path=sessionStorage.getItem(resumeKey);
+  if(!path){
+    path=`${session.user.id}/${Date.now()}-${Math.random().toString(36).slice(2,10)}-${safeBase}`;
+    sessionStorage.setItem(resumeKey,path);
+  }
+
   analyzeBtn.disabled=true;
-  analyzeBtn.textContent='Upload 0%…';
   analysisState.textContent='UPLOAD DE LA VIDÉO';
-  return new Promise((resolve,reject)=>{
-    const xhr=new XMLHttpRequest();
-    const endpoint=`${SUPABASE_URL}/storage/v1/object/viralplus-videos/${path.split('/').map(encodeURIComponent).join('/')}`;
-    xhr.open('POST',endpoint,true);
-    xhr.setRequestHeader('Authorization',`Bearer ${token}`);
-    xhr.setRequestHeader('apikey',SUPABASE_KEY);
-    xhr.setRequestHeader('Content-Type',file.type||'video/mp4');
-    xhr.setRequestHeader('x-upsert','true');
-    xhr.upload.onprogress=(e)=>{
-      if(generation!==uploadGeneration)return;
-      if(!e.lengthComputable)return;
-      const pct=Math.max(0,Math.min(100,Math.round(e.loaded/e.total*100)));
-      analyzeBtn.textContent=`Upload ${pct}%…`;
-      timelineLabel.textContent='Upload';
-      timelineText.textContent=`${pct}%`;
-      timelineFill.style.width=pct+'%';
-    };
-    xhr.onerror=()=>{if(generation===uploadGeneration)reject(new Error('Échec de l’upload. Vérifie ta connexion puis réessaie.'))};
-    xhr.onabort=()=>{if(generation===uploadGeneration)reject(new Error('Upload interrompu.'))};
-    xhr.onload=async()=>{
-      if(generation!==uploadGeneration)return;
-      let d={};try{d=JSON.parse(xhr.responseText||'{}')}catch{}
-      if(xhr.status<200||xhr.status>=300){
-        reject(new Error(d.message||d.error||`Échec de l’upload (${xhr.status}).`));
-        return;
-      }
-      try{
-        const parts=path.split('/').map(encodeURIComponent).join('/');
-        const r=await fetch(`${SUPABASE_URL}/storage/v1/object/sign/viralplus-videos/${parts}`,{
-          method:'POST',
-          headers:{apikey:SUPABASE_KEY,Authorization:`Bearer ${token}`,'Content-Type':'application/json'},
-          body:JSON.stringify({expiresIn:900})
+  updateUploadUI(0);
+  track('video_upload_started',{name:file.name,size:file.size,mime_type:file.type||'video/mp4'});
+
+  try{
+    if(window.tus?.Upload){
+      await new Promise((resolve,reject)=>{
+        const upload=new window.tus.Upload(file,{
+          endpoint:resumableEndpoint(),
+          retryDelays:[0,3000,5000,10000,20000],
+          headers:{authorization:`Bearer ${token}`},
+          uploadDataDuringCreation:true,
+          removeFingerprintOnSuccess:true,
+          metadata:{
+            bucketName:'viralplus-videos',
+            objectName:path,
+            contentType:file.type||'video/mp4',
+            cacheControl:'3600',
+            metadata:JSON.stringify({module:'viralplus',source:'web'})
+          },
+          chunkSize:6*1024*1024,
+          onError:error=>reject(error),
+          onProgress:(uploaded,total)=>{
+            if(generation!==uploadGeneration)return;
+            updateUploadUI(total?uploaded/total*100:0);
+          },
+          onSuccess:()=>resolve()
         });
-        const sd=await r.json().catch(()=>({}));
-        if(!r.ok||!sd.signedURL)throw new Error(sd.message||sd.error||'Impossible de préparer l’analyse.');
-        storagePath=path;
-        resolve(sd.signedURL.startsWith('http')?sd.signedURL:`${SUPABASE_URL}/storage/v1${sd.signedURL}`);
-      }catch(e){reject(e)}
-    };
-    storageUpload={abort:()=>xhr.abort()};
-    xhr.send(file);
-  });
+
+        storageUpload={abort:()=>upload.abort(true)};
+        upload.findPreviousUploads()
+          .then(previous=>{
+            if(generation!==uploadGeneration)return;
+            const samePath=(previous||[]).find(p=>p?.metadata?.objectName===path);
+            if(samePath)upload.resumeFromPreviousUpload(samePath);
+            upload.start();
+          })
+          .catch(reject);
+      });
+    }else{
+      await new Promise((resolve,reject)=>{
+        const xhr=new XMLHttpRequest();
+        const endpoint=`${SUPABASE_URL}/storage/v1/object/viralplus-videos/${path.split('/').map(encodeURIComponent).join('/')}`;
+        xhr.open('POST',endpoint,true);
+        xhr.setRequestHeader('Authorization',`Bearer ${token}`);
+        xhr.setRequestHeader('apikey',SUPABASE_KEY);
+        xhr.setRequestHeader('Content-Type',file.type||'video/mp4');
+        xhr.upload.onprogress=e=>{
+          if(generation!==uploadGeneration||!e.lengthComputable)return;
+          updateUploadUI(e.loaded/e.total*100);
+        };
+        xhr.onerror=()=>reject(new Error('Échec de l’upload. Vérifie ta connexion puis réessaie.'));
+        xhr.onabort=()=>reject(new Error('Upload interrompu.'));
+        xhr.onload=()=>{
+          let d={};try{d=JSON.parse(xhr.responseText||'{}')}catch{}
+          if(xhr.status<200||xhr.status>=300){
+            reject(new Error(d.message||d.error||`Échec de l’upload (${xhr.status}).`));
+            return;
+          }
+          resolve();
+        };
+        storageUpload={abort:()=>xhr.abort()};
+        xhr.send(file);
+      });
+    }
+
+    if(generation!==uploadGeneration)return null;
+    sessionStorage.removeItem(resumeKey);
+    storagePath=path;
+    currentVideoId=await registerMediaAsset(file,path);
+    updateUploadUI(100);
+    track('video_upload_completed',{name:file.name,size:file.size,mime_type:file.type||'video/mp4'});
+    return path;
+  }catch(error){
+    track('video_upload_failed',{message:String(error?.message||error).slice(0,300),size:file.size});
+    throw error;
+  }
 }
+async function registerMediaAsset(file,path){
+  const existing=await supa('/rest/v1/media_assets',{
+    query:`?select=id&storage_bucket=eq.viralplus-videos&storage_path=eq.${encodeURIComponent(path)}&limit=1`
+  });
+  if(existing?.[0]?.id)return existing[0].id;
+
+  const rows=await supa('/rest/v1/media_assets',{
+    method:'POST',
+    prefer:'return=representation',
+    body:{
+      user_id:session.user.id,
+      module:'viralplus',
+      kind:'source',
+      storage_bucket:'viralplus-videos',
+      storage_path:path,
+      original_name:file.name||'video.mp4',
+      mime_type:file.type||'video/mp4',
+      size_bytes:file.size,
+      status:'uploaded',
+      metadata:{source:'web',upload_protocol:window.tus?.Upload?'tus':'standard'}
+    }
+  });
+  const asset=Array.isArray(rows)?rows[0]:rows;
+  if(!asset?.id)throw new Error('Impossible d’enregistrer la vidéo.');
+  return asset.id;
+}
+
 async function prepareVideoUpload(file,isReanalysis,generationArg){
   storagePath=null;
   storageUpload=null;
@@ -197,15 +269,17 @@ async function prepareVideoUpload(file,isReanalysis,generationArg){
 }
 function setFile(file,isReanalysis=false){
   if(!file)return;
-  if(file.size>100*1024*1024){showToast('Vidéo trop lourde : 100 Mo maximum.');return}
+  if(file.size>500*1024*1024){showToast('Vidéo trop lourde : 500 Mo maximum pour cette version.');return}
   if(!session?.user){pendingFile=file;pendingReanalysis=isReanalysis;openAuth();return}
   uploadGeneration++;
   if(storageUpload){try{storageUpload.abort(true)}catch{}}
   if(objectUrl)URL.revokeObjectURL(objectUrl);
   objectUrl=URL.createObjectURL(file);
   currentFile=file;
-  currentVideoSha256=null;
   storagePath=null;
+  currentVideoId=null;
+  currentJobId=null;
+  currentAnalysisIdempotencyKey=null;
   reanalysisMode=isReanalysis;
   previewVideo.src=objectUrl;
   dropzone.classList.add('hasVideo');
@@ -258,98 +332,170 @@ if(workspaceUploader){
 }
 $('changeVideo').addEventListener('click',e=>{e.preventDefault();e.stopPropagation();fileInput.click()});
 
-function fakeProgress(){
-  analysisState.textContent='ANALYSE VIDÉO RÉELLE';
+function analysisWaitUI(){
+  analysisState.textContent='MISE EN FILE';
   analysisLayer.classList.add('busy');
   phoneScore.classList.remove('hidden');
   scoreNumber.textContent='—';
-  timelineFill.classList.add('indeterminate');
-  timelineFill.style.width='32%';
-  timelineLabel.textContent='Analyse';
-  analysisStartedAt=Date.now();
-  const steps=[
-    [0,'PRÉPARATION DU DIAGNOSTIC'],
-    [3500,'LECTURE AUDIO + VISUEL'],
-    [9000,'DÉTECTION DU HOOK'],
-    [16000,'ANALYSE DE LA STRUCTURE'],
-    [24000,'ÉVALUATION DU POTENTIEL DE PARTAGE'],
-    [32000,'CONSTRUCTION DU DIAGNOSTIC'],
-    [45000,'FINALISATION DU SCORE']
-  ];
-  steps.forEach(([ms,label])=>setTimeout(()=>{if(analyzing){analysisState.textContent=label;timelineText.textContent=label.toLowerCase()}},ms));
-  clearInterval(analysisProgressTimer);
-  analysisProgressTimer=setInterval(()=>{
-    if(!analyzing)return;
-    const elapsed=Math.floor((Date.now()-analysisStartedAt)/1000);
-    timelineText.textContent=`analyse en cours · ${elapsed}s`;
-    analysisState.textContent=elapsed>45?'LE MOTEUR FINALISE LE DIAGNOSTIC':'ANALYSE VIDÉO RÉELLE';
-  },1000);
-  return [];
+  timelineFill.classList.remove('indeterminate');
+  timelineFill.style.width='0%';
+  timelineLabel.textContent='Job';
+  timelineText.textContent='mise en file…';
 }
-function clearTimers(ts){ts.forEach(clearTimeout);clearInterval(analysisProgressTimer);analysisProgressTimer=null}
+function jobLabel(status){
+  return ({
+    uploaded:'Upload',
+    queued:'En file',
+    processing:'Préparation',
+    transcribing:'Transcription',
+    analyzing:'Analyse',
+    generating_report:'Rapport',
+    planning:'Plan de montage',
+    rendering:'Rendu',
+    encoding:'Encodage',
+    completed:'Terminé',
+    failed:'Échec',
+    cancelled:'Annulé'
+  })[status]||String(status||'Traitement');
+}
+function updateJobUI(job){
+  const pct=Math.max(0,Math.min(100,Number(job?.progress)||0));
+  timelineFill.style.width=pct+'%';
+  timelineLabel.textContent=jobLabel(job?.status);
+  timelineText.textContent=job?.stage||`${pct}%`;
+  analysisState.textContent=jobLabel(job?.status).toUpperCase();
+}
+async function pollProcessingJob(jobId){
+  const deadline=Date.now()+30*60*1000;
+  while(Date.now()<deadline){
+    if(currentJobId!==jobId)throw new Error('Analyse remplacée par une nouvelle demande.');
+    const rows=await supa('/rest/v1/processing_jobs',{
+      query:`?select=id,status,progress,stage,result,error,error_code,updated_at&id=eq.${encodeURIComponent(jobId)}&limit=1`
+    });
+    const job=rows?.[0];
+    if(!job)throw new Error('Job d’analyse introuvable.');
+    updateJobUI(job);
+    if(job.status==='completed')return job;
+    if(job.status==='failed'||job.status==='cancelled'){
+      const e=new Error(job.error||'Le traitement a échoué.');
+      e.code=job.error_code||job.status;
+      throw e;
+    }
+    await new Promise(resolve=>setTimeout(resolve,1200));
+  }
+  throw new Error('L’analyse prend plus de temps que prévu. Elle reste enregistrée dans ton compte.');
+}
+function normalizeAnalysisRow(row){
+  const data={...(row?.result_json||{})};
+  data.analysis_id=row?.id||data.analysis_id;
+  data.video_id=row?.video_id||data.video_id||null;
+  data.final_score=Number(row?.final_score??data.final_score??0);
+  data.score_version=row?.score_version||data.score_version;
+  data.model_used=row?.model_used||data.model_used;
+  data.status=row?.status||data.status;
+  if(Array.isArray(data.timeline)){
+    data.timeline=data.timeline.map(x=>{
+      if(x.time)return x;
+      const s=Number(x.start_sec||0),e=Number(x.end_sec||s);
+      return {...x,time:`${s.toFixed(1)}s → ${e.toFixed(1)}s`,status:x.status||x.severity,reason:x.reason||x.problem||x.correction};
+    });
+  }
+  return data;
+}
+async function fetchAnalysisForJob(job){
+  const analysisId=job?.result?.analysis_id;
+  const filter=analysisId?`id=eq.${encodeURIComponent(analysisId)}`:`job_id=eq.${encodeURIComponent(job.id)}`;
+  const rows=await supa('/rest/v1/viralplus_analyses',{
+    query:`?select=id,video_id,created_at,video_name,final_score,status,is_reanalysis,baseline_analysis_id,score_version,model_used,result_json&${filter}&limit=1`
+  });
+  if(!rows?.[0])throw new Error('Rapport terminé mais résultat introuvable.');
+  return normalizeAnalysisRow(rows[0]);
+}
 async function runAnalysis(){
   if(!currentFile||analyzing)return;
   if(!await ensureAuth())return;
-  const token=await getToken();if(!token)return;
-  if(!storagePath){showToast('La vidéo n’est pas encore prête. Attends la fin de l’upload.');return}
-  if(!currentVideoSha256){
-    try{currentVideoSha256=await sha256File(currentFile)}catch{showToast('Impossible de préparer l’empreinte vidéo. Réessaie.');return}
-  }
-  analyzing=true;analyzeBtn.disabled=true;analyzeBtn.textContent='Analyse en cours…';
-  track('analysis_started',{reanalysis:reanalysisMode});
-  const timers=fakeProgress();
+  if(!storagePath||!currentVideoId){showToast('La vidéo n’est pas encore prête. Attends la fin de l’upload.');return}
+
+  analyzing=true;
+  analyzeBtn.disabled=true;
+  analyzeBtn.textContent='Analyse en cours…';
+  analysisWaitUI();
+  track('analysis_started',{reanalysis:reanalysisMode,video_id:currentVideoId});
+
   try{
-    const signedParts=storagePath.split('/').map(encodeURIComponent).join('/');
-    const sr=await fetch(`${SUPABASE_URL}/storage/v1/object/sign/viralplus-videos/${signedParts}`,{
-      method:'POST',headers:{apikey:SUPABASE_KEY,Authorization:`Bearer ${token}`,'Content-Type':'application/json'},
-      body:JSON.stringify({expiresIn:900})
-    });
-    const sd=await sr.json().catch(()=>({}));
-    if(!sr.ok||!sd.signedURL)throw new Error(sd.message||sd.error||'Impossible de préparer la vidéo.');
-    const signedUrl=sd.signedURL.startsWith('http')?sd.signedURL:`${SUPABASE_URL}/storage/v1${sd.signedURL}`;
-    const headers={
-      Authorization:`Bearer ${token}`,
-      'Content-Type':'application/json',
-      'X-File-Name':encodeURIComponent(currentFile.name||'video.mp4'),
-      'X-File-Size':String(currentFile.size),
-      'X-Video-Mime-Type':currentFile.type||'video/mp4',
-      'X-Video-SHA256':currentVideoSha256,
-      'X-Reanalysis':reanalysisMode?'1':'0'
+    if(!currentAnalysisIdempotencyKey){
+      const suffix=reanalysisMode&&baselineAnalysis?.analysis_id?baselineAnalysis.analysis_id:'initial';
+      currentAnalysisIdempotencyKey=`viral:${currentVideoId}:${suffix}`;
+    }
+    const payload={
+      reanalysis:reanalysisMode,
+      baseline_analysis_id:reanalysisMode&&baselineAnalysis?.analysis_id?baselineAnalysis.analysis_id:null
     };
-    if(reanalysisMode&&baselineAnalysis?.analysis_id)headers['X-Baseline-Analysis-Id']=baselineAnalysis.analysis_id;
-    let r=await fetch(`${API_URL}/analyze`,{method:'POST',headers,body:JSON.stringify({storage_url:signedUrl,video_sha256:currentVideoSha256})});
-    if(r.status===401&&await refreshSession()){
-      headers.Authorization=`Bearer ${session.access_token}`;
-      r=await fetch(`${API_URL}/analyze`,{method:'POST',headers,body:JSON.stringify({storage_url:signedUrl,video_sha256:currentVideoSha256})});
-    }
-    const data=await r.json().catch(()=>({}));
-    if(!r.ok){
-      if(data.code==='QUOTA_EXHAUSTED'){await refreshEntitlement();showToast('Limite gratuite atteinte pour ce mois.');}
-      throw new Error(data.error||`Erreur ${r.status}`);
-    }
-    clearTimers(timers);timelineFill.classList.remove('indeterminate');currentAnalysis=data;
-    await animateScore(data.final_score||0);renderPhoneMetrics(data);renderResult(data);showResultLayer(data);
-    resultEmpty.classList.add('hidden');resultContent.classList.remove('hidden');
+    const created=await supa('/rest/v1/rpc/create_processing_job',{
+      method:'POST',
+      body:{
+        p_kind:'viral_analysis',
+        p_video_id:currentVideoId,
+        p_payload:payload,
+        p_idempotency_key:currentAnalysisIdempotencyKey
+      }
+    });
+    const job=Array.isArray(created)?created[0]:created;
+    if(!job?.id)throw new Error('Impossible de créer le job d’analyse.');
+    currentJobId=job.id;
+    updateJobUI(job);
+
+    const finished=await pollProcessingJob(job.id);
+    const data=await fetchAnalysisForJob(finished);
+    currentAnalysis=data;
+    if(data.video_id)currentVideoId=data.video_id;
+
+    await animateScore(data.final_score||0);
+    renderPhoneMetrics(data);
+    renderResult(data);
+    showResultLayer(data);
+    resultEmpty.classList.add('hidden');
+    resultContent.classList.remove('hidden');
+
     if(reanalysisMode&&baselineAnalysis)renderComparison(baselineAnalysis,data);
-    else{baselineAnalysis=data;comparePanel.classList.add('hidden');metricDelta.classList.add('hidden')}
-    analysisState.textContent='ANALYSE TERMINÉE';analyzeBtn.textContent='Analyse terminée';burstSocial(lowPower?6:10);
-    await refreshEntitlement();await loadHistory();
-    track('analysis_completed',{score:data.final_score,reanalysis:reanalysisMode,score_version:data.score_version});
-    try{
-      const parts=storagePath.split('/').map(encodeURIComponent).join('/');
-      await fetch(`${SUPABASE_URL}/storage/v1/object/viralplus-videos/${parts}`,{method:'DELETE',headers:{apikey:SUPABASE_KEY,Authorization:`Bearer ${token}`}});
-    }catch{}
-    storagePath=null;
+    else{
+      baselineAnalysis=data;
+      comparePanel.classList.add('hidden');
+      metricDelta.classList.add('hidden');
+    }
+
+    analysisState.textContent='ANALYSE TERMINÉE';
+    analyzeBtn.textContent='Analyse terminée';
+    timelineFill.style.width='100%';
+    burstSocial(lowPower?6:10);
+    await refreshEntitlement();
+    await loadHistory();
+    track('analysis_completed',{
+      score:data.final_score,
+      reanalysis:reanalysisMode,
+      score_version:data.score_version,
+      job_id:job.id,
+      video_id:currentVideoId
+    });
   }catch(err){
-    showToast(err.message);analysisState.textContent='ERREUR';analyzeBtn.textContent='Réessayer';analyzeBtn.disabled=false;
-  }finally{clearTimers(timers);timelineFill.classList.remove('indeterminate');analysisLayer.classList.remove('busy');analyzing=false}
+    if(String(err?.message||'').includes('quota_exhausted'))await refreshEntitlement();
+    currentAnalysisIdempotencyKey=null;
+    track('analysis_failed',{message:String(err?.message||err).slice(0,300),reanalysis:reanalysisMode,job_id:currentJobId});
+    showToast(err.message||'Échec de l’analyse.');
+    analysisState.textContent='ERREUR';
+    analyzeBtn.textContent='Réessayer';
+    analyzeBtn.disabled=false;
+  }finally{
+    analysisLayer.classList.remove('busy');
+    analyzing=false;
+  }
 }
 analyzeBtn.addEventListener('click',runAnalysis);
 function animateScore(target){return new Promise(resolve=>{const start=performance.now(),dur=800;function f(now){const t=Math.min(1,(now-start)/dur),v=Math.round(target*(1-Math.pow(1-t,3)));scoreNumber.textContent=v;if(t<1)requestAnimationFrame(f);else resolve()}requestAnimationFrame(f)})}
-function renderPhoneMetrics(data){const s=data.scores||{};setCard(0,s.spoken_hook??data.final_score,'Hook parlé');setCard(1,s.retention??data.final_score,'Rétention');setCard(2,s.visual_hook??data.final_score,'Hook visuel');setCard(3,s.shareability??data.final_score,'Partage');timelineFill.style.width=Math.max(8,data.final_score)+'%';timelineLabel.textContent='Score';timelineText.textContent=data.final_score+'/100'}
+function renderPhoneMetrics(data){const s=data.scores||{};setCard(0,s.hook??s.spoken_hook??data.final_score,'Hook');setCard(1,s.retention??data.final_score,'Rétention');setCard(2,s.visual??s.visual_hook??data.final_score,'Visuel');setCard(3,s.scroll_stop??s.shareability??data.final_score,'Scroll stop');timelineFill.style.width=Math.max(8,data.final_score)+'%';timelineLabel.textContent='Score';timelineText.textContent=data.final_score+'/100'}
 function statusFor(score){return score>=78?['Prête','Ta vidéo est prête à être publiée.','Le diagnostic est solide. Vérifie les dernières recommandations.']:score>=60?['Presque prête','Ta vidéo est proche d’une bonne version.','Quelques corrections ciblées peuvent encore renforcer la vidéo.']:['À retravailler','Ta vidéo n’est pas encore prête.','Corrige les points prioritaires avant publication.']}
 function renderResult(data){const score=data.final_score||0,[status,title,text]=statusFor(score);resultScore.textContent=score;scoreOrb.style.setProperty('--scoreDeg',(score*3.6)+'deg');statusBadge.textContent=status;resultVerdictTitle.textContent=title;resultVerdictText.textContent=data.verdict||text;versionLine.textContent=`Score ${data.score_version||'non versionné'} · ${data.model_used||''}`;mainProblem.textContent=data.main_problem||'Le hook doit être renforcé.';mainWhy.textContent=data.why||'L’idée principale arrive trop tard.';const hot=(data.timeline||[]).find(x=>/red|orange/i.test(String(x.status)))||(data.timeline||[])[0]||{};hotspotTime.textContent=hot.time||'00:00 → 00:02';hotspotReason.textContent=hot.reason||hot.label||'Le début doit être renforcé.';hookBefore.textContent=data.detected_spoken_hook||data.detected_title_text||'Hook non détecté';hookAfter.textContent=data.recommended_hook||'Raccourcis l’ouverture et annonce immédiatement la promesse.';actionList.innerHTML='';(data.action_items||[]).forEach((item,i)=>{const el=document.createElement('div');el.className='actionItem';el.innerHTML=`<b>${i+1}</b><span>${escapeHtml(item)}</span>`;actionList.appendChild(el)});if((data.locked||[]).length){for(let i=0;i<3;i++){const ph=document.createElement('div');ph.className='lockedPlaceholder';actionList.appendChild(ph)}premiumTeaser.classList.remove('hidden')}else premiumTeaser.classList.add('hidden');}
-function renderComparison(before,after){if(before.score_version!==after.score_version){comparePanel.classList.add('hidden');metricDelta.classList.remove('hidden');metricDelta.innerHTML='<span class="deltaChip">Comparaison non affichée : version de score différente.</span>';return}comparePanel.classList.remove('hidden');beforeScore.textContent=before.final_score+'/100';afterScore.textContent=after.final_score+'/100';const d=after.final_score-before.final_score;deltaScore.textContent=(d>=0?'+':'')+d+' points';const keys=[['Hook','spoken_hook'],['Rétention','retention'],['Visuel','visual_hook'],['Partage','shareability']];metricDelta.classList.remove('hidden');metricDelta.innerHTML=keys.map(([l,k])=>{const x=(Number(after.scores?.[k])||0)-(Number(before.scores?.[k])||0);return `<span class="deltaChip">${l} <b>${x>=0?'+':''}${x}</b></span>`}).join('');}
+function renderComparison(before,after){if(before.score_version!==after.score_version){comparePanel.classList.add('hidden');metricDelta.classList.remove('hidden');metricDelta.innerHTML='<span class="deltaChip">Comparaison non affichée : version de score différente.</span>';return}comparePanel.classList.remove('hidden');beforeScore.textContent=before.final_score+'/100';afterScore.textContent=after.final_score+'/100';const d=after.final_score-before.final_score;deltaScore.textContent=(d>=0?'+':'')+d+' points';const aliases={hook:'spoken_hook',scroll_stop:'shareability'};const keys=[['Hook','hook'],['Rétention','retention'],['Rythme','rhythm'],['Scroll stop','scroll_stop']];metricDelta.classList.remove('hidden');metricDelta.innerHTML=keys.map(([l,k])=>{const bv=Number(before.scores?.[k]??before.scores?.[aliases[k]]??0);const av=Number(after.scores?.[k]??after.scores?.[aliases[k]]??0);const x=av-bv;return `<span class="deltaChip">${l} <b>${x>=0?'+':''}${x}</b></span>`}).join('')}
 
 $('reanalyseBtn').addEventListener('click',async()=>{if(!await ensureAuth())return;reanalysisMode=true;reanalyseInput.click()});
 function openPaywall(){paywall.classList.remove('hidden')}$('upgradeBtn').addEventListener('click',openPaywall);$('closePaywall').addEventListener('click',()=>paywall.classList.add('hidden'));paywall.addEventListener('click',e=>{if(e.target===paywall)paywall.classList.add('hidden')});
@@ -358,7 +504,7 @@ $('requestCreator').addEventListener('click',async()=>{if(!await ensureAuth())re
 async function saveOutcome(){if(!currentAnalysis?.analysis_id){showToast('Analyse une vidéo avant d’enregistrer ses résultats.');return}const row={analysis_id:currentAnalysis.analysis_id,user_id:session.user.id,outcome_window:$('outcomeWindow').value,views:num('outViews'),shares:num('outShares'),saves:num('outSaves'),comments:num('outComments'),followers_gained:num('outFollowers')};try{await supa('/rest/v1/viralplus_outcomes',{method:'POST',body:row,prefer:'resolution=merge-duplicates,return=representation',query:'?on_conflict=analysis_id,outcome_window'});$('outcomeStatus').textContent='Résultat enregistré. Merci — ça aide Viral+ à devenir plus fiable.';track('outcome_saved',{window:row.outcome_window,views:row.views})}catch(e){$('outcomeStatus').textContent=e.message}}
 function num(id){const v=$(id).value;return v===''?null:Number(v)}$('saveOutcome').addEventListener('click',saveOutcome);
 
-async function loadHistory(){const grid=$('historyGrid');if(!session?.user){grid.innerHTML='<div class="historyEmpty">Connecte-toi pour retrouver tes analyses.</div>';return}try{const rows=await supa('/rest/v1/viralplus_analyses',{query:'?select=id,created_at,video_name,final_score,status,is_reanalysis,baseline_analysis_id,score_version,result_json&order=created_at.desc&limit=30'});if(!rows.length){grid.innerHTML='<div class="historyEmpty">Aucune analyse pour le moment.</div>';return}grid.innerHTML=rows.map(r=>`<article class="historyCard" data-id="${r.id}"><small>${new Date(r.created_at).toLocaleString('fr-FR')}</small><strong>${r.final_score}/100</strong><span>${escapeHtml(r.video_name)} · ${r.is_reanalysis?'Re-score':'Analyse'}</span></article>`).join('');grid.querySelectorAll('.historyCard').forEach(card=>card.addEventListener('click',()=>{const row=rows.find(x=>x.id===card.dataset.id);if(!row)return;const data={...(row.result_json||{}),analysis_id:row.id,final_score:row.final_score,score_version:row.score_version,status:row.status};currentAnalysis=data;renderResult(data);showResultLayer(data);resultEmpty.classList.add('hidden');resultContent.classList.remove('hidden');document.getElementById('workspace').scrollIntoView({behavior:'smooth'});track('history_opened',{analysis_id:row.id})}))}catch(e){grid.innerHTML=`<div class="historyEmpty">${escapeHtml(e.message)}</div>`}}
+async function loadHistory(){const grid=$('historyGrid');if(!session?.user){grid.innerHTML='<div class="historyEmpty">Connecte-toi pour retrouver tes analyses.</div>';return}try{const rows=await supa('/rest/v1/viralplus_analyses',{query:'?select=id,video_id,created_at,video_name,final_score,status,is_reanalysis,baseline_analysis_id,score_version,result_json&order=created_at.desc&limit=30'});if(!rows.length){grid.innerHTML='<div class="historyEmpty">Aucune analyse pour le moment.</div>';return}grid.innerHTML=rows.map(r=>`<article class="historyCard" data-id="${r.id}"><small>${new Date(r.created_at).toLocaleString('fr-FR')}</small><strong>${r.final_score}/100</strong><span>${escapeHtml(r.video_name)} · ${r.is_reanalysis?'Re-score':'Analyse'}</span></article>`).join('');grid.querySelectorAll('.historyCard').forEach(card=>card.addEventListener('click',()=>{const row=rows.find(x=>x.id===card.dataset.id);if(!row)return;const data={...(row.result_json||{}),analysis_id:row.id,video_id:row.video_id,final_score:row.final_score,score_version:row.score_version,status:row.status};currentAnalysis=data;currentVideoId=row.video_id||null;renderResult(data);showResultLayer(data);resultEmpty.classList.add('hidden');resultContent.classList.remove('hidden');document.getElementById('workspace').scrollIntoView({behavior:'smooth'});track('history_opened',{analysis_id:row.id})}))}catch(e){grid.innerHTML=`<div class="historyEmpty">${escapeHtml(e.message)}</div>`}}
 $('refreshHistory').addEventListener('click',loadHistory);
 
 (async function init(){await handleAuthCallback();if(!session)session=storedSession();if(session&&isExpired(session))await refreshSession();updateAccountUI();if(session?.user){await refreshEntitlement();await loadHistory();track('page_view',{path:location.pathname})}updateStage();tickCounters()})();
@@ -367,7 +513,133 @@ $('refreshHistory').addEventListener('click',loadHistory);
 (function(){
   const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const num=v=>Math.max(0,Math.min(100,Math.round(Number(v)||0)));
-  const metrics=[['Hook parlé','spoken_hook'],['Rétention','retention'],['Hook visuel','visual_hook'],['Partage','shareability']];
+  const metrics=[['Hook','hook'],['Rétention','retention'],['Visuel','visual'],['Scroll stop','scroll_stop']];
+  async function runEditPlus(style='creator_clean',captionPreset='modern_bold'){
+    if(!currentAnalysis?.analysis_id){showToast('Analyse Viral+ requise avant Edit+.');return}
+    const videoId=currentAnalysis.video_id||currentVideoId;
+    if(!videoId){showToast('Vidéo source introuvable.');return}
+    if(!await ensureAuth())return;
+
+    const buttons=[...document.querySelectorAll('.v8EditLaunch')];
+    buttons.forEach(b=>{b.disabled=true;b.textContent='Préparation Edit+…'});
+    track('edit_started',{analysis_id:currentAnalysis.analysis_id,video_id:videoId,style,caption_preset:captionPreset});
+
+    try{
+      const created=await jobsApi('edit',{
+        method:'POST',
+        body:{
+          video_id:videoId,
+          analysis_id:currentAnalysis.analysis_id,
+          style,
+          caption_preset:captionPreset
+        }
+      });
+      const job=created?.job;
+      if(!job?.id)throw new Error('Impossible de créer le montage Edit+.');
+
+      currentJobId=job.id;
+      analysisWaitUI();
+      updateJobUI(job);
+      let renderTracked=false;
+      const deadline=Date.now()+45*60*1000;
+      let finished=null;
+
+      while(Date.now()<deadline){
+        const state=await jobsApi('jobs/'+job.id);
+        const live=state?.job;
+        if(!live)throw new Error('Job Edit+ introuvable.');
+        updateJobUI(live);
+        if(!renderTracked&&(live.status==='rendering'||live.status==='encoding')){
+          renderTracked=true;
+          track('render_started',{job_id:job.id,style});
+        }
+        if(live.status==='completed'){finished=live;break}
+        if(live.status==='failed'||live.status==='cancelled'){
+          const err=new Error(live.error||'Le montage Edit+ a échoué.');
+          err.code=live.error_code||live.status;
+          throw err;
+        }
+        await new Promise(resolve=>setTimeout(resolve,1500));
+      }
+      if(!finished)throw new Error('Le render prend plus de temps que prévu. Il reste enregistré dans ton compte.');
+
+      const exportId=finished.result?.export_id;
+      const outputVideoId=finished.result?.output_video_id;
+      if(!exportId||!outputVideoId)throw new Error('Render terminé mais export introuvable.');
+
+      const access=await jobsApi('exports/'+exportId+'/url');
+      if(!access?.signed_url)throw new Error('Impossible de préparer l’export.');
+
+      track('render_completed',{job_id:job.id,export_id:exportId,style});
+      showEditResult({
+        url:access.signed_url,
+        exportId,
+        outputVideoId,
+        style,
+        captionPreset,
+        jobId:job.id
+      });
+    }catch(err){
+      track('render_failed',{message:String(err?.message||err).slice(0,300),style});
+      showToast(err.message||'Échec Edit+.');
+      buttons.forEach(b=>{b.disabled=false;b.textContent='Corriger avec Edit+ →'});
+    }finally{
+      analysisLayer.classList.remove('busy');
+    }
+  }
+
+  function showEditResult(result){
+    const existing=document.getElementById('v8EditResult');
+    if(existing)existing.remove();
+    const panel=document.createElement('div');
+    panel.id='v8EditResult';
+    panel.className='v8LabCard';
+    panel.style.marginTop='18px';
+    panel.innerHTML=
+      '<span class="v8Kicker">EDIT+ TERMINÉ</span>'+
+      '<h3>Ta version montée est prête.</h3>'+
+      '<p>Style '+esc(result.style)+' · sous-titres '+esc(result.captionPreset)+'.</p>'+
+      '<div class="v8Actions">'+
+      '<a class="v8Action primary" id="v8OpenExport" href="'+esc(result.url)+'" target="_blank" rel="noopener">Ouvrir / enregistrer la vidéo</a>'+
+      '<button class="v8Action" id="v8ReanalyseEdit">Ré-analyser avec Viral+</button>'+
+      '</div>';
+    const hubEl=document.getElementById('v8Hub');
+    hubEl?.appendChild(panel);
+
+    document.getElementById('v8OpenExport')?.addEventListener('click',()=>track('export_downloaded',{export_id:result.exportId,job_id:result.jobId}));
+    document.getElementById('v8ReanalyseEdit')?.addEventListener('click',async()=>{
+      try{
+        const key='viral:'+result.outputVideoId+':'+currentAnalysis.analysis_id;
+        const created=await supa('/rest/v1/rpc/create_processing_job',{
+          method:'POST',
+          body:{
+            p_kind:'viral_analysis',
+            p_video_id:result.outputVideoId,
+            p_payload:{reanalysis:true,baseline_analysis_id:currentAnalysis.analysis_id,source:'editplus'},
+            p_idempotency_key:key
+          }
+        });
+        const job=Array.isArray(created)?created[0]:created;
+        if(!job?.id)throw new Error('Impossible de lancer le re-score.');
+        currentJobId=job.id;
+        const finished=await pollProcessingJob(job.id);
+        const data=await fetchAnalysisForJob(finished);
+        currentVideoId=result.outputVideoId;
+        currentAnalysis=data;
+        await animateScore(data.final_score||0);
+        renderPhoneMetrics(data);
+        renderResult(data);
+        showResultLayer(data);
+        hub(data);
+        track('analysis_completed',{score:data.final_score,reanalysis:true,source:'editplus',job_id:job.id});
+      }catch(err){
+        showToast(err.message||'Échec du re-score.');
+      }
+    });
+
+    panel.scrollIntoView({behavior:'smooth',block:'nearest'});
+  }
+
   function hub(data){
     if(!resultContent||!data)return;
     let el=document.getElementById('v8Hub');
@@ -382,15 +654,22 @@ $('refreshHistory').addEventListener('click',loadHistory);
     el.innerHTML=
       '<div class="v8HubTop"><div><div class="v8Brandline"><i class="v8BrandDot"></i>VIRAL+</div><div class="v8Live">CREATOR INTELLIGENCE · ANALYSE ACTIONNABLE</div></div><div class="v8Live">SCORE '+esc(data.score_version||'stable')+'</div></div>'+
       '<div class="v8Tabs"><button class="v8Tab active" data-tab="overview">Vue d’ensemble</button><button class="v8Tab" data-tab="diagnostic">Diagnostic</button><button class="v8Tab" data-tab="hook">Hook Lab</button><button class="v8Tab" data-tab="structure">Structure</button><button class="v8Tab" data-tab="rescore">Re-score</button></div>'+
-      '<section class="v8Page active" data-page="overview"><div class="v8HeroResult"><div class="v8ScoreCard"><div class="v8ScoreRing" style="--v8deg:'+score*3.6+'deg"><div><div><strong>'+score+'</strong><small>/100</small></div></div></div><div class="v8ScoreLabel">POTENTIEL VIRAL+ · HEURISTIQUE</div></div><div class="v8Problem"><div><span class="v8Kicker">BLOCAGE PRINCIPAL</span><h3>'+esc(data.main_problem||'Le hook doit être renforcé.')+'</h3><p>'+esc(data.why||'La tension ou la promesse arrive trop tard.')+'</p><div class="v8Hotspot"><b>'+esc(hot.time||'00:00 → 00:02')+'</b><span>'+esc(hot.reason||hot.label||'Zone prioritaire')+'</span></div></div><div class="v8Actions"><button class="v8Action primary" data-page="hook">Corriger le hook →</button><button class="v8Action" data-page="diagnostic">Voir les preuves</button></div></div></div><div class="v8SectionTitle"><div><h3>Les signaux qui tirent le score</h3><p>Chaque carte ouvre le diagnostic correspondant.</p></div></div><div class="v8MetricGrid">'+cards+'</div><div class="v8Disclaimer">Viral+ utilise des signaux observables et des heuristiques propriétaires. Il ne reproduit pas l’algorithme privé de Meta et ne promet pas la viralité.</div></section>'+
+      '<section class="v8Page active" data-page="overview"><div class="v8HeroResult"><div class="v8ScoreCard"><div class="v8ScoreRing" style="--v8deg:'+score*3.6+'deg"><div><div><strong>'+score+'</strong><small>/100</small></div></div></div><div class="v8ScoreLabel">POTENTIEL VIRAL+ · HEURISTIQUE</div></div><div class="v8Problem"><div><span class="v8Kicker">BLOCAGE PRINCIPAL</span><h3>'+esc(data.main_problem||'Le hook doit être renforcé.')+'</h3><p>'+esc(data.why||'La tension ou la promesse arrive trop tard.')+'</p><div class="v8Hotspot"><b>'+esc(hot.time||'00:00 → 00:02')+'</b><span>'+esc(hot.reason||hot.label||'Zone prioritaire')+'</span></div></div><div class="v8Actions"><button class="v8Action primary v8EditLaunch">Corriger avec Edit+ →</button><button class="v8Action" data-page="hook">Hook Lab</button><button class="v8Action" data-page="diagnostic">Voir les preuves</button></div></div></div><div class="v8SectionTitle"><div><h3>Les signaux qui tirent le score</h3><p>Chaque carte ouvre le diagnostic correspondant.</p></div></div><div class="v8MetricGrid">'+cards+'</div><div class="v8Disclaimer">Viral+ utilise des signaux observables et des heuristiques propriétaires. Il ne reproduit pas l’algorithme privé de Meta et ne promet pas la viralité.</div></section>'+
       '<section class="v8Page" data-page="diagnostic"><div class="v8SectionTitle"><div><h3>Où la vidéo perd de la force</h3><p>Le diagnostic priorise ce que tu peux réellement modifier.</p></div></div><div class="v8Timeline"><div class="v8TimelineRow">'+bars+'</div><div class="v8TimelineLegend"><span>Début</span><span>Milieu</span><span>Fin</span></div></div><div class="v8Lab"><div class="v8LabCard"><span class="v8Kicker">À FAIRE MAINTENANT</span><h3>Corrections prioritaires</h3>'+rows+'</div><div class="v8LabCard"><span class="v8Kicker">MOMENT CRITIQUE</span><h3>'+esc(hot.time||'00:00 → 00:02')+'</h3><p>'+esc(hot.reason||hot.label||'Cette zone concentre la priorité de correction.')+'</p><div class="v8Actions"><button class="v8Action primary" data-page="hook">Ouvrir Hook Lab</button></div></div></div></section>'+
       '<section class="v8Page" data-page="hook"><div class="v8SectionTitle"><div><h3>Hook Lab</h3><p>Une formulation concrète à tester, pas juste une note.</p></div></div><div class="v8HookGrid"><article class="v8Hook before"><label>ACTUEL</label><p>'+esc(before)+'</p></article><article class="v8Hook after"><label>VERSION À TESTER</label><p>'+esc(after)+'</p></article></div><div class="v8Actions"><button class="v8Action primary" id="v8ReanalyseHook">J’ai corrigé → Re-scorer</button><button class="v8Action" data-page="rescore">Comparer les versions</button></div></section>'+
-      '<section class="v8Page" data-page="structure"><div class="v8SectionTitle"><div><h3>Structure</h3><p>Supprimer les secondes faibles et renforcer la promesse.</p></div></div><div class="v8Lab"><div class="v8LabCard"><span class="v8Kicker">CE QUE VIRAL+ CHERCHE</span><h3>Une séquence qui mérite de rester</h3><div class="v8Rule"><b>01</b><span>Hook compréhensible sans contexte.</span></div><div class="v8Rule"><b>02</b><span>Promesse tenue rapidement.</span></div><div class="v8Rule"><b>03</b><span>Preuve, tension ou utilité qui justifie de rester.</span></div><div class="v8Rule"><b>04</b><span>Moment naturellement partageable.</span></div></div><div class="v8LabCard"><span class="v8Kicker">PROCHAINE ACTION</span><h3>Transforme le diagnostic</h3><div class="v8Rule"><b>↗</b><span>Coupe autour du hotspot.</span></div><div class="v8Rule"><b>↗</b><span>Teste le Hook Lab.</span></div><div class="v8Rule"><b>↗</b><span>Reviens lancer un re-score.</span></div></div></div></section>'+
+      '<section class="v8Page" data-page="structure"><div class="v8SectionTitle"><div><h3>Structure</h3><p>Supprimer les secondes faibles et renforcer la promesse.</p></div></div><div class="v8Lab"><div class="v8LabCard"><span class="v8Kicker">CE QUE VIRAL+ CHERCHE</span><h3>Une séquence qui mérite de rester</h3><div class="v8Rule"><b>01</b><span>Hook compréhensible sans contexte.</span></div><div class="v8Rule"><b>02</b><span>Promesse tenue rapidement.</span></div><div class="v8Rule"><b>03</b><span>Preuve, tension ou utilité qui justifie de rester.</span></div><div class="v8Rule"><b>04</b><span>Moment naturellement partageable.</span></div></div><div class="v8LabCard"><span class="v8Kicker">PROCHAINE ACTION</span><h3>Transforme le diagnostic</h3><div class="v8Rule"><b>↗</b><span>Coupe autour du hotspot.</span></div><div class="v8Rule"><b>↗</b><span>Teste le Hook Lab.</span></div><div class="v8Rule"><b>↗</b><span>Reviens lancer un re-score.</span></div><div style="display:grid;gap:10px;margin-top:18px"><select id="v8EditStyle" class="v8Action"><option value="creator_clean">Creator Clean</option><option value="codie">Codie</option><option value="business_viral">Business Viral</option><option value="podcast_authority">Podcast / Authority</option></select><select id="v8CaptionPreset" class="v8Action"><option value="modern_bold">Modern Bold</option><option value="minimal">Minimal</option><option value="creator">Creator</option><option value="karaoke">Karaoke</option><option value="authority">Authority</option><option value="ugc">UGC</option></select><button class="v8Action primary v8EditLaunch">Corriger avec Edit+ →</button></div></div></div></section>'+
       '<section class="v8Page" data-page="rescore"><div class="v8SectionTitle"><div><h3>Re-score</h3><p>Mesure l’écart entre ta version de départ et ta version corrigée.</p></div></div><div class="v8ReScore"><div class="v8Version"><small>VERSION DE DÉPART</small><strong>'+num(baselineAnalysis?.final_score||score)+'</strong><span>/100</span></div><div class="v8Arrow">→</div><div class="v8Version after"><small>VERSION ACTUELLE</small><strong>'+score+'</strong><span>/100</span></div></div><div class="v8Actions"><button class="v8Action primary" id="v8Reanalyse">Importer ma version corrigée</button><button class="v8Action" data-page="overview">Retour au diagnostic</button></div><div class="v8Disclaimer">Une hausse du score signifie que la version correspond mieux aux critères Viral+. Elle ne garantit pas une hausse réelle des vues.</div></section>';
     function tab(name){el.querySelectorAll('.v8Tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===name));el.querySelectorAll('.v8Page').forEach(x=>x.classList.toggle('active',x.dataset.page===name))}
     el.querySelectorAll('.v8Tab').forEach(x=>x.onclick=()=>tab(x.dataset.tab));
     el.querySelectorAll('[data-page]').forEach(x=>x.onclick=()=>{if(x.dataset.page)tab(x.dataset.page)});
     const re=el.querySelector('#v8Reanalyse,#v8ReanalyseHook');if(re)re.onclick=()=>document.getElementById('reanalyseBtn')?.click();
+    el.querySelectorAll('.v8EditLaunch').forEach(btn=>btn.addEventListener('click',e=>{
+      e.preventDefault();
+      e.stopPropagation();
+      const style=el.querySelector('#v8EditStyle')?.value||'creator_clean';
+      const caption=el.querySelector('#v8CaptionPreset')?.value||'modern_bold';
+      runEditPlus(style,caption);
+    }));
   }
   let last=null;
   setInterval(()=>{if(currentAnalysis&&currentAnalysis.analysis_id!==last){last=currentAnalysis.analysis_id;hub(currentAnalysis)}},300);

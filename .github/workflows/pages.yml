@@ -1,8 +1,17 @@
-name: Deploy Viral+ Pages
+name: Deploy VIRAL+ Studio Pages
 
 on:
   push:
-    branches: [main]
+    branches: [viral-suite-v1]
+    paths:
+      - 'index.html'
+      - 'viralplus-ui.css'
+      - 'viralplus-ui.js'
+      - 'viralplus-product-config.js'
+      - 'viral-suite.css'
+      - 'viral-suite.js'
+      - 'config.js'
+      - '.github/workflows/pages.yml'
   workflow_dispatch:
 
 permissions:
@@ -11,7 +20,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
+  group: viralplus-pages
   cancel-in-progress: true
 
 jobs:
@@ -21,17 +30,21 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Checkout
+      - name: Checkout VIRAL+ Studio
         uses: actions/checkout@v4
-
+        with:
+          ref: viral-suite-v1
       - name: Configure Pages
         uses: actions/configure-pages@v5
-
+      - name: Build static artifact
+        run: |
+          rm -rf site
+          mkdir site
+          cp index.html viralplus-ui.css config.js viralplus-product-config.js viralplus-ui.js viral-suite.css viral-suite.js site/
       - name: Upload site
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .
-
+          path: site
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4

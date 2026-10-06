@@ -1,0 +1,22 @@
+{
+  "name": "viral-edit-worker",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "check": "node --check src/index.js && node --check src/viral.js && node --check src/edit.js && node --check src/render.js"
+  },
+  "dependencies": {
+    "@remotion/bundler": "4.0.530",
+    "@remotion/cli": "4.0.530",
+    "@remotion/renderer": "4.0.530",
+    "@supabase/supabase-js": "2.57.4",
+    "react": "19.1.1",
+    "react-dom": "19.1.1",
+    "remotion": "4.0.530"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
