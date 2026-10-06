@@ -54,6 +54,14 @@ function admin(){
   });
 }
 
+function asUser(req:Request){
+  const auth=req.headers.get("Authorization")||"";
+  return createClient(SUPABASE_URL,SERVICE_KEY,{
+    global:{headers:{Authorization:auth}},
+    auth:{persistSession:false,autoRefreshToken:false}
+  });
+}
+
 async function ownMedia(db:ReturnType<typeof admin>,userId:string,id:string){
   const {data,error}=await db.from("media_assets")
     .select("id,user_id,storage_bucket,storage_path,mime_type,size_bytes,status")
@@ -107,51 +115,23 @@ async function registerMedia(db:ReturnType<typeof admin>,userId:string,body:any)
   return data;
 }
 
-async function createJob(db:ReturnType<typeof admin>,userId:string,kind:"viral_analysis"|"edit_render",videoId:string,payload:any,idempotencyKey:string){
-  const existing=await db.from("processing_jobs")
-    .select("*")
-    .eq("user_id",userId)
-    .eq("idempotency_key",idempotencyKey)
-    .maybeSingle();
-  if(existing.error)throw existing.error;
-  if(existing.data)return existing.data;
-
-  const {data,error}=await db.from("processing_jobs")
-    .insert({
-      user_id:userId,
-      kind,
-      video_id:videoId,
-      status:"queued",
-      progress:0,
-      stage:"queued",
-      idempotency_key:idempotencyKey,
-      payload
-    })
-    .select("*")
-    .single();
-  if(error){
-    if(String(error.code)==="23505"){
-      const again=await db.from("processing_jobs")
-        .select("*")
-        .eq("user_id",userId)
-        .eq("idempotency_key",idempotencyKey)
-        .single();
-      if(again.error)throw again.error;
-      return again.data;
-    }
-    throw error;
-  }
-
-  await db.from("job_events").insert({
-    job_id:data.id,
-    user_id:userId,
-    status:"queued",
-    progress:0,
-    message:"Job queued",
-    details:{kind}
+async function createJob(
+  userDb:ReturnType<typeof asUser>,
+  kind:"viral_analysis"|"edit_render",
+  videoId:string,
+  payload:any,
+  idempotencyKey:string
+){
+  const {data,error}=await userDb.rpc("create_processing_job",{
+    p_kind:kind,
+    p_video_id:videoId,
+    p_payload:payload||{},
+    p_idempotency_key:idempotencyKey
   });
-
-  return data;
+  if(error)throw error;
+  const job=Array.isArray(data)?data[0]:data;
+  if(!job?.id)throw new Error("JOB_CREATE_FAILED");
+  return job;
 }
 
 async function route(req:Request){
@@ -167,6 +147,7 @@ async function route(req:Request){
   const fnIndex=parts.lastIndexOf("viral-edit-jobs");
   const tail=fnIndex>=0?parts.slice(fnIndex+1):parts;
   const db=admin();
+  const userDb=asUser(req);
 
   if(req.method==="POST"&&tail[0]==="media"){
     const body=await req.json().catch(()=>null);
@@ -201,7 +182,7 @@ async function route(req:Request){
     const key=`viral:${mode}:${digest}:${baseline||"base"}`;
 
     try{
-      const job=await createJob(db,user.id,"viral_analysis",media.id,{
+      const job=await createJob(userDb,"viral_analysis",media.id,{
         is_reanalysis:Boolean(baseline),
         baseline_analysis_id:baseline,
         requested_at:new Date().toISOString()
@@ -242,7 +223,7 @@ async function route(req:Request){
     if(projectError)return out({error:projectError.message},500);
 
     try{
-      const job=await createJob(db,user.id,"edit_render",media.id,{
+      const job=await createJob(userDb,"edit_render",media.id,{
         edit_project_id:project.id,
         source_analysis_id:sourceAnalysisId,
         style,
