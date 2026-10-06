@@ -121,6 +121,8 @@ export async function analyzeVideo({
     action_items:Array.isArray(semantic.action_items)
       ?semantic.action_items.slice(0,8)
       :[],
+    fix_plan:normalizeFixPlan(semantic.fix_plan,timeline),
+    score_breakdown:buildScoreBreakdown(normalized),
     score_evidence:semantic.score_evidence||{},
     confidence:semantic.confidence||{},
     safe_zone:normalizeSafeZone(semantic.safe_zone,measurable),
@@ -531,6 +533,19 @@ Schéma:
     }
   ],
   "action_items":["","",""],
+  "fix_plan":[
+    {
+      "priority":1,
+      "area":"hook",
+      "start_sec":0,
+      "end_sec":2,
+      "problem":"",
+      "why_it_matters":"",
+      "exact_change":"",
+      "example":"",
+      "expected_effect":""
+    }
+  ],
   "confidence":{"audio":0,"visual":0,"text":0},
   "safe_zone":{"score":0,"framing":0,"text_safety":0,"caption_safety":0,"platform_fit":0,"summary":"","issues":[{"severity":"green","element":"face","problem":"","correction":"","x":0.5,"y":0.4}]}
 }
@@ -543,6 +558,11 @@ Règles:
 - le CTA est diagnostiqué séparément mais ne pèse PAS dans le Viral Score;
 - la timeline doit contenir 5 à 8 observations couvrant début, milieu et fin;
 - chaque correction doit être directement exécutable;
+- fix_plan doit contenir 3 à 7 corrections classées par priorité, sans conseil générique;
+- chaque fix_plan doit dire exactement: OÙ intervenir, QUOI changer, COMMENT le faire, et donner un EXEMPLE concret adapté à cette vidéo;
+- start_sec/end_sec doivent pointer vers le passage réel quand la correction est temporelle; sinon utilise 0;
+- exact_change doit être formulé comme une instruction de montage ou réécriture immédiatement exécutable;
+- expected_effect décrit le problème éditorial corrigé, pas une promesse de vues;
 - distingue ce qui est réellement visible/audible de ce qui est une estimation;
 - si un élément est absent ou impossible à lire, écris INDETECTABLE;
 - pour les hooks proposés, conserve le sens réel du contenu mais rends-les plus spécifiques;
@@ -579,7 +599,8 @@ Règles:
             }],
             generationConfig:{
               responseMimeType:'application/json',
-              temperature:0.12
+              temperature:0,
+              seed:73
             }
           })
         }
@@ -709,6 +730,48 @@ function normalizeSafeZone(raw,m){
   const score=clamp(avg(framing,textSafety,captionSafety,platformFit));
   const issues=(Array.isArray(z.issues)?z.issues:[]).slice(0,8).map(x=>({severity:['green','orange','red'].includes(x?.severity)?x.severity:'orange',element:String(x?.element||'frame').slice(0,40),problem:String(x?.problem||'').slice(0,240),correction:String(x?.correction||'').slice(0,240),x:Math.max(0,Math.min(1,Number(x?.x)||0.5)),y:Math.max(0,Math.min(1,Number(x?.y)||0.5))}));
   return {score,framing,text_safety:textSafety,caption_safety:captionSafety,platform_fit:platformFit,summary:String(z.summary||'').slice(0,500),issues,mode:'universal_safe',basis:'multimodal_composition_plus_aspect_ratio'};
+}
+
+
+function normalizeFixPlan(items,timeline){
+  const arr=Array.isArray(items)?items:[];
+  const clean=arr.slice(0,8).map((x,index)=>({
+    priority:Math.max(1,Math.min(9,Number(x?.priority)||index+1)),
+    area:String(x?.area||'editing').slice(0,40),
+    start_sec:round(Number(x?.start_sec)||0,2),
+    end_sec:round(Math.max(Number(x?.end_sec)||0,Number(x?.start_sec)||0),2),
+    problem:String(x?.problem||'').slice(0,500),
+    why_it_matters:String(x?.why_it_matters||'').slice(0,500),
+    exact_change:String(x?.exact_change||'').slice(0,700),
+    example:String(x?.example||'').slice(0,700),
+    expected_effect:String(x?.expected_effect||'').slice(0,500)
+  })).filter(x=>x.problem||x.exact_change||x.example);
+
+  if(clean.length)return clean.sort((a,b)=>a.priority-b.priority);
+
+  return (Array.isArray(timeline)?timeline:[])
+    .filter(x=>x.problem||x.correction)
+    .slice(0,6)
+    .map((x,index)=>({
+      priority:index+1,
+      area:String(x.label||'editing').slice(0,40),
+      start_sec:round(Number(x.start_sec)||0,2),
+      end_sec:round(Number(x.end_sec)||0,2),
+      problem:String(x.problem||''),
+      why_it_matters:'',
+      exact_change:String(x.correction||''),
+      example:String(x.broll_query?('B-roll: '+x.broll_query):''),
+      expected_effect:'Corriger le point faible identifié sur ce passage.'
+    }));
+}
+
+function buildScoreBreakdown(scores){
+  return Object.entries(SCORE_WEIGHTS).map(([key,weight])=>({
+    key,
+    score:clamp(scores[key]),
+    weight,
+    contribution:round(clamp(scores[key])*weight/100,2)
+  }));
 }
 
 function scoreFinal(scores){

@@ -333,6 +333,9 @@ export async function renderNativeEdit({
     const assPath=
       workDir+
       '/captions.ass';
+    const graphicsAssPath=
+      workDir+
+      '/graphics.ass';
 
     const hasCaptions=
       Array.isArray(
@@ -348,6 +351,15 @@ export async function renderNativeEdit({
           width,
           height
         ),
+        'utf8'
+      );
+    }
+
+    const hasGraphics=Array.isArray(timeline?.graphicCues)&&timeline.graphicCues.length>0;
+    if(hasGraphics){
+      await writeFile(
+        graphicsAssPath,
+        buildGraphicsAss(timeline,width,height),
         'utf8'
       );
     }
@@ -371,6 +383,11 @@ export async function renderNativeEdit({
         height
       );
 
+    if(hasGraphics){
+      finishingFilters.push(
+        `ass=${escapeFilterPath(graphicsAssPath)}`
+      );
+    }
     if(hasCaptions){
       finishingFilters.push(
         `ass=${escapeFilterPath(assPath)}`
@@ -959,6 +976,50 @@ export async function finalEncode({
     inputPath,
     outputPath
   );
+}
+
+
+function buildGraphicsAss(timeline,width,height){
+  const mode=String(timeline?.modelId||timeline?.style||'clean');
+  const accent={
+    impact:'&H00FFE637',
+    explainer:'&H00FFE87C',
+    data:'&H0066D1FF',
+    ugc_native:'&H00BF3FFF'
+  }[mode]||'&H00FFFFFF';
+  const size={
+    impact:72,
+    explainer:54,
+    data:82,
+    ugc_native:58
+  }[mode]||58;
+  const align=mode==='ugc_native'?8:mode==='explainer'?7:mode==='data'?8:8;
+  const marginV=mode==='ugc_native'?120:mode==='explainer'?180:110;
+  const back=mode==='explainer'?'&H55000000':mode==='ugc_native'?'&H44000000':'&H77000000';
+  const header=[
+    '[Script Info]',
+    'ScriptType: v4.00+',
+    `PlayResX: ${width}`,
+    `PlayResY: ${height}`,
+    'WrapStyle: 2',
+    'ScaledBorderAndShadow: yes',
+    '',
+    '[V4+ Styles]',
+    'Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding',
+    `Style: Graphic,Noto Sans,${size},${accent},${accent},&H00101010,${back},-1,0,0,0,100,100,0,0,3,3,1,${align},70,70,${marginV},1`,
+    '',
+    '[Events]',
+    'Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text'
+  ];
+  const events=(timeline?.graphicCues||[]).map((g,index)=>{
+    let prefix='';
+    if(mode==='explainer')prefix=`STEP ${String(index+1).padStart(2,'0')}  ·  `;
+    if(mode==='data')prefix='PROOF  ·  ';
+    if(mode==='ugc_native')prefix='✦  ';
+    const text=escapeAssText(prefix+String(g.text||''));
+    return `Dialogue: 1,${assTime(g.startMs)},${assTime(g.endMs)},Graphic,,0,0,0,,${text}`;
+  });
+  return header.concat(events).join('\n');
 }
 
 function buildAss(

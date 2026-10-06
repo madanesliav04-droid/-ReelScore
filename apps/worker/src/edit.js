@@ -99,6 +99,12 @@ export function buildEditTimeline({
     style:canonicalStyle,
     styleCfg
   });
+  const graphicCues=buildGraphicCues({
+    style:canonicalStyle,
+    captions,
+    outputDurationMs,
+    styleCfg
+  });
 
   const sourceW=
     Number(sourceWidth)||
@@ -131,6 +137,7 @@ export function buildEditTimeline({
     removedRanges:mergedRemovals,
     captions,
     punchIns,
+    graphicCues,
     brollCues:[],
     audio:{
       hasAudio:Boolean(analysis?.measurable?.audioCodec),
@@ -147,6 +154,53 @@ export function buildEditTimeline({
       format:target.format
     }
   };
+}
+
+
+function buildGraphicCues({style,captions,outputDurationMs,styleCfg}){
+  if(['codie','clean','authority','cinematic_story'].includes(style))return [];
+  const cadence={
+    impact:3200,
+    explainer:5200,
+    data:4300,
+    ugc_native:6500
+  }[style]||5000;
+  const duration={
+    impact:1450,
+    explainer:2300,
+    data:2200,
+    ugc_native:1800
+  }[style]||1800;
+  const cues=[];
+  let next=style==='impact'?700:1300;
+
+  for(const c of captions||[]){
+    const start=Number(c.startMs)||0;
+    if(start<next)continue;
+    const raw=String(c.text||'').replace(/\s+/g,' ').trim();
+    if(!raw)continue;
+    let text=raw;
+    if(style==='data'){
+      const m=raw.match(/(?:€|\$|£)?\b\d+(?:[.,]\d+)?(?:\s?%|\s?[kKmM])?\b/);
+      text=m?m[0]:raw.split(' ').slice(0,5).join(' ');
+    }else if(style==='impact'){
+      text=raw.split(' ').slice(0,4).join(' ').toUpperCase();
+    }else if(style==='explainer'){
+      text=raw.split(' ').slice(0,6).join(' ');
+    }else if(style==='ugc_native'){
+      text=raw.split(' ').slice(0,5).join(' ');
+    }
+    cues.push({
+      startMs:start,
+      endMs:Math.min(outputDurationMs,start+duration),
+      text:text.slice(0,54),
+      mode:style,
+      accent:styleCfg?.visualSignature?.accent||'#ffffff'
+    });
+    next=start+cadence;
+    if(cues.length>=Math.max(2,Math.ceil(outputDurationMs/7000)))break;
+  }
+  return cues;
 }
 
 function targetDimensions(format,width,height){
