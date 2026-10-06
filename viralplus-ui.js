@@ -129,6 +129,51 @@ async function uploadVideoToStorage(file,generation){
   analyzeBtn.disabled=true;
   analyzeBtn.textContent='Upload 0%…';
   analysisState.textContent='UPLOAD DE LA VIDÉO';
+
+  if(window.tus?.Upload){
+    return new Promise((resolve,reject)=>{
+      const projectRef=new URL(SUPABASE_URL).hostname.split('.')[0];
+      const upload=new window.tus.Upload(file,{
+        endpoint:`https://${projectRef}.storage.supabase.co/storage/v1/upload/resumable`,
+        retryDelays:[0,3000,5000,10000,20000],
+        chunkSize:6*1024*1024,
+        uploadDataDuringCreation:true,
+        removeFingerprintOnSuccess:true,
+        headers:{authorization:`Bearer ${token}`},
+        metadata:{
+          bucketName:'viralplus-videos',
+          objectName:path,
+          contentType:file.type||'video/mp4',
+          cacheControl:'3600'
+        },
+        onProgress:(uploaded,total)=>{
+          if(generation!==uploadGeneration)return;
+          const pct=Math.max(0,Math.min(100,Math.round(uploaded/Math.max(total,1)*100)));
+          analyzeBtn.textContent=`Upload ${pct}%…`;
+          timelineLabel.textContent='Upload';
+          timelineText.textContent=`${pct}%`;
+          timelineFill.style.width=pct+'%';
+        },
+        onError:error=>{
+          if(generation===uploadGeneration)reject(new Error(error?.message||'Échec de l’upload. Vérifie ta connexion puis réessaie.'));
+        },
+        onSuccess:()=>{
+          if(generation!==uploadGeneration)return;
+          storagePath=path;
+          resolve(path);
+        }
+      });
+      storageUpload={abort:(terminate=false)=>upload.abort(terminate)};
+      upload.findPreviousUploads()
+        .then(previous=>{
+          if(generation!==uploadGeneration)return;
+          if(previous.length)upload.resumeFromPreviousUpload(previous[0]);
+          upload.start();
+        })
+        .catch(reject);
+    });
+  }
+
   return new Promise((resolve,reject)=>{
     const xhr=new XMLHttpRequest();
     const endpoint=`${SUPABASE_URL}/storage/v1/object/viralplus-videos/${path.split('/').map(encodeURIComponent).join('/')}`;
@@ -136,10 +181,8 @@ async function uploadVideoToStorage(file,generation){
     xhr.setRequestHeader('Authorization',`Bearer ${token}`);
     xhr.setRequestHeader('apikey',SUPABASE_KEY);
     xhr.setRequestHeader('Content-Type',file.type||'video/mp4');
-    xhr.setRequestHeader('x-upsert','true');
     xhr.upload.onprogress=(e)=>{
-      if(generation!==uploadGeneration)return;
-      if(!e.lengthComputable)return;
+      if(generation!==uploadGeneration||!e.lengthComputable)return;
       const pct=Math.max(0,Math.min(100,Math.round(e.loaded/e.total*100)));
       analyzeBtn.textContent=`Upload ${pct}%…`;
       timelineLabel.textContent='Upload';
@@ -148,25 +191,12 @@ async function uploadVideoToStorage(file,generation){
     };
     xhr.onerror=()=>{if(generation===uploadGeneration)reject(new Error('Échec de l’upload. Vérifie ta connexion puis réessaie.'))};
     xhr.onabort=()=>{if(generation===uploadGeneration)reject(new Error('Upload interrompu.'))};
-    xhr.onload=async()=>{
+    xhr.onload=()=>{
       if(generation!==uploadGeneration)return;
       let d={};try{d=JSON.parse(xhr.responseText||'{}')}catch{}
-      if(xhr.status<200||xhr.status>=300){
-        reject(new Error(d.message||d.error||`Échec de l’upload (${xhr.status}).`));
-        return;
-      }
-      try{
-        const parts=path.split('/').map(encodeURIComponent).join('/');
-        const r=await fetch(`${SUPABASE_URL}/storage/v1/object/sign/viralplus-videos/${parts}`,{
-          method:'POST',
-          headers:{apikey:SUPABASE_KEY,Authorization:`Bearer ${token}`,'Content-Type':'application/json'},
-          body:JSON.stringify({expiresIn:900})
-        });
-        const sd=await r.json().catch(()=>({}));
-        if(!r.ok||!sd.signedURL)throw new Error(sd.message||sd.error||'Impossible de préparer l’analyse.');
-        storagePath=path;
-        resolve(sd.signedURL.startsWith('http')?sd.signedURL:`${SUPABASE_URL}/storage/v1${sd.signedURL}`);
-      }catch(e){reject(e)}
+      if(xhr.status<200||xhr.status>=300){reject(new Error(d.message||d.error||`Échec de l’upload (${xhr.status}).`));return}
+      storagePath=path;
+      resolve(path);
     };
     storageUpload={abort:()=>xhr.abort()};
     xhr.send(file);
@@ -197,7 +227,7 @@ async function prepareVideoUpload(file,isReanalysis,generationArg){
 }
 function setFile(file,isReanalysis=false){
   if(!file)return;
-  if(file.size>100*1024*1024){showToast('Vidéo trop lourde : 100 Mo maximum.');return}
+  const maxUploadMb=window.VIRAL_JOB_MODE?500:95;if(file.size>maxUploadMb*1024*1024){showToast(`Vidéo trop lourde : ${maxUploadMb} Mo maximum.`);return}
   if(!session?.user){pendingFile=file;pendingReanalysis=isReanalysis;openAuth();return}
   uploadGeneration++;
   if(storageUpload){try{storageUpload.abort(true)}catch{}}
