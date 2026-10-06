@@ -385,7 +385,7 @@ $("#analyzeBtn").onclick=async()=>{
     $("#stateStage").textContent="Gemini multimodal analysis";
     $("#jobLog").textContent="Viral+ direct engine · Gemini is analyzing the real video";
 
-    const result=await api(fn("viralplus-api","analyze"),{
+    const result=await api(fn("viralplus-proxy"),{
       method:"POST",
       headers:{
         "X-File-Name":encodeURIComponent(media.original_name||"video.mp4"),
