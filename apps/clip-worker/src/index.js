@@ -17,6 +17,7 @@ const workerId=process.env.WORKER_ID||`clip-${os.hostname()}-${process.pid}`;
 const port=Number(process.env.PORT||3000);
 const pollMs=Math.max(1200,Number(process.env.POLL_MS||3000));
 const bucket=process.env.VIDEO_BUCKET||'viralplus-videos';
+const minClipQuality=Math.max(50,Math.min(90,Number(process.env.CLIP_MIN_QUALITY||64)));
 let activeJob=null,lastError=null,stopping=false;
 
 const server=http.createServer((req,res)=>{
@@ -118,7 +119,7 @@ async function processJob(job){
 
     await supabase.from('clip_projects').update({status:'analyzing',title:project.title||analysis.detected_title_text||null,updated_at:new Date().toISOString()}).eq('id',projectId);
     await progress(job,'analyzing',48,'Sélection IA des meilleurs moments');
-    const count=clampInt(payload.clip_count??project.requested_clip_count,5,1,10);
+    const count=clampInt(payload.clip_count??project.requested_clip_count,5,1,20);
     const minSec=clampInt(payload.min_duration_sec??project.min_duration_sec,20,8,90);
     const maxSec=clampInt(payload.max_duration_sec??project.max_duration_sec,60,15,120);
     const candidates=await selectCandidates({
@@ -149,7 +150,14 @@ async function processJob(job){
     }
 
     await supabase.from('clip_projects').update({status:'completed',updated_at:new Date().toISOString()}).eq('id',projectId);
-    await complete(job,{clip_project_id:projectId,clip_count:outputIds.length,clip_ids:outputIds});
+    await complete(job,{
+      clip_project_id:projectId,
+      requested_clip_count:count,
+      clip_count:outputIds.length,
+      quality_first:outputIds.length<count,
+      min_quality:minClipQuality,
+      clip_ids:outputIds
+    });
   }catch(e){await fail(job,e)}
   finally{clearInterval(heartbeatTimer);await rm(dir,{recursive:true,force:true}).catch(()=>{})}
 }
@@ -464,11 +472,11 @@ async function selectCandidates({
   const transcript=compactTranscript(words,320000);
   const prompt=`Tu es Clip+, un directeur éditorial spécialisé short-form.
 
-À partir de la transcription horodatée d'une vidéo longue, sélectionne les ${count} meilleurs passages autonomes à transformer en Reels/TikTok/Shorts.
+À partir de la transcription horodatée d'une vidéo longue, sélectionne JUSQU'À ${count} excellents passages autonomes à transformer en Reels/TikTok/Shorts. Ne remplis jamais le quota avec des passages moyens: retourne moins de clips si la qualité n'est pas suffisante.
 Durée de chaque clip: ${minSec} à ${maxSec} secondes.
 Durée source: ${duration.toFixed(1)} secondes.
 
-Priorités: hook immédiat, idée compréhensible sans contexte, tension/curiosité, valeur concrète, émotion ou opinion forte, fin naturelle, potentiel de partage. Évite les intros, sponsors, transitions molles, passages incomplets et doublons. Les clips ne doivent pas se chevaucher fortement.
+Priorités: hook immédiat, idée compréhensible sans contexte, tension/curiosité, valeur concrète, émotion ou opinion forte, fin naturelle, potentiel de partage. Évite les intros, sponsors, transitions molles, passages incomplets et doublons. Les clips ne doivent pas se chevaucher fortement. N'inclus que des clips dont viral_score >= ${minClipQuality}. La qualité prime toujours sur la quantité.
 
 Retourne UNIQUEMENT un JSON valide: {"clips":[{"start_sec":0,"end_sec":35,"title":"","hook":"","rationale":"","viral_score":0}]}. viral_score est une heuristique 0-100, pas une promesse de vues.
 
@@ -539,6 +547,7 @@ ${transcript}`;
       reason:errors.at(-1)||'gemini_unavailable'
     }));
     return fallbackCandidates(words,duration,count,minSec,maxSec,analysis)
+      .filter(x=>Number(x.viral_score||0)>=Math.max(58,minClipQuality-6))
       .slice(0,count);
   }
 
@@ -561,6 +570,7 @@ ${transcript}`;
       viral_score:clampInt(x.viral_score,65,0,100)
     };
 
+    if(item.viral_score<minClipQuality)continue;
     if(clean.some(y=>overlapRatio(item,y)>.5))continue;
     clean.push(item);
     if(clean.length>=count)break;
@@ -568,6 +578,7 @@ ${transcript}`;
 
   if(clean.length<count){
     for(const x of fallbackCandidates(words,duration,count,minSec,maxSec,analysis)){
+      if(Number(x.viral_score||0)<Math.max(58,minClipQuality-6))continue;
       if(!clean.some(y=>overlapRatio(x,y)>.5)){
         clean.push(x);
         if(clean.length>=count)break;
