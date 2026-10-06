@@ -11,7 +11,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: viral-studio-preview-pages
+  group: viral-studio-products-v4-pages
   cancel-in-progress: true
 
 jobs:
