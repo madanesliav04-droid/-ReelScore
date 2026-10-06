@@ -296,6 +296,17 @@ async function importSource(url,dir){
 
   const strategies=[
     [
+      '--force-ipv6',
+      '--extractor-args','youtube:player_client=web_safari',
+      '-f','best[protocol^=m3u8][height<=1080]/best[protocol^=m3u8]/18/22/best[height<=720]/best'
+    ],
+    [
+      '--force-ipv6',
+      ...provider,
+      '--extractor-args','youtube:player_client=mweb',
+      '-f','18/22/best[height<=720]/best'
+    ],
+    [
       ...provider,
       '--extractor-args','youtube:player_client=mweb',
       '-f','18/22/best[height<=720]/best'
