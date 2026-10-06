@@ -297,7 +297,7 @@ async function api(url,opts={}){
 function escapeHtml(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
 function setTab(name){$$(".tab").forEach(x=>x.classList.toggle("active",x.dataset.tab===name));$$(".pane").forEach(x=>x.classList.toggle("active",x.dataset.pane===name));$("#workspace").scrollIntoView({behavior:"smooth",block:"start"})}
 function requireAuth(){if(!session){showAuth();toast("Connecte-toi gratuitement pour utiliser le studio.");return false}return true}
-function setState(job){$("#stateMedia").textContent=media?.id?"Registered":"—";$("#stateJob").textContent=job?.status||"—";$("#stateStage").textContent=job?.stage||"—";$("#stateProgress").textContent=Number.isFinite(Number(job?.progress))?Number(job.progress)+"%":"—";$("#jobLog").textContent=job?[`${job.kind||"job"} · ${job.status}`,job.stage||"",job.id||"",job.error||""].filter(Boolean).join("\n"):"No job running."}
+function setState(job){$("#stateMedia").textContent=(media?.id||clipMedia?.id)?"Registered":"—";$("#stateJob").textContent=job?.status||"—";$("#stateStage").textContent=job?.stage||"—";$("#stateProgress").textContent=Number.isFinite(Number(job?.progress))?Number(job.progress)+"%":"—";$("#jobLog").textContent=job?[`${job.kind||"job"} · ${job.status}`,job.stage||"",job.id||"",job.error||""].filter(Boolean).join("\n"):"No job running."}
 
 function initMotion(){
   const glow=$("#cursorGlow"),stage=$("#heroStage");
@@ -352,10 +352,53 @@ async function uploadVideo(file){
 }
 $("#videoFile").onchange=e=>{const f=e.target.files?.[0];if(f)uploadVideo(f)};
 
-async function pollJob(id,kind,onDone){
+async function pollJob(id,kind,onDone,onFail){
   if(poller)clearInterval(poller);
-  const tick=async()=>{try{const url=kind==="clip"?fn("clip-jobs",`jobs/${id}`):fn("viral-edit-jobs",`jobs/${id}`);const body=await api(url);currentJob=body.job;setState(currentJob);if(["completed","failed"].includes(currentJob.status)){clearInterval(poller);poller=null;if(currentJob.status==="failed")throw new Error(currentJob.error||currentJob.error_code||"Job failed");await onDone?.(currentJob)}}catch(err){if(poller)clearInterval(poller);poller=null;toast(err.message);setState({...currentJob,status:"failed",error:err.message})}};
-  await tick();if(currentJob&&!["completed","failed"].includes(currentJob.status))poller=setInterval(tick,2200);
+
+  const stop=()=>{
+    if(poller)clearInterval(poller);
+    poller=null;
+  };
+
+  const fail=async(err,job)=>{
+    stop();
+    const error=err instanceof Error?err:new Error(String(err||"Job failed"));
+    toast(error.message);
+    setState({...job,status:"failed",error:error.message});
+    await onFail?.(error,job);
+  };
+
+  const tick=async()=>{
+    try{
+      const url=kind==="clip"
+        ?fn("clip-jobs",`jobs/${id}`)
+        :fn("viral-edit-jobs",`jobs/${id}`);
+
+      const body=await api(url);
+      currentJob=body.job;
+      setState(currentJob);
+
+      if(currentJob.status==="completed"){
+        stop();
+        await onDone?.(currentJob);
+        return;
+      }
+
+      if(currentJob.status==="failed"){
+        await fail(
+          new Error(currentJob.error||currentJob.error_code||"Job failed"),
+          currentJob
+        );
+      }
+    }catch(err){
+      await fail(err,currentJob);
+    }
+  };
+
+  await tick();
+  if(currentJob&&!["completed","failed"].includes(currentJob.status)){
+    poller=setInterval(tick,2200);
+  }
 }
 
 function scoreMarkup(scores){
@@ -435,7 +478,7 @@ $("#analyzeBtn").onclick=async()=>{
   }
 };
 
-$("#editBtn").onclick=async()=>{if(!requireAuth()||!media)return;$("#editBtn").disabled=true;const result=$("#editResult");result.classList.remove("hidden");result.innerHTML="Creating edit job…";try{const body=await api(fn("viral-edit-jobs","edit"),{method:"POST",body:JSON.stringify({video_id:media.id,analysis_id:analysis?.analysis_id||analysis?.id||null,style:$("#editStyle").value,caption_preset:$("#captionPreset").value})});currentJob=body.job;setState(currentJob);toast("Montage lancé.");await pollJob(body.job.id,"core",async job=>{let preview="";if(job.result?.export_id){const signed=await api(fn("viral-edit-jobs",`exports/${job.result.export_id}/url`));preview=`<div class="media-preview"><video controls playsinline src="${escapeHtml(signed.signed_url)}"></video></div><a class="btn primary wide" href="${escapeHtml(signed.signed_url)}" download target="_blank">Download MP4 ↗</a>`}result.innerHTML=`<div class="advice"><small>EDIT+ COMPLETED</small><h4>Your edit is ready.</h4><p>${escapeHtml(job.result?.style||$("#editStyle").value)} · ${escapeHtml(job.result?.caption_preset||$("#captionPreset").value)}</p></div>${preview}<button class="ghost wide" id="reanalyzeBtn">Analyze this edit with Viral+ →</button>`;const b=$("#reanalyzeBtn");if(b)b.onclick=()=>toast("Re-analysis handoff sera branché dans la prochaine passe.");$("#editBtn").disabled=false;toast("Montage terminé.")})}catch(err){toast(err.message);$("#editBtn").disabled=false}};
+$("#editBtn").onclick=async()=>{if(!requireAuth()||!media)return;$("#editBtn").disabled=true;const result=$("#editResult");result.classList.remove("hidden");result.innerHTML="Creating edit job…";try{const body=await api(fn("viral-edit-jobs","edit"),{method:"POST",body:JSON.stringify({video_id:media.id,analysis_id:analysis?.analysis_id||analysis?.id||null,style:$("#editStyle").value,caption_preset:$("#captionPreset").value})});currentJob=body.job;setState(currentJob);toast("Montage lancé.");await pollJob(body.job.id,"core",async job=>{let preview="";if(job.result?.export_id){const signed=await api(fn("viral-edit-jobs",`exports/${job.result.export_id}/url`));preview=`<div class="media-preview"><video controls playsinline src="${escapeHtml(signed.signed_url)}"></video></div><a class="btn primary wide" href="${escapeHtml(signed.signed_url)}" download target="_blank">Download MP4 ↗</a>`}result.innerHTML=`<div class="advice"><small>EDIT+ COMPLETED</small><h4>Your edit is ready.</h4><p>${escapeHtml(job.result?.style||$("#editStyle").value)} · ${escapeHtml(job.result?.caption_preset||$("#captionPreset").value)}</p></div>${preview}<button class="ghost wide" id="reanalyzeBtn">Analyze this edit with Viral+ →</button>`;const b=$("#reanalyzeBtn");if(b)b.onclick=()=>toast("Re-analysis handoff sera branché dans la prochaine passe.");$("#editBtn").disabled=false;toast("Montage terminé.")},async err=>{result.innerHTML=`<div class="advice"><small>EDIT+ FAILED</small><h4>Le montage n’a pas pu terminer.</h4><p>${escapeHtml(err.message)}</p></div>`;$("#editBtn").disabled=false})}catch(err){toast(err.message);$("#editBtn").disabled=false}};
 
 $$("[data-clipsource]").forEach(btn=>btn.addEventListener("click",()=>{
   clipSourceMode=btn.dataset.clipsource;
@@ -575,6 +618,11 @@ $("#clipBtn").onclick=async()=>{
 
       $("#clipBtn").disabled=false;
       toast("Clips générés.");
+    },async err=>{
+      const message=String(err?.message||err);
+      const youtubeBlocked=message.includes("YOUTUBE_IMPORT_FAILED")||message.includes("YouTube bloque")||message.includes("403");
+      result.innerHTML=`<div class="advice"><small>CLIP+ FAILED</small><h4>${escapeHtml(youtubeBlocked?"YouTube bloque l’import serveur.":"Le traitement Clip+ a échoué.")}</h4><p>${escapeHtml(message)}</p>${youtubeBlocked?"<p><b>Solution fiable :</b> passe sur <b>Upload video</b> dans Clip+.</p>":""}</div>`;
+      $("#clipBtn").disabled=false;
     });
   }catch(err){
     const message=String(err?.message||err);
