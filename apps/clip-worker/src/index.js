@@ -70,6 +70,28 @@ async function processJob(job){
     await supabase.from('clip_projects').update({status:'importing',updated_at:new Date().toISOString()}).eq('id',projectId);
     await progress(job,'processing',6,hasUpload?'Téléchargement de la vidéo uploadée':'Import de la vidéo source');
 
+    const requestedCount=clampInt(
+      payload.clip_count??project.requested_clip_count,
+      5,
+      1,
+      20
+    );
+
+    if(
+      !hasUpload&&
+      isYouTubeSource(sourceUrl)&&
+      String(process.env.VIZARD_API_KEY||'').trim()
+    ){
+      await processVizardYouTube({
+        job,
+        project,
+        sourceUrl,
+        count:requestedCount,
+        dir
+      });
+      return;
+    }
+
     const imported=hasUpload
       ?await importUploadedSource({sourceVideoId,userId:job.user_id,dir})
       :{filePath:await importSource(sourceUrl,dir),mimeType:'video/mp4'};
@@ -119,7 +141,7 @@ async function processJob(job){
 
     await supabase.from('clip_projects').update({status:'analyzing',title:project.title||analysis.detected_title_text||null,updated_at:new Date().toISOString()}).eq('id',projectId);
     await progress(job,'analyzing',48,'Sélection IA des meilleurs moments');
-    const count=clampInt(payload.clip_count??project.requested_clip_count,5,1,20);
+    const count=requestedCount;
     const minSec=clampInt(payload.min_duration_sec??project.min_duration_sec,20,8,90);
     const maxSec=clampInt(payload.max_duration_sec??project.max_duration_sec,60,15,120);
     const candidates=await selectCandidates({
@@ -189,6 +211,327 @@ async function recover(job){
     }
   }
   return false;
+}
+
+function isYouTubeSource(value){
+  try{
+    const u=new URL(normalizeSourceUrl(value));
+    const h=u.hostname.toLowerCase().replace(/^www\./,'');
+    return h==='youtu.be'||h.endsWith('youtube.com');
+  }catch{
+    return false;
+  }
+}
+
+async function processVizardYouTube({
+  job,
+  project,
+  sourceUrl,
+  count,
+  dir
+}){
+  const apiKey=String(process.env.VIZARD_API_KEY||'').trim();
+  if(!apiKey)throw tagged('VIZARD_NOT_CONFIGURED','Fallback YouTube non configuré');
+
+  await supabase
+    .from('clip_projects')
+    .update({status:'importing',updated_at:new Date().toISOString()})
+    .eq('id',project.id);
+
+  await progress(
+    job,
+    'processing',
+    10,
+    'Import YouTube sécurisé'
+  );
+
+  const submit=await fetch(
+    'https://elb-api.vizard.ai/hvizard-server-front/open-api/v1/project/create',
+    {
+      method:'POST',
+      signal:AbortSignal.timeout(30000),
+      headers:{
+        'content-type':'application/json',
+        'VIZARDAI_API_KEY':apiKey
+      },
+      body:JSON.stringify({
+        lang:'auto',
+        preferLength:[2],
+        videoUrl:normalizeSourceUrl(sourceUrl),
+        videoType:2,
+        ratioOfClip:1,
+        removeSilenceSwitch:1,
+        maxClipNumber:count,
+        subtitleSwitch:1,
+        headlineSwitch:1,
+        emojiSwitch:0,
+        highlightSwitch:1,
+        autoBrollSwitch:1,
+        clipModel:'clip_v2',
+        projectName:`Viral Studio Clip+ ${project.id}`
+      })
+    }
+  );
+
+  const submitText=await submit.text();
+  let submitBody={};
+  try{submitBody=JSON.parse(submitText)}catch{}
+
+  if(
+    !submit.ok||
+    Number(submitBody?.code)!==2000||
+    !submitBody?.projectId
+  ){
+    throw tagged(
+      'VIZARD_SUBMIT_FAILED',
+      `Vizard submit failed: ${submit.status} ${submitText.slice(0,500)}`
+    );
+  }
+
+  const providerProjectId=String(submitBody.projectId);
+
+  await supabase
+    .from('clip_projects')
+    .update({
+      status:'analyzing',
+      metadata:{
+        ...(project.metadata||{}),
+        provider:'vizard',
+        provider_project_id:providerProjectId
+      },
+      updated_at:new Date().toISOString()
+    })
+    .eq('id',project.id);
+
+  let result=null;
+  for(let attempt=0;attempt<80;attempt++){
+    await progress(
+      job,
+      'analyzing',
+      Math.min(70,18+attempt),
+      'Analyse de la vidéo YouTube'
+    );
+
+    const response=await fetch(
+      `https://elb-api.vizard.ai/hvizard-server-front/open-api/v1/project/query/${encodeURIComponent(providerProjectId)}`,
+      {
+        signal:AbortSignal.timeout(30000),
+        headers:{'VIZARDAI_API_KEY':apiKey}
+      }
+    );
+    const text=await response.text();
+    let body={};
+    try{body=JSON.parse(text)}catch{}
+
+    if(!response.ok){
+      throw tagged(
+        'VIZARD_QUERY_FAILED',
+        `Vizard query failed: ${response.status} ${text.slice(0,500)}`
+      );
+    }
+
+    if(Number(body?.code)===2000&&Array.isArray(body?.videos)){
+      result=body;
+      break;
+    }
+
+    if(Number(body?.code)!==1000){
+      throw tagged(
+        'VIZARD_PROCESSING_FAILED',
+        `Vizard processing failed: ${text.slice(0,700)}`
+      );
+    }
+
+    await sleep(10000);
+  }
+
+  if(!result){
+    throw tagged(
+      'VIZARD_TIMEOUT',
+      'Le traitement YouTube a dépassé le délai autorisé.'
+    );
+  }
+
+  const providerVideos=(result.videos||[])
+    .filter(x=>x?.videoUrl)
+    .sort((a,b)=>Number(b?.viralScore||0)-Number(a?.viralScore||0))
+    .slice(0,count);
+
+  if(!providerVideos.length){
+    throw tagged(
+      'NO_CLIPS_FOUND',
+      'Aucun passage suffisamment fort n’a été détecté.'
+    );
+  }
+
+  await supabase
+    .from('clip_projects')
+    .update({status:'rendering',updated_at:new Date().toISOString()})
+    .eq('id',project.id);
+
+  const outputIds=[];
+
+  for(let i=0;i<providerVideos.length;i++){
+    const video=providerVideos[i];
+    const rank=i+1;
+    await progress(
+      job,
+      'rendering',
+      72+Math.round((i/providerVideos.length)*24),
+      `Finalisation du clip ${rank}/${providerVideos.length}`
+    );
+
+    const localPath=path.join(dir,`vizard-${rank}.mp4`);
+    await downloadExternalVideo(
+      String(video.videoUrl),
+      localPath
+    );
+
+    const clipId=await persistExternalClip({
+      job,
+      project,
+      rank,
+      filePath:localPath,
+      provider:'vizard',
+      providerId:String(video.videoId||''),
+      durationMs:Number(video.videoMsDuration||0),
+      title:String(video.title||`Clip ${rank}`),
+      transcript:String(video.transcript||''),
+      viralScore:Math.max(
+        0,
+        Math.min(100,Math.round(Number(video.viralScore||0)*10))
+      ),
+      rationale:String(video.viralReason||'')
+    });
+    outputIds.push(clipId);
+  }
+
+  await supabase
+    .from('clip_projects')
+    .update({
+      status:'completed',
+      title:project.title||String(result.projectName||'YouTube clips'),
+      updated_at:new Date().toISOString()
+    })
+    .eq('id',project.id);
+
+  await complete(job,{
+    clip_project_id:project.id,
+    requested_clip_count:count,
+    clip_count:outputIds.length,
+    quality_first:outputIds.length<count,
+    provider:'vizard',
+    provider_project_id:providerProjectId,
+    clip_ids:outputIds
+  });
+}
+
+async function downloadExternalVideo(url,outputPath){
+  const response=await fetch(url,{
+    signal:AbortSignal.timeout(180000),
+    redirect:'follow',
+    headers:{'user-agent':'ViralStudio-ClipPlus/1.0'}
+  });
+  if(!response.ok||!response.body){
+    throw tagged(
+      'EXTERNAL_CLIP_DOWNLOAD_FAILED',
+      `External clip download ${response.status}`
+    );
+  }
+  await pipeline(
+    Readable.fromWeb(response.body),
+    createWriteStream(outputPath)
+  );
+  const info=await stat(outputPath);
+  if(!info.size)throw tagged(
+    'EXTERNAL_CLIP_DOWNLOAD_FAILED',
+    'External clip is empty'
+  );
+}
+
+async function persistExternalClip({
+  job,
+  project,
+  rank,
+  filePath,
+  provider,
+  providerId,
+  durationMs,
+  title,
+  transcript,
+  viralScore,
+  rationale
+}){
+  const info=await stat(filePath);
+  const safeDuration=Math.max(1000,Math.round(Number(durationMs||0)||1000));
+  const storagePath=
+    `${job.user_id}/clips/${project.id}/${String(rank).padStart(2,'0')}-${randomUUID()}.mp4`;
+
+  const bytes=await readFile(filePath);
+  const {error:uploadError}=await supabase.storage
+    .from(bucket)
+    .upload(storagePath,bytes,{
+      contentType:'video/mp4',
+      upsert:false,
+      cacheControl:'3600'
+    });
+  if(uploadError)throw uploadError;
+
+  const {data:media,error:mediaError}=await supabase
+    .from('media_assets')
+    .insert({
+      user_id:job.user_id,
+      module:'clipplus',
+      kind:'clip',
+      storage_bucket:bucket,
+      storage_path:storagePath,
+      original_name:`clip-${rank}.mp4`,
+      mime_type:'video/mp4',
+      size_bytes:info.size,
+      duration_ms:safeDuration,
+      width:1080,
+      height:1920,
+      status:'ready',
+      metadata:{
+        clip_project_id:project.id,
+        source_url:project.source_url,
+        rank,
+        provider,
+        provider_id:providerId
+      }
+    })
+    .select('id')
+    .single();
+  if(mediaError)throw mediaError;
+
+  const {data:clip,error:clipError}=await supabase
+    .from('clip_outputs')
+    .insert({
+      project_id:project.id,
+      job_id:job.id,
+      user_id:job.user_id,
+      output_video_id:media.id,
+      rank,
+      viral_score:viralScore||null,
+      title:title||null,
+      hook:title||null,
+      rationale:rationale||null,
+      start_ms:0,
+      end_ms:safeDuration,
+      status:'ready',
+      metadata:{
+        format:'9:16',
+        captions:true,
+        provider,
+        provider_id:providerId,
+        transcript:transcript.slice(0,12000)
+      }
+    })
+    .select('id')
+    .single();
+  if(clipError)throw clipError;
+
+  return clip.id;
 }
 
 async function importUploadedSource({sourceVideoId,userId,dir}){
