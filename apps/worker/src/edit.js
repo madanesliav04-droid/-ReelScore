@@ -200,7 +200,7 @@ function buildGraphicCues({style,captions,outputDurationMs,styleCfg}){
       text:text.slice(0,54),
       mode:style,
       label:style==='data'
-        ?((?:/^(?:€|\$|£)?\d/).test(text)?'DATA':'CLAIM')
+        ?((/^(?:€|\$|£)?\d/).test(text)?'DATA':'CLAIM')
         :style==='authority'
           ?'EXPERT'
           :style==='cinematic_story'
