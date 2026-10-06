@@ -198,24 +198,24 @@ function localCueCandidates(captions,maxCues,cfg){
   ]);
 
   const concepts=[
-    [/moins cher|prix|coût|coûte|tarif/i,'price comparison money'],
-    [/prospect|client|vente|vendre/i,'sales client meeting'],
-    [/offre|proposition|devis/i,'business proposal document'],
-    [/qualité|niveau/i,'quality assurance service'],
-    [/accompagnement|suivi|support/i,'customer support coaching'],
-    [/solution/i,'business solution planning'],
-    [/compare|comparaison|comparer/i,'comparison chart'],
-    [/résultat/i,'business results chart'],
-    [/contrat|accord/i,'business contract signing'],
-    [/équipe|collaborateur/i,'business team meeting'],
-    [/téléphone|iphone|smartphone/i,'smartphone'],
-    [/ordinateur|laptop|pc/i,'laptop computer'],
+    [/moins cher|prix|coût|coûte|tarif/i,'price tags retail shopping'],
+    [/prospect|client|vente|vendre/i,'sales meeting client office'],
+    [/offre|proposition|devis/i,'contract document desk office'],
+    [/qualité|niveau/i,'quality control professional workplace'],
+    [/accompagnement|suivi|support/i,'customer support agent headset'],
+    [/solution/i,'business planning whiteboard meeting'],
+    [/compare|comparaison|comparer/i,'product comparison shopping'],
+    [/résultat/i,'analytics dashboard laptop'],
+    [/contrat|accord/i,'contract signing office'],
+    [/équipe|collaborateur/i,'team meeting office'],
+    [/téléphone|iphone|smartphone/i,'smartphone hand'],
+    [/ordinateur|laptop|pc/i,'laptop desk'],
     [/instagram|réseaux sociaux|tiktok|youtube/i,'social media smartphone'],
-    [/argent|euro|dollar|revenu/i,'money finance'],
+    [/argent|euro|dollar|revenu/i,'cash money wallet'],
     [/maison|appartement|immobilier/i,'modern house real estate'],
-    [/voiture|auto|véhicule/i,'modern car'],
-    [/restaurant|burger|food|repas/i,'restaurant food'],
-    [/trading|bourse|marché/i,'stock market trading screen']
+    [/voiture|auto|véhicule/i,'modern car street'],
+    [/restaurant|burger|food|repas/i,'restaurant food table'],
+    [/trading|bourse|marché/i,'stock market trading screens']
   ];
 
   const candidates=[];
@@ -382,8 +382,9 @@ async function findOpenverseAsset(
     const params=new URLSearchParams({
       q:variant,
       license:'pdm,cc0,by',
-      page_size:'20',
-      mature:'false'
+      page_size:'30',
+      mature:'false',
+      category:'photograph'
     });
 
     let response;
@@ -411,7 +412,7 @@ async function findOpenverseAsset(
 
       const width=Number(item?.width||0);
       const height=Number(item?.height||0);
-      if(width&&height&&(width<500||height<350))continue;
+      if(width&&height&&(width<900||height<600))continue;
 
       const license=String(item?.license||'').toLowerCase();
       if(!['pdm','cc0','by'].includes(license))continue;
@@ -426,11 +427,16 @@ async function findOpenverseAsset(
         ?item.tags.slice(0,12).map(x=>String(x?.name||x||'')).join(' ')
         :'';
 
+      const searchable=[title,tags].filter(Boolean).join(' ');
       const relevance=lexicalRelevance(
         variant,
-        [title,tags].filter(Boolean).join(' ')
+        searchable
       );
-      if(relevance<0.12&&results.length>4)continue;
+
+      const badVisual=/\b(map|historical|archive|archival|cartoon|illustration|diagram|projection|blueprint|manuscript|painting|poster|engraving|etching|satellite|aerial map)\b/i;
+      const queryAllowsBad=/\b(map|historical|cartoon|illustration|diagram|blueprint|painting|poster)\b/i.test(variant);
+      if(badVisual.test(searchable)&&!queryAllowsBad)continue;
+      if(relevance<0.34)continue;
 
       return {
         assetUrl,

@@ -203,6 +203,9 @@ export async function renderNativeEdit({
   const hasAudio=Boolean(
     timeline?.audio?.hasAudio
   );
+  const sourceAspect=
+    Number(timeline?.sourceAspect)||
+    (width/height);
 
   const punchIns=normalizePunchIns(
     timeline?.punchIns,
@@ -271,7 +274,8 @@ export async function renderNativeEdit({
           width,
           height,
           scale:seg.scale,
-          hasAudio
+          hasAudio,
+          sourceAspect
         });
       }
 
@@ -415,7 +419,8 @@ async function renderSourceSegment({
   width,
   height,
   scale=1,
-  hasAudio
+  hasAudio,
+  sourceAspect=null
 }){
   const startSec=
     Math.max(0,startMs/1000);
@@ -438,10 +443,11 @@ async function renderSourceSegment({
 
   args.push(
     '-vf',
-    coverFilter(
+    sourceDisplayFilter(
       width,
       height,
-      scale
+      scale,
+      sourceAspect
     ),
     '-r','30',
     '-c:v','libx264',
@@ -813,6 +819,44 @@ function mergeSameVisual(items){
   }
 
   return out;
+}
+
+function sourceDisplayFilter(
+  width,
+  height,
+  scale=1,
+  sourceAspect=null
+){
+  const targetAspect=width/height;
+  const srcAspect=Number(sourceAspect)||targetAspect;
+  const mismatch=Math.max(
+    targetAspect/srcAspect,
+    srcAspect/targetAspect
+  );
+
+  if(mismatch<1.28){
+    return coverFilter(width,height,scale);
+  }
+
+  const foregroundW=
+    srcAspect>=targetAspect
+      ?width
+      :Math.max(2,Math.round(height*srcAspect/2)*2);
+  const foregroundH=
+    srcAspect>=targetAspect
+      ?Math.max(2,Math.round(width/srcAspect/2)*2)
+      :height;
+
+  const zoom=Math.max(1,Number(scale)||1);
+  const fgW=Math.min(width,Math.max(2,Math.round(foregroundW*zoom/2)*2));
+  const fgH=Math.min(height,Math.max(2,Math.round(foregroundH*zoom/2)*2));
+
+  return [
+    'split=2[bg][fg]',
+    `[bg]scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height},boxblur=28:8,eq=brightness=-0.12:saturation=0.72[bg2]`,
+    `[fg]scale=${fgW}:${fgH}:force_original_aspect_ratio=decrease[fg2]`,
+    '[bg2][fg2]overlay=(W-w)/2:(H-h)/2,setsar=1'
+  ].join(';');
 }
 
 function coverFilter(
