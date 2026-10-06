@@ -139,10 +139,15 @@ ${transcript}`;
     const used=new Set();
 
     for(const cue of cleaned){
-      const asset=await findCommonsAsset(
-        cue.query,
-        used
-      );
+      const asset=
+        await findOpenverseAsset(
+          cue.query,
+          used
+        )||
+        await findCommonsAsset(
+          cue.query,
+          used
+        );
       if(!asset){
         console.warn(JSON.stringify({
           event:'broll_asset_not_found',
@@ -361,6 +366,114 @@ async function generateJson({
   throw lastError||new Error(
     'B-roll planning unavailable'
   );
+}
+
+async function findOpenverseAsset(
+  query,
+  used
+){
+  const variants=[
+    query,
+    query.split(/\s+/).slice(0,3).join(' '),
+    query.split(/\s+/).slice(0,2).join(' ')
+  ].filter((v,i,a)=>v&&a.indexOf(v)===i);
+
+  for(const variant of variants){
+    const params=new URLSearchParams({
+      q:variant,
+      license:'pdm,cc0,by',
+      page_size:'20',
+      mature:'false'
+    });
+
+    let response;
+    try{
+      response=await fetch(
+        'https://api.openverse.org/v1/images/?'+params.toString(),
+        {
+          headers:{
+            'User-Agent':'ViralStudio-EditPlus/1.0',
+            'Accept':'application/json'
+          }
+        }
+      );
+    }catch{
+      continue;
+    }
+
+    if(!response.ok)continue;
+    const body=await response.json();
+    const results=Array.isArray(body?.results)?body.results:[];
+
+    for(const item of results){
+      const id=String(item?.id||'');
+      if(!/^[0-9a-f-]{36}$/i.test(id))continue;
+
+      const width=Number(item?.width||0);
+      const height=Number(item?.height||0);
+      if(width&&height&&(width<500||height<350))continue;
+
+      const license=String(item?.license||'').toLowerCase();
+      if(!['pdm','cc0','by'].includes(license))continue;
+
+      const assetUrl=
+        `https://api.openverse.org/v1/images/${id}/thumb/?compressed=true`;
+
+      if(used.has(assetUrl))continue;
+
+      const title=String(item?.title||'').trim();
+      const tags=Array.isArray(item?.tags)
+        ?item.tags.slice(0,12).map(x=>String(x?.name||x||'')).join(' ')
+        :'';
+
+      const relevance=lexicalRelevance(
+        variant,
+        [title,tags].filter(Boolean).join(' ')
+      );
+      if(relevance<0.12&&results.length>4)continue;
+
+      return {
+        assetUrl,
+        sourcePage:item?.foreign_landing_url||item?.detail_url||null,
+        mimeType:'image/jpeg',
+        width:width||1800,
+        height:height||1200,
+        license:
+          license==='pdm'
+            ?'Public Domain'
+            :license==='cc0'
+              ?'CC0'
+              :`CC BY ${item?.license_version||''}`.trim(),
+        licenseUrl:item?.license_url||null,
+        artist:String(item?.creator||'').slice(0,180),
+        attribution:String(item?.attribution||'').slice(0,600),
+        title:title.slice(0,220),
+        provider:'openverse',
+        source:String(item?.source||item?.provider||'').slice(0,80),
+        searchQuery:variant,
+        relevance
+      };
+    }
+  }
+
+  return null;
+}
+
+function lexicalRelevance(query,text){
+  const stop=new Set([
+    'the','and','with','from','into','photo','photograph',
+    'business','modern','professional'
+  ]);
+  const terms=String(query||'')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g,' ')
+    .split(/\s+/)
+    .filter(x=>x.length>2&&!stop.has(x));
+  if(!terms.length)return .5;
+
+  const hay=String(text||'').toLowerCase();
+  const hits=terms.filter(term=>hay.includes(term)).length;
+  return hits/terms.length;
 }
 
 async function findCommonsAsset(

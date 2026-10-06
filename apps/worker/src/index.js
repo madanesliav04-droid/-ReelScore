@@ -585,6 +585,10 @@ async function runEdit(job,media,sourcePath,dir){
           source_page:x.sourcePage||null,
           license:x.license||null,
           artist:x.artist||null,
+          attribution:x.attribution||null,
+          license_url:x.licenseUrl||null,
+          title:x.title||null,
+          source:x.source||null,
           query:x.query||null
         }))
       }

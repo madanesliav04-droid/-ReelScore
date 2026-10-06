@@ -536,11 +536,12 @@ async function materializeBroll(
       const u=
         new URL(cue.assetUrl);
 
-      if(
-        u.protocol!=='https:'||
-        u.hostname!==
-          'upload.wikimedia.org'
-      )continue;
+      if(u.protocol!=='https:')continue;
+      const allowedHosts=new Set([
+        'upload.wikimedia.org',
+        'api.openverse.org'
+      ]);
+      if(!allowedHosts.has(u.hostname))continue;
 
       const r=await fetch(
         u.toString(),
