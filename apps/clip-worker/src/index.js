@@ -303,10 +303,71 @@ async function importSource(url,dir){
     }
   }
 
+  try{
+    const fallback=await importViaCobalt(url,dir);
+    if(fallback)return fallback;
+  }catch(error){
+    failures.push('cobalt: '+String(error?.message||error).slice(-700));
+  }
+
   throw tagged(
     'YOUTUBE_IMPORT_FAILED',
     'YouTube a refusé l’import automatique après plusieurs stratégies URL. '+failures.at(-1)
   );
+}
+
+async function importViaCobalt(url,dir){
+  const base=String(process.env.COBALT_URL||'').replace(/\/$/,'');
+  if(!base)return null;
+
+  const resolved=await fetch(base+'/',{
+    method:'POST',
+    signal:AbortSignal.timeout(45000),
+    headers:{'accept':'application/json','content-type':'application/json'},
+    body:JSON.stringify({
+      url,
+      videoQuality:'720',
+      downloadMode:'auto',
+      youtubeVideoCodec:'h264',
+      youtubeVideoContainer:'mp4',
+      alwaysProxy:true,
+      disableMetadata:true
+    })
+  });
+  const raw=await resolved.text();
+  let body=null;
+  try{body=JSON.parse(raw)}catch{}
+  if(!resolved.ok||!body){
+    throw new Error('resolver '+resolved.status+': '+raw.slice(0,500));
+  }
+  if(body.status==='error'){
+    throw new Error('resolver error: '+String(body?.error?.code||body?.text||'unknown'));
+  }
+
+  let mediaUrl=body.url||null;
+  if(!mediaUrl&&body.status==='picker'&&Array.isArray(body.picker)){
+    mediaUrl=body.picker.find(x=>x?.type==='video'&&x?.url)?.url||body.picker.find(x=>x?.url)?.url||null;
+  }
+  if(!mediaUrl)throw new Error('resolver did not return a media URL');
+
+  const absolute=new URL(mediaUrl,base+'/').toString();
+  const response=await fetch(absolute,{
+    signal:AbortSignal.timeout(120000),
+    redirect:'follow',
+    headers:{'user-agent':'ViralStudio-ClipPlus/1.0'}
+  });
+  if(!response.ok||!response.body){
+    throw new Error('resolver media '+response.status+': '+(await response.text()).slice(0,300));
+  }
+  const declared=Number(response.headers.get('content-length')||0);
+  if(declared>500*1024*1024)throw tagged('SOURCE_TOO_LARGE','La vidéo dépasse 500 Mo');
+
+  const output=path.join(dir,'source-cobalt.mp4');
+  await pipeline(Readable.fromWeb(response.body),createWriteStream(output));
+  const info=await stat(output);
+  if(!info.size)throw new Error('resolver returned an empty file');
+  if(info.size>500*1024*1024)throw tagged('SOURCE_TOO_LARGE','La vidéo dépasse 500 Mo');
+  return output;
 }
 
 function allowedSource(value){
