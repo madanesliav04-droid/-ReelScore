@@ -40,10 +40,45 @@ const EDIT_MODELS:EditModel[]=[
   {id:"cinematic_story",name:"Cinematic Story",category:"Personal story",preview:"STORY",meta:"Emotional · breathing room"}
 ];
 
-async function api(path:string,token:string,init:RequestInit={}){
-  const res=await fetch(path,{...init,headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`,...(init.headers||{})}});
+async function freshSession(){
+  let {data,error}=await supabase.auth.getSession();
+  if(error)throw error;
+  let current=data.session;
+  const expiresAt=Number(current?.expires_at||0)*1000;
+  if(current&&expiresAt-Date.now()<90_000){
+    const refreshed=await supabase.auth.refreshSession();
+    if(refreshed.error)throw refreshed.error;
+    current=refreshed.data.session;
+  }
+  if(!current?.access_token)throw new Error("SESSION_REQUIRED");
+  return current;
+}
+
+async function api(path:string,_token:string,init:RequestInit={},allowRetry=true){
+  const current=await freshSession();
+  const run=async(accessToken:string)=>fetch(path,{
+    ...init,
+    headers:{
+      "Content-Type":"application/json",
+      Authorization:`Bearer ${accessToken}`,
+      ...(init.headers||{})
+    }
+  });
+
+  let res=await run(current.access_token);
+
+  if(res.status===401&&allowRetry){
+    const refreshed=await supabase.auth.refreshSession();
+    const retryToken=refreshed.data.session?.access_token;
+    if(retryToken)res=await run(retryToken);
+  }
+
   const body=await res.json().catch(()=>({}));
-  if(!res.ok)throw new Error(body?.error||body?.message||`Request failed (${res.status})`);
+  if(!res.ok){
+    const code=String(body?.error||body?.message||"");
+    if(res.status===401||code==="AUTH_REQUIRED")throw new Error("Ta session a expiré. Reconnecte-toi une fois puis Edit+ gardera automatiquement la session active.");
+    throw new Error(code||`Request failed (${res.status})`);
+  }
   return body;
 }
 function safeName(name:string){return name.replace(/[^a-zA-Z0-9._-]+/g,"-").slice(-120)}
@@ -117,14 +152,22 @@ export function Dashboard(){
     const {error}=await action;if(error)setAuthError(error.message);
   }
 
-  function uploadVideo(selected:File){
-    if(!session)return setError("Connecte-toi avant l’upload.");
+  async function uploadVideo(selected:File){
+    let liveSession:any;
+    try{
+      liveSession=await freshSession();
+    }catch{
+      setError("Reconnecte-toi pour continuer.");
+      return;
+    }
+    const liveUserId=liveSession.user?.id;
+    if(!liveUserId)return setError("Session utilisateur invalide.");
     setError("");setFile(selected);setMedia(null);setAnalysis(null);setJob(null);setUploadPct(0);setEditExportUrl("");
-    const objectName=`${userId}/${crypto.randomUUID()}-${safeName(selected.name)}`;
+    const objectName=`${liveUserId}/${crypto.randomUUID()}-${safeName(selected.name)}`;
     const upload=new tus.Upload(selected,{
       endpoint:`https://${SUPABASE_PROJECT_REF}.storage.supabase.co/storage/v1/upload/resumable`,
       retryDelays:[0,3000,5000,10000,20000],
-      headers:{authorization:`Bearer ${token}`,"x-upsert":"false"},
+      headers:{authorization:`Bearer ${liveSession.access_token}`,"x-upsert":"false"},
       uploadDataDuringCreation:true,removeFingerprintOnSuccess:true,chunkSize:6*1024*1024,
       metadata:{bucketName:VIDEO_BUCKET,objectName,contentType:selected.type||"video/mp4",cacheControl:"3600"},
       onError(err){setError(err.message||"Upload impossible")},
