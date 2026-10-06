@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#07080b">
+<title>Viral Studio — Advanced Preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./style.css?v=2">
+</head>
+<body>
+<div class="noise"></div>
+<header class="nav">
+  <a class="brand" href="#home">VIRAL <span>STUDIO</span></a>
+  <nav class="navlinks"><a href="#product">Product</a><a href="#workspace">Viral+</a><a href="#workspace">Edit+</a><a href="#workspace">Clip+</a></nav>
+  <div class="navright"><button class="ghost" id="authBtn">Sign in</button><button class="primary" id="startBtn">Start free ↗</button></div>
+</header>
+
+<main id="home">
+<section class="hero">
+  <div class="heroGlow"></div>
+  <div class="heroCopy">
+    <div class="eyebrow">✦ CREATOR OPERATING SYSTEM</div>
+    <h1>TURN ANY VIDEO<br>INTO CONTENT<br><span>THAT PERFORMS.</span></h1>
+    <p>Clip it. Edit it. Analyze it. Export it.</p>
+    <div class="heroBtns"><button class="primary big" id="heroStart">Start Creating ↗</button><a class="ghost big" href="#product">See how it works</a></div>
+    <div class="trust">REAL BACKEND · RESUMABLE UPLOAD · LIVE JOB STATES</div>
+  </div>
+
+  <div class="scene" id="scene">
+    <div class="chip c1"><small>VIRAL SCORE</small><b>87</b></div>
+    <div class="chip c2"><small>RETENTION</small><b>+24%</b></div>
+    <div class="chip c3"><small>HOOK</small><b>STRONG</b></div>
+    <div class="phone">
+      <div class="island"></div>
+      <div class="screen">
+        <div class="profile"><span>V+</span><div><b>viralstudio</b><small>original audio</small></div></div>
+        <div class="visualCore">VIRAL<span>+</span></div>
+        <div class="social"><div>♥<small>24.8K</small></div><div>●<small>1.9K</small></div><div>↗<small>6.4K</small></div></div>
+        <div class="caption"><b>DON'T POST</b><br>before you know what breaks retention.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="product" class="flow">
+  <small>THE FLOW</small>
+  <h2>CLIP <i>→</i> EDIT <i>→</i> ANALYZE <i>→</i> EXPORT</h2>
+  <p>Un seul workspace. Une seule vidéo. Une boucle complète pour produire une version plus forte.</p>
+  <div class="flowGrid">
+    <article><b>01</b><span>LONG VIDEO</span></article><article><b>02</b><span>BEST MOMENTS</span></article><article><b>03</b><span>AUTO EDIT</span></article><article><b>04</b><span>VIRAL DIAGNOSIS</span></article><article><b>05</b><span>READY TO POST</span></article>
+  </div>
+</section>
+
+<section class="modules">
+  <article class="module"><div><small>FIND · CLIP+</small><h3>One video.<br>Multiple opportunities.</h3><p>Colle un lien et laisse Clip+ trouver les moments les plus exploitables.</p><button class="textBtn" data-open="clip">Open Clip+ →</button></div><div class="demo clipsDemo"><div class="sourceBar"></div><div class="miniClips"><span><b>91</b> Clip 01</span><span><b>87</b> Clip 02</span><span><b>82</b> Clip 03</span></div></div></article>
+  <article class="module"><div><small>BUILD · EDIT+</small><h3>Your editor,<br>without the editing.</h3><p>Choisis un style, génère le job de montage et suis le rendu réel.</p><button class="textBtn" data-open="edit">Open Edit+ →</button></div><div class="demo editDemo"><div class="previewCard">RAW → EDITED</div><div class="timeline"><i></i><i></i><i></i><i></i><i></i></div><div class="preset">CODIE · MODERN BOLD</div></div></article>
+  <article class="module"><div><small>LEARN · VIRAL+</small><h3>Stop guessing why<br>content isn't working.</h3><p>Score déterministe, diagnostic, timeline et corrections prioritaires.</p><button class="textBtn" data-open="viral">Open Viral+ →</button></div><div class="demo scoreDemo"><div class="scoreRing">78<small>/100</small></div><div class="bars"><label>Hook<i><b style="width:84%"></b></i></label><label>Retention<i><b style="width:68%"></b></i></label><label>Clarity<i><b style="width:76%"></b></i></label></div></div></article>
+</section>
+
+<section id="workspace" class="workspace">
+  <div class="workspaceHead">
+    <div><small>VIRAL STUDIO WORKSPACE</small><h2>What are we creating today?</h2></div>
+    <div class="accountState" id="accountState">Not signed in</div>
+  </div>
+
+  <div class="actionGrid">
+    <button data-module="viral"><span>◎</span><b>Analyze a Reel</b><small>Viral+</small></button>
+    <button data-module="edit"><span>◫</span><b>Create an Edit</b><small>Edit+</small></button>
+    <button data-module="clip"><span>✂</span><b>Generate Clips</b><small>Clip+</small></button>
+  </div>
+
+  <div class="appShell">
+    <aside class="side">
+      <button class="tab active" data-tab="viral">Viral+</button>
+      <button class="tab" data-tab="edit">Edit+</button>
+      <button class="tab" data-tab="clip">Clip+</button>
+      <div class="sideFoot"><span>Backend</span><b class="online">LIVE</b></div>
+    </aside>
+
+    <section class="workPanel">
+      <div class="pane active" data-pane="viral">
+        <div class="paneTitle"><div><small>VIRAL+</small><h3>Analyze your next Reel.</h3></div><span class="badge">REAL JOB</span></div>
+        <label class="uploadZone" id="viralDrop">
+          <input id="viralFile" type="file" accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm">
+          <div class="uploadIcon">＋</div><b id="viralFileName">Drop your video here</b><span>MP4 · MOV · WebM · resumable upload</span>
+        </label>
+        <div class="progressWrap hidden" id="uploadWrap"><div class="progress"><i id="uploadProgress"></i></div><small id="uploadText">0%</small></div>
+        <button class="primary wide" id="analyzeBtn" disabled>Analyze video</button>
+        <div id="viralResult" class="result hidden"></div>
+      </div>
+
+      <div class="pane" data-pane="edit">
+        <div class="paneTitle"><div><small>EDIT+</small><h3>Create an automatic edit.</h3></div><span class="badge">CODIE MODE</span></div>
+        <div class="selectedMedia" id="editMedia">Upload a video in Viral+ first, or use the same media here.</div>
+        <div class="controlsGrid">
+          <label>Style<select id="editStyle"><option value="codie">Codie</option><option value="creator_clean">Creator Clean</option><option value="business_viral">Business Viral</option><option value="podcast_authority">Podcast / Authority</option></select></label>
+          <label>Captions<select id="captionPreset"><option value="modern_bold">Modern Bold</option><option value="minimal">Minimal</option><option value="creator">Creator</option><option value="karaoke">Karaoke</option><option value="authority">Authority</option><option value="ugc">UGC</option></select></label>
+        </div>
+        <button class="primary wide" id="editBtn" disabled>Create edit</button>
+        <div id="editResult" class="result hidden"></div>
+      </div>
+
+      <div class="pane" data-pane="clip">
+        <div class="paneTitle"><div><small>CLIP+</small><h3>Turn long content into short-form.</h3></div><span class="badge">URL INGESTION</span></div>
+        <input class="field" id="clipUrl" placeholder="Paste YouTube, TikTok or Instagram URL">
+        <div class="rights"><input type="checkbox" id="rights"><label for="rights">I own this content or have permission to process it.</label></div>
+        <div class="controlsGrid"><label>Clips<select id="clipCount"><option>3</option><option selected>5</option><option>8</option></select></label><label>Captions<select id="clipCaption"><option value="modern_bold">Modern Bold</option><option value="minimal">Minimal</option><option value="creator">Creator</option></select></label></div>
+        <button class="primary wide" id="clipBtn">Generate clips</button>
+        <div id="clipResult" class="result hidden"></div>
+      </div>
+    </section>
+
+    <aside class="livePanel">
+      <small>LIVE BACKEND STATE</small>
+      <div><span>Media</span><b id="stateMedia">—</b></div>
+      <div><span>Job</span><b id="stateJob">—</b></div>
+      <div><span>Stage</span><b id="stateStage">—</b></div>
+      <div><span>Progress</span><b id="stateProgress">—</b></div>
+      <div class="jobLog" id="jobLog">No job running.</div>
+    </aside>
+  </div>
+</section>
+</main>
+
+<div class="modal hidden" id="authModal">
+  <div class="modalCard">
+    <button class="close" id="closeAuth">×</button>
+    <div class="brand modalBrand">VIRAL <span>STUDIO</span></div>
+    <h3 id="authTitle">Sign in</h3>
+    <p>Use a Viral Studio account to run the real backend.</p>
+    <div class="authTabs"><button class="active" data-authmode="login">Sign in</button><button data-authmode="signup">Create account</button></div>
+    <form id="authForm"><input class="field" id="email" type="email" placeholder="Email" required><input class="field" id="password" type="password" placeholder="Password" minlength="6" required><button class="primary wide" id="authSubmit">Sign in</button></form>
+    <small class="authMessage" id="authMessage"></small>
+  </div>
+</div>
+
+<div class="toast hidden" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tus-js-client@4.3.1/dist/tus.min.js"></script>
+<script src="./app.js?v=2"></script>
+</body>
+</html>
