@@ -354,6 +354,7 @@ async function generateJson({
           `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
           {
             method:'POST',
+            signal:AbortSignal.timeout(15000),
             headers:{
               'x-goog-api-key':geminiKey,
               'content-type':'application/json'
@@ -446,6 +447,7 @@ async function findOpenverseAsset(
       response=await fetch(
         'https://api.openverse.org/v1/images/?'+params.toString(),
         {
+          signal:AbortSignal.timeout(8000),
           headers:{
             'User-Agent':'ViralStudio-EditPlus/1.0',
             'Accept':'application/json'
@@ -600,7 +602,10 @@ async function findCommonsAsset(
 
     const r=await fetch(
       'https://commons.wikimedia.org/w/api.php?'+params.toString(),
-      {headers:{'User-Agent':'ViralStudio-EditPlus/1.0'}}
+      {
+        signal:AbortSignal.timeout(8000),
+        headers:{'User-Agent':'ViralStudio-EditPlus/1.0'}
+      }
     );
     if(!r.ok)continue;
 
@@ -702,6 +707,7 @@ async function validateBrollAsset({
   let imageBytes=null;
   try{
     const r=await fetch(asset.assetUrl,{
+      signal:AbortSignal.timeout(8000),
       headers:{
         'User-Agent':'ViralStudio-EditPlus/1.0',
         'Accept':'image/*'
@@ -744,6 +750,7 @@ RÈGLES STRICTES:
         `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(activeModel)}:generateContent`,
         {
           method:'POST',
+          signal:AbortSignal.timeout(15000),
           headers:{
             'x-goog-api-key':geminiKey,
             'content-type':'application/json'
