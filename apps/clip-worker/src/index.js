@@ -422,6 +422,7 @@ ${transcript}`;
           `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(candidateModel)}:generateContent`,
           {
             method:'POST',
+            signal:AbortSignal.timeout(25000),
             headers:{
               'x-goog-api-key':geminiKey,
               'content-type':'application/json'
