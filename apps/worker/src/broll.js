@@ -436,7 +436,7 @@ async function findOpenverseAsset(
     const params=new URLSearchParams({
       q:variant,
       license:'pdm,cc0,by',
-      page_size:'30',
+      page_size:'20',
       mature:'false',
       categories:'photograph'
     });
