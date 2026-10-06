@@ -90,7 +90,15 @@ async function processJob(job){
     const count=clampInt(payload.clip_count??project.requested_clip_count,5,1,10);
     const minSec=clampInt(payload.min_duration_sec??project.min_duration_sec,20,8,90);
     const maxSec=clampInt(payload.max_duration_sec??project.max_duration_sec,60,15,120);
-    const candidates=await selectCandidates({analysis,count,minSec,maxSec,geminiKey:process.env.GEMINI_API_KEY,model:process.env.GEMINI_MODEL||'gemini-3.8-flash'});
+    const candidates=await selectCandidates({
+      analysis,
+      count,
+      minSec,
+      maxSec,
+      geminiKey:process.env.GEMINI_API_KEY,
+      model:process.env.GEMINI_MODEL||'gemini-3.8-flash',
+      fallbackModel:process.env.GEMINI_FALLBACK_MODEL||'gemini-3.5-flash-lite'
+    });
     if(!candidates.length)throw tagged('NO_CLIPS_FOUND','Aucun passage exploitable détecté');
 
     await supabase.from('clip_projects').update({status:'rendering',updated_at:new Date().toISOString()}).eq('id',projectId);
@@ -275,34 +283,133 @@ function allowedSource(value){
   }catch{return false}
 }
 
-async function selectCandidates({analysis,count,minSec,maxSec,geminiKey,model}){
+async function selectCandidates({
+  analysis,
+  count,
+  minSec,
+  maxSec,
+  geminiKey,
+  model,
+  fallbackModel
+}){
   const words=analysis.transcript?.words||[];
   const duration=Math.max(0,Number(analysis.measurable?.durationSec||0));
   const transcript=compactTranscript(words,320000);
-  const prompt=`Tu es Clip+, un directeur éditorial spécialisé short-form.\n\nÀ partir de la transcription horodatée d'une vidéo longue, sélectionne les ${count} meilleurs passages autonomes à transformer en Reels/TikTok/Shorts.\nDurée de chaque clip: ${minSec} à ${maxSec} secondes.\nDurée source: ${duration.toFixed(1)} secondes.\n\nPriorités: hook immédiat, idée compréhensible sans contexte, tension/curiosité, valeur concrète, émotion ou opinion forte, fin naturelle, potentiel de partage. Évite les intros, sponsors, transitions molles, passages incomplets et doublons. Les clips ne doivent pas se chevaucher fortement.\n\nRetourne UNIQUEMENT un JSON valide: {"clips":[{"start_sec":0,"end_sec":35,"title":"","hook":"","rationale":"","viral_score":0}]}. viral_score est une heuristique 0-100, pas une promesse de vues.\n\nTRANSCRIPTION:\n${transcript}`;
-  const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,{method:'POST',headers:{'x-goog-api-key':geminiKey,'content-type':'application/json'},body:JSON.stringify({contents:[{role:'user',parts:[{text:prompt}]}],generationConfig:{responseMimeType:'application/json',temperature:.15}})});
-  if(!r.ok)throw new Error(`Gemini clips ${r.status}: ${(await r.text()).slice(0,500)}`);
-  const body=await r.json();
-  const text=(body.candidates||[]).flatMap(x=>x.content?.parts||[]).map(x=>x.text||'').join('').trim();
-  let parsed;try{parsed=JSON.parse(text.replace(/^```(?:json)?\s*/i,'').replace(/```$/,'').trim())}catch{parsed={clips:[]}}
+  const prompt=`Tu es Clip+, un directeur éditorial spécialisé short-form.
+
+À partir de la transcription horodatée d'une vidéo longue, sélectionne les ${count} meilleurs passages autonomes à transformer en Reels/TikTok/Shorts.
+Durée de chaque clip: ${minSec} à ${maxSec} secondes.
+Durée source: ${duration.toFixed(1)} secondes.
+
+Priorités: hook immédiat, idée compréhensible sans contexte, tension/curiosité, valeur concrète, émotion ou opinion forte, fin naturelle, potentiel de partage. Évite les intros, sponsors, transitions molles, passages incomplets et doublons. Les clips ne doivent pas se chevaucher fortement.
+
+Retourne UNIQUEMENT un JSON valide: {"clips":[{"start_sec":0,"end_sec":35,"title":"","hook":"","rationale":"","viral_score":0}]}. viral_score est une heuristique 0-100, pas une promesse de vues.
+
+TRANSCRIPTION:
+${transcript}`;
+
+  let parsed=null;
+  const models=[model,fallbackModel].filter((v,i,a)=>v&&a.indexOf(v)===i);
+  const errors=[];
+
+  for(const candidateModel of models){
+    for(let attempt=0;attempt<2;attempt++){
+      try{
+        const r=await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(candidateModel)}:generateContent`,
+          {
+            method:'POST',
+            headers:{
+              'x-goog-api-key':geminiKey,
+              'content-type':'application/json'
+            },
+            body:JSON.stringify({
+              contents:[{role:'user',parts:[{text:prompt}]}],
+              generationConfig:{
+                responseMimeType:'application/json',
+                temperature:.15
+              }
+            })
+          }
+        );
+
+        if(!r.ok){
+          const body=(await r.text()).slice(0,700);
+          const error=new Error(`Gemini clips ${r.status}: ${body}`);
+          error.status=r.status;
+          throw error;
+        }
+
+        const body=await r.json();
+        const rawText=(body.candidates||[])
+          .flatMap(x=>x.content?.parts||[])
+          .map(x=>x.text||'')
+          .join('')
+          .trim();
+
+        parsed=JSON.parse(
+          rawText
+            .replace(/^\`\`\`(?:json)?\s*/i,'')
+            .replace(/\`\`\`$/,'')
+            .trim()
+        );
+        break;
+      }catch(error){
+        errors.push(String(error?.message||error).slice(-700));
+        const status=Number(error?.status||0);
+        const transient=status===429||status===500||status===502||status===503||status===504;
+        if(!transient)break;
+        if(attempt===0)await sleep(1200);
+      }
+    }
+    if(parsed)break;
+  }
+
+  if(!parsed){
+    console.warn(JSON.stringify({
+      event:'clip_selection_fallback',
+      reason:errors.at(-1)||'gemini_unavailable'
+    }));
+    return fallbackCandidates(words,duration,count,minSec,maxSec)
+      .slice(0,count);
+  }
+
   const raw=Array.isArray(parsed.clips)?parsed.clips:[];
   const clean=[];
   for(const x of raw){
-    let start=Math.max(0,Number(x.start_sec)||0),end=Math.min(duration,Number(x.end_sec)||0);
+    let start=Math.max(0,Number(x.start_sec)||0);
+    let end=Math.min(duration,Number(x.end_sec)||0);
     if(end<=start)continue;
     if(end-start<minSec)end=Math.min(duration,start+minSec);
     if(end-start>maxSec)end=start+maxSec;
     if(end-start<Math.min(minSec,12))continue;
-    const item={start_sec:round(start,3),end_sec:round(end,3),title:String(x.title||'Clip '+(clean.length+1)).slice(0,140),hook:String(x.hook||'').slice(0,220),rationale:String(x.rationale||'').slice(0,500),viral_score:clampInt(x.viral_score,65,0,100)};
+
+    const item={
+      start_sec:round(start,3),
+      end_sec:round(end,3),
+      title:String(x.title||'Clip '+(clean.length+1)).slice(0,140),
+      hook:String(x.hook||'').slice(0,220),
+      rationale:String(x.rationale||'').slice(0,500),
+      viral_score:clampInt(x.viral_score,65,0,100)
+    };
+
     if(clean.some(y=>overlapRatio(item,y)>.5))continue;
-    clean.push(item);if(clean.length>=count)break;
+    clean.push(item);
+    if(clean.length>=count)break;
   }
+
   if(clean.length<count){
     for(const x of fallbackCandidates(words,duration,count,minSec,maxSec)){
-      if(!clean.some(y=>overlapRatio(x,y)>.5)){clean.push(x);if(clean.length>=count)break}
+      if(!clean.some(y=>overlapRatio(x,y)>.5)){
+        clean.push(x);
+        if(clean.length>=count)break;
+      }
     }
   }
-  return clean.sort((a,b)=>b.viral_score-a.viral_score).slice(0,count);
+
+  return clean
+    .sort((a,b)=>b.viral_score-a.viral_score)
+    .slice(0,count);
 }
 
 function compactTranscript(words,maxChars){
