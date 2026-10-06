@@ -8,7 +8,7 @@ import {pipeline} from 'node:stream/promises';
 import {spawn} from 'node:child_process';
 import {randomUUID} from 'node:crypto';
 import {createClient} from '@supabase/supabase-js';
-import {analyzeVideo} from './viral.js';
+import {analyzeVideo,extractMeasurableSignals} from './viral.js';
 
 const required=['SUPABASE_URL','SUPABASE_SERVICE_ROLE_KEY','GEMINI_API_KEY'];
 const missing=required.filter(k=>!process.env[k]);
@@ -78,12 +78,43 @@ async function processJob(job){
     if(sourceInfo.size>500*1024*1024)throw tagged('SOURCE_TOO_LARGE','La vidéo dépasse 500 Mo');
 
     await progress(job,'transcribing',18,'Transcription et compréhension de la vidéo');
-    const analysis=await analyzeVideo({
-      filePath:sourcePath,mimeType:imported.mimeType||'video/mp4',fileName:path.basename(sourcePath),geminiKey:process.env.GEMINI_API_KEY,
-      model:process.env.GEMINI_MODEL||'gemini-3.8-flash',fallbackModel:process.env.GEMINI_FALLBACK_MODEL||'gemini-3.5-flash-lite',
-      transcribeModel:process.env.GEMINI_TRANSCRIBE_MODEL||'gemini-3.5-transcribe',
-      onProgress:async(status,pct,stage)=>progress(job,status,Math.min(46,18+Math.round((Number(pct)||0)*.28)),stage)
-    });
+
+    let analysis=hasUpload
+      ?await loadReusableViralAnalysis({
+        sourceVideoId,
+        userId:job.user_id
+      })
+      :null;
+
+    if(analysis){
+      await progress(job,'analyzing',44,'Analyse Viral+ existante réutilisée');
+    }else{
+      try{
+        analysis=await analyzeVideo({
+          filePath:sourcePath,
+          mimeType:imported.mimeType||'video/mp4',
+          fileName:path.basename(sourcePath),
+          geminiKey:process.env.GEMINI_API_KEY,
+          model:process.env.GEMINI_MODEL||'gemini-3.8-flash',
+          fallbackModel:process.env.GEMINI_FALLBACK_MODEL||'gemini-3.5-flash-lite',
+          transcribeModel:process.env.GEMINI_TRANSCRIBE_MODEL||'gemini-3.5-transcribe',
+          onProgress:async(status,pct,stage)=>progress(
+            job,
+            status,
+            Math.min(46,18+Math.round((Number(pct)||0)*.28)),
+            stage
+          )
+        });
+      }catch(error){
+        console.warn(JSON.stringify({
+          event:'clip_analysis_local_fallback',
+          error:String(error?.message||error).slice(0,700)
+        }));
+        const measurable=await extractMeasurableSignals(sourcePath);
+        analysis=buildLocalClipAnalysis(measurable,error);
+        await progress(job,'analyzing',44,'Analyse locale de secours');
+      }
+    }
 
     await supabase.from('clip_projects').update({status:'analyzing',title:project.title||analysis.detected_title_text||null,updated_at:new Date().toISOString()}).eq('id',projectId);
     await progress(job,'analyzing',48,'Sélection IA des meilleurs moments');
@@ -283,6 +314,78 @@ function allowedSource(value){
   }catch{return false}
 }
 
+async function loadReusableViralAnalysis({
+  sourceVideoId,
+  userId
+}){
+  if(!isUuid(sourceVideoId))return null;
+  const {data,error}=await supabase
+    .from('viralplus_analyses')
+    .select('result_json,created_at')
+    .eq('video_id',sourceVideoId)
+    .eq('user_id',userId)
+    .order('created_at',{ascending:false})
+    .limit(1)
+    .maybeSingle();
+
+  if(error||!data?.result_json)return null;
+  const result=data.result_json;
+  if(!Number(result?.measurable?.durationSec||0))return null;
+  return result;
+}
+
+function buildLocalClipAnalysis(measurable,error){
+  const duration=Math.max(0,Number(measurable?.durationSec||0));
+  const sceneCuts=Array.isArray(measurable?.sceneCutsSec)?measurable.sceneCutsSec:[];
+  const silences=Array.isArray(measurable?.silenceWindows)?measurable.silenceWindows:[];
+  const slots=Math.min(10,Math.max(3,Math.ceil(duration/30)));
+  const timeline=[];
+
+  for(let i=0;i<slots;i++){
+    const start=duration*i/slots;
+    const end=Math.min(duration,duration*(i+1)/slots);
+    const cuts=sceneCuts.filter(x=>x>=start&&x<end).length;
+    const silence=silences.reduce((sum,s)=>{
+      const overlap=Math.max(
+        0,
+        Math.min(end,Number(s.end||0))-Math.max(start,Number(s.start||0))
+      );
+      return sum+overlap;
+    },0);
+    const span=Math.max(.001,end-start);
+    const speechRatio=Math.max(0,1-silence/span);
+    const score=Math.max(
+      35,
+      Math.min(78,Math.round(48+speechRatio*22+Math.min(10,cuts*2)))
+    );
+
+    timeline.push({
+      start_sec:round(start,3),
+      end_sec:round(end,3),
+      severity:score>=64?'green':'orange',
+      label:'Local activity window',
+      problem:'',
+      correction:'',
+      broll_query:'',
+      local_activity_score:score
+    });
+  }
+
+  return {
+    measurable,
+    transcript:{
+      text:'',
+      words:[],
+      captions:[],
+      error:String(error?.message||error).slice(0,500),
+      model:'local-fallback'
+    },
+    timeline,
+    detected_title_text:null,
+    analysis_basis:'local_audio_visual_fallback'
+  };
+}
+
 async function selectCandidates({
   analysis,
   count,
@@ -370,7 +473,7 @@ ${transcript}`;
       event:'clip_selection_fallback',
       reason:errors.at(-1)||'gemini_unavailable'
     }));
-    return fallbackCandidates(words,duration,count,minSec,maxSec)
+    return fallbackCandidates(words,duration,count,minSec,maxSec,analysis)
       .slice(0,count);
   }
 
@@ -399,7 +502,7 @@ ${transcript}`;
   }
 
   if(clean.length<count){
-    for(const x of fallbackCandidates(words,duration,count,minSec,maxSec)){
+    for(const x of fallbackCandidates(words,duration,count,minSec,maxSec,analysis)){
       if(!clean.some(y=>overlapRatio(x,y)>.5)){
         clean.push(x);
         if(clean.length>=count)break;
@@ -426,16 +529,63 @@ function compactTranscript(words,maxChars){
   return joined.slice(0,maxChars);
 }
 
-function fallbackCandidates(words,duration,count,minSec,maxSec){
-  const out=[],target=Math.min(maxSec,Math.max(minSec,45));
+function fallbackCandidates(words,duration,count,minSec,maxSec,analysis=null){
+  const out=[];
+  const target=Math.min(maxSec,Math.max(minSec,45));
+  const activity=Array.isArray(analysis?.timeline)
+    ?analysis.timeline
+      .map(x=>({
+        start:Number(x.start_sec)||0,
+        end:Number(x.end_sec)||0,
+        score:Number(x.local_activity_score)||0
+      }))
+      .filter(x=>x.end>x.start)
+      .sort((a,b)=>b.score-a.score)
+    :[];
+
+  for(const window of activity){
+    let start=Math.max(0,window.start);
+    let end=Math.min(
+      duration,
+      Math.max(
+        start+Math.min(minSec,Math.max(12,target*.6)),
+        Math.min(start+target,window.end||start+target)
+      )
+    );
+    if(end-start<Math.min(minSec,12))continue;
+
+    const item={
+      start_sec:round(start,3),
+      end_sec:round(end,3),
+      title:'Moment dynamique',
+      hook:'',
+      rationale:'Sélection locale basée sur activité visuelle et densité audio.',
+      viral_score:Math.max(45,Math.min(75,Math.round(window.score||55)))
+    };
+    if(!out.some(y=>overlapRatio(item,y)>.5))out.push(item);
+    if(out.length>=count)return out;
+  }
+
   for(let i=0;i<count;i++){
     const center=duration*((i+1)/(count+1));
-    let start=Math.max(0,center-target*.25),end=Math.min(duration,start+target);
-    const near=words.find(w=>Math.abs((Number(w.startMs)||0)/1000-start)<2);if(near)start=Math.max(0,(Number(near.startMs)||0)/1000);
+    let start=Math.max(0,center-target*.25);
+    let end=Math.min(duration,start+target);
+    const near=words.find(w=>Math.abs((Number(w.startMs)||0)/1000-start)<2);
+    if(near)start=Math.max(0,(Number(near.startMs)||0)/1000);
     end=Math.min(duration,start+target);
-    if(end-start>=12)out.push({start_sec:round(start,3),end_sec:round(end,3),title:`Moment fort ${i+1}`,hook:'',rationale:'Sélection de secours répartie sur la vidéo.',viral_score:55-i});
+    if(end-start>=12){
+      const item={
+        start_sec:round(start,3),
+        end_sec:round(end,3),
+        title:`Moment fort ${i+1}`,
+        hook:'',
+        rationale:'Sélection de secours répartie sur la vidéo.',
+        viral_score:55-i
+      };
+      if(!out.some(y=>overlapRatio(item,y)>.5))out.push(item);
+    }
   }
-  return out;
+  return out.slice(0,count);
 }
 
 function overlapRatio(a,b){const x=Math.max(0,Math.min(a.end_sec,b.end_sec)-Math.max(a.start_sec,b.start_sec));return x/Math.max(1,Math.min(a.end_sec-a.start_sec,b.end_sec-b.start_sec))}
