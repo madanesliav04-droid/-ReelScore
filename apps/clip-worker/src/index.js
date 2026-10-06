@@ -268,9 +268,11 @@ async function importSource(url,dir){
     '--merge-output-format','mp4',
     '--remux-video','mp4',
     '--print','after_move:filepath',
-    '--socket-timeout','20',
-    '--retries','3',
-    '--fragment-retries','3',
+    '--socket-timeout','25',
+    '--retries','4',
+    '--fragment-retries','4',
+    '--retry-sleep','http:linear=1::2:5',
+    '--impersonate','chrome',
     ...(proxy?['--proxy',proxy]:[])
   ];
 
@@ -299,16 +301,24 @@ async function importSource(url,dir){
       '-f','18/22/best[height<=720]/best'
     ],
     [
-      '--extractor-args','youtube:player_client=web_embedded',
-      '-f','18/22/best[height<=720]/best'
+      '--extractor-args','youtube:player_client=web_safari',
+      '-f','best[protocol^=m3u8][height<=1080]/best[protocol^=m3u8]/18/22/best[height<=720]/best'
     ],
     [
       '--extractor-args','youtube:player_client=android_vr',
       '-f','best[height<=720]/bestvideo[height<=720]+bestaudio/best'
     ],
     [
+      '--extractor-args','youtube:player_client=web_embedded',
+      '-f','18/22/best[height<=720]/best'
+    ],
+    [
+      '--extractor-args','youtube:player_client=tv',
+      '-f','best[height<=720]/bestvideo[height<=720]+bestaudio/best'
+    ],
+    [
       ...provider,
-      '--extractor-args','youtube:player_client=mweb,web_embedded,android_vr',
+      '--extractor-args','youtube:player_client=mweb,web_safari,web_embedded,android_vr',
       '-S','res:1080'
     ]
   ];
@@ -337,14 +347,42 @@ async function importSource(url,dir){
     failures.push('cobalt: '+String(error?.message||error).slice(-700));
   }
 
+  const availability=await probeYouTubeAvailability(url);
+  if(availability==='unavailable'){
+    throw tagged(
+      'YOUTUBE_UNAVAILABLE',
+      'Cette vidéo YouTube est privée, supprimée, restreinte ou indisponible.'
+    );
+  }
+
   const last=String(failures.at(-1)||'');
-  const blocked=/403|login|sign in|bot|po.?token/i.test(last);
+  const blocked=
+    availability==='available'||
+    /403|429|login|sign in|bot|po.?token|video unavailable|resolver/i.test(last);
+
   throw tagged(
     blocked?'YOUTUBE_EGRESS_REQUIRED':'YOUTUBE_IMPORT_FAILED',
     blocked
-      ?'YouTube bloque actuellement l’adresse réseau du serveur. Le moteur Clip+ est prêt pour un egress résidentiel configuré côté infrastructure.'
-      :'YouTube a refusé l’import automatique après plusieurs stratégies URL. '+last
+      ?'La vidéo est publique mais YouTube a refusé les routes d’import de ce worker. Une autre route réseau va être retentée automatiquement.'
+      :'L’import YouTube a échoué après toutes les stratégies disponibles.'
   );
+}
+
+async function probeYouTubeAvailability(url){
+  try{
+    const endpoint=
+      'https://www.youtube.com/oembed?format=json&url='+
+      encodeURIComponent(url);
+    const response=await fetch(endpoint,{
+      signal:AbortSignal.timeout(8000),
+      headers:{'user-agent':'Mozilla/5.0 ViralStudio/1.0'}
+    });
+    if(response.ok)return 'available';
+    if(response.status===404)return 'unavailable';
+    return 'unknown';
+  }catch{
+    return 'unknown';
+  }
 }
 
 async function importViaCobalt(url,dir){
@@ -814,7 +852,6 @@ async function fail(job,error){
   const retry=Number(job.retry_count||0)+1;
   const max=Number(job.max_retries??3);
   const permanentCodes=new Set([
-    'YOUTUBE_EGRESS_REQUIRED',
     'YOUTUBE_UNAVAILABLE',
     'SOURCE_TOO_LARGE',
     'SOURCE_MEDIA_NOT_FOUND',
