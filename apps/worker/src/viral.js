@@ -563,6 +563,7 @@ Règles:
 - start_sec/end_sec doivent pointer vers le passage réel quand la correction est temporelle; sinon utilise 0;
 - exact_change doit être formulé comme une instruction de montage ou réécriture immédiatement exécutable;
 - expected_effect décrit le problème éditorial corrigé, pas une promesse de vues;
+- n'utilise AUCUNE statistique externe, aucun pourcentage de comportement utilisateur et aucun fait non mesuré dans la vidéo; explique uniquement le mécanisme éditorial observable;
 - distingue ce qui est réellement visible/audible de ce qui est une estimation;
 - si un élément est absent ou impossible à lire, écris INDETECTABLE;
 - pour les hooks proposés, conserve le sens réel du contenu mais rends-les plus spécifiques;
