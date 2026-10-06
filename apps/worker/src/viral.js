@@ -109,6 +109,7 @@ export async function analyzeVideo({
       :[],
     score_evidence:semantic.score_evidence||{},
     confidence:semantic.confidence||{},
+    safe_zone:normalizeSafeZone(semantic.safe_zone,measurable),
     model_used:semantic.model_used||model,
     transcription_model:transcript.model,
     analysis_basis:'measured_signals_plus_word_timestamps_plus_multimodal_reasoning'
@@ -385,7 +386,8 @@ Schéma:
     }
   ],
   "action_items":["","",""],
-  "confidence":{"audio":0,"visual":0,"text":0}
+  "confidence":{"audio":0,"visual":0,"text":0},
+  "safe_zone":{"score":0,"framing":0,"text_safety":0,"caption_safety":0,"platform_fit":0,"summary":"","issues":[{"severity":"green","element":"face","problem":"","correction":"","x":0.5,"y":0.4}]}
 }
 
 Règles:
@@ -399,7 +401,12 @@ Règles:
 - distingue ce qui est réellement visible/audible de ce qui est une estimation;
 - si un élément est absent ou impossible à lire, écris INDETECTABLE;
 - pour les hooks proposés, conserve le sens réel du contenu mais rends-les plus spécifiques;
-- broll_query doit être vide si aucun B-roll n'est utile.`;
+- broll_query doit être vide si aucun B-roll n'est utile.
+- SAFE ZONE: évalue la composition pour une vidéo verticale short-form. Vérifie visage/sujet, hook texte, captions et CTA par rapport aux bords et aux zones d'interface usuelles Reels/TikTok/Shorts.
+- safe_zone est un diagnostic Universal Safe, pas une garantie pixel-perfect propre à une plateforme.
+- x et y sont des coordonnées normalisées 0..1 du centre de l'élément observé.
+- pénalise fortement tout visage, hook, caption ou CTA critique collé aux bords, tout texte très bas, toute information importante dans la colonne droite, et tout ratio non adapté au short-form.
+- si aucun texte/caption n'est visible, ne prétends pas en voir: indique-le clairement dans issues.`;
 
   let lastError;
   for(const model of [...new Set(models.filter(Boolean))]){
@@ -545,6 +552,18 @@ function normalizeScores(semantic,m){
     cta,
     originality
   };
+}
+
+function normalizeSafeZone(raw,m){
+  const z=raw&&typeof raw==='object'?raw:{};
+  const ratio=Number(m?.aspectRatio||0),target=9/16;
+  const ratioDistance=ratio>0?Math.abs(ratio-target)/target:1;
+  const technicalFit=clamp(100-Math.min(70,ratioDistance*120));
+  const framing=clamp(z.framing??60),textSafety=clamp(z.text_safety??65),captionSafety=clamp(z.caption_safety??65);
+  const platformFit=clamp(avg(z.platform_fit??technicalFit,technicalFit));
+  const score=clamp(avg(framing,textSafety,captionSafety,platformFit));
+  const issues=(Array.isArray(z.issues)?z.issues:[]).slice(0,8).map(x=>({severity:['green','orange','red'].includes(x?.severity)?x.severity:'orange',element:String(x?.element||'frame').slice(0,40),problem:String(x?.problem||'').slice(0,240),correction:String(x?.correction||'').slice(0,240),x:Math.max(0,Math.min(1,Number(x?.x)||0.5)),y:Math.max(0,Math.min(1,Number(x?.y)||0.5))}));
+  return {score,framing,text_safety:textSafety,caption_safety:captionSafety,platform_fit:platformFit,summary:String(z.summary||'').slice(0,500),issues,mode:'universal_safe',basis:'multimodal_composition_plus_aspect_ratio'};
 }
 
 function scoreFinal(scores){
