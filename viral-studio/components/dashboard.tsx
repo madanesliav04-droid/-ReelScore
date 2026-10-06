@@ -79,7 +79,7 @@ export function Dashboard(){
     upload.findPreviousUploads().then(previous=>{if(previous.length)upload.resumeFromPreviousUpload(previous[0]);upload.start()});
   }
 
-  async function watchJob(id:string, kind:"core"|"clip"="core"){
+  async function watchJob(id:string, kind:"core"|"clip"="core", clipProjectId?:string){
     if(pollRef.current)clearInterval(pollRef.current);
     const tick=async()=>{
       try{
@@ -90,7 +90,7 @@ export function Dashboard(){
           if(pollRef.current)clearInterval(pollRef.current);
           if(body.job.status==="completed" && body.job.kind==="viral_analysis"){
             const {data}=await supabase.from("viralplus_analyses").select("*").eq("job_id",id).maybeSingle();
-            if(data)setAnalysis(data.result_json||data);
+            if(data)setAnalysis(data.result_json?{...data.result_json,id:data.id,analysis_id:data.id}:data);
           }
           if(body.job.status==="completed" && body.job.kind==="clip_generate" && body.job.result?.clip_project_id){
             const detail=await api(functionUrl("clip-jobs",`projects/${body.job.result.clip_project_id}`),token);
@@ -125,7 +125,7 @@ export function Dashboard(){
     setError(""); setClipProject(null);
     try{
       const body=await api(functionUrl("clip-jobs","create"),token,{method:"POST",body:JSON.stringify({source_url:clipUrl.trim(),confirm_rights:true,clip_count:5,min_duration_sec:20,max_duration_sec:60,caption_preset:"modern_bold",add_captions:true})});
-      setJob(body.job); await watchJob(body.job.id,"clip");
+      setJob(body.job); setClipProject({project:body.project,clips:[]}); await watchJob(body.job.id,"clip",body.project.id);
     }catch(e:any){setError(e.message)}
   }
 
