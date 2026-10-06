@@ -70,7 +70,7 @@ box-shadow:0 35px 55px rgba(74,92,121,.26),inset 14px 18px 28px rgba(255,255,255
 <div class="shell">
 <header class="nav">
   <a class="brand" href="#home">VIRAL <span>STUDIO</span></a>
-  <nav class="navlinks"><a href="#system">System</a><a href="#module-explorer" data-product-link="viral">Viral+</a><a href="#module-explorer" data-product-link="edit">Edit+</a><a href="#module-explorer" data-product-link="clip">Clip+</a></nav>
+  <nav class="navlinks"><a href="#system">System</a><a href="viral-plus.html">Viral+</a><a href="edit-plus.html">Edit+</a><a href="clip-plus.html">Clip+</a></nav>
   <div class="navright"><span class="free-pill">FREE BETA · NO CARD</span><button class="ghost" id="authBtn">Sign in</button><button class="btn primary" id="startBtn">Open Studio ↗</button></div>
 </header>
 
@@ -87,9 +87,9 @@ box-shadow:0 35px 55px rgba(74,92,121,.26),inset 14px 18px 28px rgba(255,255,255
     <div class="motion-grid"></div>
     <div class="scan-beam"></div>
     <div class="signal-line sl1"></div><div class="signal-line sl2"></div><div class="signal-line sl3"></div>
-    <div class="orbit-badge ob1" data-product-link="viral"><span>◎</span><b>VIRAL+</b></div>
-    <div class="orbit-badge ob2" data-product-link="edit"><span>◫</span><b>EDIT+</b></div>
-    <div class="orbit-badge ob3" data-product-link="clip"><span>✂</span><b>CLIP+</b></div>
+    <a class="orbit-badge ob1" href="viral-plus.html"><span>◎</span><b>VIRAL+</b></a>
+    <a class="orbit-badge ob2" href="edit-plus.html"><span>◫</span><b>EDIT+</b></a>
+    <a class="orbit-badge ob3" href="clip-plus.html"><span>✂</span><b>CLIP+</b></a>
     <div class="hero-status"><small>SYSTEM STATUS</small><b id="heroStatusText">ANALYZING SIGNAL</b><i><em id="heroStatusBar"></em></i></div>
     <div class="halo"></div><div class="tickring"></div><div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div>
     <span class="spark s1"></span><span class="spark s2"></span><span class="spark s3"></span>
@@ -159,7 +159,7 @@ box-shadow:0 35px 55px rgba(74,92,121,.26),inset 14px 18px 28px rgba(255,255,255
           <div class="diagnostic-line dl3"><span>RHYTHM</span><i><b style="width:84%"></b></i><em>84</em></div>
           <div class="scan-dot"></div>
         </div>
-        <button class="btn primary product-open" data-open-tab="viral">Open Viral+ ↗</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><a class="ghost" href="viral-plus.html">Discover Viral+ →</a><button class="btn primary product-open" data-open-tab="viral">Open Viral+ ↗</button></div>
       </article>
 
       <article class="product-pane edit-pane" data-product-pane="edit">
@@ -177,7 +177,7 @@ box-shadow:0 35px 55px rgba(74,92,121,.26),inset 14px 18px 28px rgba(255,255,255
           <div class="edit-track"><i></i><i></i><i></i><i></i><i></i><div class="playhead"></div></div>
           <div class="edit-label el1">CUT</div><div class="edit-label el2">PUNCH</div><div class="edit-label el3">CAPTION</div>
         </div>
-        <button class="btn primary product-open" data-open-tab="edit">Open Edit+ ↗</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><a class="ghost" href="edit-plus.html">Discover Edit+ →</a><button class="btn primary product-open" data-open-tab="edit">Open Edit+ ↗</button></div>
       </article>
 
       <article class="product-pane clip-pane" data-product-pane="clip">
@@ -196,7 +196,7 @@ box-shadow:0 35px 55px rgba(74,92,121,.26),inset 14px 18px 28px rgba(255,255,255
           <div class="clip-window cw2"><small>CLIP 02</small><b>87</b><span>04:08 → 04:47</span></div>
           <div class="clip-window cw3"><small>CLIP 03</small><b>82</b><span>12:31 → 13:02</span></div>
         </div>
-        <button class="btn primary product-open" data-open-tab="clip">Open Clip+ ↗</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><a class="ghost" href="clip-plus.html">Discover Clip+ →</a><button class="btn primary product-open" data-open-tab="clip">Open Clip+ ↗</button></div>
       </article>
     </div>
   </div>
@@ -339,6 +339,13 @@ function initMotion(){
   const progress=()=>{const max=document.documentElement.scrollHeight-innerHeight;$("#scrollProgress").style.height=(max?scrollY/max*100:0)+"%";requestAnimationFrame(progress)};requestAnimationFrame(progress);
 }
 initMotion();
+(function openRequestedModule(){
+  const params=new URLSearchParams(location.search);
+  const requested=params.get("module");
+  if(["viral","edit","clip"].includes(requested)){
+    setTimeout(()=>setTab(requested),80);
+  }
+})();
 
 async function refreshSession(){
   const {data}=await client.auth.getSession();session=data.session;
