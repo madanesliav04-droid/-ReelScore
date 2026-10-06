@@ -242,6 +242,7 @@ async function importSource(url,dir){
   const host=new URL(url).hostname.toLowerCase().replace(/^www\./,'');
   const youtube=host==='youtu.be'||host.endsWith('youtube.com');
 
+  const proxy=String(process.env.YTDLP_PROXY_URL||'').trim();
   const common=[
     '--no-playlist',
     '--no-warnings',
@@ -252,7 +253,8 @@ async function importSource(url,dir){
     '--print','after_move:filepath',
     '--socket-timeout','20',
     '--retries','3',
-    '--fragment-retries','3'
+    '--fragment-retries','3',
+    ...(proxy?['--proxy',proxy]:[])
   ];
 
   if(!youtube){
@@ -318,9 +320,13 @@ async function importSource(url,dir){
     failures.push('cobalt: '+String(error?.message||error).slice(-700));
   }
 
+  const last=String(failures.at(-1)||'');
+  const blocked=/403|login|sign in|bot|po.?token/i.test(last);
   throw tagged(
-    'YOUTUBE_IMPORT_FAILED',
-    'YouTube a refusé l’import automatique après plusieurs stratégies URL. '+failures.at(-1)
+    blocked?'YOUTUBE_EGRESS_REQUIRED':'YOUTUBE_IMPORT_FAILED',
+    blocked
+      ?'YouTube bloque actuellement l’adresse réseau du serveur. Le moteur Clip+ est prêt pour un egress résidentiel configuré côté infrastructure.'
+      :'YouTube a refusé l’import automatique après plusieurs stratégies URL. '+last
   );
 }
 
