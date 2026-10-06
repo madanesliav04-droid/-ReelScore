@@ -116,6 +116,9 @@ async function recover(job){
 
 async function importSource(url,dir){
   const template=path.join(dir,'source.%(ext)s');
+  const host=new URL(url).hostname.toLowerCase().replace(/^www\./,'');
+  const youtube=host==='youtu.be'||host.endsWith('youtube.com');
+
   const args=[
     '--no-playlist',
     '--no-warnings',
@@ -123,18 +126,24 @@ async function importSource(url,dir){
     '--max-filesize','500M',
     '--merge-output-format','mp4',
     '--remux-video','mp4',
-    '-f','bv*[height<=1080]+ba/b[height<=1080]/b',
     '-o',template,
     '--print','after_move:filepath'
   ];
 
-  const host=new URL(url).hostname.toLowerCase().replace(/^www\./,'');
-  if(host==='youtu.be'||host.endsWith('youtube.com')){
+  if(youtube){
+    // YouTube 2026: prefer clients that can work from datacenter IPs,
+    // provide PO tokens for mweb, and let yt-dlp choose an available format.
     args.push(
       '--extractor-args',
       'youtubepot-bgutilscript:server_home=/opt/bgutil-ytdlp-pot-provider/server',
       '--extractor-args',
-      'youtube:player_client=mweb'
+      'youtube:player_client=mweb,web_embedded,android_vr',
+      '-S','res:1080'
+    );
+  }else{
+    args.push(
+      '-f',
+      'bv*[height<=1080]+ba/b[height<=1080]/b'
     );
   }
 
@@ -144,7 +153,6 @@ async function importSource(url,dir){
   if(!file)throw tagged('SOURCE_IMPORT_FAILED','Impossible de récupérer la vidéo');
   return file;
 }
-
 function allowedSource(value){
   try{
     const u=new URL(value);if(u.protocol!=='https:')return false;
