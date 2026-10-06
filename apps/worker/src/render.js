@@ -1,5 +1,5 @@
 import {createReadStream,createWriteStream} from 'node:fs';
-import {stat} from 'node:fs/promises';
+import {stat,copyFile} from 'node:fs/promises';
 import http from 'node:http';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -11,11 +11,23 @@ const here=path.dirname(fileURLToPath(import.meta.url));
 const entryPoint=path.resolve(here,'../remotion/index.jsx');
 let bundlePromise=null;
 
-export async function preprocessVideo({inputPath,outputPath,keepRanges,hasAudio=true,onProgress=async()=>{}}){
+export async function preprocessVideo({inputPath,outputPath,keepRanges,sourceDurationMs=null,hasAudio=true,onProgress=async()=>{}}){
   const ranges=(keepRanges||[]).filter(r=>r.endMs-r.startMs>=100).slice(0,80);
   if(!ranges.length)throw new Error('Aucun segment vidéo à conserver.');
 
   await onProgress(48,'Suppression des blancs et hésitations');
+
+  const fullSpan=
+    ranges.length===1&&
+    Number(ranges[0].startMs||0)<=80&&
+    Number(sourceDurationMs)>0&&
+    Number(ranges[0].endMs||0)>=Number(sourceDurationMs)-150;
+
+  if(fullSpan){
+    await copyFile(inputPath,outputPath);
+    await onProgress(54,'Vidéo déjà optimisée · copie directe');
+    return;
+  }
 
   const filters=[];
   const concatInputs=[];
@@ -43,7 +55,7 @@ export async function preprocessVideo({inputPath,outputPath,keepRanges,hasAudio=
   ];
   if(hasAudio)args.push('-map','[outa]');
   args.push(
-    '-c:v','libx264','-preset','veryfast','-crf','20','-pix_fmt','yuv420p',
+    '-c:v','libx264','-preset','ultrafast','-crf','20','-pix_fmt','yuv420p','-threads','1',
     ...(hasAudio?['-c:a','aac','-b:a','160k']:[]),
     '-movflags','+faststart',outputPath
   );
@@ -54,7 +66,7 @@ export async function finalEncode({inputPath,outputPath,onProgress=async()=>{}})
   await onProgress(94,'Encodage final');
   await run('ffmpeg',[
     '-hide_banner','-loglevel','error','-y','-i',inputPath,
-    '-c:v','libx264','-preset','medium','-crf','19','-pix_fmt','yuv420p',
+    '-c:v','libx264','-preset','veryfast','-crf','19','-pix_fmt','yuv420p','-threads','1',
     '-c:a','aac','-b:a','192k','-movflags','+faststart',
     outputPath
   ]);
@@ -166,7 +178,7 @@ function run(cmd,args){
     let err='';
     p.stderr.on('data',d=>err+=d);
     p.on('error',reject);
-    p.on('close',code=>code===0?resolve():reject(new Error(`${cmd} exited ${code}: ${err.slice(-2000)}`)));
+    p.on('close',(code,signal)=>code===0?resolve():reject(new Error(`${cmd} exited ${code??'null'}${signal?` (signal ${signal})`:''}: ${err.slice(-2000)}`)));
   });
 }
 

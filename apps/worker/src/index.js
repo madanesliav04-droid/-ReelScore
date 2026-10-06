@@ -464,6 +464,10 @@ async function runEdit(job,media,sourcePath,dir){
     inputPath:sourcePath,
     outputPath:preparedPath,
     keepRanges:timeline.keepRanges,
+    sourceDurationMs:
+      Number(media.duration_ms)||
+      Math.round(Number(analysis?.measurable?.durationSec||0)*1000)||
+      null,
     hasAudio:Boolean(analysis?.measurable?.audioCodec),
     onProgress:(pct,stage)=>
       progress(job,'processing',pct,stage)
