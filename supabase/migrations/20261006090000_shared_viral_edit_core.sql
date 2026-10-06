@@ -350,3 +350,116 @@ revoke all on public.analysis_jobs from anon, authenticated;
 revoke all on public.edit_jobs from anon, authenticated;
 grant select on public.analysis_jobs to authenticated;
 grant select on public.edit_jobs to authenticated;
+
+
+-- Authenticated control-plane helper used by the web client.
+-- It is idempotent on (user_id, idempotency_key), verifies media ownership,
+-- and reserves one current beta analysis credit only when creating a NEW Viral+ job.
+create or replace function public.create_processing_job(
+  p_kind text,
+  p_video_id uuid,
+  p_payload jsonb default '{}'::jsonb,
+  p_idempotency_key text default null
+)
+returns setof public.processing_jobs
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  uid uuid := auth.uid();
+  existing_job public.processing_jobs%rowtype;
+  created_job public.processing_jobs%rowtype;
+  entitlement record;
+  merged_payload jsonb := coalesce(p_payload,'{}'::jsonb);
+begin
+  if uid is null then
+    raise exception 'not_authenticated';
+  end if;
+
+  if p_kind not in ('viral_analysis','edit_render') then
+    raise exception 'invalid_job_kind';
+  end if;
+
+  if not exists (
+    select 1
+    from public.media_assets m
+    where m.id = p_video_id
+      and m.user_id = uid
+      and m.deleted_at is null
+      and m.status in ('uploaded','ready')
+  ) then
+    raise exception 'media_not_found';
+  end if;
+
+  if p_idempotency_key is not null then
+    select *
+      into existing_job
+    from public.processing_jobs j
+    where j.user_id = uid
+      and j.idempotency_key = p_idempotency_key
+    limit 1;
+
+    if found then
+      return next existing_job;
+      return;
+    end if;
+  end if;
+
+  if p_kind = 'viral_analysis' then
+    select *
+      into entitlement
+    from public.viralplus_consume_credit()
+    limit 1;
+
+    if entitlement.allowed is distinct from true then
+      raise exception 'quota_exhausted';
+    end if;
+
+    merged_payload := merged_payload || jsonb_build_object(
+      'credit_reserved', true,
+      'credit_source', 'viralplus_beta_monthly'
+    );
+  end if;
+
+  begin
+    insert into public.processing_jobs(
+      user_id,kind,video_id,status,progress,stage,
+      idempotency_key,payload
+    )
+    values(
+      uid,p_kind,p_video_id,'queued',0,'queued',
+      p_idempotency_key,merged_payload
+    )
+    returning * into created_job;
+  exception
+    when unique_violation then
+      if p_idempotency_key is null then
+        raise;
+      end if;
+
+      select *
+        into created_job
+      from public.processing_jobs j
+      where j.user_id = uid
+        and j.idempotency_key = p_idempotency_key
+      limit 1;
+  end;
+
+  if created_job.id is null then
+    raise exception 'job_creation_failed';
+  end if;
+
+  insert into public.job_events(job_id,user_id,status,progress,message,details)
+  values(
+    created_job.id,uid,'queued',0,'Job queued',
+    jsonb_build_object('kind',p_kind)
+  )
+  on conflict do nothing;
+
+  return next created_job;
+end;
+$$;
+
+revoke all on function public.create_processing_job(text,uuid,jsonb,text) from public, anon;
+grant execute on function public.create_processing_job(text,uuid,jsonb,text) to authenticated;
