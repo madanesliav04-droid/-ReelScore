@@ -9,6 +9,7 @@ import {randomUUID} from 'node:crypto';
 import {createClient} from '@supabase/supabase-js';
 import {analyzeVideo} from './viral.js';
 import {buildEditTimeline} from './edit.js';
+import {planContextualBroll} from './broll.js';
 import {
   preprocessVideo,
   renderNativeEdit,
@@ -407,14 +408,52 @@ async function runEdit(job,media,sourcePath,dir){
     'Construction de la timeline Edit+'
   );
 
+  const selectedStyle=
+    payload.style||
+    project.style||
+    'creator_clean';
+  const selectedFormat=
+    payload.settings?.format||
+    project.settings?.format||
+    'native';
+
   const timeline=buildEditTimeline({
     analysis,
-    style:payload.style||project.style||'creator_clean',
+    style:selectedStyle,
     captionPreset:
       payload.caption_preset||
       project.caption_preset||
+      null,
+    format:selectedFormat,
+    sourceWidth:
+      Number(media.width)||
+      Number(analysis?.measurable?.width)||
+      null,
+    sourceHeight:
+      Number(media.height)||
+      Number(analysis?.measurable?.height)||
       null
   });
+
+  await progress(
+    job,
+    'planning',
+    44,
+    'Recherche de B-roll contextuel'
+  );
+
+  timeline.brollCues=
+    await planContextualBroll({
+      timeline,
+      style:selectedStyle,
+      geminiKey:process.env.GEMINI_API_KEY,
+      model:
+        process.env.GEMINI_MODEL||
+        'gemini-3.8-flash',
+      fallbackModel:
+        process.env.GEMINI_FALLBACK_MODEL||
+        'gemini-3.5-flash-lite'
+    });
 
   const {error:timelineError}=await supabase
     .from('edit_timelines')
@@ -424,7 +463,7 @@ async function runEdit(job,media,sourcePath,dir){
       version:1,
       duration_ms:timeline.outputDurationMs,
       timeline_json:timeline,
-      decision_model:'editplus-timeline-v1'
+      decision_model:'editplus-timeline-v2-contextual'
     },{
       onConflict:'project_id,version'
     });
@@ -529,8 +568,8 @@ async function runEdit(job,media,sourcePath,dir){
       mime_type:'video/mp4',
       size_bytes:sizeBytes,
       duration_ms:timeline.outputDurationMs,
-      width:1080,
-      height:1920,
+      width:timeline.export.width,
+      height:timeline.export.height,
       status:'ready',
       metadata:{
         source_video_id:job.video_id,
@@ -538,7 +577,16 @@ async function runEdit(job,media,sourcePath,dir){
         job_id:job.id,
         style:timeline.style,
         caption_preset:timeline.captionPreset,
-        engine:timeline.engine
+        engine:timeline.engine,
+        format:timeline.format,
+        broll_count:timeline.brollCues?.length||0,
+        broll_sources:(timeline.brollCues||[]).map(x=>({
+          provider:x.provider||null,
+          source_page:x.sourcePage||null,
+          license:x.license||null,
+          artist:x.artist||null,
+          query:x.query||null
+        }))
       }
     },{
       onConflict:'storage_bucket,storage_path'
@@ -560,7 +608,7 @@ async function runEdit(job,media,sourcePath,dir){
       job_id:job.id,
       user_id:job.user_id,
       output_video_id:outputAsset.id,
-      preset:'1080x1920',
+      preset:`${timeline.export.width}x${timeline.export.height}`,
       status:'ready'
     },{
       onConflict:'job_id'
@@ -592,7 +640,9 @@ async function runEdit(job,media,sourcePath,dir){
       output_video_id:outputAsset.id,
       duration_ms:timeline.outputDurationMs,
       style:timeline.style,
-      caption_preset:timeline.captionPreset
+      caption_preset:timeline.captionPreset,
+      format:timeline.format,
+      broll_count:timeline.brollCues?.length||0
     },
     outputAsset.id
   );

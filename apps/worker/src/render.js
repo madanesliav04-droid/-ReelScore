@@ -1,4 +1,10 @@
-import {copyFile,mkdir,rm,stat,writeFile} from 'node:fs/promises';
+import {
+  copyFile,
+  mkdir,
+  rm,
+  stat,
+  writeFile
+} from 'node:fs/promises';
 import {spawn} from 'node:child_process';
 
 export async function preprocessVideo({
@@ -10,22 +16,40 @@ export async function preprocessVideo({
   onProgress=async()=>{}
 }){
   const ranges=(keepRanges||[])
-    .filter(r=>Number(r.endMs)-Number(r.startMs)>=100)
+    .filter(
+      r=>
+        Number(r.endMs)-
+        Number(r.startMs)>=100
+    )
     .slice(0,80);
 
-  if(!ranges.length)throw new Error('Aucun segment vidéo à conserver.');
+  if(!ranges.length){
+    throw new Error(
+      'Aucun segment vidéo à conserver.'
+    );
+  }
 
-  await onProgress(48,'Suppression des blancs et hésitations');
+  await onProgress(
+    48,
+    'Suppression des blancs et hésitations'
+  );
 
   const fullSpan=
     ranges.length===1&&
     Number(ranges[0].startMs||0)<=80&&
     Number(sourceDurationMs)>0&&
-    Number(ranges[0].endMs||0)>=Number(sourceDurationMs)-150;
+    Number(ranges[0].endMs||0)>=
+      Number(sourceDurationMs)-150;
 
   if(fullSpan){
-    await copyFile(inputPath,outputPath);
-    await onProgress(54,'Vidéo déjà optimisée · copie directe');
+    await copyFile(
+      inputPath,
+      outputPath
+    );
+    await onProgress(
+      54,
+      'Vidéo déjà optimisée · copie directe'
+    );
     return;
   }
 
@@ -34,52 +58,109 @@ export async function preprocessVideo({
   const parts=[];
 
   try{
-    for(let i=0;i<ranges.length;i++){
+    for(
+      let i=0;
+      i<ranges.length;
+      i++
+    ){
       const r=ranges[i];
-      const start=Math.max(0,Number(r.startMs||0)/1000);
-      const duration=Math.max(.1,(Number(r.endMs||0)-Number(r.startMs||0))/1000);
-      const part=partsDir+'/part-'+String(i).padStart(3,'0')+'.mp4';
+      const start=Math.max(
+        0,
+        Number(r.startMs||0)/1000
+      );
+      const duration=Math.max(
+        .1,
+        (
+          Number(r.endMs||0)-
+          Number(r.startMs||0)
+        )/1000
+      );
+      const part=
+        partsDir+
+        '/part-'+
+        String(i).padStart(3,'0')+
+        '.mp4';
+
       const args=[
-        '-hide_banner','-loglevel','error','-y',
+        '-hide_banner',
+        '-loglevel','error',
+        '-y',
         '-ss',start.toFixed(3),
         '-t',duration.toFixed(3),
         '-i',inputPath,
         '-map','0:v:0'
       ];
-      if(hasAudio)args.push('-map','0:a:0?');
+
+      if(hasAudio){
+        args.push('-map','0:a:0?');
+      }
+
       args.push(
         '-c:v','libx264',
         '-preset','ultrafast',
         '-crf','20',
         '-pix_fmt','yuv420p',
         '-threads','1',
-        ...(hasAudio?['-c:a','aac','-b:a','160k']:['-an']),
+        ...(hasAudio
+          ?[
+            '-c:a','aac',
+            '-b:a','160k'
+          ]
+          :['-an']),
         '-movflags','+faststart',
         part
       );
+
       await run('ffmpeg',args);
       parts.push(part);
+
       await onProgress(
-        48+Math.round(((i+1)/ranges.length)*6),
+        48+
+        Math.round(
+          ((i+1)/ranges.length)*6
+        ),
         'Découpe intelligente'
       );
     }
 
-    const listPath=partsDir+'/concat.txt';
+    const listPath=
+      partsDir+'/concat.txt';
+
     await writeFile(
       listPath,
-      parts.map(p=>"file '"+escapeConcatPath(p)+"'").join('\n'),
+      parts
+        .map(
+          p=>
+            "file '"+
+            escapeConcatPath(p)+
+            "'"
+        )
+        .join('\n'),
       'utf8'
     );
 
-    await run('ffmpeg',[
-      '-hide_banner','-loglevel','error','-y',
-      '-f','concat','-safe','0','-i',listPath,
-      '-c','copy','-movflags','+faststart',
-      outputPath
-    ]);
+    await run(
+      'ffmpeg',
+      [
+        '-hide_banner',
+        '-loglevel','error',
+        '-y',
+        '-f','concat',
+        '-safe','0',
+        '-i',listPath,
+        '-c','copy',
+        '-movflags','+faststart',
+        outputPath
+      ]
+    );
   }finally{
-    await rm(partsDir,{recursive:true,force:true}).catch(()=>{});
+    await rm(
+      partsDir,
+      {
+        recursive:true,
+        force:true
+      }
+    ).catch(()=>{});
   }
 }
 
@@ -90,98 +171,207 @@ export async function renderNativeEdit({
   timeline,
   onProgress=async()=>{}
 }){
-  await onProgress(58,'Préparation du rendu Edit+');
+  await onProgress(
+    58,
+    'Préparation du rendu Edit+'
+  );
 
-  const width=Math.max(2,Number(timeline?.export?.width||timeline?.width||1080));
-  const height=Math.max(2,Number(timeline?.export?.height||timeline?.height||1920));
-  const totalMs=Math.max(1,Number(durationMs||timeline?.outputDurationMs||1000));
-  const hasAudio=Boolean(timeline?.audio!==false);
-  const punchIns=normalizePunchIns(timeline?.punchIns,totalMs);
-  const segments=buildVisualSegments(totalMs,punchIns);
-  const workDir=outputPath+'.native';
-  await mkdir(workDir,{recursive:true});
+  const width=Math.max(
+    2,
+    Number(
+      timeline?.export?.width||
+      timeline?.width||
+      1080
+    )
+  );
+  const height=Math.max(
+    2,
+    Number(
+      timeline?.export?.height||
+      timeline?.height||
+      1920
+    )
+  );
+  const totalMs=Math.max(
+    1,
+    Number(
+      durationMs||
+      timeline?.outputDurationMs||
+      1000
+    )
+  );
+  const hasAudio=Boolean(
+    timeline?.audio?.hasAudio
+  );
 
-  let visualSource=sourcePath;
+  const punchIns=normalizePunchIns(
+    timeline?.punchIns,
+    totalMs
+  );
+  const brollCues=
+    normalizeBrollCues(
+      timeline?.brollCues,
+      totalMs
+    );
+
+  const workDir=
+    outputPath+'.native';
+
+  await mkdir(
+    workDir,
+    {recursive:true}
+  );
 
   try{
-    if(segments.some(s=>s.scale>1.001)){
-      const parts=[];
-      for(let i=0;i<segments.length;i++){
-        const seg=segments[i];
-        const part=workDir+'/visual-'+String(i).padStart(3,'0')+'.mp4';
-        const duration=(seg.endMs-seg.startMs)/1000;
-        const filter=visualFilter(width,height,seg.scale);
-
-        const args=[
-          '-hide_banner','-loglevel','error','-y',
-          '-ss',(seg.startMs/1000).toFixed(3),
-          '-t',duration.toFixed(3),
-          '-i',sourcePath,
-          '-map','0:v:0',
-          '-vf',filter,
-          '-c:v','libx264',
-          '-preset','ultrafast',
-          '-crf','19',
-          '-pix_fmt','yuv420p',
-          '-threads','1'
-        ];
-
-        if(hasAudio){
-          args.push('-map','0:a:0?','-c:a','aac','-b:a','160k');
-        }else{
-          args.push('-an');
-        }
-
-        args.push('-movflags','+faststart',part);
-        await run('ffmpeg',args);
-        parts.push(part);
-
-        await onProgress(
-          60+Math.round(((i+1)/segments.length)*14),
-          'Punch-ins et cadrage'
-        );
-      }
-
-      const listPath=workDir+'/visual-concat.txt';
-      await writeFile(
-        listPath,
-        parts.map(p=>"file '"+escapeConcatPath(p)+"'").join('\n'),
-        'utf8'
+    const localBroll=
+      await materializeBroll(
+        brollCues,
+        workDir
       );
 
-      visualSource=workDir+'/visual-concat.mp4';
-      await run('ffmpeg',[
-        '-hide_banner','-loglevel','error','-y',
-        '-f','concat','-safe','0','-i',listPath,
-        '-c','copy','-movflags','+faststart',
-        visualSource
-      ]);
+    const segments=
+      buildVisualSegments(
+        totalMs,
+        punchIns,
+        localBroll
+      );
+
+    const parts=[];
+
+    for(
+      let i=0;
+      i<segments.length;
+      i++
+    ){
+      const seg=segments[i];
+      const part=
+        workDir+
+        '/visual-'+
+        String(i).padStart(3,'0')+
+        '.mp4';
+
+      if(seg.broll?.localPath){
+        await renderBrollSegment({
+          sourcePath,
+          imagePath:
+            seg.broll.localPath,
+          outputPath:part,
+          startMs:seg.startMs,
+          endMs:seg.endMs,
+          width,
+          height,
+          hasAudio
+        });
+      }else{
+        await renderSourceSegment({
+          sourcePath,
+          outputPath:part,
+          startMs:seg.startMs,
+          endMs:seg.endMs,
+          width,
+          height,
+          scale:seg.scale,
+          hasAudio
+        });
+      }
+
+      parts.push(part);
+
+      await onProgress(
+        60+
+        Math.round(
+          ((i+1)/
+          Math.max(1,segments.length))*
+          16
+        ),
+        seg.broll
+          ?'B-roll contextuel'
+          :'Cadrage et punch-ins'
+      );
     }
 
-    const assPath=workDir+'/captions.ass';
-    const hasCaptions=Array.isArray(timeline?.captions)&&timeline.captions.length>0;
+    const listPath=
+      workDir+
+      '/visual-concat.txt';
+
+    await writeFile(
+      listPath,
+      parts
+        .map(
+          p=>
+            "file '"+
+            escapeConcatPath(p)+
+            "'"
+        )
+        .join('\n'),
+      'utf8'
+    );
+
+    const visualSource=
+      workDir+
+      '/visual-concat.mp4';
+
+    await run(
+      'ffmpeg',
+      [
+        '-hide_banner',
+        '-loglevel','error',
+        '-y',
+        '-f','concat',
+        '-safe','0',
+        '-i',listPath,
+        '-c','copy',
+        '-movflags','+faststart',
+        visualSource
+      ]
+    );
+
+    const assPath=
+      workDir+
+      '/captions.ass';
+
+    const hasCaptions=
+      Array.isArray(
+        timeline?.captions
+      )&&
+      timeline.captions.length>0;
 
     if(hasCaptions){
       await writeFile(
         assPath,
-        buildAss(timeline,width,height),
+        buildAss(
+          timeline,
+          width,
+          height
+        ),
         'utf8'
       );
     }
 
-    await onProgress(78,'Sous-titres et finition');
+    await onProgress(
+      78,
+      'Sous-titres et finition'
+    );
 
     const args=[
-      '-hide_banner','-loglevel','error','-y',
+      '-hide_banner',
+      '-loglevel','error',
+      '-y',
       '-i',visualSource
     ];
 
     if(hasCaptions){
-      args.push('-vf',`ass=${escapeFilterPath(assPath)}`);
+      args.push(
+        '-vf',
+        `ass=${escapeFilterPath(assPath)}`
+      );
     }
 
     if(hasAudio){
-      args.push('-af','loudnorm=I=-14:TP=-1:LRA=11');
+      args.push(
+        '-af',
+        'loudnorm=I=-14:TP=-1:LRA=11'
+      );
     }
 
     args.push(
@@ -190,16 +380,465 @@ export async function renderNativeEdit({
       '-crf','19',
       '-pix_fmt','yuv420p',
       '-threads','1',
-      ...(hasAudio?['-c:a','aac','-b:a','192k']:['-an']),
+      ...(hasAudio
+        ?[
+          '-c:a','aac',
+          '-b:a','192k'
+        ]
+        :['-an']),
       '-movflags','+faststart',
       outputPath
     );
 
     await run('ffmpeg',args);
-    await onProgress(92,'Rendu Edit+ terminé');
+
+    await onProgress(
+      92,
+      'Rendu Edit+ terminé'
+    );
   }finally{
-    await rm(workDir,{recursive:true,force:true}).catch(()=>{});
+    await rm(
+      workDir,
+      {
+        recursive:true,
+        force:true
+      }
+    ).catch(()=>{});
   }
+}
+
+async function renderSourceSegment({
+  sourcePath,
+  outputPath,
+  startMs,
+  endMs,
+  width,
+  height,
+  scale=1,
+  hasAudio
+}){
+  const startSec=
+    Math.max(0,startMs/1000);
+  const duration=
+    Math.max(.05,(endMs-startMs)/1000);
+
+  const args=[
+    '-hide_banner',
+    '-loglevel','error',
+    '-y',
+    '-ss',startSec.toFixed(3),
+    '-t',duration.toFixed(3),
+    '-i',sourcePath,
+    '-map','0:v:0'
+  ];
+
+  if(hasAudio){
+    args.push('-map','0:a:0?');
+  }
+
+  args.push(
+    '-vf',
+    coverFilter(
+      width,
+      height,
+      scale
+    ),
+    '-r','30',
+    '-c:v','libx264',
+    '-preset','ultrafast',
+    '-crf','19',
+    '-pix_fmt','yuv420p',
+    '-threads','1',
+    ...(hasAudio
+      ?[
+        '-c:a','aac',
+        '-b:a','160k'
+      ]
+      :['-an']),
+    '-movflags','+faststart',
+    outputPath
+  );
+
+  await run('ffmpeg',args);
+}
+
+async function renderBrollSegment({
+  sourcePath,
+  imagePath,
+  outputPath,
+  startMs,
+  endMs,
+  width,
+  height,
+  hasAudio
+}){
+  const startSec=
+    Math.max(0,startMs/1000);
+  const duration=
+    Math.max(.05,(endMs-startMs)/1000);
+
+  const args=[
+    '-hide_banner',
+    '-loglevel','error',
+    '-y',
+    '-loop','1',
+    '-framerate','30',
+    '-i',imagePath,
+    '-ss',startSec.toFixed(3),
+    '-i',sourcePath,
+    '-map','0:v:0'
+  ];
+
+  if(hasAudio){
+    args.push('-map','1:a:0?');
+  }
+
+  args.push(
+    '-t',duration.toFixed(3),
+    '-vf',
+    coverFilter(
+      width,
+      height,
+      1.04
+    ),
+    '-r','30',
+    '-c:v','libx264',
+    '-preset','ultrafast',
+    '-crf','18',
+    '-pix_fmt','yuv420p',
+    '-threads','1',
+    ...(hasAudio
+      ?[
+        '-c:a','aac',
+        '-b:a','160k'
+      ]
+      :['-an']),
+    '-movflags','+faststart',
+    outputPath
+  );
+
+  await run('ffmpeg',args);
+}
+
+async function materializeBroll(
+  cues,
+  workDir
+){
+  const out=[];
+
+  for(
+    let i=0;
+    i<cues.length;
+    i++
+  ){
+    const cue=cues[i];
+    try{
+      const u=
+        new URL(cue.assetUrl);
+
+      if(
+        u.protocol!=='https:'||
+        u.hostname!==
+          'upload.wikimedia.org'
+      )continue;
+
+      const r=await fetch(
+        u.toString(),
+        {
+          headers:{
+            'User-Agent':
+              'ViralStudio-EditPlus/1.0'
+          }
+        }
+      );
+
+      if(!r.ok)continue;
+
+      const length=Number(
+        r.headers.get(
+          'content-length'
+        )||0
+      );
+      if(length>20*1024*1024){
+        continue;
+      }
+
+      const bytes=
+        Buffer.from(
+          await r.arrayBuffer()
+        );
+
+      if(
+        bytes.length<1000||
+        bytes.length>
+          20*1024*1024
+      )continue;
+
+      const ext=
+        cue.mimeType===
+          'image/png'
+          ?'.png'
+          :cue.mimeType===
+            'image/webp'
+            ?'.webp'
+            :'.jpg';
+
+      const localPath=
+        workDir+
+        '/broll-'+
+        i+
+        ext;
+
+      await writeFile(
+        localPath,
+        bytes
+      );
+
+      out.push({
+        ...cue,
+        localPath
+      });
+    }catch{}
+  }
+
+  return out;
+}
+
+function normalizePunchIns(
+  items,
+  durationMs
+){
+  return (
+    Array.isArray(items)
+      ?items
+      :[]
+  )
+    .map(x=>({
+      startMs:Math.max(
+        0,
+        Math.min(
+          durationMs,
+          Number(x.startMs)||0
+        )
+      ),
+      endMs:Math.max(
+        0,
+        Math.min(
+          durationMs,
+          Number(x.endMs)||0
+        )
+      ),
+      scale:Math.max(
+        1,
+        Math.min(
+          1.2,
+          Number(x.scale)||1.08
+        )
+      )
+    }))
+    .filter(
+      x=>
+        x.endMs-
+        x.startMs>=120
+    )
+    .sort(
+      (a,b)=>
+        a.startMs-b.startMs
+    );
+}
+
+function normalizeBrollCues(
+  items,
+  durationMs
+){
+  return (
+    Array.isArray(items)
+      ?items
+      :[]
+  )
+    .map((x,index)=>({
+      ...x,
+      id:
+        x.id||
+        `broll-${index}`,
+      startMs:Math.max(
+        0,
+        Math.min(
+          durationMs,
+          Number(x.startMs)||0
+        )
+      ),
+      endMs:Math.max(
+        0,
+        Math.min(
+          durationMs,
+          Number(x.endMs)||0
+        )
+      )
+    }))
+    .filter(
+      x=>
+        x.assetUrl&&
+        x.endMs-
+        x.startMs>=500
+    )
+    .sort(
+      (a,b)=>
+        a.startMs-b.startMs
+    );
+}
+
+function buildVisualSegments(
+  durationMs,
+  punchIns,
+  brollCues
+){
+  const points=
+    new Set([0,durationMs]);
+
+  for(const p of punchIns){
+    points.add(
+      Math.round(p.startMs)
+    );
+    points.add(
+      Math.round(p.endMs)
+    );
+  }
+
+  for(const b of brollCues){
+    points.add(
+      Math.round(b.startMs)
+    );
+    points.add(
+      Math.round(b.endMs)
+    );
+  }
+
+  const ordered=[
+    ...points
+  ]
+    .filter(
+      x=>
+        Number.isFinite(x)&&
+        x>=0&&
+        x<=durationMs
+    )
+    .sort((a,b)=>a-b);
+
+  const out=[];
+
+  for(
+    let i=0;
+    i<ordered.length-1;
+    i++
+  ){
+    const startMs=ordered[i];
+    const endMs=ordered[i+1];
+
+    if(
+      endMs-startMs<40
+    )continue;
+
+    const mid=
+      (startMs+endMs)/2;
+
+    const activePunch=
+      punchIns
+        .filter(
+          p=>
+            mid>=p.startMs&&
+            mid<p.endMs
+        )
+        .sort(
+          (a,b)=>
+            b.scale-a.scale
+        )[0];
+
+    const activeBroll=
+      brollCues.find(
+        b=>
+          mid>=b.startMs&&
+          mid<b.endMs
+      )||
+      null;
+
+    out.push({
+      startMs,
+      endMs,
+      scale:
+        activePunch?.scale||
+        1,
+      broll:activeBroll
+    });
+  }
+
+  return mergeSameVisual(out);
+}
+
+function mergeSameVisual(items){
+  const out=[];
+
+  for(const item of items){
+    const last=
+      out[out.length-1];
+
+    const sameBroll=
+      (
+        last?.broll?.assetUrl||
+        null
+      )===
+      (
+        item.broll?.assetUrl||
+        null
+      );
+
+    if(
+      last&&
+      sameBroll&&
+      Math.abs(
+        last.scale-
+        item.scale
+      )<.001&&
+      Math.abs(
+        last.endMs-
+        item.startMs
+      )<=2
+    ){
+      last.endMs=
+        item.endMs;
+    }else{
+      out.push({...item});
+    }
+  }
+
+  return out;
+}
+
+function coverFilter(
+  width,
+  height,
+  scale=1
+){
+  const factor=
+    Math.max(
+      1,
+      Number(scale)||1
+    );
+
+  const targetW=
+    Math.ceil(
+      width*factor/2
+    )*2;
+  const targetH=
+    Math.ceil(
+      height*factor/2
+    )*2;
+
+  return [
+    `scale=${targetW}:${targetH}:force_original_aspect_ratio=increase:flags=lanczos`,
+    `crop=${width}:${height}:(iw-${width})/2:(ih-${height})*.44`,
+    'setsar=1'
+  ].join(',');
 }
 
 export async function finalEncode({
@@ -207,86 +846,89 @@ export async function finalEncode({
   outputPath,
   onProgress=async()=>{}
 }){
-  await onProgress(94,'Encodage final');
-  await copyFile(inputPath,outputPath);
+  await onProgress(
+    94,
+    'Encodage final'
+  );
+  await copyFile(
+    inputPath,
+    outputPath
+  );
 }
 
-function normalizePunchIns(items,durationMs){
-  return (Array.isArray(items)?items:[])
-    .map(x=>({
-      startMs:Math.max(0,Math.min(durationMs,Number(x.startMs)||0)),
-      endMs:Math.max(0,Math.min(durationMs,Number(x.endMs)||0)),
-      scale:Math.max(1,Math.min(1.2,Number(x.scale)||1.08))
-    }))
-    .filter(x=>x.endMs-x.startMs>=120)
-    .sort((a,b)=>a.startMs-b.startMs);
-}
+function buildAss(
+  timeline,
+  width,
+  height
+){
+  const cfg=
+    timeline?.captionConfig||
+    {};
 
-function buildVisualSegments(durationMs,punchIns){
-  const points=new Set([0,durationMs]);
-  for(const p of punchIns){
-    points.add(Math.round(p.startMs));
-    points.add(Math.round(p.endMs));
-  }
+  const sizeScale=
+    Math.max(
+      .55,
+      Math.min(
+        1.15,
+        height/1920
+      )
+    );
 
-  const ordered=[...points]
-    .filter(x=>Number.isFinite(x)&&x>=0&&x<=durationMs)
-    .sort((a,b)=>a-b);
+  const fontSize=Math.max(
+    22,
+    Math.min(
+      110,
+      Math.round(
+        (Number(cfg.fontSize)||68)*
+        sizeScale
+      )
+    )
+  );
+  const outline=Math.max(
+    0,
+    Math.min(
+      10,
+      Number(cfg.stroke)||4
+    )
+  );
 
-  const out=[];
-  for(let i=0;i<ordered.length-1;i++){
-    const startMs=ordered[i],endMs=ordered[i+1];
-    if(endMs-startMs<40)continue;
-    const mid=(startMs+endMs)/2;
-    const active=punchIns
-      .filter(p=>mid>=p.startMs&&mid<p.endMs)
-      .sort((a,b)=>b.scale-a.scale)[0];
-    out.push({startMs,endMs,scale:active?.scale||1});
-  }
-
-  return mergeSameScale(out);
-}
-
-function mergeSameScale(items){
-  const out=[];
-  for(const item of items){
-    const last=out[out.length-1];
-    if(last&&Math.abs(last.scale-item.scale)<.001&&Math.abs(last.endMs-item.startMs)<=2){
-      last.endMs=item.endMs;
-    }else{
-      out.push({...item});
-    }
-  }
-  return out;
-}
-
-function visualFilter(width,height,scale){
-  const factor=Math.max(1,Number(scale)||1);
-  const w=Math.ceil(width*factor/2)*2;
-  const h=Math.ceil(height*factor/2)*2;
-  const yFactor=.44;
-  return [
-    `scale=${w}:${h}:force_original_aspect_ratio=increase:flags=lanczos`,
-    `crop=${width}:${height}:(iw-${width})/2:(ih-${height})*${yFactor}`,
-    'setsar=1'
-  ].join(',');
-}
-
-function buildAss(timeline,width,height){
-  const cfg=timeline?.captionConfig||{};
-  const fontSize=Math.max(24,Math.min(110,Number(cfg.fontSize)||68));
-  const outline=Math.max(0,Math.min(10,Number(cfg.stroke)||4));
-  const marginV={
+  const baseMargin={
     lower_middle:280,
     lower_third:220,
     middle_low:380
   }[cfg.position]||280;
 
-  const activeColor=assOverrideColor(cfg.activeColor||'#ff6a00');
-  const primary=assColor(cfg.textColor||'#ffffff');
-  const back=cfg.background?'&H66000000':'&HFF000000';
-  const borderStyle=cfg.background?3:1;
-  const shadow=cfg.shadow?2:0;
+  const marginV=
+    Math.max(
+      70,
+      Math.round(
+        baseMargin*
+        sizeScale
+      )
+    );
+
+  const activeColor=
+    assOverrideColor(
+      cfg.activeColor||
+      '#ff6a00'
+    );
+  const primary=
+    assColor(
+      cfg.textColor||
+      '#ffffff'
+    );
+  const back=
+    cfg.background
+      ?'&H66000000'
+      :'&HFF000000';
+  const borderStyle=
+    cfg.background
+      ?3
+      :1;
+  const shadow=
+    cfg.shadow
+      ?2
+      :0;
 
   const header=[
     '[Script Info]',
@@ -306,59 +948,166 @@ function buildAss(timeline,width,height){
 
   const events=[];
 
-  for(const caption of timeline?.captions||[]){
-    const words=Array.isArray(caption.words)?caption.words.filter(w=>String(w.text||'').trim()):[];
+  for(
+    const caption of
+    timeline?.captions||[]
+  ){
+    const words=
+      Array.isArray(
+        caption.words
+      )
+        ?caption.words.filter(
+          w=>
+            String(w.text||'')
+              .trim()
+        )
+        :[];
 
-    if(cfg.activeWord&&words.length){
-      for(let i=0;i<words.length;i++){
-        const word=words[i];
-        const next=words[i+1];
+    if(
+      cfg.activeWord&&
+      words.length
+    ){
+      for(
+        let i=0;
+        i<words.length;
+        i++
+      ){
+        const word=
+          words[i];
+        const next=
+          words[i+1];
+
         const start=Math.max(
-          Number(caption.startMs)||0,
-          Number(word.startMs)||Number(caption.startMs)||0
+          Number(
+            caption.startMs
+          )||0,
+          Number(
+            word.startMs
+          )||
+          Number(
+            caption.startMs
+          )||
+          0
         );
+
         const end=Math.max(
           start+60,
           Math.min(
-            Number(caption.endMs)||start+500,
+            Number(
+              caption.endMs
+            )||
+            start+500,
             next
-              ?Math.max(Number(word.endMs)||start+60,Number(next.startMs)||start+60)
-              :Number(caption.endMs)||Number(word.endMs)||start+300
+              ?Math.max(
+                Number(
+                  word.endMs
+                )||
+                start+60,
+                Number(
+                  next.startMs
+                )||
+                start+60
+              )
+              :Number(
+                caption.endMs
+              )||
+              Number(
+                word.endMs
+              )||
+              start+300
           )
         );
 
-        const text=words.map((w,j)=>{
-          const clean=escapeAssText(w.text);
-          return j===i
-            ?`{\\c${activeColor}}${clean}{\\c${primary}}`
-            :clean;
-        }).join(' ');
+        const text=
+          words
+            .map(
+              (w,j)=>{
+                const clean=
+                  escapeAssText(
+                    w.text
+                  );
 
-        events.push(dialogue(start,end,text));
+                return j===i
+                  ?`{\\c${activeColor}}${clean}{\\c${primary}}`
+                  :clean;
+              }
+            )
+            .join(' ');
+
+        events.push(
+          dialogue(
+            start,
+            end,
+            text
+          )
+        );
       }
     }else{
-      const text=escapeAssText(caption.text||words.map(w=>w.text).join(' '));
-      events.push(dialogue(
-        Number(caption.startMs)||0,
-        Number(caption.endMs)||Number(caption.startMs||0)+500,
-        text
-      ));
+      const text=
+        escapeAssText(
+          caption.text||
+          words
+            .map(w=>w.text)
+            .join(' ')
+        );
+
+      events.push(
+        dialogue(
+          Number(
+            caption.startMs
+          )||0,
+          Number(
+            caption.endMs
+          )||
+          Number(
+            caption.startMs||0
+          )+
+          500,
+          text
+        )
+      );
     }
   }
 
-  return header.concat(events).join('\n');
+  return header
+    .concat(events)
+    .join('\n');
 }
 
-function dialogue(startMs,endMs,text){
+function dialogue(
+  startMs,
+  endMs,
+  text
+){
   return `Dialogue: 0,${assTime(startMs)},${assTime(endMs)},Default,,0,0,0,,${text}`;
 }
 
 function assTime(ms){
-  const total=Math.max(0,Number(ms)||0)/1000;
-  const h=Math.floor(total/3600);
-  const m=Math.floor((total%3600)/60);
-  const s=Math.floor(total%60);
-  const cs=Math.floor((total-Math.floor(total))*100);
+  const total=
+    Math.max(
+      0,
+      Number(ms)||0
+    )/1000;
+  const h=
+    Math.floor(
+      total/3600
+    );
+  const m=
+    Math.floor(
+      (total%3600)/60
+    );
+  const s=
+    Math.floor(
+      total%60
+    );
+  const cs=
+    Math.floor(
+      (
+        total-
+        Math.floor(total)
+      )*100
+    );
+
   return `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${String(cs).padStart(2,'0')}`;
 }
 
@@ -371,40 +1120,88 @@ function escapeAssText(value){
 }
 
 function assColor(hex){
-  const m=String(hex||'').match(/^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
-  if(!m)return '&H00FFFFFF';
+  const m=
+    String(hex||'')
+      .match(
+        /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i
+      );
+
+  if(!m){
+    return '&H00FFFFFF';
+  }
+
   return `&H00${m[3].toUpperCase()}${m[2].toUpperCase()}${m[1].toUpperCase()}`;
 }
 
 function assOverrideColor(hex){
-  const m=String(hex||'').match(/^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
-  if(!m)return '&HFFFFFF&';
+  const m=
+    String(hex||'')
+      .match(
+        /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i
+      );
+
+  if(!m){
+    return '&HFFFFFF&';
+  }
+
   return `&H${m[3].toUpperCase()}${m[2].toUpperCase()}${m[1].toUpperCase()}&`;
 }
 
 function escapeFilterPath(value){
-  return String(value).replace(/\\/g,'/').replace(/:/g,'\\:').replace(/'/g,"\\'");
+  return String(value)
+    .replace(/\\/g,'/')
+    .replace(/:/g,'\\:')
+    .replace(/'/g,"\\'");
 }
 
 function escapeConcatPath(value){
-  return String(value).replace(/'/g,"'\\''");
+  return String(value)
+    .replace(
+      /'/g,
+      "'\\''"
+    );
 }
 
 function run(cmd,args){
-  return new Promise((resolve,reject)=>{
-    const p=spawn(cmd,args);
-    let err='';
-    p.stderr.on('data',d=>err+=d);
-    p.on('error',reject);
-    p.on('close',(code,signal)=>{
-      if(code===0)return resolve();
-      reject(new Error(
-        `${cmd} exited ${code??'null'}${signal?` (signal ${signal})`:''}: ${err.slice(-4000)}`
-      ));
-    });
-  });
+  return new Promise(
+    (resolve,reject)=>{
+      const p=
+        spawn(
+          cmd,
+          args
+        );
+      let err='';
+
+      p.stderr.on(
+        'data',
+        d=>err+=d
+      );
+      p.on(
+        'error',
+        reject
+      );
+      p.on(
+        'close',
+        (code,signal)=>{
+          if(code===0){
+            return resolve();
+          }
+
+          reject(
+            new Error(
+              `${cmd} exited ${code??'null'}${signal?` (signal ${signal})`:''}: ${err.slice(-4000)}`
+            )
+          );
+        }
+      );
+    }
+  );
 }
 
-export async function fileSize(filePath){
-  return (await stat(filePath)).size;
+export async function fileSize(
+  filePath
+){
+  return (
+    await stat(filePath)
+  ).size;
 }
