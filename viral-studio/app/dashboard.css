@@ -48,3 +48,7 @@
 .clip-count-selector span{font-size:9px;color:#858fa2;text-transform:uppercase;letter-spacing:.1em}
 .quality-note{display:flex;align-items:flex-start;gap:8px;margin:12px 0 2px;padding:10px 11px;border:1px solid rgba(82,224,160,.12);background:rgba(82,224,160,.04);border-radius:10px;color:#91a99d;font-size:11px;line-height:1.45}
 .quality-note svg{flex:0 0 auto;margin-top:1px;color:#58dfaa}
+
+.inline-job-state{margin-top:10px;padding:10px 11px;border:1px solid rgba(255,255,255,.07);border-radius:10px;background:rgba(255,255,255,.025)}
+.inline-job-state>div:first-child{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:10px;color:#8f98aa}
+.inline-job-state b{font-size:10px;color:#c7cfdd}.inline-job-state .progress{margin-top:8px}

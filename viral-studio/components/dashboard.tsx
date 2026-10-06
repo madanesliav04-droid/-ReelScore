@@ -57,6 +57,17 @@ export function Dashboard(){
     return ()=>data.subscription.unsubscribe();
   },[]);
   useEffect(()=>()=>{if(pollRef.current)clearInterval(pollRef.current)},[]);
+  useEffect(()=>{
+    if(!session?.access_token)return;
+    try{
+      const saved=localStorage.getItem("viral-studio-active-job");
+      if(!saved)return;
+      const parsed=JSON.parse(saved);
+      if(!parsed?.id||!["core","clip"].includes(parsed?.channel))return;
+      setBusy(true);
+      void watchJob(parsed.id,parsed.channel);
+    }catch{}
+  },[session?.access_token]);
 
   const token=session?.access_token||"";
   const userId=session?.user?.id||"";
@@ -94,6 +105,7 @@ export function Dashboard(){
 
   async function watchJob(id:string,kind:"core"|"clip"="core"){
     if(pollRef.current)clearInterval(pollRef.current);
+    try{localStorage.setItem("viral-studio-active-job",JSON.stringify({id,channel:kind}))}catch{}
     const tick=async()=>{
       try{
         const url=kind==="clip"?functionUrl("clip-jobs",`jobs/${id}`):functionUrl("viral-edit-jobs",`jobs/${id}`);
@@ -101,10 +113,13 @@ export function Dashboard(){
         const done=["completed","failed"].includes(body.job.status);
         if(!done)return false;
         if(pollRef.current)clearInterval(pollRef.current);pollRef.current=null;setBusy(false);
+        try{localStorage.removeItem("viral-studio-active-job")}catch{}
         if(body.job.status==="failed"){setError(String(body.job.error||body.job.error_code||"Le traitement a échoué."));return true}
         if(body.job.kind==="viral_analysis"){
-          const {data}=await supabase.from("viralplus_analyses").select("*").eq("job_id",id).maybeSingle();
-          if(data)setAnalysis(data.result_json?{...data.result_json,id:data.id,analysis_id:data.id}:data);
+          const {data,error:analysisError}=await supabase.from("viralplus_analyses").select("*").eq("job_id",id).maybeSingle();
+          if(analysisError)throw analysisError;
+          if(!data)throw new Error("Analyse terminée mais résultat introuvable.");
+          setAnalysis(data.result_json?{...data.result_json,id:data.id,analysis_id:data.id}:data);
         }
         if(body.job.kind==="edit_render"&&body.job.result?.export_id){
           const out=await api(functionUrl("viral-edit-jobs",`exports/${body.job.result.export_id}/url`),token);
@@ -115,7 +130,7 @@ export function Dashboard(){
           setClipProject(detail);
         }
         return true;
-      }catch(e:any){setError(e.message);setBusy(false);if(pollRef.current)clearInterval(pollRef.current);pollRef.current=null;return true}
+      }catch(e:any){setError(e.message);setBusy(false);try{localStorage.removeItem("viral-studio-active-job")}catch{};if(pollRef.current)clearInterval(pollRef.current);pollRef.current=null;return true}
     };
     pollRef.current=setInterval(()=>void tick(),2000);
     await tick();
@@ -193,6 +208,7 @@ export function Dashboard(){
           <label className="upload-zone"><input type="file" accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" onChange={e=>{const f=e.target.files?.[0];if(f)uploadVideo(f)}}/><div><Upload size={30}/><b>{file?file.name:"Drop a Reel here"}</b><span>MP4 · MOV · WebM</span></div></label>
           {file&&<div className="progress"><i style={{width:`${uploadPct}%`}}/></div>}
           <button className="btn primary full" onClick={startAnalysis} disabled={!media||busy}><Zap size={16}/> {busy&&job?.kind==="viral_analysis"?"Analyzing…":"Analyze video"}</button>
+          <InlineJobState job={job?.kind==="viral_analysis"?job:null}/>
           {error&&<div className="job-card error">{error}</div>}
         </section>
         <BackendState media={media} job={job}/>
@@ -216,6 +232,7 @@ export function Dashboard(){
             <div className="model-copy"><div><strong>{model.name}</strong><span>{model.category}</span></div>{editModel===model.id&&<Check size={18}/>}<p>{model.meta}</p></div>
           </button>)}</div>
           <button className="btn primary create-edit" onClick={startEdit} disabled={!media||busy}><Clapperboard size={17}/> {busy&&job?.kind==="edit_render"?"Editing…":`Create with ${selectedModel.name}`}</button>
+          <InlineJobState job={job?.kind==="edit_render"?job:null}/>
           {error&&<div className="job-card error">{error}</div>}
         </section>
       </>}
@@ -230,6 +247,7 @@ export function Dashboard(){
           <div className="quality-note"><Check size={14}/><span>Quality first: Clip+ can return fewer clips if the source does not contain enough strong standalone moments.</span></div>
           <label className="rights-check"><input type="checkbox" checked={clipRights} onChange={e=>setClipRights(e.target.checked)}/><span>Je confirme que je possède cette vidéo ou que j’ai l’autorisation de la traiter.</span></label>
           <button className="btn primary full" onClick={startClip} disabled={!clipUrl.trim()||!clipRights||busy}><Scissors size={16}/> {busy&&job?.kind==="clip_generate"?`Creating up to ${clipCount} clips…`:`Generate ${clipCount} clips`}</button>
+          <InlineJobState job={job?.kind==="clip_generate"?job:null}/>
           {error&&<div className="job-card error">{error}</div>}
         </section>
         <BackendState media={null} job={job}/>
@@ -248,4 +266,21 @@ export function Dashboard(){
 
 function BackendState({media,job}:{media:Media|null;job:Job|null}){
   return <aside className="panel backend-state"><h3>Live state</h3><div className="status-row"><span>Source</span><span className="status-pill">{media?.id?"Registered":"—"}</span></div><div className="status-row"><span>Job</span><span className="status-pill">{job?.status||"—"}</span></div><div className="status-row"><span>Stage</span><span className="status-pill">{job?.stage||"—"}</span></div><div className="status-row"><span>Progress</span><span className="status-pill">{typeof job?.progress==="number"?job.progress+"%":"—"}</span></div>{job&&<div className="job-card"><strong>{job.status}</strong><small>{job.id}</small></div>}</aside>
+}
+
+
+function InlineJobState({job}:{job:Job|null}){
+  if(!job)return null;
+  const progress=typeof job.progress==="number"?Math.max(0,Math.min(100,job.progress)):0;
+  const label=job.status==="queued"
+    ?"Queued — waiting for worker"
+    :job.status==="completed"
+      ?"Completed"
+      :job.status==="failed"
+        ?"Failed"
+        :job.stage||job.status||"Processing";
+  return <div className="inline-job-state">
+    <div><span>{label}</span><b>{progress}%</b></div>
+    <div className="progress"><i style={{width:`${progress}%`}}/></div>
+  </div>;
 }
