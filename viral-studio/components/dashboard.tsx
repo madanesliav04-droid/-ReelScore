@@ -32,7 +32,10 @@ export function Dashboard(){
   const [analysis,setAnalysis]=useState<any>(null);
   const [error,setError]=useState("");
   const [clipUrl,setClipUrl]=useState("");
+  const [clipRights,setClipRights]=useState(false);
   const [clipProject,setClipProject]=useState<any>(null);
+  const [editExportUrl,setEditExportUrl]=useState("");
+  const [busy,setBusy]=useState(false);
   const pollRef=useRef<ReturnType<typeof setInterval>|null>(null);
 
   useEffect(()=>{
@@ -55,7 +58,8 @@ export function Dashboard(){
 
   function uploadVideo(selected:File){
     if(!session)return setError("Connecte-toi avant l’upload.");
-    setError(""); setFile(selected); setMedia(null); setAnalysis(null); setJob(null); setUploadPct(0);
+    setError(""); setFile(selected); setMedia(null); setAnalysis(null); setJob(null); setUploadPct(0); setEditExportUrl("");
+    if(active==="clip")setClipProject(null);
     const objectName=`${userId}/${crypto.randomUUID()}-${safeName(selected.name)}`;
     const upload=new tus.Upload(selected,{
       endpoint:`https://${SUPABASE_PROJECT_REF}.storage.supabase.co/storage/v1/upload/resumable`,
@@ -88,44 +92,64 @@ export function Dashboard(){
         setJob(body.job);
         if(["completed","failed"].includes(body.job.status)){
           if(pollRef.current)clearInterval(pollRef.current);
+          setBusy(false);
           if(body.job.status==="completed" && body.job.kind==="viral_analysis"){
             const {data}=await supabase.from("viralplus_analyses").select("*").eq("job_id",id).maybeSingle();
             if(data)setAnalysis(data.result_json?{...data.result_json,id:data.id,analysis_id:data.id}:data);
+          }
+          if(body.job.status==="completed" && body.job.kind==="edit_render" && body.job.result?.export_id){
+            const out=await api(functionUrl("viral-edit-jobs",`exports/${body.job.result.export_id}/url`),token);
+            if(out?.signed_url)setEditExportUrl(out.signed_url);
           }
           if(body.job.status==="completed" && body.job.kind==="clip_generate" && body.job.result?.clip_project_id){
             const detail=await api(functionUrl("clip-jobs",`projects/${body.job.result.clip_project_id}`),token);
             setClipProject(detail);
           }
         }
-      }catch(e:any){setError(e.message);if(pollRef.current)clearInterval(pollRef.current)}
+      }catch(e:any){setError(e.message);setBusy(false);if(pollRef.current)clearInterval(pollRef.current)}
     };
     await tick(); pollRef.current=setInterval(tick,2000);
   }
 
   async function startAnalysis(){
+    if(busy)return;
     if(!media)return setError("Importe d’abord une vidéo.");
-    setError(""); setAnalysis(null);
+    setError(""); setAnalysis(null); setBusy(true);
     try{
       const body=await api(functionUrl("viral-edit-jobs","analysis"),token,{method:"POST",body:JSON.stringify({video_id:media.id})});
       setJob(body.job); await watchJob(body.job.id);
-    }catch(e:any){setError(e.message)}
+    }catch(e:any){setError(e.message);setBusy(false)}
   }
 
   async function startEdit(){
+    if(busy)return;
     if(!media)return setError("Importe d’abord une vidéo.");
-    setError("");
+    setError(""); setEditExportUrl(""); setBusy(true);
     try{
       const body=await api(functionUrl("viral-edit-jobs","edit"),token,{method:"POST",body:JSON.stringify({video_id:media.id,analysis_id:analysis?.analysis_id||analysis?.id||null,style:"codie",caption_preset:"modern_bold"})});
       setJob(body.job); await watchJob(body.job.id);
-    }catch(e:any){setError(e.message)}
+    }catch(e:any){setError(e.message);setBusy(false)}
   }
 
   async function startClip(){
-    if(!clipUrl.trim())return setError("Colle un lien vidéo.");
-    setError(""); setClipProject(null);
+    if(busy)return;
+    if(!clipRights)return setError("Confirme que tu possèdes la vidéo ou que tu as l’autorisation de la traiter.");
+    if(!media&&!clipUrl.trim())return setError("Upload une vidéo ou colle un lien bêta.");
+    setError(""); setClipProject(null); setBusy(true);
     try{
-      const body=await api(functionUrl("clip-jobs","create"),token,{method:"POST",body:JSON.stringify({source_url:clipUrl.trim(),confirm_rights:true,clip_count:5,min_duration_sec:20,max_duration_sec:60,caption_preset:"modern_bold",add_captions:true})});
+      const payload:any={confirm_rights:true,clip_count:5,min_duration_sec:20,max_duration_sec:60,caption_preset:"modern_bold",add_captions:true};
+      if(media)payload.source_video_id=media.id;
+      else payload.source_url=clipUrl.trim();
+      const body=await api(functionUrl("clip-jobs","create"),token,{method:"POST",body:JSON.stringify(payload)});
       setJob(body.job); setClipProject({project:body.project,clips:[]}); await watchJob(body.job.id,"clip",body.project.id);
+    }catch(e:any){setError(e.message);setBusy(false)}
+  }
+
+  async function openClip(clipId:string){
+    try{
+      const body=await api(functionUrl("clip-jobs",`clips/${clipId}/url`),token);
+      if(!body?.signed_url)throw new Error("Clip indisponible.");
+      window.open(body.signed_url,"_blank","noopener,noreferrer");
     }catch(e:any){setError(e.message)}
   }
 
@@ -186,13 +210,22 @@ export function Dashboard(){
             {file&&<div className="progress"><i style={{width:`${uploadPct}%`}}/></div>}
             <div className="status-row"><span>Upload</span><span className="status-pill">{media?"Ready":file?`${uploadPct}%`:"Waiting"}</span></div>
             <div className="form-row">
-              {active==="viral"?<button className="btn primary" onClick={startAnalysis} disabled={!media}><Zap size={16}/> Analyze video</button>:<button className="btn primary" onClick={startEdit} disabled={!media}><Clapperboard size={16}/> Create Codie edit</button>}
+              {active==="viral"?<button className="btn primary" onClick={startAnalysis} disabled={!media||busy}><Zap size={16}/> {busy&&job?.kind==="viral_analysis"?"Analyzing…":"Analyze video"}</button>:<button className="btn primary" onClick={startEdit} disabled={!media||busy}><Clapperboard size={16}/> {busy&&job?.kind==="edit_render"?"Rendering…":"Create Codie edit"}</button>}
             </div>
           </>:<>
             <h3>Turn long content into short-form.</h3>
-            <input className="field" value={clipUrl} onChange={e=>setClipUrl(e.target.value)} placeholder="Paste YouTube, TikTok or Instagram URL"/>
-            <p className="panel-note">Only content you own or have permission to process. If direct ingestion is unavailable, upload will remain the fallback.</p>
-            <button className="btn primary" onClick={startClip}><Scissors size={16}/> Generate Clips</button>
+            <div className="clip-primary-label">RECOMMANDÉ · UPLOAD DIRECT</div>
+            <label className="upload-zone">
+              <input type="file" accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" onChange={e=>{const f=e.target.files?.[0];if(f)uploadVideo(f)}}/>
+              <div><Upload size={30}/><b>{file?file.name:"Upload your source video"}</b><span>MP4 · MOV · WebM · jusqu’à 500 Mo</span></div>
+            </label>
+            {file&&<div className="progress"><i style={{width:`${uploadPct}%`}}/></div>}
+            <div className="status-row"><span>Upload</span><span className="status-pill">{media?"Ready":file?`${uploadPct}%`:"Waiting"}</span></div>
+            <div className="clip-beta-divider"><span>OU · LIEN BÊTA</span></div>
+            <input className="field" value={clipUrl} onChange={e=>setClipUrl(e.target.value)} placeholder="YouTube / TikTok / Instagram — bêta"/>
+            <label className="rights-check"><input type="checkbox" checked={clipRights} onChange={e=>setClipRights(e.target.checked)}/><span>Je confirme que je possède cette vidéo ou que j’ai l’autorisation de la traiter.</span></label>
+            <p className="panel-note">{media?"Clip+ utilisera la vidéo uploadée. Le lien ci-dessus sera ignoré.":"L’upload direct est prioritaire. Les liens publics peuvent être refusés par les plateformes."}</p>
+            <button className="btn primary" onClick={startClip} disabled={busy||(!media&&!clipUrl.trim())||!clipRights}><Scissors size={16}/> {busy&&job?.kind==="clip_generate"?"Generating…":"Generate Clips"}</button>
           </>}
           {error&&<div className="job-card error">{error}</div>}
         </section>
@@ -207,6 +240,15 @@ export function Dashboard(){
         </aside>
       </div>
 
+      {active==="edit"&&editExportUrl&&<section className="result-panel edit-result">
+        <div className="result-copy"><small>EDIT+ · EXPORT READY</small><h2>Your edited video is ready.</h2><p>Le rendu final a été généré par le worker et enregistré dans ton stockage privé.</p><div className="result-actions"><a className="btn primary" href={editExportUrl} target="_blank" rel="noreferrer">Open MP4 ↗</a></div></div>
+        <video className="result-video" src={editExportUrl} controls playsInline/>
+      </section>}
+
+      {active==="clip"&&clipProject?.clips?.length>0&&<section className="result-panel clip-result">
+        <div className="result-copy"><small>CLIP+ · EXPORTS READY</small><h2>{clipProject.clips.length} clip{clipProject.clips.length>1?"s":""} ready.</h2><p>Les clips ont été sélectionnés, rendus et enregistrés.</p></div>
+      </section>}
+
       {active==="viral"&&analysis&&<section className="result-panel">
         <div><small>VIRAL SCORE</small><div className="score-big">{score??"—"}<span>/100</span></div></div>
         <div className="result-copy"><small>MAIN PROBLEM</small><h2>{analysis.main_problem||"Diagnostic completed"}</h2><p>{analysis.why}</p><button className="btn primary" onClick={()=>setActive("edit")}>FIX WITH EDIT+ →</button></div>
@@ -214,7 +256,7 @@ export function Dashboard(){
 
       {active==="clip"&&clipProject?.clips?.length>0&&<section className="clips-section">
         <div className="section-heading"><small>CLIP+</small><h2>Best moments found.</h2></div>
-        <div className="clips-grid">{clipProject.clips.map((clip:any)=><article className="clip-card" key={clip.id}><div className="clip-rank">0{clip.rank}</div><strong>{clip.viral_score??"—"}</strong><small>Viral potential</small><h3>{clip.title||"Untitled clip"}</h3><p>{clip.hook||clip.rationale}</p></article>)}</div>
+        <div className="clips-grid">{clipProject.clips.map((clip:any)=><article className="clip-card" key={clip.id}><div className="clip-rank">0{clip.rank}</div><strong>{clip.viral_score??"—"}</strong><small>Viral potential</small><h3>{clip.title||"Untitled clip"}</h3><p>{clip.hook||clip.rationale}</p><button className="btn primary clip-open" onClick={()=>openClip(clip.id)}>Open clip ↗</button></article>)}</div>
       </section>}
     </section>
   </main>
