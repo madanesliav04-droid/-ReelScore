@@ -53,7 +53,7 @@ RÈGLES:
 - Retourne uniquement du JSON valide.
 
 FORMAT:
-{"cues":[{"start_sec":4.2,"end_sec":6.8,"query_en":"New York stock exchange trading floor","reason":"illustre la bourse citée"}]}
+{"cues":[{"start_sec":4.2,"end_sec":6.8,"query_en":"New York stock exchange trading floor","alt_queries_en":["stock exchange traders","trading floor screens"],"reason":"illustre la bourse citée"}]}
 
 TRANSCRIPTION MONTÉE:
 ${transcript}`;
@@ -116,10 +116,18 @@ ${transcript}`;
 
       if(query.length<3)continue;
 
+      const altQueries=Array.isArray(cue.alt_queries_en)
+        ?cue.alt_queries_en
+          .map(x=>String(x||'').replace(/[\r\n]+/g,' ').trim().slice(0,100))
+          .filter(x=>x.length>=3)
+          .slice(0,4)
+        :[];
+
       cleaned.push({
         startMs,
         endMs,
         query,
+        searchQueries:buildSearchVariants(query,altQueries),
         reason:String(cue.reason||'')
           .slice(0,240)
       });
@@ -139,15 +147,24 @@ ${transcript}`;
     const used=new Set();
 
     for(const cue of cleaned){
-      const asset=
-        await findOpenverseAsset(
-          cue.query,
-          used
-        )||
-        await findCommonsAsset(
-          cue.query,
-          used
-        );
+      let asset=null;
+      const attempts=Array.isArray(cue.searchQueries)&&cue.searchQueries.length
+        ?cue.searchQueries
+        :buildSearchVariants(cue.query,[]);
+
+      for(const q of attempts){
+        asset=
+          await findOpenverseAsset(
+            q,
+            used
+          )||
+          await findCommonsAsset(
+            q,
+            used
+          );
+        if(asset)break;
+      }
+
       if(!asset){
         console.warn(JSON.stringify({
           event:'broll_asset_not_found',
@@ -184,6 +201,25 @@ ${transcript}`;
     }));
     return [];
   }
+}
+
+function buildSearchVariants(query,alternates=[]){
+  const base=String(query||'').replace(/[\r\n]+/g,' ').trim();
+  const words=base.split(/\s+/).filter(Boolean);
+  const variants=[
+    base,
+    ...alternates,
+    words.slice(0,4).join(' '),
+    words.slice(0,3).join(' '),
+    words.slice(0,2).join(' '),
+    base+' photo',
+    words.slice(0,3).join(' ')+' photo'
+  ];
+
+  return variants
+    .map(x=>String(x||'').replace(/\s+/g,' ').trim())
+    .filter((x,i,a)=>x.length>=3&&a.indexOf(x)===i)
+    .slice(0,9);
 }
 
 function localCueCandidates(captions,maxCues,cfg){
@@ -372,11 +408,7 @@ async function findOpenverseAsset(
   query,
   used
 ){
-  const variants=[
-    query,
-    query.split(/\s+/).slice(0,3).join(' '),
-    query.split(/\s+/).slice(0,2).join(' ')
-  ].filter((v,i,a)=>v&&a.indexOf(v)===i);
+  const variants=buildSearchVariants(query,[]);
 
   for(const variant of variants){
     const params=new URLSearchParams({
@@ -436,7 +468,13 @@ async function findOpenverseAsset(
       const badVisual=/\b(map|historical|archive|archival|cartoon|illustration|diagram|projection|blueprint|manuscript|painting|poster|engraving|etching|satellite|aerial map)\b/i;
       const queryAllowsBad=/\b(map|historical|cartoon|illustration|diagram|blueprint|painting|poster)\b/i.test(variant);
       if(badVisual.test(searchable)&&!queryAllowsBad)continue;
-      if(relevance<0.34)continue;
+      const minRelevance=
+        variant===query
+          ?0.28
+          :variant.split(/\s+/).length<=2
+            ?0.18
+            :0.22;
+      if(relevance<minRelevance)continue;
 
       return {
         assetUrl,
@@ -486,12 +524,7 @@ async function findCommonsAsset(
   query,
   used
 ){
-  const variants=[
-    query,
-    query.split(/\s+/).slice(0,3).join(' '),
-    query.split(/\s+/).slice(0,2).join(' '),
-    query+' photograph'
-  ].filter((v,i,a)=>v&&a.indexOf(v)===i);
+  const variants=buildSearchVariants(query,[query+' photograph']);
 
   for(const variant of variants){
     const params=new URLSearchParams({
@@ -543,6 +576,26 @@ async function findCommonsAsset(
 
       if(!safeCommercial||shareAlike||nonCommercial)continue;
 
+      const title=plain(page?.title||'');
+      const description=plain(
+        meta.ImageDescription?.value||
+        meta.ObjectName?.value||
+        ''
+      );
+      const searchable=[title,description].filter(Boolean).join(' ');
+      const relevance=lexicalRelevance(variant,searchable);
+      const minRelevance=
+        variant===query
+          ?0.2
+          :variant.split(/\s+/).length<=2
+            ?0.12
+            :0.16;
+      if(relevance<minRelevance)continue;
+
+      const badVisual=/\b(map|coat of arms|flag|logo|diagram|scan|manuscript|painting|engraving|cartoon|poster|stamp)\b/i;
+      const queryAllowsBad=/\b(map|logo|diagram|painting|cartoon|poster|flag)\b/i.test(variant);
+      if(badVisual.test(searchable)&&!queryAllowsBad)continue;
+
       const assetUrl=info.thumburl||info.url;
       if(!assetUrl||used.has(assetUrl))continue;
 
@@ -562,8 +615,10 @@ async function findCommonsAsset(
           meta.Credit?.value||
           ''
         ).slice(0,180),
+        title:title.slice(0,220),
         provider:'wikimedia_commons',
-        searchQuery:variant
+        searchQuery:variant,
+        relevance
       };
     }
   }
