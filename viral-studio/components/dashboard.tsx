@@ -1,7 +1,7 @@
 "use client";
 
 import {useEffect,useMemo,useRef,useState} from "react";
-import {BarChart3,Clapperboard,Home,Library,LogOut,Scissors,Settings,Upload,Zap,Check,Link2} from "lucide-react";
+import {BarChart3,Clapperboard,LogOut,Scissors,Upload,Zap,Check,Link2} from "lucide-react";
 import * as tus from "tus-js-client";
 import {functionUrl,supabase,SUPABASE_PROJECT_REF,VIDEO_BUCKET} from "@/lib/supabase";
 
@@ -175,14 +175,12 @@ export function Dashboard(){
   return <main className="dashboard-shell">
     <aside className="sidebar">
       <div className="side-brand">VIRAL <span>STUDIO</span></div>
-      <div className="side-group"><small>HOME</small><button className="side-link active"><Home size={16}/> Home</button></div>
       <div className="side-group"><small>CREATE</small>
         <button className="side-link" onClick={()=>setActive("viral")}><BarChart3 size={16}/> Viral+</button>
         <button className="side-link" onClick={()=>setActive("edit")}><Clapperboard size={16}/> Edit+</button>
         <button className="side-link" onClick={()=>setActive("clip")}><Scissors size={16}/> Clip+</button>
       </div>
-      <div className="side-group"><small>LIBRARY</small><button className="side-link"><Library size={16}/> Projects</button></div>
-      <div className="side-group"><small>ACCOUNT</small><button className="side-link"><Settings size={16}/> Settings</button><button className="side-link" onClick={()=>supabase.auth.signOut()}><LogOut size={16}/> Sign out</button></div>
+      <div className="side-group"><small>ACCOUNT</small><button className="side-link" onClick={()=>supabase.auth.signOut()}><LogOut size={16}/> Sign out</button></div>
     </aside>
 
     <section className="dash-main">
