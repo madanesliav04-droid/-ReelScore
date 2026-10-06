@@ -256,8 +256,10 @@ function extensionFor(mime,name){
 }
 
 async function importSource(url,dir){
-  const host=new URL(url).hostname.toLowerCase().replace(/^www\./,'');
+  const normalized=normalizeSourceUrl(url);
+  const host=new URL(normalized).hostname.toLowerCase().replace(/^www\./,'');
   const youtube=host==='youtu.be'||host.endsWith('youtube.com');
+  url=normalized;
 
   const proxy=String(process.env.YTDLP_PROXY_URL||'').trim();
   const common=[
@@ -322,6 +324,14 @@ async function importSource(url,dir){
     [
       '--extractor-args','youtube:player_client=web_embedded',
       '-f','18/22/best[height<=720]/best'
+    ],
+    [
+      '--extractor-args','youtube:player_client=tv_embedded',
+      '-f','best[height<=720]/bestvideo[height<=720]+bestaudio/best'
+    ],
+    [
+      '--extractor-args','youtube:player_client=ios',
+      '-f','best[height<=720]/bestvideo[height<=720]+bestaudio/best'
     ],
     [
       '--extractor-args','youtube:player_client=tv',
@@ -448,6 +458,29 @@ async function importViaCobalt(url,dir){
   if(!info.size)throw new Error('resolver returned an empty file');
   if(info.size>500*1024*1024)throw tagged('SOURCE_TOO_LARGE','La vidéo dépasse 500 Mo');
   return output;
+}
+
+
+function normalizeSourceUrl(value){
+  try{
+    const u=new URL(value);
+    const h=u.hostname.toLowerCase().replace(/^www\./,'');
+    if(h==='youtu.be'){
+      const id=u.pathname.split('/').filter(Boolean)[0];
+      if(id)return 'https://www.youtube.com/watch?v='+encodeURIComponent(id);
+    }
+    if(h.endsWith('youtube.com')){
+      const id=u.searchParams.get('v');
+      if(id)return 'https://www.youtube.com/watch?v='+encodeURIComponent(id);
+      const parts=u.pathname.split('/').filter(Boolean);
+      if(['shorts','live','embed'].includes(parts[0])&&parts[1]){
+        return 'https://www.youtube.com/watch?v='+encodeURIComponent(parts[1]);
+      }
+    }
+    return u.toString();
+  }catch{
+    return value;
+  }
 }
 
 function allowedSource(value){
