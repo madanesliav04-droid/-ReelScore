@@ -58,15 +58,23 @@ FORMAT:
 TRANSCRIPTION MONTÉE:
 ${transcript}`;
 
-    const parsed=await generateJson({
-      prompt,
-      geminiKey,
-      models:[model,fallbackModel]
-    });
+    let parsed=null;
+    try{
+      parsed=await generateJson({
+        prompt,
+        geminiKey,
+        models:[model,fallbackModel]
+      });
+    }catch(error){
+      console.warn(JSON.stringify({
+        event:'broll_ai_fallback',
+        error:String(error?.message||error).slice(0,500)
+      }));
+    }
 
-    const raw=Array.isArray(parsed?.cues)
+    const raw=Array.isArray(parsed?.cues)&&parsed.cues.length
       ?parsed.cues
-      :[];
+      :localCueCandidates(captions,maxCues,cfg);
     const cleaned=[];
     let lastEnd=-Infinity;
 
@@ -145,6 +153,99 @@ ${transcript}`;
     }));
     return [];
   }
+}
+
+function localCueCandidates(captions,maxCues,cfg){
+  const stop=new Set([
+    'alors','avec','avoir','comme','dans','des','donc','elle','elles','encore',
+    'est','être','faire','fait','faut','ils','juste','mais','même','nous','parce',
+    'pas','peut','plus','pour','quand','que','qui','quoi','sans','ses','son','sur',
+    'tes','ton','tout','très','une','vous','vos','aux','ces','cet','cette','mes',
+    'leur','leurs','notre','votre','cest','jai','estce','on','lui','moi','toi',
+    'the','and','you','your','that','this','with','from','have','just','into',
+    'about','what','when','where','why','how'
+  ]);
+
+  const concepts=[
+    [/moins cher|prix|coût|coûte|tarif/i,'price comparison money'],
+    [/prospect|client|vente|vendre/i,'sales client meeting'],
+    [/offre|proposition|devis/i,'business proposal document'],
+    [/qualité|niveau/i,'quality assurance service'],
+    [/accompagnement|suivi|support/i,'customer support coaching'],
+    [/solution/i,'business solution planning'],
+    [/compare|comparaison|comparer/i,'comparison chart'],
+    [/résultat/i,'business results chart'],
+    [/contrat|accord/i,'business contract signing'],
+    [/équipe|collaborateur/i,'business team meeting'],
+    [/téléphone|iphone|smartphone/i,'smartphone'],
+    [/ordinateur|laptop|pc/i,'laptop computer'],
+    [/instagram|réseaux sociaux|tiktok|youtube/i,'social media smartphone'],
+    [/argent|euro|dollar|revenu/i,'money finance'],
+    [/maison|appartement|immobilier/i,'modern house real estate'],
+    [/voiture|auto|véhicule/i,'modern car'],
+    [/restaurant|burger|food|repas/i,'restaurant food'],
+    [/trading|bourse|marché/i,'stock market trading screen']
+  ];
+
+  const candidates=[];
+  for(let i=0;i<captions.length;i++){
+    const c=captions[i];
+    const text=String(c.text||'').trim();
+    if(!text)continue;
+
+    let query='';
+    for(const [re,value] of concepts){
+      if(re.test(text)){query=value;break;}
+    }
+
+    if(!query){
+      const words=text
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g,'')
+        .replace(/[^a-z0-9\s-]/g,' ')
+        .split(/\s+/)
+        .filter(w=>w.length>=5&&!stop.has(w))
+        .slice(0,4);
+
+      if(words.length<2)continue;
+      query=words.join(' ');
+    }
+
+    const startMs=Math.max(900,Number(c.startMs)||0);
+    const baseDuration=Math.max(
+      cfg.broll.minDurationMs,
+      Math.min(
+        cfg.broll.maxDurationMs,
+        Math.max(1500,(Number(c.endMs)||startMs+1800)-startMs+800)
+      )
+    );
+    const endMs=Math.min(
+      Number(captions.at(-1)?.endMs||startMs+baseDuration),
+      startMs+baseDuration
+    );
+
+    candidates.push({
+      start_sec:startMs/1000,
+      end_sec:endMs/1000,
+      query_en:query,
+      reason:'local transcript fallback'
+    });
+
+    if(candidates.length>=maxCues*3)break;
+  }
+
+  // Spread cues through the edit instead of clustering them.
+  const picked=[];
+  let last=-Infinity;
+  for(const cue of candidates){
+    const start=Number(cue.start_sec||0)*1000;
+    if(start-last<cfg.broll.minGapMs)continue;
+    picked.push(cue);
+    last=start;
+    if(picked.length>=maxCues)break;
+  }
+  return picked;
 }
 
 async function generateJson({
