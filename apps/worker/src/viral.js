@@ -659,16 +659,42 @@ async function deleteGeminiFile(name,key){
 
 function parseJson(text){
   const clean=String(text||'')
-    .replace(/^```(?:json)?\s*/i,'')
-    .replace(/```$/,'')
+    .replace(/^\`\`\`(?:json)?\s*/i,'')
+    .replace(/\`\`\`$/,'')
     .trim();
+
   const start=clean.indexOf('{');
   const end=clean.lastIndexOf('}');
-  return JSON.parse(
+  const candidate=
     start>=0&&end>start
       ?clean.slice(start,end+1)
-      :clean
-  );
+      :clean;
+
+  const attempts=[candidate];
+
+  // Some Gemini responses occasionally escape every JSON quote
+  // (e.g. {\"key\":\"value\"}) even with responseMimeType=json.
+  if(candidate.includes('\\\"')){
+    attempts.push(candidate.replace(/\\\"/g,'"'));
+  }
+
+  // Also handle a fully JSON-stringified JSON object.
+  try{
+    const outer=JSON.parse(clean);
+    if(typeof outer==='string')attempts.push(outer);
+    else if(outer&&typeof outer==='object')return outer;
+  }catch{}
+
+  let lastError=null;
+  for(const value of attempts){
+    try{
+      return JSON.parse(value);
+    }catch(error){
+      lastError=error;
+    }
+  }
+
+  throw lastError||new Error('Gemini JSON invalide');
 }
 
 function parseRate(value){
