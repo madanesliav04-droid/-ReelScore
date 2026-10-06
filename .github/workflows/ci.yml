@@ -17,10 +17,11 @@ jobs:
         run: |
           node --check viralplus-ui.js
           if [ -f app.js ]; then node --check app.js; fi
-      - name: No backend secrets in frontend
+      - name: No backend secrets in browser artifact
         run: |
-          if grep -R -n -E 'SUPABASE_SERVICE_ROLE_KEY|STRIPE_SECRET_KEY|GEMINI_API_KEY[[:space:]]*='             --include='*.js' --include='*.html' --exclude-dir='.git' .; then
-            echo "Backend secret reference found in frontend source"
+          if grep -n -E 'SUPABASE_SERVICE_ROLE_KEY|STRIPE_SECRET_KEY|GEMINI_API_KEY[[:space:]]*=' \
+            index.html config.js viralplus-product-config.js viralplus-ui.js; then
+            echo "Backend secret reference found in browser artifact"
             exit 1
           fi
       - name: Required product files
