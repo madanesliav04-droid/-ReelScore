@@ -249,6 +249,66 @@ async function route(req:Request){
     return out({job:data});
   }
 
+  if(req.method==="GET"&&tail[0]==="media"&&isUuid(tail[1])&&tail[2]==="url"){
+    const media=await ownMedia(db,user.id,String(tail[1]));
+    if(!media)return out({error:"MEDIA_NOT_FOUND"},404);
+
+    const {data,error}=await db.storage
+      .from(media.storage_bucket)
+      .createSignedUrl(media.storage_path,600);
+
+    if(error||!data?.signedUrl){
+      return out({error:error?.message||"SIGNED_URL_FAILED"},500);
+    }
+
+    return out({
+      media:{
+        id:media.id,
+        mime_type:media.mime_type,
+        size_bytes:media.size_bytes,
+        status:media.status
+      },
+      signed_url:data.signedUrl,
+      expires_in:600
+    });
+  }
+
+  if(req.method==="GET"&&tail[0]==="exports"&&isUuid(tail[1])&&tail[2]==="url"){
+    const exportId=String(tail[1]);
+    const {data:exportRow,error:exportError}=await db
+      .from("edit_exports")
+      .select("id,project_id,job_id,user_id,output_video_id,preset,status")
+      .eq("id",exportId)
+      .eq("user_id",user.id)
+      .maybeSingle();
+
+    if(exportError)return out({error:exportError.message},500);
+    if(!exportRow)return out({error:"EXPORT_NOT_FOUND"},404);
+
+    const media=await ownMedia(db,user.id,String(exportRow.output_video_id));
+    if(!media)return out({error:"OUTPUT_MEDIA_NOT_FOUND"},404);
+
+    const {data,error}=await db.storage
+      .from(media.storage_bucket)
+      .createSignedUrl(media.storage_path,600);
+
+    if(error||!data?.signedUrl){
+      return out({error:error?.message||"SIGNED_URL_FAILED"},500);
+    }
+
+    return out({
+      export:exportRow,
+      media:{
+        id:media.id,
+        mime_type:media.mime_type,
+        size_bytes:media.size_bytes,
+        status:media.status
+      },
+      signed_url:data.signedUrl,
+      expires_in:600
+    });
+  }
+
   if(req.method==="POST"&&tail[0]==="jobs"&&isUuid(tail[1])&&tail[2]==="retry"){
     const id=String(tail[1]);
     const {data,error}=await db.from("processing_jobs")
