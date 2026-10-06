@@ -8,14 +8,14 @@ export const SCORE_WEIGHTS={
   hook:20,
   scroll_stop:10,
   clarity:10,
-  rhythm:10,
-  retention:15,
+  rhythm:5,
+  retention:20,
   structure:10,
   text_captions:5,
   visual:5,
   audio:5,
-  cta:5,
-  originality:5
+  cta:0,
+  originality:10
 };
 
 const clamp=n=>Math.max(0,Math.min(100,Math.round(Number(n)||0)));
@@ -85,7 +85,7 @@ export async function analyzeVideo({
 
   return {
     final_score:finalScore,
-    score_version:'vp-score-3-measured',
+    score_version:'vp-score-4-scale-safe',
     score_weights:SCORE_WEIGHTS,
     scores:normalized,
     measurable,
@@ -389,8 +389,11 @@ Schéma:
 }
 
 Règles:
+- TOUS les scores doivent être des entiers sur 100, jamais sur 10;
+- utilise exclusivement l'échelle 0 à 100 : 7/10 doit être renvoyé 70, 8/10 doit être renvoyé 80;
 - chaque score doit être justifié par une preuve observable dans la vidéo;
 - 80+ exige une exécution réellement excellente;
+- le CTA est diagnostiqué séparément mais ne pèse PAS dans le Viral Score;
 - la timeline doit contenir 5 à 8 observations couvrant début, milieu et fin;
 - chaque correction doit être directement exécutable;
 - distingue ce qui est réellement visible/audible de ce qui est une estimation;
@@ -456,13 +459,20 @@ Règles:
 
 function normalizeScores(semantic,m){
   const s=semantic?.scores||{};
-  const hook=clamp(s.hook);
-  const visual=clamp(s.visual);
-  const structure=clamp(s.structure);
-  const clarity=clamp(s.clarity);
-  const originality=clamp(s.originality);
-  const cta=clamp(s.cta);
-  const text=clamp(s.text_captions);
+  const rawScoreValues=[
+    s.hook,s.scroll_stop,s.clarity,s.rhythm,s.retention,s.structure,
+    s.text_captions,s.visual,s.audio,s.cta,s.originality
+  ].map(Number).filter(Number.isFinite);
+  const semanticScale=rawScoreValues.length&&Math.max(...rawScoreValues)<=10?10:1;
+  const semanticScore=value=>clamp(Number(value)*semanticScale);
+
+  const hook=semanticScore(s.hook);
+  const visual=semanticScore(s.visual);
+  const structure=semanticScore(s.structure);
+  const clarity=semanticScore(s.clarity);
+  const originality=semanticScore(s.originality);
+  const cta=semanticScore(s.cta);
+  const text=semanticScore(s.text_captions);
 
   const silencePenalty=Math.min(
     28,
@@ -495,7 +505,7 @@ function normalizeScores(semantic,m){
             :50;
 
   const rhythm=clamp(
-    avg(clamp(s.rhythm),densityScore,paceScore)-silencePenalty
+    avg(semanticScore(s.rhythm),densityScore,paceScore)-silencePenalty
   );
 
   const audioBase=m.audioCodec?78:20;
@@ -503,18 +513,18 @@ function normalizeScores(semantic,m){
     m.meanVolumeDb!=null&&Number(m.meanVolumeDb)<-28?12:0;
 
   const audio=clamp(
-    avg(clamp(s.audio),audioBase)-
+    avg(semanticScore(s.audio),audioBase)-
     silencePenalty*0.35-
     loudnessPenalty
   );
 
   const scrollStop=clamp(
-    avg(clamp(s.scroll_stop),hook,visual)
+    avg(semanticScore(s.scroll_stop),hook,visual)
   );
 
   const retention=clamp(
     avg(
-      clamp(s.retention),
+      semanticScore(s.retention),
       hook,
       rhythm,
       structure,
