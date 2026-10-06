@@ -524,6 +524,11 @@ $("#analyzeBtn").onclick=async()=>{
       const isLegacy=String(version).includes("vp-score-3");
       const displayScore=isLegacy?backendScore:calculatedScore;
       const ctaScore=clampScore(displayScores.cta);
+      const priorityKey=Object.entries(VIRAL_SCORE_WEIGHTS)
+        .filter(([,weight])=>weight>0)
+        .sort(([a],[b])=>(Number(displayScores[a])||0)-(Number(displayScores[b])||0))[0]?.[0]||"hook";
+      const priorityScore=clampScore(displayScores[priorityKey]);
+      const priorityEvidence=analysis?.score_evidence?.[priorityKey]||analysis?.why||"";
       r.innerHTML=`${isLegacy?'<div class="legacy-score-warning"><b>Ancienne version du score détectée.</b> Relance cette vidéo une fois pour obtenir le nouveau Viral Score corrigé sur une vraie échelle 0–100.</div>':""}
       <div class="viral-score-head">
         <div><div class="viral-score-kicker">VIRAL SCORE</div><div class="score-big">${escapeHtml(Number.isFinite(displayScore)?displayScore:"—")}<small>/100</small></div><span class="score-band">${escapeHtml(Number.isFinite(displayScore)?scoreBand(displayScore):"Analyse")}</span></div>
@@ -532,7 +537,7 @@ $("#analyzeBtn").onclick=async()=>{
       <div class="score-note">Le CTA est analysé séparément car il sert surtout la conversion. Il ne fait pas baisser le Viral Score.</div>
       ${scoreMarkup(rawScores,analysis?.score_evidence||{},version)}
       <div class="cta-separate"><strong>CTA · ${escapeHtml(ctaScore)}/100 · hors Viral Score</strong><p>${escapeHtml(analysis?.score_evidence?.cta||analysis?.recommended_cta||"Le CTA est évalué pour la conversion, séparément du potentiel de recommandation.")}</p></div>
-      <div class="advice"><small>PROBLÈME PRIORITAIRE</small><h4>${escapeHtml(analysis?.main_problem||data?.main_problem||"Analysis completed")}</h4><p>${escapeHtml(analysis?.why||data?.why||"")}</p></div>
+      <div class="advice"><small>PRIORITÉ VIRAL SCORE</small><h4>${escapeHtml(VIRAL_SCORE_LABELS[priorityKey]||priorityKey)} · ${escapeHtml(priorityScore)}/100</h4><p>${escapeHtml(priorityEvidence)}</p></div>
       ${analysis?.recommended_hook?`<div class="advice"><small>HOOK RECOMMANDÉ</small><h4>${escapeHtml(analysis.recommended_hook)}</h4></div>`:""}
       ${timelineMarkup(analysis?.timeline)}
       ${Array.isArray(analysis?.action_items)&&analysis.action_items.length?`<div class="advice"><small>CORRECTIONS PRIORITAIRES</small>${analysis.action_items.slice(0,5).map((x,i)=>`<p><b>#${i+1}</b> ${escapeHtml(x)}</p>`).join("")}</div>`:""}
