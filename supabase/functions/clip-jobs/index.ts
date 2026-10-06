@@ -44,31 +44,83 @@ Deno.serve(async(req:Request)=>{
 
   if(req.method==="POST"&&tail[0]==="create"){
     const body=await req.json().catch(()=>null);if(!body)return out({error:"INVALID_BODY"},400);
-    const src=sourceInfo(body.source_url);if(!src)return out({error:"UNSUPPORTED_OR_UNSAFE_URL"},400);
     if(body.confirm_rights!==true)return out({error:"RIGHTS_CONFIRMATION_REQUIRED"},400);
-    const count=boundedInt(body.clip_count,5,1,10), min=boundedInt(body.min_duration_sec,20,8,90), max=boundedInt(body.max_duration_sec,60,15,120);
+
+    const sourceVideoId=uuid(body.source_video_id)?String(body.source_video_id):null;
+    const src=sourceVideoId?null:sourceInfo(body.source_url);
+    if(!sourceVideoId&&!src)return out({error:"SOURCE_REQUIRED"},400);
+
+    let ownedMedia:any=null;
+    if(sourceVideoId){
+      const {data,error}=await db
+        .from("media_assets")
+        .select("id,user_id,storage_bucket,storage_path,original_name,mime_type,size_bytes,status")
+        .eq("id",sourceVideoId)
+        .eq("user_id",user.id)
+        .maybeSingle();
+      if(error)return out({error:error.message},500);
+      if(!data)return out({error:"SOURCE_MEDIA_NOT_FOUND"},404);
+      if(Number(data.size_bytes||0)>500*1024*1024)return out({error:"SOURCE_TOO_LARGE"},400);
+      ownedMedia=data;
+    }
+
+    const count=boundedInt(body.clip_count,5,1,20), min=boundedInt(body.min_duration_sec,20,8,90), max=boundedInt(body.max_duration_sec,60,15,120);
     if(max<min)return out({error:"INVALID_DURATION_RANGE"},400);
+
     const settings={
       caption_preset:["modern_bold","minimal","creator","karaoke","authority","ugc"].includes(String(body.caption_preset))?String(body.caption_preset):"modern_bold",
       format:"9:16",
       language:String(body.language||"auto").slice(0,32),
       add_captions:body.add_captions!==false,
-      reframe:"smart_vertical"
+      reframe:"smart_vertical",
+      quality_mode:"best_only",
+      requested_clip_count:count
     };
+
+    const sourcePlatform=ownedMedia?"upload":src!.platform;
+    const sourceUrl=ownedMedia?null:src!.url;
+
     const {data:project,error:pe}=await db.from("clip_projects").insert({
-      user_id:user.id,source_url:src.url,source_platform:src.platform,title:String(body.title||"").slice(0,240)||null,
-      requested_clip_count:count,min_duration_sec:min,max_duration_sec:max,status:"queued",settings
+      user_id:user.id,
+      source_video_id:ownedMedia?.id||null,
+      source_url:sourceUrl,
+      source_platform:sourcePlatform,
+      title:String(body.title||ownedMedia?.original_name||"").slice(0,240)||null,
+      requested_clip_count:count,
+      min_duration_sec:min,
+      max_duration_sec:max,
+      status:"queued",
+      settings
     }).select("*").single();
+
     if(pe)return out({error:pe.message},500);
+
     try{
-      const created=await userDb.rpc("create_processing_job",{
-        p_kind:"clip_generate",p_video_id:null,
-        p_payload:{clip_project_id:project.id,source_url:src.url,source_platform:src.platform,clip_count:count,min_duration_sec:min,max_duration_sec:max,settings,requested_at:new Date().toISOString()},
+      const {data:created,error:jobError}=await userDb.rpc("create_processing_job",{
+        p_kind:"clip_generate",
+        p_video_id:ownedMedia?.id||null,
+        p_payload:{
+          clip_project_id:project.id,
+          source_video_id:ownedMedia?.id||null,
+          source_url:sourceUrl,
+          source_platform:sourcePlatform,
+          clip_count:count,
+          min_duration_sec:min,
+          max_duration_sec:max,
+          settings,
+          requested_at:new Date().toISOString()
+        },
         p_idempotency_key:`clip:${project.id}`
       });
-      const job=Array.isArray(created)?created[0]:created;if(!job?.id)throw new Error("JOB_CREATE_FAILED");
+
+      if(jobError)throw jobError;
+      const job=Array.isArray(created)?created[0]:created;
+      if(!job?.id)throw new Error("JOB_CREATE_FAILED");
       return out({project,job},202);
-    }catch(error){await db.from("clip_projects").update({status:"failed"}).eq("id",project.id);return out({error:String(error?.message||error)},500)}
+    }catch(error){
+      await db.from("clip_projects").update({status:"failed"}).eq("id",project.id);
+      return out({error:String((error as any)?.message||error)},500);
+    }
   }
 
   if(req.method==="GET"&&tail[0]==="jobs"&&uuid(tail[1])){

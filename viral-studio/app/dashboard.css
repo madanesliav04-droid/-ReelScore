@@ -37,3 +37,14 @@
 @media(max-width:1050px){.model-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){.model-grid{grid-template-columns:1fr 1fr}.model-preview{height:145px}.safe-zone-panel{grid-template-columns:1fr}.safe-metrics{grid-template-columns:1fr 1fr}.backend-state{display:none}}
 @media(max-width:460px){.model-grid{grid-template-columns:1fr}.model-preview{height:180px}}
+
+.clip-promise{color:#8d96a7;line-height:1.55;margin:7px 0 16px;font-size:13px}
+.clip-count-label{margin:18px 0 9px;font-size:11px;font-weight:800;letter-spacing:.08em;color:#8f98aa;text-transform:uppercase}
+.clip-count-selector{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.clip-count-selector button{appearance:none;border:1px solid rgba(255,255,255,.09);border-radius:13px;background:#090c12;color:#fff;padding:13px 8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;transition:.18s}
+.clip-count-selector button:hover{border-color:rgba(255,255,255,.18);transform:translateY(-1px)}
+.clip-count-selector button.selected{border-color:rgba(116,93,255,.82);background:rgba(116,93,255,.12);box-shadow:0 0 0 1px rgba(116,93,255,.12)}
+.clip-count-selector strong{font-size:21px;line-height:1}
+.clip-count-selector span{font-size:9px;color:#858fa2;text-transform:uppercase;letter-spacing:.1em}
+.quality-note{display:flex;align-items:flex-start;gap:8px;margin:12px 0 2px;padding:10px 11px;border:1px solid rgba(82,224,160,.12);background:rgba(82,224,160,.04);border-radius:10px;color:#91a99d;font-size:11px;line-height:1.45}
+.quality-note svg{flex:0 0 auto;margin-top:1px;color:#58dfaa}

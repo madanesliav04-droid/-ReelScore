@@ -44,6 +44,7 @@ export function Dashboard(){
   const [error,setError]=useState("");
   const [clipUrl,setClipUrl]=useState("");
   const [clipRights,setClipRights]=useState(false);
+  const [clipCount,setClipCount]=useState<5|10|20>(5);
   const [clipProject,setClipProject]=useState<any>(null);
   const [editModel,setEditModel]=useState("codie");
   const [editExportUrl,setEditExportUrl]=useState("");
@@ -149,7 +150,7 @@ export function Dashboard(){
     setError("");setClipProject(null);setBusy(true);
     try{
       const body=await api(functionUrl("clip-jobs","create"),token,{method:"POST",body:JSON.stringify({
-        source_url:clipUrl.trim(),confirm_rights:true,clip_count:5,min_duration_sec:20,max_duration_sec:60,caption_preset:"modern_bold",add_captions:true
+        source_url:clipUrl.trim(),confirm_rights:true,clip_count:clipCount,min_duration_sec:20,max_duration_sec:60,caption_preset:"modern_bold",add_captions:true
       })});
       setJob(body.job);setClipProject({project:body.project,clips:[]});await watchJob(body.job.id,"clip");
     }catch(e:any){setError(e.message);setBusy(false)}
@@ -223,11 +224,14 @@ export function Dashboard(){
 
       {active==="clip"&&<div className="workspace-grid">
         <section className="panel clip-url-panel">
-          <small className="eyebrow">CLIP+ · URL TO CLIPS</small><h3>Paste the URL. We do everything else.</h3>
-          <div className="url-box"><Link2 size={20}/><input value={clipUrl} onChange={e=>setClipUrl(e.target.value)} placeholder="Paste YouTube, TikTok or Instagram URL"/></div>
-          <div className="platform-chips"><span>YouTube</span><span>TikTok</span><span>Instagram</span></div>
+          <small className="eyebrow">CLIP+ · YOUTUBE TO SHORTS</small><h3>Paste a long YouTube video. Get the best Shorts.</h3>
+          <p className="clip-promise">URL → analyse complète → meilleurs passages → 9:16 → captions → clips prêts à poster.</p>
+          <div className="url-box"><Link2 size={20}/><input value={clipUrl} onChange={e=>setClipUrl(e.target.value)} placeholder="Paste YouTube URL"/></div>
+          <div className="clip-count-label">How many clips do you want?</div>
+          <div className="clip-count-selector">{([5,10,20] as const).map(n=><button key={n} className={clipCount===n?"selected":""} onClick={()=>setClipCount(n)}><strong>{n}</strong><span>clips</span></button>)}</div>
+          <div className="quality-note"><Check size={14}/><span>Quality first: Clip+ can return fewer clips if the source does not contain enough strong standalone moments.</span></div>
           <label className="rights-check"><input type="checkbox" checked={clipRights} onChange={e=>setClipRights(e.target.checked)}/><span>Je confirme que je possède cette vidéo ou que j’ai l’autorisation de la traiter.</span></label>
-          <button className="btn primary full" onClick={startClip} disabled={!clipUrl.trim()||!clipRights||busy}><Scissors size={16}/> {busy&&job?.kind==="clip_generate"?"Finding the best clips…":"Generate clips"}</button>
+          <button className="btn primary full" onClick={startClip} disabled={!clipUrl.trim()||!clipRights||busy}><Scissors size={16}/> {busy&&job?.kind==="clip_generate"?`Creating up to ${clipCount} clips…`:`Generate ${clipCount} clips`}</button>
           {error&&<div className="job-card error">{error}</div>}
         </section>
         <BackendState media={null} job={job}/>
@@ -239,7 +243,7 @@ export function Dashboard(){
         {safeZone&&<section className="safe-zone-panel"><div className="safe-phone"><div className="unsafe top"/><div className="safe-frame"><span>UNIVERSAL SAFE</span></div><div className="unsafe right"/><div className="unsafe bottom"/></div><div className="safe-copy"><small>SAFE ZONE</small><h2>{safeZone.score??"—"}<span>/100</span></h2><p>{safeZone.summary||"Framing, text and caption placement checked for short-form UI risk."}</p><div className="safe-metrics"><span>Framing <b>{safeZone.framing}</b></span><span>Text <b>{safeZone.text_safety}</b></span><span>Captions <b>{safeZone.caption_safety}</b></span><span>Platform fit <b>{safeZone.platform_fit}</b></span></div>{safeZone.issues?.length>0&&<div className="safe-issues">{safeZone.issues.slice(0,4).map((x:any,i:number)=><div className={`safe-issue ${x.severity}`} key={i}><strong>{x.element}</strong><span>{x.problem}</span><small>{x.correction}</small></div>)}</div>}</div></section>}
       </>}
 
-      {active==="clip"&&clipProject?.clips?.length>0&&<section className="clips-section"><div className="section-heading"><small>CLIP+ · READY</small><h2>Best moments found.</h2></div><div className="clips-grid">{clipProject.clips.map((clip:any)=><article className="clip-card" key={clip.id}><div className="clip-rank">0{clip.rank}</div><strong>{clip.viral_score??"—"}</strong><small>Viral potential</small><h3>{clip.title||"Untitled clip"}</h3><p>{clip.hook||clip.rationale}</p><button className="btn primary clip-open" onClick={()=>openClip(clip.id)}>Open clip ↗</button></article>)}</div></section>}
+      {active==="clip"&&clipProject?.clips?.length>0&&<section className="clips-section"><div className="section-heading"><small>CLIP+ · READY</small><h2>{clipProject.clips.length} strong clip{clipProject.clips.length>1?"s":""} found.</h2><p>{clipProject.clips.length<clipCount?`You asked for ${clipCount}. Clip+ stopped at ${clipProject.clips.length} because quality comes before quota.`:"All requested clips passed the quality threshold."}</p></div><div className="clips-grid">{clipProject.clips.map((clip:any)=><article className="clip-card" key={clip.id}><div className="clip-rank">0{clip.rank}</div><strong>{clip.viral_score??"—"}</strong><small>Viral potential</small><h3>{clip.title||"Untitled clip"}</h3><p>{clip.hook||clip.rationale}</p><button className="btn primary clip-open" onClick={()=>openClip(clip.id)}>Open clip ↗</button></article>)}</div></section>}
     </section>
   </main>;
 }
