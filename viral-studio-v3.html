@@ -62,6 +62,32 @@ box-shadow:0 35px 55px rgba(74,92,121,.26),inset 14px 18px 28px rgba(255,255,255
 @media(max-width:980px){.product-shell{grid-template-columns:1fr}.product-nav{border-right:0;border-bottom:1px solid var(--line)}.product-nav h2{font-size:42px}.product-tabs{grid-template-columns:repeat(3,1fr)}.product-tab{grid-template-columns:1fr}.product-tab span{grid-row:auto}.product-stage{min-height:800px}.product-pane{padding:35px}.orbit-badge{display:none}}
 @media(max-width:680px){.hero-status{left:17%;bottom:2%;width:210px}.signal-line{display:none}.product-explorer{padding:80px 16px 50px}.product-shell{border-radius:22px}.product-tabs{grid-template-columns:1fr}.product-stage{min-height:910px}.product-pane{padding:25px 18px}.product-pane h3{font-size:47px}.product-columns{grid-template-columns:1fr}.product-visual{height:250px}.edit-visual{grid-template-columns:1fr}.preview-frame{height:150px}.diagnostic-line{width:155px}.dl2{right:8px}.clip-window{width:30%;padding:9px}.clip-window b{font-size:31px}}
 
+
+/* Viral+ score clarity v4 */
+.viral-score-head{display:grid;grid-template-columns:minmax(150px,.42fr) 1fr;gap:18px;align-items:center;padding-bottom:16px;border-bottom:1px solid var(--line)}
+.viral-score-kicker{font-size:8px;letter-spacing:.16em;font-weight:900;color:#7d8798}
+.score-band{display:inline-flex;margin-top:4px;padding:6px 9px;border-radius:999px;background:rgba(111,128,255,.08);border:1px solid rgba(111,128,255,.14);font-size:9px;font-weight:900;letter-spacing:.06em;text-transform:uppercase}
+.score-explain{font-size:11px;line-height:1.55;color:#6f7989}
+.score-explain b{color:#273246}
+.score-scale{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:10px}
+.score-scale span{padding:7px 5px;border-radius:9px;background:rgba(240,244,249,.72);font-size:8px;text-align:center;color:#748093}
+.pillar-list{display:grid;gap:9px;margin:16px 0}
+.pillar-card{padding:13px;border-radius:14px;border:1px solid rgba(84,103,129,.09);background:rgba(244,247,251,.72)}
+.pillar-top{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}
+.pillar-name{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:850;color:#273246}
+.pillar-weight{font-size:8px;color:#7a8596;font-weight:800;background:rgba(255,255,255,.7);padding:4px 7px;border-radius:999px}
+.pillar-score{font-size:22px;font-weight:900;letter-spacing:-.04em}
+.pillar-bar{height:7px;border-radius:999px;background:rgba(74,91,117,.08);overflow:hidden;margin:9px 0 7px}
+.pillar-fill{height:100%;border-radius:inherit;background:linear-gradient(90deg,#728cff,#8c76f5,#72d4e8)}
+.pillar-sub{display:flex;gap:8px;flex-wrap:wrap;font-size:9px;color:#7a8493}
+.pillar-sub span{background:rgba(255,255,255,.66);border:1px solid rgba(84,103,129,.07);padding:4px 6px;border-radius:7px}
+.pillar-evidence{margin-top:8px;font-size:10px;line-height:1.45;color:#6e7889}
+.cta-separate{margin-top:12px;padding:12px;border-radius:13px;background:rgba(255,255,255,.55);border:1px dashed rgba(88,105,132,.2)}
+.cta-separate strong{font-size:11px}.cta-separate p{margin:5px 0 0;font-size:10px;color:#727d8e;line-height:1.45}
+.score-note{margin:12px 0;padding:10px 11px;border-radius:11px;background:rgba(112,135,255,.055);border:1px solid rgba(112,135,255,.11);font-size:9px;line-height:1.45;color:#748093}
+.legacy-score-warning{margin:0 0 12px;padding:10px 11px;border-radius:11px;background:rgba(230,167,99,.08);border:1px solid rgba(230,167,99,.18);font-size:10px;line-height:1.45;color:#8a6741}
+@media(max-width:680px){.viral-score-head{grid-template-columns:1fr}.score-scale{grid-template-columns:1fr 1fr}.pillar-score{font-size:20px}}
+
 </style>
 </head>
 <body>
@@ -401,9 +427,61 @@ async function pollJob(id,kind,onDone,onFail){
   }
 }
 
-function scoreMarkup(scores){
-  if(!scores||typeof scores!=="object")return "";
-  return '<div class="score-grid">'+Object.entries(scores).slice(0,9).map(([k,v])=>`<div class="score-item"><small>${escapeHtml(k.replaceAll("_"," "))}</small><b>${escapeHtml(v)}</b></div>`).join("")+"</div>";
+const VIRAL_SCORE_WEIGHTS={
+  hook:20,scroll_stop:10,retention:20,rhythm:5,
+  clarity:10,structure:10,text_captions:5,visual:5,audio:5,originality:10
+};
+const VIRAL_SCORE_LABELS={
+  hook:"Hook",scroll_stop:"Stop scroll",retention:"Rétention",rhythm:"Rythme",
+  clarity:"Clarté",structure:"Structure",text_captions:"Sous-titres",
+  visual:"Visuel",audio:"Audio",originality:"Originalité",cta:"CTA"
+};
+function clampScore(v){return Math.max(0,Math.min(100,Math.round(Number(v)||0)))}
+function scoreBand(v){
+  const n=clampScore(v);
+  if(n>=80)return "Très fort";
+  if(n>=65)return "Solide";
+  if(n>=50)return "Moyen";
+  return "À retravailler";
+}
+function normalizedDisplayScores(scores,version){
+  const src=scores&&typeof scores==="object"?scores:{};
+  const out={};
+  for(const [k,v] of Object.entries(src))out[k]=clampScore(v);
+  // vp-score-3 could mix Gemini 0-10 values with measured 0-100 values.
+  // We do not silently fake a corrected historical score; a fresh analysis uses v4.
+  return out;
+}
+function weightedAverage(scores,keys){
+  let total=0,weight=0;
+  for(const key of keys){
+    const w=VIRAL_SCORE_WEIGHTS[key]||0;
+    total+=(Number(scores[key])||0)*w;
+    weight+=w;
+  }
+  return weight?Math.round(total/weight):0;
+}
+function calculateViralScore(scores){
+  let total=0;
+  for(const [key,w] of Object.entries(VIRAL_SCORE_WEIGHTS))total+=(Number(scores[key])||0)*w;
+  return Math.round(total/100);
+}
+function pillarMarkup(name,weight,score,items,evidence){
+  const ev=items.map(k=>evidence?.[k]).find(Boolean)||"";
+  return `<div class="pillar-card"><div class="pillar-top"><div class="pillar-name">${escapeHtml(name)} <span class="pillar-weight">${weight}% du score</span></div><div class="pillar-score">${score}<small>/100</small></div></div><div class="pillar-bar"><div class="pillar-fill" style="width:${Math.max(0,Math.min(100,score))}%"></div></div><div class="pillar-sub">${items.map(k=>`<span>${escapeHtml(VIRAL_SCORE_LABELS[k]||k)} · ${escapeHtml(scoresForPillar[k]??"—")}</span>`).join("")}</div>${ev?`<div class="pillar-evidence">${escapeHtml(ev)}</div>`:""}</div>`;
+}
+let scoresForPillar={};
+function scoreMarkup(scores,evidence={},version=""){
+  scoresForPillar=normalizedDisplayScores(scores,version);
+  const s=scoresForPillar;
+  const pillars=[
+    ["Accroche",30,weightedAverage(s,["hook","scroll_stop"]),["hook","scroll_stop"]],
+    ["Rétention",25,weightedAverage(s,["retention","rhythm"]),["retention","rhythm"]],
+    ["Message",20,weightedAverage(s,["clarity","structure"]),["clarity","structure"]],
+    ["Exécution",15,weightedAverage(s,["text_captions","visual","audio"]),["text_captions","visual","audio"]],
+    ["Originalité",10,clampScore(s.originality),["originality"]]
+  ];
+  return '<div class="pillar-list">'+pillars.map(p=>pillarMarkup(p[0],p[1],p[2],p[3],evidence)).join("")+"</div>";
 }
 function timelineMarkup(items){
   if(!Array.isArray(items)||!items.length)return "";
@@ -438,8 +516,28 @@ $("#analyzeBtn").onclick=async()=>{
 
       const r=$("#viralResult");
       r.classList.remove("hidden");
-      r.innerHTML=`<div class="score-big">${escapeHtml(analysis?.final_score??data?.final_score??"—")}<small>/100</small></div>${scoreMarkup(analysis?.scores||data?.scores)}<div class="advice"><small>MAIN PROBLEM</small><h4>${escapeHtml(analysis?.main_problem||data?.main_problem||"Analysis completed")}</h4><p>${escapeHtml(analysis?.why||data?.why||"")}</p></div>${analysis?.recommended_hook?`<div class="advice"><small>RECOMMENDED HOOK</small><h4>${escapeHtml(analysis.recommended_hook)}</h4></div>`:""}${timelineMarkup(analysis?.timeline)}${Array.isArray(analysis?.action_items)&&analysis.action_items.length?`<div class="advice"><small>PRIORITY FIXES</small>${analysis.action_items.slice(0,5).map((x,i)=>`<p><b>#${i+1}</b> ${escapeHtml(x)}</p>`).join("")}</div>`:""}<button class="btn primary wide" id="fixBtn">Fix with Edit+ →</button>`;
-      $("#fixBtn").onclick=()=>setProductWorkspace("edit");
+      const rawScores=analysis?.scores||data?.scores||{};
+      const version=analysis?.score_version||data?.score_version||"";
+      const displayScores=normalizedDisplayScores(rawScores,version);
+      const calculatedScore=calculateViralScore(displayScores);
+      const backendScore=Number(analysis?.final_score??data?.final_score);
+      const isLegacy=String(version).includes("vp-score-3");
+      const displayScore=isLegacy?backendScore:calculatedScore;
+      const ctaScore=clampScore(displayScores.cta);
+      r.innerHTML=`${isLegacy?'<div class="legacy-score-warning"><b>Ancienne version du score détectée.</b> Relance cette vidéo une fois pour obtenir le nouveau Viral Score corrigé sur une vraie échelle 0–100.</div>':""}
+      <div class="viral-score-head">
+        <div><div class="viral-score-kicker">VIRAL SCORE</div><div class="score-big">${escapeHtml(Number.isFinite(displayScore)?displayScore:"—")}<small>/100</small></div><span class="score-band">${escapeHtml(Number.isFinite(displayScore)?scoreBand(displayScore):"Analyse")}</span></div>
+        <div class="score-explain"><b>Ce score mesure le potentiel créatif de la vidéo, pas ses performances Instagram réelles.</b><br>Il est calculé avec 5 piliers pondérés : Accroche 30%, Rétention 25%, Message 20%, Exécution 15%, Originalité 10%.<div class="score-scale"><span>0–49 · faible</span><span>50–64 · moyen</span><span>65–79 · solide</span><span>80–100 · très fort</span></div></div>
+      </div>
+      <div class="score-note">Le CTA est analysé séparément car il sert surtout la conversion. Il ne fait pas baisser le Viral Score.</div>
+      ${scoreMarkup(rawScores,analysis?.score_evidence||{},version)}
+      <div class="cta-separate"><strong>CTA · ${escapeHtml(ctaScore)}/100 · hors Viral Score</strong><p>${escapeHtml(analysis?.score_evidence?.cta||analysis?.recommended_cta||"Le CTA est évalué pour la conversion, séparément du potentiel de recommandation.")}</p></div>
+      <div class="advice"><small>PROBLÈME PRIORITAIRE</small><h4>${escapeHtml(analysis?.main_problem||data?.main_problem||"Analysis completed")}</h4><p>${escapeHtml(analysis?.why||data?.why||"")}</p></div>
+      ${analysis?.recommended_hook?`<div class="advice"><small>HOOK RECOMMANDÉ</small><h4>${escapeHtml(analysis.recommended_hook)}</h4></div>`:""}
+      ${timelineMarkup(analysis?.timeline)}
+      ${Array.isArray(analysis?.action_items)&&analysis.action_items.length?`<div class="advice"><small>CORRECTIONS PRIORITAIRES</small>${analysis.action_items.slice(0,5).map((x,i)=>`<p><b>#${i+1}</b> ${escapeHtml(x)}</p>`).join("")}</div>`:""}
+      <button class="ghost wide" id="newViralAnalysis">Analyser une autre vidéo</button>`;
+      $("#newViralAnalysis").onclick=()=>{$("#viralResult").classList.add("hidden");$("#videoFile").value="";media=null;$("#selectedVideo").classList.add("hidden");$("#analyzeBtn").disabled=true;$("#viralFileName").textContent="Drop your Reel here";window.scrollTo({top:$("#workspace").offsetTop,behavior:"smooth"});};
       $("#analyzeBtn").disabled=false;
       toast("Analyse Viral+ terminée.");
     });
