@@ -497,9 +497,7 @@ async function findOpenverseAsset(
       if(!['pdm','cc0','by'].includes(license))continue;
 
       const assetUrl=
-        String(item?.thumbnail||'').startsWith('https://')
-          ?String(item.thumbnail)
-          :`https://api.openverse.org/v1/images/${id}/thumb/?compressed=true`;
+        `https://api.openverse.org/v1/images/${id}/thumb/?compressed=true`;
 
       if(used.has(assetUrl))continue;
 
@@ -724,7 +722,15 @@ async function validateBrollAsset({
         'Accept':'image/*'
       }
     });
-    if(!r.ok)return false;
+    if(!r.ok){
+      console.warn(JSON.stringify({
+        event:'broll_validation_image_fetch_failed',
+        status:r.status,
+        provider:asset.provider,
+        assetUrl:asset.assetUrl
+      }));
+      return false;
+    }
 
     const length=Number(r.headers.get('content-length')||0);
     if(length>5*1024*1024)return false;
@@ -732,7 +738,12 @@ async function validateBrollAsset({
     const bytes=Buffer.from(await r.arrayBuffer());
     if(bytes.length<1000||bytes.length>5*1024*1024)return false;
     imageBytes=bytes.toString('base64');
-  }catch{
+  }catch(error){
+    console.warn(JSON.stringify({
+      event:'broll_validation_image_fetch_error',
+      provider:asset.provider,
+      error:String(error?.message||error).slice(0,240)
+    }));
     return false;
   }
 
