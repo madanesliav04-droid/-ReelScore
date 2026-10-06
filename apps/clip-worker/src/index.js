@@ -796,7 +796,15 @@ async function fail(job,error){
   const code=String(error?.code||'CLIP_FAILED').slice(0,120);
   const retry=Number(job.retry_count||0)+1;
   const max=Number(job.max_retries??3);
-  const terminal=retry>max;
+  const permanentCodes=new Set([
+    'YOUTUBE_EGRESS_REQUIRED',
+    'YOUTUBE_UNAVAILABLE',
+    'SOURCE_TOO_LARGE',
+    'SOURCE_MEDIA_NOT_FOUND',
+    'UNSUPPORTED_SOURCE',
+    'NO_CLIPS_FOUND'
+  ]);
+  const terminal=permanentCodes.has(code)||retry>max;
   const now=new Date();
 
   const update=terminal
