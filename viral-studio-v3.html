@@ -251,26 +251,29 @@ box-shadow:0 35px 55px rgba(74,92,121,.26),inset 14px 18px 28px rgba(255,255,255
         <div id="viralResult" class="result hidden"></div>
       </div>
       <div class="pane" data-pane="edit">
-        <div class="pane-head"><div><small>EDIT+ · AUTO EDIT</small><h3>Create an edit.</h3></div><span class="badge">NATIVE FFMPEG</span></div>
+        <div class="pane-head"><div><small>EDIT+ · AUTO EDIT</small><h3>Create an edit.</h3></div><span class="badge">CONTEXTUAL B-ROLL</span></div>
         <label class="upload" id="editUploadZone"><input id="editFile" type="file" accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm"><div class="upload-mark">＋</div><strong id="editFileName">Drop a raw video for Edit+</strong><span>Tu n’as pas besoin de passer par Viral+ avant.</span></label><div class="selected hidden" id="editMedia"></div>
         <div class="form-grid">
           <label>Editing style<select id="editStyle"><option value="codie">Codie</option><option value="creator_clean">Creator Clean</option><option value="business_viral">Business Viral</option><option value="podcast_authority">Podcast Authority</option></select></label>
           <label>Captions<select id="captionPreset"><option value="modern_bold">Modern Bold</option><option value="authority">Authority</option><option value="minimal">Minimal</option><option value="creator">Creator</option><option value="karaoke">Karaoke</option><option value="ugc">UGC</option></select></label>
+          <label>Output format<select id="editFormat"><option value="native" selected>Native · keep source ratio</option><option value="portrait">Portrait · 9:16</option><option value="landscape">Landscape · 16:9</option></select></label>
+          <label>B-roll<select id="editBroll" disabled><option selected>Auto · contextual real images</option></select></label>
         </div>
+        <div class="selected" id="editModeHint">Codie · face-cam dominante · crops narratifs · 2–4 B-rolls maximum, seulement quand ils renforcent la phrase.</div>
         <button class="btn primary wide" id="editBtn" disabled>Create edit</button>
         <div id="editResult" class="result hidden"></div>
       </div>
       <div class="pane" data-pane="clip">
         <div class="pane-head"><div><small>CLIP+ · LONG TO SHORT</small><h3>Find your best moments.</h3></div><span class="badge">LINK OR UPLOAD</span></div>
         <div class="auth-tabs source-tabs">
-          <button class="active" type="button" data-clipsource="url">Paste a link</button>
-          <button type="button" data-clipsource="upload">Upload video</button>
+          <button class="active" type="button" data-clipsource="upload">Upload video</button>
+          <button type="button" data-clipsource="url">Paste a link · beta</button>
         </div>
-        <div id="clipUrlPanel">
+        <div id="clipUrlPanel" class="hidden">
           <input class="field" id="clipUrl" placeholder="Paste a YouTube, TikTok, Instagram or Vimeo URL">
-          <p style="font-size:10px;color:#7a8494;margin:8px 2px 0">Les plateformes peuvent parfois bloquer l’import serveur. Dans ce cas, utilise Upload video.</p>
+          <p style="font-size:10px;color:#7a8494;margin:8px 2px 0">L’import par lien dépend de la plateforme source. Pour le chemin le plus fiable, utilise Upload video.</p>
         </div>
-        <div id="clipUploadPanel" class="hidden">
+        <div id="clipUploadPanel">
           <label class="upload"><input id="clipFile" type="file" accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm"><div class="upload-mark">＋</div><strong id="clipFileName">Drop a long video here</strong><span>MP4 · MOV · WebM · up to 500 MB</span></label>
           <div id="clipUploadBox" class="hidden"><div class="progress"><i id="clipUploadProgress"></i></div><div class="progressText" id="clipUploadText">0%</div></div>
         </div>
@@ -306,7 +309,7 @@ const BUCKET="viralplus-videos";
 const client=window.supabase.createClient(SUPABASE_URL,KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const $=s=>document.querySelector(s);
 const $$=s=>Array.from(document.querySelectorAll(s));
-let session=null,media=null,clipMedia=null,clipSourceMode="url",currentJob=null,poller=null,authMode="login",analysis=null,editRecoveryDone=false;
+let session=null,media=null,clipMedia=null,clipSourceMode="upload",currentJob=null,poller=null,authMode="login",analysis=null,editRecoveryDone=false;
 
 function toast(msg){const el=$("#toast");el.textContent=msg;el.classList.remove("hidden");clearTimeout(el._t);el._t=setTimeout(()=>el.classList.add("hidden"),3400)}
 function showAuth(){ $("#authModal").classList.remove("hidden") }
@@ -575,7 +578,7 @@ async function renderEditCompleted(job,{recovered=false}={}){
       <a class="btn primary wide" href="${escapeHtml(signed.signed_url)}" target="_blank" rel="noopener">Open / download MP4 ↗</a>
       ${mb?`<p style="font-size:10px;color:#7a8494;text-align:center;margin:8px 0 0">${escapeHtml(mb)} MB · MP4 · export ready</p>`:""}`;
   }
-  result.innerHTML=`<div class="advice"><small>EDIT+ COMPLETED</small><h4>Ton montage est prêt.</h4><p>${escapeHtml(job?.result?.style||"Edit+")} · ${escapeHtml(job?.result?.caption_preset||"captions")} ${recovered?"· export restauré":""}</p></div>
+  result.innerHTML=`<div class="advice"><small>EDIT+ COMPLETED</small><h4>Ton montage est prêt.</h4><p>${escapeHtml(job?.result?.style||"Edit+")} · ${escapeHtml(job?.result?.caption_preset||"captions")} · ${escapeHtml(job?.result?.format||"native")} ${Number.isFinite(Number(job?.result?.broll_count))?`· ${escapeHtml(job.result.broll_count)} B-roll(s)`:""} ${recovered?"· export restauré":""}</p></div>
     ${preview}
     <button class="ghost wide" id="newEditBtn">Créer un nouveau montage</button>`;
 
@@ -655,7 +658,10 @@ $("#editBtn").onclick=async()=>{
         video_id:media.id,
         analysis_id:analysis?.analysis_id||analysis?.id||null,
         style:$("#editStyle").value,
-        caption_preset:$("#captionPreset").value
+        caption_preset:$("#captionPreset").value,
+        settings:{
+          format:$("#editFormat").value
+        }
       })
     });
     currentJob=body.job;
@@ -673,7 +679,19 @@ $("#editBtn").onclick=async()=>{
   }
 };
 
-$$("[data-clipsource]").forEach(btn=>btn.addEventListener("click",()=>{
+const EDIT_MODE_HINTS={
+  codie:"Codie · face-cam dominante · crops narratifs · 2–4 B-rolls maximum, seulement quand ils renforcent la phrase.",
+  creator_clean:"Creator Clean · rythme équilibré · cuts propres · B-roll modéré et lisible.",
+  business_viral:"Business Viral · rythme rapide · davantage de ruptures visuelles · B-roll plus fréquent et punch-ins plus marqués.",
+  podcast_authority:"Podcast Authority · plans plus longs · moins de cuts · B-roll plus rare et plus posé."
+};
+$("#editStyle")?.addEventListener("change",()=>{
+  $("#editModeHint").textContent=
+    EDIT_MODE_HINTS[$("#editStyle").value]||
+    EDIT_MODE_HINTS.creator_clean;
+});
+
+$("[data-clipsource]").forEach(btn=>btn.addEventListener("click",()=>{
   clipSourceMode=btn.dataset.clipsource;
   $$("[data-clipsource]").forEach(x=>x.classList.toggle("active",x===btn));
   $("#clipUrlPanel").classList.toggle("hidden",clipSourceMode!=="url");
