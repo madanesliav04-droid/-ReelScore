@@ -199,12 +199,21 @@ async function route(req:Request){
     const media=await ownMedia(db,user.id,String(body.video_id));
     if(!media)return out({error:"MEDIA_NOT_FOUND"},404);
 
-    const style=["creator_clean","codie","business_viral","podcast_authority"].includes(String(body.style))
-      ? String(body.style)
-      : "creator_clean";
-    const caption=["modern_bold","minimal","creator","karaoke","authority","ugc"].includes(String(body.caption_preset))
-      ? String(body.caption_preset)
-      : "modern_bold";
+    const allowedStyles=["codie","impact","clean","authority","explainer","data","ugc_native","cinematic_story","creator_clean","business_viral","podcast_authority"];
+    const requestedStyle=String(body.style||"clean");
+    const style=allowedStyles.includes(requestedStyle)?requestedStyle:"clean";
+    const canonicalStyle={creator_clean:"clean",business_viral:"impact",podcast_authority:"authority"}[style]||style;
+    const captionByModel={
+      codie:"authority",
+      impact:"impact",
+      clean:"clean",
+      authority:"authority",
+      explainer:"explainer",
+      data:"data",
+      ugc_native:"ugc",
+      cinematic_story:"cinematic"
+    };
+    const caption=captionByModel[canonicalStyle]||"clean";
     const sourceAnalysisId=isUuid(body.analysis_id)?String(body.analysis_id):null;
     const requestId=crypto.randomUUID();
 
@@ -213,10 +222,14 @@ async function route(req:Request){
         user_id:user.id,
         source_video_id:media.id,
         source_analysis_id:sourceAnalysisId,
-        style,
+        style:canonicalStyle,
         caption_preset:caption,
         status:"planning",
-        settings:body.settings&&typeof body.settings==="object"?body.settings:{}
+        settings:{
+          ...(body.settings&&typeof body.settings==="object"?body.settings:{}),
+          format:"portrait",
+          model_contract_version:"editplus-models-v1"
+        }
       })
       .select("*")
       .single();
@@ -226,8 +239,9 @@ async function route(req:Request){
       const job=await createJob(userDb,"edit_render",media.id,{
         edit_project_id:project.id,
         source_analysis_id:sourceAnalysisId,
-        style,
+        style:canonicalStyle,
         caption_preset:caption,
+        settings:{format:"portrait",model_contract_version:"editplus-models-v1"},
         requested_at:new Date().toISOString()
       },`edit:${project.id}:${requestId}`);
       return out({project,job},202);
