@@ -262,7 +262,7 @@ export function Dashboard(){
         </div>
 
         <section className="model-library">
-          <div className="section-heading"><small>8 LOCKED MODELS</small><h2>Choose the result you want.</h2><p>Each card is a fixed editing language. Edit+ adapts the content, never the model.</p></div>
+          <div className="section-heading"><small>8 LOCKED MODELS</small><h2>Choose the actual editing language.</h2><p>Every model changes pacing, captions, crops, graphics, B-roll rules and finishing. Same source ≠ same render.</p></div>
           <div className="model-grid">{EDIT_MODELS.map(model=><button key={model.id} className={`model-card ${editModel===model.id?"selected":""}`} data-model={model.id} onClick={()=>setEditModel(model.id)}>
             <div className="model-preview"><div className="preview-face"/><div className="preview-caption">{model.preview}</div><div className="preview-cut"/><span className="preview-badge">{model.name}</span></div>
             <div className="model-copy"><div><strong>{model.name}</strong><span>{model.category}</span></div>{editModel===model.id&&<Check size={18}/>}<p>{model.meta}</p></div>
@@ -300,14 +300,14 @@ export function Dashboard(){
         <section className="viral-detail-section">
           <div className="section-heading"><small>DETAILED SCORING</small><h2>Exactly where the score comes from.</h2><p>Each criterion is scored independently, with the observable reason behind it.</p></div>
           <div className="viral-score-grid">
-            {VIRAL_METRICS.map(([key,label])=>{const value=analysis.scores?.[key];const evidence=analysis.score_evidence?.[key];return <article className={`viral-metric ${scoreTone(value)}`} key={key}><div className="metric-head"><span>{label}</span><strong>{value??"—"}<small>/100</small></strong></div><div className="metric-bar"><i style={{width:`${Math.max(0,Math.min(100,Number(value||0)))}%`}}/></div><p>{evidence||"No evidence returned."}</p>{key==="cta"&&<small className="metric-note">Diagnosed separately · 0% weight in Viral Score</small>}</article>})}
+            {VIRAL_METRICS.map(([key,label])=>{const value=analysis.scores?.[key];const evidence=analysis.score_evidence?.[key];const breakdown=(analysis.score_breakdown||[]).find((x:any)=>x.key===key);return <article className={`viral-metric ${scoreTone(value)}`} key={key}><div className="metric-head"><span>{label}</span><strong>{value??"—"}<small>/100</small></strong></div><div className="metric-bar"><i style={{width:`${Math.max(0,Math.min(100,Number(value||0)))}%`}}/></div><p>{evidence||"No evidence returned."}</p>{breakdown&&<div className="score-weight"><span>Weight {breakdown.weight}%</span><b>+{breakdown.contribution} pts</b></div>}{key==="cta"&&<small className="metric-note">Diagnosed separately · 0% weight in Viral Score</small>}</article>})}
           </div>
         </section>
 
         <section className="viral-fix-grid">
           <article className="viral-fix-card priority-card">
-            <small>PRIORITY FIXES</small><h3>Do these before posting.</h3>
-            <div className="action-list">{(analysis.action_items||[]).map((item:any,i:number)=><div key={i}><b>{String(i+1).padStart(2,"0")}</b><span>{item}</span></div>)}</div>
+            <small>EXACT FIX PLAN</small><h3>Change these before posting.</h3>
+            <div className="fix-plan-list">{(analysis.fix_plan?.length?analysis.fix_plan:(analysis.action_items||[]).map((item:any,i:number)=>({priority:i+1,area:"editing",problem:item,exact_change:item}))).map((item:any,i:number)=><div className="fix-plan-item" key={i}><div className="fix-priority">P{item.priority||i+1}</div><div><div className="fix-meta"><strong>{String(item.area||"editing").toUpperCase()}</strong>{Number(item.end_sec||0)>Number(item.start_sec||0)&&<span>{Number(item.start_sec||0).toFixed(1)}s → {Number(item.end_sec||0).toFixed(1)}s</span>}</div>{item.problem&&<p><b>Problem:</b> {item.problem}</p>}{item.why_it_matters&&<p><b>Why:</b> {item.why_it_matters}</p>}<div className="exact-change"><b>DO THIS →</b> {item.exact_change||item.problem}</div>{item.example&&<div className="fix-example"><b>Example:</b> {item.example}</div>}{item.expected_effect&&<small>{item.expected_effect}</small>}</div></div>)}</div>
           </article>
           <article className="viral-fix-card rewrite-card">
             <small>REWRITE</small><h3>Use stronger packaging.</h3>
