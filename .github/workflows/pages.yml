@@ -27,10 +27,15 @@ jobs:
           ref: viralplus-vf
       - name: Configure Pages
         uses: actions/configure-pages@v5
+      - name: Build isolated static artifact
+        run: |
+          rm -rf site
+          mkdir site
+          cp index.html viralplus-ui.css config.js viralplus-product-config.js viralplus-ui.js site/
       - name: Upload site
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: site
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4

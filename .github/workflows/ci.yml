@@ -1,0 +1,33 @@
+name: Viral+ Edit+ CI
+
+on:
+  push:
+    branches: [viral-edit-core, viralplus-vf]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  static-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: JavaScript syntax
+        run: |
+          node --check viralplus-ui.js
+          if [ -f app.js ]; then node --check app.js; fi
+      - name: No backend secrets in browser artifact
+        run: |
+          if grep -n -E 'SUPABASE_SERVICE_ROLE_KEY|STRIPE_SECRET_KEY|GEMINI_API_KEY[[:space:]]*=' \
+            index.html config.js viralplus-product-config.js viralplus-ui.js; then
+            echo "Backend secret reference found in browser artifact"
+            exit 1
+          fi
+      - name: Required product files
+        run: |
+          test -f index.html
+          test -f viralplus-ui.js
+          test -f viralplus-product-config.js
+          test -f supabase/migrations/20261006090000_shared_viral_edit_core.sql
+          test -f docs/ARCHITECTURE.md
