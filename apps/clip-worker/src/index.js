@@ -510,7 +510,8 @@ ${transcript}`;
               contents:[{role:'user',parts:[{text:prompt}]}],
               generationConfig:{
                 responseMimeType:'application/json',
-                temperature:0
+                temperature:0,
+                seed:42
               }
             })
           }
