@@ -2,6 +2,9 @@ import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import {mkdtemp,rm,readFile,writeFile,stat} from 'node:fs/promises';
+import {createWriteStream} from 'node:fs';
+import {Readable} from 'node:stream';
+import {pipeline} from 'node:stream/promises';
 import {spawn} from 'node:child_process';
 import {randomUUID} from 'node:crypto';
 import {createClient} from '@supabase/supabase-js';
@@ -51,22 +54,32 @@ async function processJob(job){
     if(await recover(job))return;
     const payload=job.payload||{};
     const projectId=String(payload.clip_project_id||'');
-    const sourceUrl=String(payload.source_url||'');
     if(!isUuid(projectId))throw tagged('INVALID_PROJECT','Projet Clip+ invalide');
-    if(!allowedSource(sourceUrl))throw tagged('UNSUPPORTED_SOURCE','Lien non pris en charge ou non sécurisé');
 
     const {data:project,error:pe}=await supabase.from('clip_projects').select('*').eq('id',projectId).eq('user_id',job.user_id).maybeSingle();
     if(pe)throw pe;if(!project)throw tagged('PROJECT_NOT_FOUND','Projet Clip+ introuvable');
-    await supabase.from('clip_projects').update({status:'importing',updated_at:new Date().toISOString()}).eq('id',projectId);
-    await progress(job,'processing',6,'Import de la vidéo source');
 
-    const sourcePath=await importSource(sourceUrl,dir);
+    const sourceVideoId=String(payload.source_video_id||project.source_video_id||'');
+    const sourceUrl=String(payload.source_url||project.source_url||'');
+    const hasUpload=isUuid(sourceVideoId);
+    if(!hasUpload&&!allowedSource(sourceUrl)){
+      throw tagged('UNSUPPORTED_SOURCE','Ajoute une vidéo uploadée ou un lien pris en charge');
+    }
+
+    await supabase.from('clip_projects').update({status:'importing',updated_at:new Date().toISOString()}).eq('id',projectId);
+    await progress(job,'processing',6,hasUpload?'Téléchargement de la vidéo uploadée':'Import de la vidéo source');
+
+    const imported=hasUpload
+      ?await importUploadedSource({sourceVideoId,userId:job.user_id,dir})
+      :{filePath:await importSource(sourceUrl,dir),mimeType:'video/mp4'};
+
+    const sourcePath=imported.filePath;
     const sourceInfo=await stat(sourcePath);
     if(sourceInfo.size>500*1024*1024)throw tagged('SOURCE_TOO_LARGE','La vidéo dépasse 500 Mo');
 
     await progress(job,'transcribing',18,'Transcription et compréhension de la vidéo');
     const analysis=await analyzeVideo({
-      filePath:sourcePath,mimeType:'video/mp4',fileName:path.basename(sourcePath),geminiKey:process.env.GEMINI_API_KEY,
+      filePath:sourcePath,mimeType:imported.mimeType||'video/mp4',fileName:path.basename(sourcePath),geminiKey:process.env.GEMINI_API_KEY,
       model:process.env.GEMINI_MODEL||'gemini-3.8-flash',fallbackModel:process.env.GEMINI_FALLBACK_MODEL||'gemini-3.5-flash-lite',
       transcribeModel:process.env.GEMINI_TRANSCRIBE_MODEL||'gemini-3.5-transcribe',
       onProgress:async(status,pct,stage)=>progress(job,status,Math.min(46,18+Math.round((Number(pct)||0)*.28)),stage)
@@ -114,45 +127,146 @@ async function recover(job){
   return false;
 }
 
+async function importUploadedSource({sourceVideoId,userId,dir}){
+  const {data:media,error}=await supabase
+    .from('media_assets')
+    .select('id,user_id,storage_bucket,storage_path,original_name,mime_type,size_bytes,status')
+    .eq('id',sourceVideoId)
+    .eq('user_id',userId)
+    .maybeSingle();
+
+  if(error)throw error;
+  if(!media)throw tagged('SOURCE_MEDIA_NOT_FOUND','Vidéo uploadée introuvable');
+  if(Number(media.size_bytes||0)>500*1024*1024){
+    throw tagged('SOURCE_TOO_LARGE','La vidéo dépasse 500 Mo');
+  }
+
+  const ext=extensionFor(media.mime_type,media.original_name);
+  const filePath=path.join(dir,`source-upload${ext}`);
+  await downloadStorageObject({
+    bucketName:media.storage_bucket||bucket,
+    storagePath:media.storage_path,
+    outputPath:filePath
+  });
+
+  return {
+    filePath,
+    mimeType:media.mime_type||'video/mp4'
+  };
+}
+
+async function downloadStorageObject({bucketName,storagePath,outputPath}){
+  const encoded=String(storagePath)
+    .split('/')
+    .map(x=>encodeURIComponent(x))
+    .join('/');
+
+  const url=
+    `${process.env.SUPABASE_URL}/storage/v1/object/authenticated/${encodeURIComponent(bucketName)}/${encoded}`;
+
+  const response=await fetch(url,{
+    headers:{
+      apikey:process.env.SUPABASE_SERVICE_ROLE_KEY,
+      Authorization:`Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`
+    }
+  });
+
+  if(!response.ok||!response.body){
+    throw tagged(
+      'STORAGE_READ_FAILED',
+      `Storage read ${response.status}: ${(await response.text()).slice(0,500)}`
+    );
+  }
+
+  await pipeline(
+    Readable.fromWeb(response.body),
+    createWriteStream(outputPath)
+  );
+}
+
+function extensionFor(mime,name){
+  const lower=String(name||'').toLowerCase();
+  if(lower.endsWith('.mov')||mime==='video/quicktime')return '.mov';
+  if(lower.endsWith('.webm')||mime==='video/webm')return '.webm';
+  return '.mp4';
+}
+
 async function importSource(url,dir){
-  const template=path.join(dir,'source.%(ext)s');
   const host=new URL(url).hostname.toLowerCase().replace(/^www\./,'');
   const youtube=host==='youtu.be'||host.endsWith('youtube.com');
 
-  const args=[
+  const common=[
     '--no-playlist',
     '--no-warnings',
     '--restrict-filenames',
     '--max-filesize','500M',
     '--merge-output-format','mp4',
     '--remux-video','mp4',
-    '-o',template,
     '--print','after_move:filepath'
   ];
 
-  if(youtube){
-    // YouTube 2026: prefer clients that can work from datacenter IPs,
-    // provide PO tokens for mweb, and let yt-dlp choose an available format.
-    args.push(
-      '--extractor-args',
-      'youtubepot-bgutilscript:server_home=/opt/bgutil-ytdlp-pot-provider/server',
-      '--extractor-args',
-      'youtube:player_client=mweb,web_embedded,android_vr',
-      '-S','res:1080'
-    );
-  }else{
-    args.push(
-      '-f',
-      'bv*[height<=1080]+ba/b[height<=1080]/b'
-    );
+  if(!youtube){
+    const template=path.join(dir,'source.%(ext)s');
+    const out=await runStdout('yt-dlp',[
+      ...common,
+      '-f','bv*[height<=1080]+ba/b[height<=1080]/b',
+      '-o',template,
+      url
+    ]);
+    const file=out.trim().split(/\r?\n/).filter(Boolean).at(-1);
+    if(!file)throw tagged('SOURCE_IMPORT_FAILED','Impossible de récupérer la vidéo');
+    return file;
   }
 
-  args.push(url);
-  const out=await runStdout('yt-dlp',args);
-  const file=out.trim().split(/\r?\n/).filter(Boolean).at(-1);
-  if(!file)throw tagged('SOURCE_IMPORT_FAILED','Impossible de récupérer la vidéo');
-  return file;
+  const provider=[
+    '--extractor-args',
+    'youtubepot-bgutilscript:server_home=/opt/bgutil-ytdlp-pot-provider/server'
+  ];
+
+  const strategies=[
+    [
+      ...provider,
+      '--extractor-args','youtube:player_client=mweb',
+      '-f','18/22/best[height<=720]/best'
+    ],
+    [
+      '--extractor-args','youtube:player_client=web_embedded',
+      '-f','18/22/best[height<=720]/best'
+    ],
+    [
+      '--extractor-args','youtube:player_client=android_vr',
+      '-f','best[height<=720]/bestvideo[height<=720]+bestaudio/best'
+    ],
+    [
+      ...provider,
+      '--extractor-args','youtube:player_client=mweb,web_embedded,android_vr',
+      '-S','res:1080'
+    ]
+  ];
+
+  const failures=[];
+  for(let i=0;i<strategies.length;i++){
+    const template=path.join(dir,`source-${i}.%(ext)s`);
+    try{
+      const out=await runStdout('yt-dlp',[
+        ...common,
+        ...strategies[i],
+        '-o',template,
+        url
+      ]);
+      const file=out.trim().split(/\r?\n/).filter(Boolean).at(-1);
+      if(file)return file;
+    }catch(error){
+      failures.push(String(error?.message||error).slice(-700));
+    }
+  }
+
+  throw tagged(
+    'YOUTUBE_IMPORT_FAILED',
+    'YouTube a refusé l’import automatique. Essaie l’upload direct dans Clip+. '+failures.at(-1)
+  );
 }
+
 function allowedSource(value){
   try{
     const u=new URL(value);if(u.protocol!=='https:')return false;
