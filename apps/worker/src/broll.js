@@ -438,7 +438,8 @@ async function findOpenverseAsset(
       license:'pdm,cc0,by',
       page_size:'30',
       mature:'false',
-      category:'photograph'
+      categories:'photograph',
+      excluded_source:'wikimedia'
     });
 
     let response;
