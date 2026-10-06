@@ -20,6 +20,8 @@ jobs:
       - name: Install dependencies
         working-directory: apps/clip-worker
         run: npm install --no-audit --no-fund
+      - name: Stage shared Viral engine
+        run: cp apps/worker/src/viral.js apps/clip-worker/src/viral.js
       - name: Syntax checks
         working-directory: apps/clip-worker
         run: npm run check
