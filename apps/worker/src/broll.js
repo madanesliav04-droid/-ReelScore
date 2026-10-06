@@ -367,117 +367,86 @@ async function findCommonsAsset(
   query,
   used
 ){
-  const params=new URLSearchParams({
-    action:'query',
-    generator:'search',
-    gsrsearch:
-      `${query} filetype:bitmap`,
-    gsrnamespace:'6',
-    gsrlimit:'12',
-    prop:'imageinfo',
-    iiprop:'url|mime|size|extmetadata',
-    iiurlwidth:'1800',
-    format:'json'
-  });
+  const variants=[
+    query,
+    query.split(/\s+/).slice(0,3).join(' '),
+    query.split(/\s+/).slice(0,2).join(' '),
+    query+' photograph'
+  ].filter((v,i,a)=>v&&a.indexOf(v)===i);
 
-  const r=await fetch(
-    'https://commons.wikimedia.org/w/api.php?'+
-    params.toString(),
-    {
-      headers:{
-        'User-Agent':
-          'ViralStudio-EditPlus/1.0'
-      }
-    }
-  );
+  for(const variant of variants){
+    const params=new URLSearchParams({
+      action:'query',
+      generator:'search',
+      gsrsearch:`${variant} filetype:bitmap`,
+      gsrnamespace:'6',
+      gsrlimit:'24',
+      prop:'imageinfo',
+      iiprop:'url|mime|size|extmetadata',
+      iiurlwidth:'1800',
+      format:'json',
+      origin:'*'
+    });
 
-  if(!r.ok)return null;
-  const body=await r.json();
-  const pages=Object.values(
-    body?.query?.pages||{}
-  );
-
-  for(const page of pages){
-    const info=page?.imageinfo?.[0];
-    if(!info)continue;
-
-    const mime=String(
-      info.mime||''
+    const r=await fetch(
+      'https://commons.wikimedia.org/w/api.php?'+params.toString(),
+      {headers:{'User-Agent':'ViralStudio-EditPlus/1.0'}}
     );
-    if(
-      ![
-        'image/jpeg',
-        'image/png',
-        'image/webp'
-      ].includes(mime)
-    )continue;
+    if(!r.ok)continue;
 
-    const width=Number(
-      info.thumbwidth||
-      info.width||
-      0
-    );
-    const height=Number(
-      info.thumbheight||
-      info.height||
-      0
-    );
-    if(
-      width<700||
-      height<500
-    )continue;
+    const body=await r.json();
+    const pages=Object.values(body?.query?.pages||{});
 
-    const meta=info.extmetadata||{};
-    const license=plain(
-      meta.LicenseShortName?.value||
-      meta.UsageTerms?.value||
-      ''
-    );
+    for(const page of pages){
+      const info=page?.imageinfo?.[0];
+      if(!info)continue;
 
-    const reusable=
-      /cc0|public domain|pd-|cc by|cc-by|cc by-sa|cc-by-sa/i
-        .test(license);
+      const mime=String(info.mime||'');
+      if(!['image/jpeg','image/png','image/webp'].includes(mime))continue;
 
-    if(!reusable)continue;
+      const width=Number(info.thumbwidth||info.width||0);
+      const height=Number(info.thumbheight||info.height||0);
+      if(width<500||height<350)continue;
 
-    const assetUrl=
-      info.thumburl||
-      info.url;
-    if(
-      !assetUrl||
-      used.has(assetUrl)
-    )continue;
-
-    let host='';
-    try{
-      host=new URL(
-        assetUrl
-      ).hostname;
-    }catch{
-      continue;
-    }
-    if(
-      host!=='upload.wikimedia.org'
-    )continue;
-
-    return {
-      assetUrl,
-      sourcePage:
-        info.descriptionurl||
-        null,
-      mimeType:mime,
-      width,
-      height,
-      license,
-      artist:plain(
-        meta.Artist?.value||
-        meta.Credit?.value||
+      const meta=info.extmetadata||{};
+      const license=plain(
+        meta.LicenseShortName?.value||
+        meta.UsageTerms?.value||
         ''
-      ).slice(0,180),
-      attributionRequired:
-        !/cc0|public domain|pd-/i.test(license),
-      provider:'wikimedia_commons'
-    };
+      );
+
+      const safeCommercial=
+        /cc0|public domain|pd-/i.test(license)||
+        /^cc by(?:\s|$|\d)/i.test(license);
+
+      const shareAlike=/by-sa/i.test(license);
+      const nonCommercial=/\bnc\b|noncommercial/i.test(license);
+
+      if(!safeCommercial||shareAlike||nonCommercial)continue;
+
+      const assetUrl=info.thumburl||info.url;
+      if(!assetUrl||used.has(assetUrl))continue;
+
+      let host='';
+      try{host=new URL(assetUrl).hostname}catch{continue}
+      if(host!=='upload.wikimedia.org')continue;
+
+      return {
+        assetUrl,
+        sourcePage:info.descriptionurl||null,
+        mimeType:mime,
+        width,
+        height,
+        license,
+        artist:plain(
+          meta.Artist?.value||
+          meta.Credit?.value||
+          ''
+        ).slice(0,180),
+        provider:'wikimedia_commons',
+        searchQuery:variant
+      };
+    }
   }
 
   return null;
