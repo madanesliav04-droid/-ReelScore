@@ -364,10 +364,23 @@ export async function renderNativeEdit({
       '-i',visualSource
     ];
 
+    const finishingFilters=
+      modelFinishingFilters(
+        timeline,
+        width,
+        height
+      );
+
     if(hasCaptions){
+      finishingFilters.push(
+        `ass=${escapeFilterPath(assPath)}`
+      );
+    }
+
+    if(finishingFilters.length){
       args.push(
         '-vf',
-        `ass=${escapeFilterPath(assPath)}`
+        finishingFilters.join(',')
       );
     }
 
@@ -884,6 +897,53 @@ function coverFilter(
     `crop=${width}:${height}:(iw-${width})/2:(ih-${height})*.44`,
     'setsar=1'
   ].join(',');
+}
+
+function modelFinishingFilters(
+  timeline,
+  width,
+  height
+){
+  const mode=String(
+    timeline?.styleConfig?.visualSignature?.mode||
+    timeline?.modelId||
+    timeline?.style||
+    'clean'
+  );
+
+  const filters=[];
+
+  if(mode==='codie'){
+    filters.push('eq=contrast=1.02:saturation=1.0');
+  }else if(mode==='impact'){
+    filters.push('eq=contrast=1.12:saturation=1.16:brightness=0.01');
+    filters.push(`drawbox=x=0:y=0:w=${width}:h=8:color=0x37e6ff@0.92:t=fill`);
+    filters.push(`drawbox=x=0:y=${Math.max(0,height-8)}:w=${width}:h=8:color=0x37e6ff@0.72:t=fill`);
+  }else if(mode==='clean'){
+    filters.push('eq=contrast=1.02:saturation=0.98');
+  }else if(mode==='authority'){
+    filters.push('eq=contrast=1.05:saturation=0.88:brightness=-0.01');
+    filters.push('vignette=PI/5');
+    filters.push(`drawbox=x=0:y=${Math.max(0,height-10)}:w=${width}:h=10:color=0xff9b45@0.70:t=fill`);
+  }else if(mode==='explainer'){
+    filters.push('eq=contrast=1.04:saturation=1.03');
+    filters.push('drawbox=x=38:y=62:w=12:h=190:color=0x7ce8ff@0.92:t=fill');
+    filters.push('drawbox=x=58:y=62:w=120:h=4:color=0x7ce8ff@0.55:t=fill');
+  }else if(mode==='data'){
+    filters.push('eq=contrast=1.07:saturation=0.96');
+    filters.push('drawbox=x=0:y=0:w=12:h=ih:color=0xffd166@0.92:t=fill');
+    filters.push('drawbox=x=28:y=62:w=150:h=5:color=0xffd166@0.72:t=fill');
+  }else if(mode==='ugc_native'){
+    filters.push('eq=contrast=1.03:saturation=1.12');
+    filters.push('drawbox=x=34:y=58:w=9:h=120:color=0xff3fbf@0.78:t=fill');
+  }else if(mode==='cinematic_story'){
+    filters.push('eq=contrast=1.08:saturation=0.72:brightness=-0.015');
+    filters.push('vignette=PI/4');
+    filters.push(`drawbox=x=0:y=0:w=${width}:h=42:color=black@0.46:t=fill`);
+    filters.push(`drawbox=x=0:y=${Math.max(0,height-42)}:w=${width}:h=42:color=black@0.46:t=fill`);
+  }
+
+  return filters;
 }
 
 export async function finalEncode({
