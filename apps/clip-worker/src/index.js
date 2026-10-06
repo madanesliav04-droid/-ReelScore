@@ -116,10 +116,30 @@ async function recover(job){
 
 async function importSource(url,dir){
   const template=path.join(dir,'source.%(ext)s');
-  const out=await runStdout('yt-dlp',[
-    '--no-playlist','--no-warnings','--restrict-filenames','--max-filesize','500M','--merge-output-format','mp4','--remux-video','mp4',
-    '-f','bv*[height<=1080]+ba/b[height<=1080]/b','-o',template,'--print','after_move:filepath',url
-  ]);
+  const args=[
+    '--no-playlist',
+    '--no-warnings',
+    '--restrict-filenames',
+    '--max-filesize','500M',
+    '--merge-output-format','mp4',
+    '--remux-video','mp4',
+    '-f','bv*[height<=1080]+ba/b[height<=1080]/b',
+    '-o',template,
+    '--print','after_move:filepath'
+  ];
+
+  const host=new URL(url).hostname.toLowerCase().replace(/^www\./,'');
+  if(host==='youtu.be'||host.endsWith('youtube.com')){
+    args.push(
+      '--extractor-args',
+      'youtubepot-bgutilscript:server_home=/opt/bgutil-ytdlp-pot-provider/server',
+      '--extractor-args',
+      'youtube:player_client=mweb'
+    );
+  }
+
+  args.push(url);
+  const out=await runStdout('yt-dlp',args);
   const file=out.trim().split(/\r?\n/).filter(Boolean).at(-1);
   if(!file)throw tagged('SOURCE_IMPORT_FAILED','Impossible de récupérer la vidéo');
   return file;
