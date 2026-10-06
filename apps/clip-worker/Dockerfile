@@ -17,4 +17,4 @@ COPY apps/clip-worker/src ./src
 COPY apps/worker/src/viral.js ./src/viral.js
 
 ENV NODE_ENV=production
-CMD ["sh","-c","node /opt/bgutil-ytdlp-pot-provider/server/build/main.js --host 127.0.0.1 --port 4416 >/tmp/pot-provider.log 2>&1 & exec npm start"]
+CMD ["sh","-c","node /opt/bgutil-ytdlp-pot-provider/server/build/main.js --host 127.0.0.1 --port 4416 >/tmp/pot-provider.log 2>&1 & exec node src/index.js"]

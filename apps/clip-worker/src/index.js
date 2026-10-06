@@ -134,18 +134,35 @@ async function processJob(job){
     if(!candidates.length)throw tagged('NO_CLIPS_FOUND','Aucun passage exploitable détecté');
 
     await supabase.from('clip_projects').update({status:'rendering',updated_at:new Date().toISOString()}).eq('id',projectId);
+
+    const {data:existingRows,error:existingError}=await supabase
+      .from('clip_outputs')
+      .select('id,rank')
+      .eq('job_id',job.id)
+      .eq('user_id',job.user_id)
+      .order('rank');
+    if(existingError)throw existingError;
+    const existingByRank=new Map((existingRows||[]).map(x=>[Number(x.rank),x.id]));
+
     const outputIds=[];
     for(let i=0;i<candidates.length;i++){
+      const rank=i+1;
+      const existingId=existingByRank.get(rank);
+      if(existingId){
+        outputIds.push(existingId);
+        continue;
+      }
+
       const c=candidates[i];
       const basePct=52+Math.round(i/candidates.length*40);
-      await progress(job,'rendering',basePct,`Rendu du clip ${i+1}/${candidates.length}`);
-      const clipPath=path.join(dir,`clip-${i+1}.mp4`);
-      const assPath=path.join(dir,`clip-${i+1}.ass`);
+      await progress(job,'rendering',basePct,`Rendu du clip ${rank}/${candidates.length}`);
+      const clipPath=path.join(dir,`clip-${rank}.mp4`);
+      const assPath=path.join(dir,`clip-${rank}.ass`);
       const words=(analysis.transcript?.words||[]).filter(w=>Number(w.endMs)>=c.start_sec*1000&&Number(w.startMs)<=c.end_sec*1000);
       const useCaptions=project.settings?.add_captions!==false&&words.length>0;
       if(useCaptions)await writeFile(assPath,buildAss(words,c.start_sec*1000,c.end_sec*1000,project.settings?.caption_preset||'modern_bold'),'utf8');
       await renderClip({sourcePath,outputPath:clipPath,startSec:c.start_sec,endSec:c.end_sec,assPath:useCaptions?assPath:null});
-      const clipId=await persistClip({job,project,candidate:c,rank:i+1,filePath:clipPath});
+      const clipId=await persistClip({job,project,candidate:c,rank,filePath:clipPath});
       outputIds.push(clipId);
     }
 
