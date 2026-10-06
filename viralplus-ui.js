@@ -121,56 +121,105 @@ function scrollToAnalysis(){const target=cinematic.offsetTop+(cinematic.offsetHe
 heroAnalyse.addEventListener('click',e=>{e.preventDefault();e.stopImmediatePropagation();scrollToAnalysis()},{capture:true});
 $('heroScroll').addEventListener('click',()=>scrollTo({top:cinematic.offsetTop+innerHeight*.85,behavior:'smooth'}));$('brandHome').addEventListener('click',()=>scrollTo({top:0,behavior:'smooth'}));$('phoneImprove').addEventListener('click',()=>document.getElementById('workspace').scrollIntoView({behavior:'smooth'}));stageResultCta.addEventListener('click',()=>document.getElementById('workspace').scrollIntoView({behavior:'smooth'}));$('historyNav').addEventListener('click',()=>document.getElementById('history').scrollIntoView({behavior:'smooth'}));
 
+function updateUploadUI(pct){
+  const value=Math.max(0,Math.min(100,Math.round(Number(pct)||0)));
+  analyzeBtn.textContent=`Upload ${value}%…`;
+  timelineLabel.textContent='Upload';
+  timelineText.textContent=`${value}%`;
+  timelineFill.style.width=value+'%';
+}
+function resumableEndpoint(){
+  const projectRef=new URL(SUPABASE_URL).hostname.split('.')[0];
+  return `https://${projectRef}.storage.supabase.co/storage/v1/upload/resumable`;
+}
 async function uploadVideoToStorage(file,generation){
   const token=await getToken();
   if(!token) throw new Error('Session expirée. Reconnecte-toi.');
   const safeBase=(file.name||'video.mp4').replace(/[^a-zA-Z0-9._-]/g,'_').slice(-100);
-  const path=`${session.user.id}/${Date.now()}-${Math.random().toString(36).slice(2,10)}-${safeBase}`;
+  const resumeKey=`viralplus_upload_${session.user.id}_${file.size}_${file.lastModified}_${safeBase}`;
+  let path=sessionStorage.getItem(resumeKey);
+  if(!path){
+    path=`${session.user.id}/${Date.now()}-${Math.random().toString(36).slice(2,10)}-${safeBase}`;
+    sessionStorage.setItem(resumeKey,path);
+  }
+
   analyzeBtn.disabled=true;
-  analyzeBtn.textContent='Upload 0%…';
   analysisState.textContent='UPLOAD DE LA VIDÉO';
-  return new Promise((resolve,reject)=>{
-    const xhr=new XMLHttpRequest();
-    const endpoint=`${SUPABASE_URL}/storage/v1/object/viralplus-videos/${path.split('/').map(encodeURIComponent).join('/')}`;
-    xhr.open('POST',endpoint,true);
-    xhr.setRequestHeader('Authorization',`Bearer ${token}`);
-    xhr.setRequestHeader('apikey',SUPABASE_KEY);
-    xhr.setRequestHeader('Content-Type',file.type||'video/mp4');
-    xhr.setRequestHeader('x-upsert','true');
-    xhr.upload.onprogress=(e)=>{
-      if(generation!==uploadGeneration)return;
-      if(!e.lengthComputable)return;
-      const pct=Math.max(0,Math.min(100,Math.round(e.loaded/e.total*100)));
-      analyzeBtn.textContent=`Upload ${pct}%…`;
-      timelineLabel.textContent='Upload';
-      timelineText.textContent=`${pct}%`;
-      timelineFill.style.width=pct+'%';
-    };
-    xhr.onerror=()=>{if(generation===uploadGeneration)reject(new Error('Échec de l’upload. Vérifie ta connexion puis réessaie.'))};
-    xhr.onabort=()=>{if(generation===uploadGeneration)reject(new Error('Upload interrompu.'))};
-    xhr.onload=async()=>{
-      if(generation!==uploadGeneration)return;
-      let d={};try{d=JSON.parse(xhr.responseText||'{}')}catch{}
-      if(xhr.status<200||xhr.status>=300){
-        reject(new Error(d.message||d.error||`Échec de l’upload (${xhr.status}).`));
-        return;
-      }
-      try{
-        const parts=path.split('/').map(encodeURIComponent).join('/');
-        const r=await fetch(`${SUPABASE_URL}/storage/v1/object/sign/viralplus-videos/${parts}`,{
-          method:'POST',
-          headers:{apikey:SUPABASE_KEY,Authorization:`Bearer ${token}`,'Content-Type':'application/json'},
-          body:JSON.stringify({expiresIn:900})
+  updateUploadUI(0);
+  track('video_upload_started',{name:file.name,size:file.size,mime_type:file.type||'video/mp4'});
+
+  try{
+    if(window.tus?.Upload){
+      await new Promise((resolve,reject)=>{
+        const upload=new window.tus.Upload(file,{
+          endpoint:resumableEndpoint(),
+          retryDelays:[0,3000,5000,10000,20000],
+          headers:{authorization:`Bearer ${token}`},
+          uploadDataDuringCreation:true,
+          removeFingerprintOnSuccess:true,
+          metadata:{
+            bucketName:'viralplus-videos',
+            objectName:path,
+            contentType:file.type||'video/mp4',
+            cacheControl:'3600',
+            metadata:JSON.stringify({module:'viralplus',source:'web'})
+          },
+          chunkSize:6*1024*1024,
+          onError:error=>reject(error),
+          onProgress:(uploaded,total)=>{
+            if(generation!==uploadGeneration)return;
+            updateUploadUI(total?uploaded/total*100:0);
+          },
+          onSuccess:()=>resolve()
         });
-        const sd=await r.json().catch(()=>({}));
-        if(!r.ok||!sd.signedURL)throw new Error(sd.message||sd.error||'Impossible de préparer l’analyse.');
-        storagePath=path;
-        resolve(sd.signedURL.startsWith('http')?sd.signedURL:`${SUPABASE_URL}/storage/v1${sd.signedURL}`);
-      }catch(e){reject(e)}
-    };
-    storageUpload={abort:()=>xhr.abort()};
-    xhr.send(file);
-  });
+
+        storageUpload={abort:()=>upload.abort(true)};
+        upload.findPreviousUploads()
+          .then(previous=>{
+            if(generation!==uploadGeneration)return;
+            const samePath=(previous||[]).find(p=>p?.metadata?.objectName===path);
+            if(samePath)upload.resumeFromPreviousUpload(samePath);
+            upload.start();
+          })
+          .catch(reject);
+      });
+    }else{
+      await new Promise((resolve,reject)=>{
+        const xhr=new XMLHttpRequest();
+        const endpoint=`${SUPABASE_URL}/storage/v1/object/viralplus-videos/${path.split('/').map(encodeURIComponent).join('/')}`;
+        xhr.open('POST',endpoint,true);
+        xhr.setRequestHeader('Authorization',`Bearer ${token}`);
+        xhr.setRequestHeader('apikey',SUPABASE_KEY);
+        xhr.setRequestHeader('Content-Type',file.type||'video/mp4');
+        xhr.upload.onprogress=e=>{
+          if(generation!==uploadGeneration||!e.lengthComputable)return;
+          updateUploadUI(e.loaded/e.total*100);
+        };
+        xhr.onerror=()=>reject(new Error('Échec de l’upload. Vérifie ta connexion puis réessaie.'));
+        xhr.onabort=()=>reject(new Error('Upload interrompu.'));
+        xhr.onload=()=>{
+          let d={};try{d=JSON.parse(xhr.responseText||'{}')}catch{}
+          if(xhr.status<200||xhr.status>=300){
+            reject(new Error(d.message||d.error||`Échec de l’upload (${xhr.status}).`));
+            return;
+          }
+          resolve();
+        };
+        storageUpload={abort:()=>xhr.abort()};
+        xhr.send(file);
+      });
+    }
+
+    if(generation!==uploadGeneration)return null;
+    sessionStorage.removeItem(resumeKey);
+    storagePath=path;
+    updateUploadUI(100);
+    track('video_upload_completed',{name:file.name,size:file.size,mime_type:file.type||'video/mp4'});
+    return path;
+  }catch(error){
+    track('video_upload_failed',{message:String(error?.message||error).slice(0,300),size:file.size});
+    throw error;
+  }
 }
 async function prepareVideoUpload(file,isReanalysis,generationArg){
   storagePath=null;
@@ -197,7 +246,7 @@ async function prepareVideoUpload(file,isReanalysis,generationArg){
 }
 function setFile(file,isReanalysis=false){
   if(!file)return;
-  if(file.size>100*1024*1024){showToast('Vidéo trop lourde : 100 Mo maximum.');return}
+  if(file.size>95*1024*1024){showToast('Vidéo trop lourde : 95 Mo maximum pour cette version.');return}
   if(!session?.user){pendingFile=file;pendingReanalysis=isReanalysis;openAuth();return}
   uploadGeneration++;
   if(storageUpload){try{storageUpload.abort(true)}catch{}}
@@ -258,8 +307,8 @@ if(workspaceUploader){
 }
 $('changeVideo').addEventListener('click',e=>{e.preventDefault();e.stopPropagation();fileInput.click()});
 
-function fakeProgress(){
-  analysisState.textContent='ANALYSE VIDÉO RÉELLE';
+function analysisWaitUI(){
+  analysisState.textContent='ANALYSE EN COURS';
   analysisLayer.classList.add('busy');
   phoneScore.classList.remove('hidden');
   scoreNumber.textContent='—';
@@ -267,22 +316,13 @@ function fakeProgress(){
   timelineFill.style.width='32%';
   timelineLabel.textContent='Analyse';
   analysisStartedAt=Date.now();
-  const steps=[
-    [0,'PRÉPARATION DU DIAGNOSTIC'],
-    [3500,'LECTURE AUDIO + VISUEL'],
-    [9000,'DÉTECTION DU HOOK'],
-    [16000,'ANALYSE DE LA STRUCTURE'],
-    [24000,'ÉVALUATION DU POTENTIEL DE PARTAGE'],
-    [32000,'CONSTRUCTION DU DIAGNOSTIC'],
-    [45000,'FINALISATION DU SCORE']
-  ];
-  steps.forEach(([ms,label])=>setTimeout(()=>{if(analyzing){analysisState.textContent=label;timelineText.textContent=label.toLowerCase()}},ms));
+  timelineText.textContent='traitement backend en cours';
   clearInterval(analysisProgressTimer);
   analysisProgressTimer=setInterval(()=>{
     if(!analyzing)return;
     const elapsed=Math.floor((Date.now()-analysisStartedAt)/1000);
     timelineText.textContent=`analyse en cours · ${elapsed}s`;
-    analysisState.textContent=elapsed>45?'LE MOTEUR FINALISE LE DIAGNOSTIC':'ANALYSE VIDÉO RÉELLE';
+    analysisState.textContent='ANALYSE EN COURS';
   },1000);
   return [];
 }
@@ -297,7 +337,7 @@ async function runAnalysis(){
   }
   analyzing=true;analyzeBtn.disabled=true;analyzeBtn.textContent='Analyse en cours…';
   track('analysis_started',{reanalysis:reanalysisMode});
-  const timers=fakeProgress();
+  const timers=analysisWaitUI();
   try{
     const signedParts=storagePath.split('/').map(encodeURIComponent).join('/');
     const sr=await fetch(`${SUPABASE_URL}/storage/v1/object/sign/viralplus-videos/${signedParts}`,{
@@ -341,6 +381,7 @@ async function runAnalysis(){
     }catch{}
     storagePath=null;
   }catch(err){
+    track('analysis_failed',{message:String(err?.message||err).slice(0,300),reanalysis:reanalysisMode});
     showToast(err.message);analysisState.textContent='ERREUR';analyzeBtn.textContent='Réessayer';analyzeBtn.disabled=false;
   }finally{clearTimers(timers);timelineFill.classList.remove('indeterminate');analysisLayer.classList.remove('busy');analyzing=false}
 }
