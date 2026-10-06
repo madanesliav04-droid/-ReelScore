@@ -153,9 +153,12 @@ ${transcript}`;
       const attempts=Array.isArray(cue.searchQueries)&&cue.searchQueries.length
         ?cue.searchQueries
         :buildSearchVariants(cue.query,[]);
+      let checked=0;
 
       for(const q of attempts){
-        asset=
+        if(checked>=6)break;
+
+        const candidate=
           await findOpenverseAsset(
             q,
             used
@@ -164,7 +167,24 @@ ${transcript}`;
             q,
             used
           );
-        if(asset)break;
+
+        if(!candidate)continue;
+        checked++;
+
+        const approved=await validateBrollAsset({
+          cue,
+          searchQuery:q,
+          asset:candidate,
+          geminiKey,
+          models:[model,fallbackModel]
+        });
+
+        if(approved){
+          asset=candidate;
+          break;
+        }
+
+        used.add(candidate.assetUrl);
       }
 
       if(!asset){
@@ -661,6 +681,117 @@ async function findCommonsAsset(
   }
 
   return null;
+}
+
+async function validateBrollAsset({
+  cue,
+  searchQuery,
+  asset,
+  geminiKey,
+  models
+}){
+  if(!geminiKey)return false;
+
+  let imageBytes=null;
+  try{
+    const r=await fetch(asset.assetUrl,{
+      headers:{
+        'User-Agent':'ViralStudio-EditPlus/1.0',
+        'Accept':'image/*'
+      }
+    });
+    if(!r.ok)return false;
+
+    const length=Number(r.headers.get('content-length')||0);
+    if(length>5*1024*1024)return false;
+
+    const bytes=Buffer.from(await r.arrayBuffer());
+    if(bytes.length<1000||bytes.length>5*1024*1024)return false;
+    imageBytes=bytes.toString('base64');
+  }catch{
+    return false;
+  }
+
+  const prompt=`Tu es le contrôleur qualité B-roll de Edit+.
+
+Décide si CETTE IMAGE est réellement adaptée comme B-roll à la phrase et à la recherche demandées.
+
+Recherche principale: ${cue.query}
+Recherche utilisée: ${searchQuery}
+Raison éditoriale: ${cue.reason||''}
+Titre/source: ${asset.title||''}
+Provider: ${asset.provider||''}
+
+RÈGLES STRICTES:
+- APPROUVE seulement si l'image illustre clairement l'objet, l'action, le lieu ou la situation demandée.
+- REJETTE les correspondances basées sur un seul mot générique.
+- REJETTE documents historiques, archives, cartes, schémas, vieilles coupures, peintures, affiches ou photos anciennes sauf si le sujet le demande explicitement.
+- REJETTE une image qui demanderait une explication pour comprendre le lien.
+- Pour un Reel business moderne, privilégie des photos immédiatement compréhensibles et contemporaines.
+- Ne juge PAS la licence ici; elle a déjà été filtrée.
+- Retourne uniquement JSON: {"match":true,"confidence":0.0,"reason":""}`;
+
+  for(const activeModel of [...new Set((models||[]).filter(Boolean))]){
+    try{
+      const r=await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(activeModel)}:generateContent`,
+        {
+          method:'POST',
+          headers:{
+            'x-goog-api-key':geminiKey,
+            'content-type':'application/json'
+          },
+          body:JSON.stringify({
+            contents:[{
+              role:'user',
+              parts:[
+                {inline_data:{
+                  mime_type:asset.mimeType||'image/jpeg',
+                  data:imageBytes
+                }},
+                {text:prompt}
+              ]
+            }],
+            generationConfig:{
+              responseMimeType:'application/json',
+              temperature:0
+            }
+          })
+        }
+      );
+
+      if(!r.ok)continue;
+      const body=await r.json();
+      const raw=(body.candidates||[])
+        .flatMap(x=>x.content?.parts||[])
+        .map(x=>x.text||'')
+        .join('')
+        .trim()
+        .replace(/^\`\`\`(?:json)?\s*/i,'')
+        .replace(/\`\`\`$/,'')
+        .trim();
+
+      const parsed=JSON.parse(raw);
+      const ok=
+        parsed?.match===true&&
+        Number(parsed?.confidence||0)>=0.72;
+
+      console.log(JSON.stringify({
+        event:'broll_asset_validated',
+        query:cue.query,
+        search_query:searchQuery,
+        provider:asset.provider,
+        approved:ok,
+        confidence:Number(parsed?.confidence||0),
+        reason:String(parsed?.reason||'').slice(0,240),
+        sourcePage:asset.sourcePage||null
+      }));
+
+      return ok;
+    }catch{}
+  }
+
+  return false;
 }
 
 function captionTranscript(
