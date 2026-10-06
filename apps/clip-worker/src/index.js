@@ -476,9 +476,10 @@ async function selectCandidates({
   const words=analysis.transcript?.words||[];
   const duration=Math.max(0,Number(analysis.measurable?.durationSec||0));
   const transcript=compactTranscript(words,320000);
+  const selectionPoolSize=20;
   const prompt=`Tu es Clip+, un directeur éditorial spécialisé short-form.
 
-À partir de la transcription horodatée d'une vidéo longue, sélectionne JUSQU'À ${count} excellents passages autonomes à transformer en Reels/TikTok/Shorts. Ne remplis jamais le quota avec des passages moyens: retourne moins de clips si la qualité n'est pas suffisante.
+À partir de la transcription horodatée d'une vidéo longue, sélectionne JUSQU'À ${selectionPoolSize} excellents passages autonomes à transformer en Reels/TikTok/Shorts. Le nombre demandé par l'utilisateur sera appliqué APRÈS ton classement, donc ne change jamais tes critères selon le quota utilisateur. Ne remplis jamais le quota avec des passages moyens: retourne moins de clips si la qualité n'est pas suffisante.
 Durée de chaque clip: ${minSec} à ${maxSec} secondes.
 Durée source: ${duration.toFixed(1)} secondes.
 
@@ -509,7 +510,7 @@ ${transcript}`;
               contents:[{role:'user',parts:[{text:prompt}]}],
               generationConfig:{
                 responseMimeType:'application/json',
-                temperature:.15
+                temperature:0
               }
             })
           }
@@ -552,8 +553,9 @@ ${transcript}`;
       event:'clip_selection_fallback',
       reason:errors.at(-1)||'gemini_unavailable'
     }));
-    return fallbackCandidates(words,duration,count,minSec,maxSec,analysis)
+    return fallbackCandidates(words,duration,selectionPoolSize,minSec,maxSec,analysis)
       .filter(x=>Number(x.viral_score||0)>=Math.max(58,minClipQuality-6))
+      .sort((a,b)=>b.viral_score-a.viral_score)
       .slice(0,count);
   }
 
@@ -579,19 +581,11 @@ ${transcript}`;
     if(item.viral_score<minClipQuality)continue;
     if(clean.some(y=>overlapRatio(item,y)>.5))continue;
     clean.push(item);
-    if(clean.length>=count)break;
+    if(clean.length>=selectionPoolSize)break;
   }
 
-  if(clean.length<count){
-    for(const x of fallbackCandidates(words,duration,count,minSec,maxSec,analysis)){
-      if(Number(x.viral_score||0)<Math.max(58,minClipQuality-6))continue;
-      if(!clean.some(y=>overlapRatio(x,y)>.5)){
-        clean.push(x);
-        if(clean.length>=count)break;
-      }
-    }
-  }
-
+  // Quality-first: when Gemini returned a valid candidate pool, never pad it
+  // with weaker local fallbacks just to satisfy the requested quota.
   return clean
     .sort((a,b)=>b.viral_score-a.viral_score)
     .slice(0,count);
