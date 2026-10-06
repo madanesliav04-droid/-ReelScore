@@ -414,66 +414,41 @@ $("#analyzeBtn").onclick=async()=>{
   if(!requireAuth()||!media)return;
   $("#analyzeBtn").disabled=true;
   $("#viralResult").classList.add("hidden");
-
   try{
-    const maxDirect=95*1024*1024;
-    if(Number(media.size_bytes||0)>maxDirect){
-      throw new Error("Pour le moment, l’analyse directe Viral+ accepte jusqu’à 95 Mo. Essaie une vidéo plus légère.");
-    }
-
-    $("#stateMedia").textContent="Registered";
-    $("#stateJob").textContent="processing";
-    $("#stateStage").textContent="Preparing secure video";
-    $("#stateProgress").textContent="PROCESSING";
-    $("#jobLog").textContent="Viral+ direct engine · preparing signed video URL";
-    toast("Viral+ prépare l’analyse…");
-
-    const signed=await client.storage
-      .from(BUCKET)
-      .createSignedUrl(media.storage_path,900);
-
-    if(signed.error||!signed.data?.signedUrl){
-      throw new Error(signed.error?.message||"Impossible de préparer la vidéo pour l’analyse.");
-    }
-
-    $("#stateStage").textContent="Gemini multimodal analysis";
-    $("#jobLog").textContent="Viral+ direct engine · Gemini is analyzing the real video";
-
-    const result=await api(fn("viralplus-proxy"),{
+    const body=await api(fn("viral-edit-jobs","analysis"),{
       method:"POST",
-      headers:{
-        "X-File-Name":encodeURIComponent(media.original_name||"video.mp4"),
-        "X-File-Size":String(media.size_bytes||0),
-        "X-Video-Mime-Type":media.mime_type||"video/mp4"
-      },
-      body:JSON.stringify({
-        storage_url:signed.data.signedUrl,
-        size:media.size_bytes,
-        mime_type:media.mime_type||"video/mp4",
-        file_name:media.original_name||"video.mp4"
-      })
+      body:JSON.stringify({video_id:media.id})
     });
+    currentJob=body.job;
+    setState(currentJob);
+    toast("Analyse Viral+ lancée.");
 
-    analysis={...result,id:result.analysis_id,analysis_id:result.analysis_id};
+    await pollJob(body.job.id,"core",async job=>{
+      const {data,error}=await client
+        .from("viralplus_analyses")
+        .select("*")
+        .eq("job_id",job.id)
+        .maybeSingle();
+      if(error)throw error;
+      if(!data)throw new Error("Résultat Viral+ introuvable.");
 
-    $("#stateJob").textContent="completed";
-    $("#stateStage").textContent="Diagnosis ready";
-    $("#stateProgress").textContent="100%";
-    $("#jobLog").textContent="Viral+ direct engine · analysis completed";
+      analysis=data?.result_json
+        ?{...data.result_json,id:data.id,analysis_id:data.id}
+        :{...data,id:data.id,analysis_id:data.id};
 
-    const r=$("#viralResult");
-    r.classList.remove("hidden");
-    r.innerHTML=`<div class="score-big">${escapeHtml(analysis?.final_score??"—")}<small>/100</small></div>${scoreMarkup(analysis?.scores)}<div class="advice"><small>MAIN PROBLEM</small><h4>${escapeHtml(analysis?.main_problem||"Analysis completed")}</h4><p>${escapeHtml(analysis?.why||"")}</p></div>${analysis?.recommended_hook?`<div class="advice"><small>RECOMMENDED HOOK</small><h4>${escapeHtml(analysis.recommended_hook)}</h4></div>`:""}${timelineMarkup(analysis?.timeline)}${Array.isArray(analysis?.action_items)&&analysis.action_items.length?`<div class="advice"><small>PRIORITY FIXES</small>${analysis.action_items.slice(0,5).map((x,i)=>`<p><b>#${i+1}</b> ${escapeHtml(x)}</p>`).join("")}</div>`:""}<button class="btn primary wide" id="fixBtn">Fix with Edit+ →</button>`;
-
-    $("#fixBtn").onclick=()=>setProductWorkspace("edit");
-    toast("Analyse Viral+ terminée.");
+      const r=$("#viralResult");
+      r.classList.remove("hidden");
+      r.innerHTML=`<div class="score-big">${escapeHtml(analysis?.final_score??data?.final_score??"—")}<small>/100</small></div>${scoreMarkup(analysis?.scores||data?.scores)}<div class="advice"><small>MAIN PROBLEM</small><h4>${escapeHtml(analysis?.main_problem||data?.main_problem||"Analysis completed")}</h4><p>${escapeHtml(analysis?.why||data?.why||"")}</p></div>${analysis?.recommended_hook?`<div class="advice"><small>RECOMMENDED HOOK</small><h4>${escapeHtml(analysis.recommended_hook)}</h4></div>`:""}${timelineMarkup(analysis?.timeline)}${Array.isArray(analysis?.action_items)&&analysis.action_items.length?`<div class="advice"><small>PRIORITY FIXES</small>${analysis.action_items.slice(0,5).map((x,i)=>`<p><b>#${i+1}</b> ${escapeHtml(x)}</p>`).join("")}</div>`:""}<button class="btn primary wide" id="fixBtn">Fix with Edit+ →</button>`;
+      $("#fixBtn").onclick=()=>setProductWorkspace("edit");
+      $("#analyzeBtn").disabled=false;
+      toast("Analyse Viral+ terminée.");
+    });
   }catch(err){
     $("#stateJob").textContent="failed";
     $("#stateStage").textContent="Analysis failed";
     $("#stateProgress").textContent="—";
     $("#jobLog").textContent=String(err?.message||err);
     toast(err.message||String(err));
-  }finally{
     $("#analyzeBtn").disabled=false;
   }
 };
