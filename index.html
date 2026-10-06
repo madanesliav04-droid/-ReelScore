@@ -65,7 +65,7 @@
           <div class="screenLayer analysisScreen" id="analysisLayer">
             <div class="analysisHead"><span>Viral+</span><small id="analysisState">PRÊT À ANALYSER</small></div>
             <div class="scan" id="scan"></div>
-            <label class="preview" id="dropzone" for="fileInput"><div class="placeholder" id="placeholder"><div class="dropIcon">＋</div><strong>Dépose ta vidéo ici</strong><span>ou clique pour l’importer</span><small>MP4 · MOV · WebM · 100 Mo max</small></div><video id="previewVideo" playsinline muted loop controls></video><div class="videoShade" id="videoShade"><span id="videoFileName">Vidéo chargée</span><button type="button" id="changeVideo">Changer</button></div><input id="fileInput" class="dropFileInput" type="file" accept="video/*,.mp4,.mov,.webm" /></label>
+            <label class="preview" id="dropzone" for="fileInput"><div class="placeholder" id="placeholder"><div class="dropIcon">＋</div><strong>Dépose ta vidéo ici</strong><span>ou clique pour l’importer</span><small>MP4 · MOV · WebM · 95 Mo max</small></div><video id="previewVideo" playsinline muted loop controls></video><div class="videoShade" id="videoShade"><span id="videoFileName">Vidéo chargée</span><button type="button" id="changeVideo">Changer</button></div><input id="fileInput" class="dropFileInput" type="file" accept="video/*,.mp4,.mov,.webm" /></label>
             <div class="phoneScore hidden" id="phoneScore"><span>SCORE VIRAL+</span><strong id="scoreNumber">0</strong><small>/100</small></div>
             <div class="timeline"><small id="timelineLabel">Hook</small><div class="timelineBar"><i id="timelineFill"></i></div><small id="timelineText">0:00 → 0:02</small></div>
             <div class="controls"><button class="analyzeBtn" id="analyzeBtn" disabled>Analyser la vidéo</button></div>
@@ -115,7 +115,7 @@
 <div class="modal hidden" id="paywall"><div class="modalCard paywallCard"><button class="closeModal" id="closePaywall">×</button><small>VIRAL+ CREATOR</small><h3>Corrige, re-score et compare.</h3><p>20 analyses/mois, toutes les corrections, re-score avant/après et historique complet.</p><div class="payPrice"><strong>19€</strong><span>/mois</span></div><button class="btn primary" id="requestCreator">Fermer</button><small id="upgradeMessage">Aucun paiement. Toutes les fonctions disponibles sont gratuites pendant la bêta.</small></div></div>
 <div class="toast hidden" id="toast"></div>
 <input id="reanalyseInput" class="hidden" type="file" accept="video/*,.mp4,.mov,.webm" />
-<script src="config.js?v=20261005-v8"></script><script src="viralplus-product-config.js"></script><script src="viralplus-ui.js?v=20261005-v8"></script>
+<script src="config.js?v=20261006-core1"></script><script src="viralplus-product-config.js"></script><script src="https://cdn.jsdelivr.net/npm/tus-js-client@4.3.1/dist/tus.min.js"></script><script src="viralplus-ui.js?v=20261006-core1"></script>
 
 <!-- Viral+ inline upload hardening -->
 <style>
