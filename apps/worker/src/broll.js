@@ -41,7 +41,7 @@ Tu dois choisir uniquement les moments où une vraie image améliore clairement 
 Ne remplis PAS la vidéo de B-roll.
 Style de montage: ${style}.
 Durée vidéo montée: ${(durationMs/1000).toFixed(1)} s.
-Maximum: ${maxCues} B-rolls.
+Maximum: ${maxCues} B-rolls.\nCONTRAT DU MODÈLE: ${cfg.brollDirective||'B-roll uniquement pertinent.'}
 
 RÈGLES:
 - Ne mets pas de B-roll pendant tout le hook sauf si c'est indispensable.

@@ -68,10 +68,10 @@ export function buildEditTimeline({
 
   const mergedRemovals=mergeRanges(
     removals,
-    style==='impact'?45:80,
+    canonicalStyle==='impact'?45:80,
     durationMs
   );
-  const minKeepMs=style==='impact'?110:150;
+  const minKeepMs=canonicalStyle==='impact'?110:150;
   const keepRanges=invertRanges(
     mergedRemovals,
     durationMs,
