@@ -470,13 +470,28 @@ async function findOpenverseAsset(
     const body=await response.json();
     const results=Array.isArray(body?.results)?body.results:[];
 
+    console.log(JSON.stringify({
+      event:'openverse_search_results',
+      query:variant,
+      count:results.length,
+      sample:results.slice(0,3).map(item=>({
+        id:item?.id||null,
+        title:String(item?.title||'').slice(0,100),
+        license:item?.license||null,
+        category:item?.category||null,
+        source:item?.source||item?.provider||null,
+        width:item?.width||null,
+        height:item?.height||null
+      }))
+    }));
+
     for(const item of results){
       const id=String(item?.id||'');
       if(!/^[0-9a-f-]{36}$/i.test(id))continue;
 
       const width=Number(item?.width||0);
       const height=Number(item?.height||0);
-      if(width&&height&&(width<900||height<600))continue;
+      if(width&&height&&(width<480||height<320))continue;
 
       const license=String(item?.license||'').toLowerCase();
       if(!['pdm','cc0','by'].includes(license))continue;
@@ -495,10 +510,6 @@ async function findOpenverseAsset(
 
       const searchable=[title,tags].filter(Boolean).join(' ');
       const relevance=lexicalRelevance(
-        variant,
-        searchable
-      );
-      const hitStats=lexicalHitStats(
         variant,
         searchable
       );
