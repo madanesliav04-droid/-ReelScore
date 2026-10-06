@@ -1,0 +1,26 @@
+name: Viral+ Edit+ Worker CI
+
+on:
+  push:
+    branches: [viral-edit-worker-v1]
+  pull_request:
+    branches: [viral-edit-core]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  worker:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/worker
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install worker dependencies
+        run: npm install --no-audit --no-fund
+      - name: Syntax checks
+        run: npm run check
+      - name: Build worker image
+        run: docker build -t viral-edit-worker-ci .
