@@ -10,6 +10,25 @@ type Job={id:string;kind?:string;status:string;progress?:number;stage?:string;re
 type Media={id:string;storage_path:string;mime_type:string;size_bytes:number;original_name?:string};
 type EditModel={id:string;name:string;category:string;preview:string;meta:string};
 
+const VIRAL_METRICS=[
+  ["hook","Hook"],
+  ["scroll_stop","Scroll stop"],
+  ["retention","Retention"],
+  ["clarity","Clarity"],
+  ["rhythm","Rhythm"],
+  ["structure","Structure"],
+  ["text_captions","Captions"],
+  ["visual","Visual"],
+  ["audio","Audio"],
+  ["originality","Originality"],
+  ["cta","CTA"]
+] as const;
+
+function scoreTone(value:any){
+  const n=Number(value||0);
+  return n>=80?"good":n>=60?"mid":"bad";
+}
+
 const EDIT_MODELS:EditModel[]=[
   {id:"codie",name:"Codie",category:"Business storytelling",preview:"FACE CAM",meta:"Narrative · restrained B-roll"},
   {id:"impact",name:"Impact",category:"High-energy business",preview:"IMPACT",meta:"Fast · punchy · visual"},
@@ -88,7 +107,7 @@ export function Dashboard(){
   function displayJobError(current:Job){
     const code=String(current?.error_code||"");
     if(code==="NO_CLIPS_FOUND")return "Aucun passage suffisamment fort n’a été détecté dans cette vidéo.";
-    if(code==="YOUTUBE_EGRESS_REQUIRED"||code==="YOUTUBE_IMPORT_FAILED")return "Cette vidéo YouTube n’a pas pu être importée automatiquement. Essaie une autre vidéo YouTube pour le moment.";
+    if(["YOUTUBE_EGRESS_REQUIRED","YOUTUBE_IMPORT_FAILED","YOUTUBE_UNAVAILABLE"].includes(code))return "Clip+ n’a pas pu récupérer cette vidéo YouTube après plusieurs routes d’import. Vérifie que la vidéo est publique et réessaie : le moteur retente automatiquement via d’autres workers.";
     return String(current?.error||code||"Le traitement a échoué.");
   }
 
@@ -272,8 +291,39 @@ export function Dashboard(){
 
       {active==="edit"&&editExportUrl&&<section className="result-panel edit-result"><div className="result-copy"><small>EDIT+ · READY</small><h2>{selectedModel.name} render ready.</h2><p>The final video was rendered with the locked {selectedModel.name} model.</p><div className="result-actions"><a className="btn primary" href={editExportUrl} target="_blank" rel="noreferrer">Open MP4 ↗</a></div></div><video className="result-video" src={editExportUrl} controls playsInline/></section>}
 
-      {active==="viral"&&analysis&&<><section className="result-panel"><div><small>VIRAL SCORE</small><div className="score-big">{score??"—"}<span>/100</span></div></div><div className="result-copy"><small>MAIN PROBLEM</small><h2>{analysis.main_problem||"Diagnostic completed"}</h2><p>{analysis.why}</p><button className="btn primary" onClick={()=>switchModule("edit")}>FIX WITH EDIT+ →</button></div></section>
-        {safeZone&&<section className="safe-zone-panel"><div className="safe-phone"><div className="unsafe top"/><div className="safe-frame"><span>UNIVERSAL SAFE</span></div><div className="unsafe right"/><div className="unsafe bottom"/></div><div className="safe-copy"><small>SAFE ZONE</small><h2>{safeZone.score??"—"}<span>/100</span></h2><p>{safeZone.summary||"Framing, text and caption placement checked for short-form UI risk."}</p><div className="safe-metrics"><span>Framing <b>{safeZone.framing}</b></span><span>Text <b>{safeZone.text_safety}</b></span><span>Captions <b>{safeZone.caption_safety}</b></span><span>Platform fit <b>{safeZone.platform_fit}</b></span></div>{safeZone.issues?.length>0&&<div className="safe-issues">{safeZone.issues.slice(0,4).map((x:any,i:number)=><div className={`safe-issue ${x.severity}`} key={i}><strong>{x.element}</strong><span>{x.problem}</span><small>{x.correction}</small></div>)}</div>}</div></section>}
+      {active==="viral"&&analysis&&<>
+        <section className="result-panel viral-hero-result">
+          <div><small>VIRAL SCORE</small><div className="score-big">{score??"—"}<span>/100</span></div><div className="score-version">Creative potential · pre-publish</div></div>
+          <div className="result-copy"><small>VERDICT</small><h2>{analysis.main_problem||"Diagnostic completed"}</h2><p>{analysis.verdict||analysis.why}</p><div className="result-why">{analysis.why}</div><button className="btn primary" onClick={()=>switchModule("edit")}>FIX WITH EDIT+ →</button></div>
+        </section>
+
+        <section className="viral-detail-section">
+          <div className="section-heading"><small>DETAILED SCORING</small><h2>Exactly where the score comes from.</h2><p>Each criterion is scored independently, with the observable reason behind it.</p></div>
+          <div className="viral-score-grid">
+            {VIRAL_METRICS.map(([key,label])=>{const value=analysis.scores?.[key];const evidence=analysis.score_evidence?.[key];return <article className={`viral-metric ${scoreTone(value)}`} key={key}><div className="metric-head"><span>{label}</span><strong>{value??"—"}<small>/100</small></strong></div><div className="metric-bar"><i style={{width:`${Math.max(0,Math.min(100,Number(value||0)))}%`}}/></div><p>{evidence||"No evidence returned."}</p>{key==="cta"&&<small className="metric-note">Diagnosed separately · 0% weight in Viral Score</small>}</article>})}
+          </div>
+        </section>
+
+        <section className="viral-fix-grid">
+          <article className="viral-fix-card priority-card">
+            <small>PRIORITY FIXES</small><h3>Do these before posting.</h3>
+            <div className="action-list">{(analysis.action_items||[]).map((item:any,i:number)=><div key={i}><b>{String(i+1).padStart(2,"0")}</b><span>{item}</span></div>)}</div>
+          </article>
+          <article className="viral-fix-card rewrite-card">
+            <small>REWRITE</small><h3>Use stronger packaging.</h3>
+            {analysis.recommended_hook&&<div className="rewrite-row"><span>Hook</span><strong>{analysis.recommended_hook}</strong></div>}
+            {analysis.recommended_title&&<div className="rewrite-row"><span>Title</span><strong>{analysis.recommended_title}</strong></div>}
+            {analysis.recommended_cta&&<div className="rewrite-row"><span>CTA</span><strong>{analysis.recommended_cta}</strong></div>}
+            {analysis.alternative_hooks?.length>0&&<div className="alt-hooks">{analysis.alternative_hooks.map((h:any,i:number)=><p key={i}>{i+1}. {h}</p>)}</div>}
+          </article>
+        </section>
+
+        {analysis.timeline?.length>0&&<section className="viral-timeline-panel">
+          <div className="section-heading"><small>TIMELINE FIXES</small><h2>What to change, second by second.</h2></div>
+          <div className="viral-timeline">{analysis.timeline.map((x:any,i:number)=><article key={i} className={`timeline-fix ${x.severity||"orange"}`}><div className="timeline-time">{Number(x.start_sec||0).toFixed(1)}s → {Number(x.end_sec||0).toFixed(1)}s</div><div><strong>{x.label||"Moment to fix"}</strong><p>{x.problem}</p><small>{x.correction}</small>{x.broll_query&&<em>B-roll: {x.broll_query}</em>}</div></article>)}</div>
+        </section>}
+
+        {safeZone&&<section className="safe-zone-panel"><div className="safe-phone"><div className="unsafe top"/><div className="safe-frame"><span>UNIVERSAL SAFE</span></div><div className="unsafe right"/><div className="unsafe bottom"/></div><div className="safe-copy"><small>SAFE ZONE</small><h2>{safeZone.score??"—"}<span>/100</span></h2><p>{safeZone.summary||"Framing, text and caption placement checked for short-form UI risk."}</p><div className="safe-metrics"><span>Framing <b>{safeZone.framing}</b></span><span>Text <b>{safeZone.text_safety}</b></span><span>Captions <b>{safeZone.caption_safety}</b></span><span>Platform fit <b>{safeZone.platform_fit}</b></span></div>{safeZone.issues?.length>0&&<div className="safe-issues">{safeZone.issues.slice(0,6).map((x:any,i:number)=><div className={`safe-issue ${x.severity}`} key={i}><strong>{x.element}</strong><span>{x.problem}</span><small>{x.correction}</small></div>)}</div>}</div></section>}
       </>}
 
       {active==="clip"&&clipProject?.clips?.length>0&&<section className="clips-section"><div className="section-heading"><small>CLIP+ · READY</small><h2>{clipProject.clips.length} strong clip{clipProject.clips.length>1?"s":""} found.</h2><p>{clipProject.clips.length<clipCount?`You asked for ${clipCount}. Clip+ stopped at ${clipProject.clips.length} because quality comes before quota.`:"All requested clips passed the quality threshold."}</p></div><div className="clips-grid">{clipProject.clips.map((clip:any)=><article className="clip-card" key={clip.id}><div className="clip-rank">0{clip.rank}</div><strong>{clip.viral_score??"—"}</strong><small>Viral potential</small><h3>{clip.title||"Untitled clip"}</h3><p>{clip.hook||clip.rationale}</p><button className="btn primary clip-open" onClick={()=>openClip(clip.id)}>Open clip ↗</button></article>)}</div></section>}
