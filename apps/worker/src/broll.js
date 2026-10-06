@@ -748,22 +748,24 @@ async function validateBrollAsset({
 
   const prompt=`Tu es le contrôleur qualité B-roll de Edit+.
 
-Décide si CETTE IMAGE est réellement adaptée comme B-roll à la phrase et à la recherche demandées.
+Juge UNIQUEMENT ce qui est réellement visible dans les pixels de CETTE IMAGE.
+N'utilise PAS le titre, la légende, la page source, le contexte historique ou une histoire associée à l'image pour créer un lien.
 
 Recherche principale: ${cue.query}
 Recherche utilisée: ${searchQuery}
 Raison éditoriale: ${cue.reason||''}
-Titre/source: ${asset.title||''}
-Provider: ${asset.provider||''}
 
 RÈGLES STRICTES:
-- APPROUVE seulement si l'image illustre clairement l'objet, l'action, le lieu ou la situation demandée.
-- REJETTE les correspondances basées sur un seul mot générique.
-- REJETTE documents historiques, archives, cartes, schémas, vieilles coupures, peintures, affiches ou photos anciennes sauf si le sujet le demande explicitement.
-- REJETTE une image qui demanderait une explication pour comprendre le lien.
-- Pour un Reel business moderne, privilégie des photos immédiatement compréhensibles et contemporaines.
+- APPROUVE seulement si le sujet principal ET l'action/objet demandés sont immédiatement visibles sans explication.
+- Si la requête demande une PERSONNE, une personne humaine pertinente doit être clairement visible.
+- Si la requête demande une ACTION (ex: travailler sur laptop, signer, toucher son coeur), cette action doit être réellement visible.
+- Un animal, un paysage, un objet ou une archive ne peut jamais remplacer une personne/action demandée.
+- REJETTE les correspondances basées sur l'ambiance, l'émotion supposée, le contexte de la page ou un seul mot générique.
+- REJETTE documents historiques, archives, cartes, schémas, vieilles coupures, peintures, affiches ou photos anciennes sauf demande explicite.
+- REJETTE toute image qui demanderait une explication pour comprendre le lien.
+- Pour un Reel business moderne, privilégie une lecture instantanée et contemporaine.
 - Ne juge PAS la licence ici; elle a déjà été filtrée.
-- Retourne uniquement JSON: {"match":true,"confidence":0.0,"reason":""}`;
+- Retourne uniquement JSON: {"match":true,"confidence":0.0,"visible_match":"","reason":""}`;
 
   for(const activeModel of [...new Set((models||[]).filter(Boolean))]){
     try{
@@ -809,7 +811,7 @@ RÈGLES STRICTES:
       const parsed=JSON.parse(raw);
       const ok=
         parsed?.match===true&&
-        Number(parsed?.confidence||0)>=0.72;
+        Number(parsed?.confidence||0)>=0.88;
 
       console.log(JSON.stringify({
         event:'broll_asset_validated',
