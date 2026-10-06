@@ -1,0 +1,27 @@
+name: Clip+ Worker CI
+
+on:
+  push:
+    branches: [viral-suite-v1]
+    paths:
+      - 'apps/clip-worker/**'
+      - 'apps/worker/src/viral.js'
+      - '.github/workflows/clip-worker-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  clip-worker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        working-directory: apps/clip-worker
+        run: npm install --no-audit --no-fund
+      - name: Syntax checks
+        working-directory: apps/clip-worker
+        run: npm run check
+      - name: Docker build
+        run: docker build -f apps/clip-worker/Dockerfile -t viralplus-clip-worker-ci .
