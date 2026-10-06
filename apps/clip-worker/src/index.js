@@ -224,16 +224,147 @@ async function persistClip({job,project,candidate,rank,filePath}){
 }
 
 async function progress(job,status,pct,stage){
-  const value=Math.max(0,Math.min(99,Math.round(Number(pct)||0))),now=new Date().toISOString();
-  const {error}=await supabase.from('processing_jobs').update({status,progress:value,stage,heartbeat_at:now,updated_at:now}).eq('id',job.id).eq('user_id',job.user_id);if(error)throw error;
-  await supabase.from('job_events').insert({job_id:job.id,user_id:job.user_id,status,progress:value,message:stage,details:{worker_id:workerId}});
+  const value=Math.max(0,Math.min(99,Math.round(Number(pct)||0)));
+  const now=new Date().toISOString();
+
+  const {error}=await supabase
+    .from('processing_jobs')
+    .update({
+      status,
+      progress:value,
+      stage,
+      heartbeat_at:now,
+      updated_at:now
+    })
+    .eq('id',job.id)
+    .eq('user_id',job.user_id);
+
+  if(error)throw error;
+
+  await supabase.from('job_events').insert({
+    job_id:job.id,
+    user_id:job.user_id,
+    status,
+    progress:value,
+    message:stage,
+    details:{worker_id:workerId}
+  });
 }
-async function heartbeat(id){await supabase.from('processing_jobs').update({heartbeat_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',id).eq('locked_by',workerId)}
-async function complete(job,result){const now=new Date().toISOString();await supabase.from('processing_jobs').update({status:'completed',progress:100,stage:'Terminé',result,completed_at:now,heartbeat_at:now,updated_at:now,locked_at:null,locked_by:null}).eq('id',job.id);await supabase.from('job_events').insert({job_id:job.id,user_id:job.user_id,status:'completed',progress:100,message:'Clip+ terminé',details:result)}
+
+async function heartbeat(id){
+  await supabase
+    .from('processing_jobs')
+    .update({
+      heartbeat_at:new Date().toISOString(),
+      updated_at:new Date().toISOString()
+    })
+    .eq('id',id)
+    .eq('locked_by',workerId);
+}
+
+async function complete(job,result){
+  const now=new Date().toISOString();
+
+  await supabase
+    .from('processing_jobs')
+    .update({
+      status:'completed',
+      progress:100,
+      stage:'Terminé',
+      result,
+      completed_at:now,
+      heartbeat_at:now,
+      updated_at:now,
+      locked_at:null,
+      locked_by:null
+    })
+    .eq('id',job.id);
+
+  await supabase.from('job_events').insert({
+    job_id:job.id,
+    user_id:job.user_id,
+    status:'completed',
+    progress:100,
+    message:'Clip+ terminé',
+    details:result
+  });
+}
+
 async function fail(job,error){
-  const message=String(error?.message||error).slice(0,1800),code=String(error?.code||'CLIP_FAILED').slice(0,120),retry=Number(job.retry_count||0)+1,max=Number(job.max_retries??3),terminal=retry>max,now=new Date();
-  const update=terminal?{status:'failed',progress:Number(job.progress||0),stage:'Échec',retry_count:retry,error_code:code,error:message,completed_at:now.toISOString(),updated_at:now.toISOString(),locked_at:null,locked_by:null,heartbeat_at:null}:{status:'queued',progress:Number(job.progress||0),stage:'Nouvelle tentative',retry_count:retry,error_code:code,error:message,next_attempt_at:new Date(now.getTime()+Math.min(60000,5000*Math.pow(2,retry-1))).toISOString(),updated_at:now.toISOString(),locked_at:null,locked_by:null,heartbeat_at:null};
-  await supabase.from('processing_jobs').update(update).eq('id',job.id);const pid=job.payload?.clip_project_id;if(pid)await supabase.from('clip_projects').update({status:terminal?'failed':'queued',updated_at:now.toISOString()}).eq('id',pid);await supabase.from('job_events').insert({job_id:job.id,user_id:job.user_id,status:update.status,progress:update.progress,message,details:{error_code:code,retry_count:retry,terminal}});if(terminal)console.error(JSON.stringify({event:'clip_job_failed',job:job.id,code,message}));
+  const message=String(error?.message||error).slice(0,1800);
+  const code=String(error?.code||'CLIP_FAILED').slice(0,120);
+  const retry=Number(job.retry_count||0)+1;
+  const max=Number(job.max_retries??3);
+  const terminal=retry>max;
+  const now=new Date();
+
+  const update=terminal
+    ?{
+      status:'failed',
+      progress:Number(job.progress||0),
+      stage:'Échec',
+      retry_count:retry,
+      error_code:code,
+      error:message,
+      completed_at:now.toISOString(),
+      updated_at:now.toISOString(),
+      locked_at:null,
+      locked_by:null,
+      heartbeat_at:null
+    }
+    :{
+      status:'queued',
+      progress:Number(job.progress||0),
+      stage:'Nouvelle tentative',
+      retry_count:retry,
+      error_code:code,
+      error:message,
+      next_attempt_at:new Date(
+        now.getTime()+Math.min(60000,5000*Math.pow(2,retry-1))
+      ).toISOString(),
+      updated_at:now.toISOString(),
+      locked_at:null,
+      locked_by:null,
+      heartbeat_at:null
+    };
+
+  await supabase
+    .from('processing_jobs')
+    .update(update)
+    .eq('id',job.id);
+
+  const pid=job.payload?.clip_project_id;
+  if(pid){
+    await supabase
+      .from('clip_projects')
+      .update({
+        status:terminal?'failed':'queued',
+        updated_at:now.toISOString()
+      })
+      .eq('id',pid);
+  }
+
+  await supabase.from('job_events').insert({
+    job_id:job.id,
+    user_id:job.user_id,
+    status:update.status,
+    progress:update.progress,
+    message,
+    details:{
+      error_code:code,
+      retry_count:retry,
+      terminal
+    }
+  });
+
+  if(terminal){
+    console.error(JSON.stringify({
+      event:'clip_job_failed',
+      job:job.id,
+      code,
+      message
+    }));
+  }
 }
 
 function tagged(code,message){const e=new Error(message);e.code=code;return e}
