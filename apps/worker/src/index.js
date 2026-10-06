@@ -219,6 +219,11 @@ async function failJob(job,e){
     message,
     details:{error_code:e.code||'WORKER_ERROR',retry_count:retryCount}
   });
+
+  if(status==='failed' && job.kind==='viral_analysis'){
+    const {error:refundError}=await supabase.rpc('worker_refund_job_credit',{p_job_id:job.id});
+    if(refundError)console.error(JSON.stringify({event:'credit_refund_failed',job_id:job.id,error:refundError.message}));
+  }
 }
 
 async function one(table,cols,id){
