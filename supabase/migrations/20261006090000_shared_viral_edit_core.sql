@@ -393,6 +393,10 @@ begin
   end if;
 
   if p_idempotency_key is not null then
+    perform pg_advisory_xact_lock(
+      hashtextextended(uid::text || ':' || p_idempotency_key,0)
+    );
+
     select *
       into existing_job
     from public.processing_jobs j
