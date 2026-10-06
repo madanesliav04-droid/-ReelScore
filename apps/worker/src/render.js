@@ -985,13 +985,17 @@ function buildGraphicsAss(timeline,width,height){
     impact:'&H00FFE637',
     explainer:'&H00FFE87C',
     data:'&H0066D1FF',
-    ugc_native:'&H00BF3FFF'
+    ugc_native:'&H00BF3FFF',
+    authority:'&H00459BFF',
+    cinematic_story:'&H00FFFFFF'
   }[mode]||'&H00FFFFFF';
   const size={
     impact:72,
     explainer:54,
     data:82,
-    ugc_native:58
+    ugc_native:58,
+    authority:48,
+    cinematic_story:52
   }[mode]||58;
   const align=mode==='ugc_native'?8:mode==='explainer'?7:mode==='data'?8:8;
   const marginV=mode==='ugc_native'?120:mode==='explainer'?180:110;
@@ -1014,9 +1018,12 @@ function buildGraphicsAss(timeline,width,height){
   const events=(timeline?.graphicCues||[]).map((g,index)=>{
     let prefix='';
     if(mode==='explainer')prefix=`STEP ${String(index+1).padStart(2,'0')}  ·  `;
-    if(mode==='data')prefix='PROOF  ·  ';
+    if(mode==='data')prefix=`${String(g.label||'CLAIM')}  ·  `;
     if(mode==='ugc_native')prefix='✦  ';
-    const text=escapeAssText(prefix+String(g.text||''));
+    if(mode==='authority')prefix='EXPERT TAKE  ·  ';
+    if(mode==='cinematic_story')prefix='“ ';
+    const suffix=mode==='cinematic_story'?' ”':'';
+    const text=escapeAssText(prefix+String(g.text||'')+suffix);
     return `Dialogue: 1,${assTime(g.startMs)},${assTime(g.endMs)},Graphic,,0,0,0,,${text}`;
   });
   return header.concat(events).join('\n');

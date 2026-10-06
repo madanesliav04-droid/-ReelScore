@@ -158,18 +158,22 @@ export function buildEditTimeline({
 
 
 function buildGraphicCues({style,captions,outputDurationMs,styleCfg}){
-  if(['codie','clean','authority','cinematic_story'].includes(style))return [];
+  if(['codie','clean'].includes(style))return [];
   const cadence={
     impact:3200,
     explainer:5200,
     data:4300,
-    ugc_native:6500
+    ugc_native:6500,
+    authority:8500,
+    cinematic_story:10500
   }[style]||5000;
   const duration={
     impact:1450,
     explainer:2300,
     data:2200,
-    ugc_native:1800
+    ugc_native:1800,
+    authority:2500,
+    cinematic_story:3400
   }[style]||1800;
   const cues=[];
   let next=style==='impact'?700:1300;
@@ -195,6 +199,13 @@ function buildGraphicCues({style,captions,outputDurationMs,styleCfg}){
       endMs:Math.min(outputDurationMs,start+duration),
       text:text.slice(0,54),
       mode:style,
+      label:style==='data'
+        ?((?:/^(?:€|\$|£)?\d/).test(text)?'DATA':'CLAIM')
+        :style==='authority'
+          ?'EXPERT'
+          :style==='cinematic_story'
+            ?'STORY'
+            :null,
       accent:styleCfg?.visualSignature?.accent||'#ffffff'
     });
     next=start+cadence;
