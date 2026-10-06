@@ -97,25 +97,11 @@ create index if not exists processing_jobs_video_idx
 
 alter table public.processing_jobs enable row level security;
 revoke all on public.processing_jobs from anon, authenticated;
-grant select, insert on public.processing_jobs to authenticated;
+grant select on public.processing_jobs to authenticated;
 
 create policy processing_jobs_select_own
 on public.processing_jobs for select to authenticated
 using ((select auth.uid()) is not null and (select auth.uid()) = user_id);
-
-create policy processing_jobs_insert_own
-on public.processing_jobs for insert to authenticated
-with check (
-  (select auth.uid()) is not null
-  and (select auth.uid()) = user_id
-  and exists (
-    select 1
-    from public.media_assets m
-    where m.id = video_id
-      and m.user_id = (select auth.uid())
-      and m.deleted_at is null
-  )
-);
 
 
 create table if not exists public.job_events (
