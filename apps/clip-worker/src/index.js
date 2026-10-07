@@ -914,7 +914,8 @@ async function selectCandidates({
 Durée de chaque clip: ${minSec} à ${maxSec} secondes.
 Durée source: ${duration.toFixed(1)} secondes.
 
-Priorités: hook immédiat, idée compréhensible sans contexte, tension/curiosité, valeur concrète, émotion ou opinion forte, fin naturelle, potentiel de partage. Évite les intros, sponsors, transitions molles, passages incomplets et doublons. Les clips ne doivent pas se chevaucher fortement. N'inclus que des clips dont viral_score >= ${minClipQuality}. La qualité prime toujours sur la quantité.
+Priorités: hook immédiat, idée compréhensible sans contexte, tension/curiosité, valeur concrète, émotion ou opinion forte, fin naturelle, potentiel de partage. Évite les intros, sponsors, transitions molles, passages incomplets et doublons. Les clips ne doivent pas se chevaucher fortement.
+Classe les MEILLEURS passages disponibles et note-les honnêtement de 0 à 100, même si aucun n'atteint ${minClipQuality}. Retourne au moins le meilleur passage autonome dès qu'il existe réellement. Le code appliquera ensuite le seuil qualité et pourra ne garder qu'un seul "best available". N'invente jamais un score pour faire passer le seuil.
 
 Retourne UNIQUEMENT un JSON valide: {"clips":[{"start_sec":0,"end_sec":35,"title":"","hook":"","rationale":"","viral_score":0}]}. viral_score est une heuristique 0-100, pas une promesse de vues.
 
@@ -992,7 +993,7 @@ ${transcript}`;
   }
 
   const raw=Array.isArray(parsed.clips)?parsed.clips:[];
-  const clean=[];
+  const valid=[];
   for(const x of raw){
     let start=Math.max(0,Number(x.start_sec)||0);
     let end=Math.min(duration,Number(x.end_sec)||0);
@@ -1004,17 +1005,20 @@ ${transcript}`;
     const item={
       start_sec:round(start,3),
       end_sec:round(end,3),
-      title:String(x.title||'Clip '+(clean.length+1)).slice(0,140),
+      title:String(x.title||'Clip '+(valid.length+1)).slice(0,140),
       hook:String(x.hook||'').slice(0,220),
       rationale:String(x.rationale||'').slice(0,500),
-      viral_score:clampInt(x.viral_score,65,0,100)
+      viral_score:clampInt(x.viral_score,55,0,100)
     };
 
-    if(item.viral_score<minClipQuality)continue;
-    if(clean.some(y=>overlapRatio(item,y)>.5))continue;
-    clean.push(item);
-    if(clean.length>=selectionPoolSize)break;
+    if(valid.some(y=>overlapRatio(item,y)>.5))continue;
+    valid.push(item);
+    if(valid.length>=selectionPoolSize)break;
   }
+
+  const clean=valid
+    .filter(x=>x.viral_score>=minClipQuality)
+    .sort((a,b)=>b.viral_score-a.viral_score);
 
   // If semantic analysis itself had no transcript, do not fail the whole job.
   // Use the measured audio/visual activity fallback only in that degraded-analysis case.
@@ -1048,11 +1052,58 @@ ${transcript}`;
     }
   }
 
-  // Quality-first: when Gemini returned a valid semantic candidate pool, never pad it
-  // with weaker local fallbacks just to satisfy the requested quota.
-  return clean
+  if(clean.length){
+    return clean.slice(0,count);
+  }
+
+  // No candidate cleared the normal quality threshold. If Gemini still found a
+  // coherent standalone moment, return only the strongest one with its REAL
+  // score instead of failing the whole Clip+ job. This keeps quality honest:
+  // the UI can show that the source had no high-confidence clip.
+  const bestAvailable=valid
+    .filter(x=>x.viral_score>=50)
+    .sort((a,b)=>b.viral_score-a.viral_score)[0];
+
+  if(bestAvailable){
+    console.warn(JSON.stringify({
+      event:'clip_selection_best_available',
+      score:bestAvailable.viral_score,
+      threshold:minClipQuality,
+      start_sec:bestAvailable.start_sec,
+      end_sec:bestAvailable.end_sec
+    }));
+    return [{
+      ...bestAvailable,
+      rationale:
+        (bestAvailable.rationale
+          ?bestAvailable.rationale+' '
+          :'')+
+        `Best available: score below preferred threshold ${minClipQuality}.`
+    }];
+  }
+
+  // Last-resort semantic-safe fallback: only one clip, never padding the quota.
+  // Use measured/transcript timing and keep the low heuristic score visible.
+  const fallback=fallbackCandidates(
+    words,
+    duration,
+    1,
+    minSec,
+    maxSec,
+    analysis
+  )
     .sort((a,b)=>b.viral_score-a.viral_score)
-    .slice(0,count);
+    .slice(0,1);
+
+  if(fallback.length){
+    console.warn(JSON.stringify({
+      event:'clip_selection_single_fallback',
+      score:fallback[0].viral_score
+    }));
+    return fallback;
+  }
+
+  return [];
 }
 
 function compactTranscript(words,maxChars){
