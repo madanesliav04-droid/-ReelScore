@@ -315,7 +315,7 @@ function localCueCandidates(captions,maxCues,cfg){
     [/offre|proposition|devis/i,'contract document desk office'],
     [/qualité|niveau/i,'quality control professional workplace'],
     [/accompagnement|suivi|support/i,'customer support agent headset'],
-    [/solution|résoudre|problème|problématique/i,'person solving problem whiteboard'],
+    [/solution|résoudre|problème|problématique/i,'person writing on whiteboard'],
     [/compare|comparaison|comparer/i,'product comparison shopping'],
     [/résultat/i,'analytics dashboard laptop'],
     [/contrat|accord/i,'contract signing office'],
@@ -373,11 +373,16 @@ function localCueCandidates(captions,maxCues,cfg){
 
   // Spread cues through the edit instead of clustering them.
   const picked=[];
+  const usedQueries=new Set();
   let last=-Infinity;
   for(const cue of candidates){
     const start=Number(cue.start_sec||0)*1000;
+    const queryKey=String(cue.query_en||'').toLowerCase().trim();
     if(start-last<cfg.broll.minGapMs)continue;
+    // Avoid repeating the same stock concept in one short edit.
+    if(queryKey&&usedQueries.has(queryKey))continue;
     picked.push(cue);
+    if(queryKey)usedQueries.add(queryKey);
     last=start;
     if(picked.length>=maxCues)break;
   }
