@@ -48,6 +48,14 @@
 .clip-count-selector span{font-size:9px;color:#858fa2;text-transform:uppercase;letter-spacing:.1em}
 .quality-note{display:flex;align-items:flex-start;gap:8px;margin:12px 0 2px;padding:10px 11px;border:1px solid rgba(82,224,160,.12);background:rgba(82,224,160,.04);border-radius:10px;color:#91a99d;font-size:11px;line-height:1.45}
 .quality-note svg{flex:0 0 auto;margin-top:1px;color:#58dfaa}
+.clip-upload-toggle{appearance:none;border:0;background:transparent;color:#8e97aa;font-size:11px;text-decoration:underline;text-underline-offset:3px;padding:9px 1px 0;cursor:pointer}
+.clip-upload-toggle:hover{color:#c5cbd7}
+.clip-upload-fallback{margin:12px 0 2px;padding:14px;border:1px solid rgba(124,101,255,.22);border-radius:14px;background:linear-gradient(145deg,rgba(124,101,255,.08),rgba(14,17,24,.72))}
+.clip-upload-fallback>small{display:block;color:#9f92ff;font-size:9px;font-weight:900;letter-spacing:.12em;margin-bottom:5px}
+.clip-upload-fallback>p{margin:0 0 10px;color:#8f98aa;font-size:11px;line-height:1.5}
+.clip-upload-fallback .upload-zone.compact{min-height:112px;padding:14px}
+.clip-upload-fallback .upload-zone.compact div{gap:4px}
+
 
 .inline-job-state{margin-top:10px;padding:10px 11px;border:1px solid rgba(255,255,255,.07);border-radius:10px;background:rgba(255,255,255,.025)}
 .inline-job-state>div:first-child{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:10px;color:#8f98aa}
