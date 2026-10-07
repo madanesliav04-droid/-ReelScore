@@ -211,73 +211,185 @@ async function transcribeFromVideo({
 
   try{
     const active=await waitForGeminiFile(uploaded.name,geminiKey);
-    const r=await fetch(`${GOOGLE_BASE}/v1beta/interactions`,{
-      method:'POST',
-      headers:{
-        'x-goog-api-key':geminiKey,
-        'content-type':'application/json'
-      },
-      body:JSON.stringify({
-        model,
-        input:[{
-          type:'audio',
-          uri:active.uri,
-          mime_type:'audio/mpeg'
-        }],
-        generation_config:{
-          transcription_config:{
-            mode:{
-              type:'verbatim',
-              timestamp_granularities:['word']
+    let primaryError=null;
+
+    try{
+      const r=await fetch(`${GOOGLE_BASE}/v1beta/interactions`,{
+        method:'POST',
+        headers:{
+          'x-goog-api-key':geminiKey,
+          'content-type':'application/json'
+        },
+        body:JSON.stringify({
+          model,
+          input:[{
+            type:'audio',
+            uri:active.uri,
+            mime_type:'audio/mpeg'
+          }],
+          generation_config:{
+            transcription_config:{
+              mode:{
+                type:'verbatim',
+                timestamp_granularities:['word']
+              }
             }
           }
-        }
-      })
-    });
+        })
+      });
 
-    if(!r.ok){
-      throw new Error(
-        `Gemini transcribe ${r.status}: ${(await r.text()).slice(0,500)}`
-      );
+      if(!r.ok){
+        throw new Error(
+          `Gemini transcribe interactions ${r.status}: ${(await r.text()).slice(0,500)}`
+        );
+      }
+
+      const body=await r.json();
+      const contents=(body.steps||[])
+        .flatMap(step=>step.content||[])
+        .filter(x=>x?.type==='text');
+
+      const text=String(
+        body.output_text||
+        contents.map(x=>x.text||'').join(' ')
+      ).trim();
+
+      const words=contents
+        .flatMap(x=>x.annotations||[])
+        .filter(x=>x?.type==='word_info'&&x.text)
+        .map(x=>({
+          text:String(x.text),
+          startMs:offsetToMs(x.start_offset),
+          endMs:offsetToMs(x.end_offset),
+          speaker:x.speaker||null
+        }))
+        .filter(x=>
+          Number.isFinite(x.startMs)&&
+          Number.isFinite(x.endMs)&&
+          x.endMs>=x.startMs
+        );
+
+      if(words.length){
+        return {
+          text,
+          words,
+          captions:wordsToCaptions(words),
+          error:null,
+          model
+        };
+      }
+
+      primaryError=new Error('Gemini interactions transcription returned no timed words');
+    }catch(error){
+      primaryError=error;
     }
 
-    const body=await r.json();
-    const contents=(body.steps||[])
-      .flatMap(step=>step.content||[])
-      .filter(x=>x?.type==='text');
+    console.warn(JSON.stringify({
+      event:'transcription_generate_content_fallback',
+      reason:String(primaryError?.message||primaryError).slice(0,500)
+    }));
 
-    const text=String(
-      body.output_text||
-      contents.map(x=>x.text||'').join(' ')
-    ).trim();
-
-    const words=contents
-      .flatMap(x=>x.annotations||[])
-      .filter(x=>x?.type==='word_info'&&x.text)
-      .map(x=>({
-        text:String(x.text),
-        startMs:offsetToMs(x.start_offset),
-        endMs:offsetToMs(x.end_offset),
-        speaker:x.speaker||null
-      }))
-      .filter(x=>
-        Number.isFinite(x.startMs)&&
-        Number.isFinite(x.endMs)&&
-        x.endMs>=x.startMs
-      );
+    const fallback=await transcribeViaGenerateContent({
+      fileUri:active.uri,
+      mimeType:'audio/mpeg',
+      geminiKey,
+      model
+    });
 
     return {
-      text,
-      words,
-      captions:wordsToCaptions(words),
-      error:null,
-      model
+      ...fallback,
+      error:`Interactions fallback: ${String(primaryError?.message||primaryError).slice(0,260)}`
     };
   }finally{
     if(uploaded?.name){
       await deleteGeminiFile(uploaded.name,geminiKey).catch(()=>{});
     }
   }
+}
+
+async function transcribeViaGenerateContent({
+  fileUri,
+  mimeType,
+  geminiKey,
+  model
+}){
+  const r=await fetch(
+    `${GOOGLE_BASE}/v1beta/models/${encodeURIComponent(model)}:generateContent`,
+    {
+      method:'POST',
+      signal:AbortSignal.timeout(45000),
+      headers:{
+        'x-goog-api-key':geminiKey,
+        'content-type':'application/json'
+      },
+      body:JSON.stringify({
+        contents:[{
+          role:'user',
+          parts:[{
+            fileData:{
+              fileUri,
+              mimeType
+            }
+          }]
+        }],
+        generationConfig:{
+          audioTranscriptionConfig:{
+            wordTimestamp:true
+          }
+        }
+      })
+    }
+  );
+
+  if(!r.ok){
+    throw new Error(
+      `Gemini transcribe generateContent ${r.status}: ${(await r.text()).slice(0,500)}`
+    );
+  }
+
+  const body=await r.json();
+  const parts=(body.candidates||[])
+    .flatMap(candidate=>candidate?.content?.parts||[]);
+
+  const transcriptions=parts
+    .map(part=>part?.audioTranscription)
+    .filter(Boolean);
+
+  const words=transcriptions
+    .flatMap(t=>{
+      const speaker=t?.speakerLabel||null;
+      return (t?.words||[]).map(w=>({
+        text:String(w?.word||'').trim(),
+        startMs:offsetToMs(w?.startOffset),
+        endMs:offsetToMs(w?.endOffset),
+        speaker
+      }));
+    })
+    .filter(x=>
+      x.text&&
+      Number.isFinite(x.startMs)&&
+      Number.isFinite(x.endMs)&&
+      x.endMs>=x.startMs
+    );
+
+  const text=transcriptions
+    .map(t=>String(t?.text||'').trim())
+    .filter(Boolean)
+    .join(' ')
+    .trim()||
+    parts.map(part=>String(part?.text||'').trim()).filter(Boolean).join(' ').trim();
+
+  if(!words.length){
+    throw new Error('Gemini generateContent transcription returned no timed words');
+  }
+
+  return {
+    text:text||words.map(x=>x.text).join(' '),
+    words,
+    captions:wordsToCaptions(words),
+    error:null,
+    model:`${model}:generateContent`
+  };
 }
 
 function offsetToMs(value){
