@@ -80,9 +80,21 @@ ${transcript}`;
       }));
     }
 
-    const raw=Array.isArray(parsed?.cues)&&parsed.cues.length
+    const aiRaw=Array.isArray(parsed?.cues)
       ?parsed.cues
-      :localCueCandidates(captions,maxCues,cfg);
+      :[];
+    const localRaw=localCueCandidates(
+      captions,
+      Math.max(maxCues,Math.ceil(maxCues*1.5)),
+      cfg
+    );
+
+    // Always keep concrete transcript fallbacks available. AI suggestions are
+    // evaluated first, but if they fail specificity/visual validation the
+    // fallback can still fill that editorial moment instead of returning 0 B-roll.
+    const raw=[...aiRaw,...localRaw]
+      .sort((a,b)=>Number(a.start_sec||0)-Number(b.start_sec||0));
+
     const cleaned=[];
     let lastEnd=-Infinity;
 
