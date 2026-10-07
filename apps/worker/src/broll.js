@@ -179,8 +179,8 @@ ${transcript}`;
         :buildSearchVariants(cue.query,[]);
       let checked=0;
 
-      for(const q of attempts){
-        if(checked>=8)break;
+      for(const q of attempts.slice(0,6)){
+        if(checked>=6)break;
 
         // Try more than one visual for the same semantic query. The first
         // search hit is often merely keyword-related, not editorially correct.
@@ -206,7 +206,7 @@ ${transcript}`;
           }
 
           used.add(candidate.assetUrl);
-          if(checked>=8)break;
+          if(checked>=6)break;
         }
 
         if(asset)break;
@@ -478,13 +478,15 @@ async function findOpenverseAsset(
   query,
   used
 ){
-  const variants=buildSearchVariants(query,[]);
+  // Search exactly one prepared variant. Variant expansion is already handled
+  // by the caller; doing it again here multiplied API calls and caused 429s.
+  const variants=[String(query||'').trim()].filter(Boolean);
 
   for(const variant of variants){
     const params=new URLSearchParams({
       q:variant,
       license:'pdm,cc0,by',
-      page_size:'32',
+      page_size:'20',
       mature:'false',
       categories:'photograph'
     });
@@ -646,7 +648,8 @@ async function findCommonsAsset(
   query,
   used
 ){
-  const variants=buildSearchVariants(query,[query+' photograph']);
+  // Same rule as Openverse: caller owns semantic variant expansion.
+  const variants=[String(query||'').trim()].filter(Boolean);
 
   for(const variant of variants){
     const params=new URLSearchParams({
