@@ -48,6 +48,9 @@ RÈGLES:
 - Préfère les noms concrets: lieux, objets, marques, métiers, technologies, personnes historiques, actions observables.
 - Évite les concepts abstraits comme "succès", "motivation", "business" seuls.
 - Chaque query_en doit être une recherche d'image courte et concrète en ANGLAIS.
+- Ne traduis jamais mot-à-mot une phrase abstraite. Transforme l'idée en scène réellement photographiable.
+- query_en et alt_queries_en ne doivent contenir AUCUN mot français.
+- Si aucune scène visuelle précise n'améliore la phrase, n'ajoute aucun cue à cet endroit.
 - Pour CHAQUE cue, fournis aussi exactement 3 alt_queries_en, du plus précis au plus simple.
 - La 3e alternative doit contenir seulement 1 à 3 noms concrets faciles à trouver en photo (ex: "calculator price", "laptop analytics", "product boxes").
 - Une image doit illustrer exactement la phrase prononcée.
@@ -76,7 +79,7 @@ ${transcript}`;
 
     const raw=Array.isArray(parsed?.cues)&&parsed.cues.length
       ?parsed.cues
-      :[];
+      :localCueCandidates(captions,maxCues,cfg);
     const cleaned=[];
     let lastEnd=-Infinity;
 
@@ -287,19 +290,10 @@ function localCueCandidates(captions,maxCues,cfg){
       if(re.test(text)){query=value;break;}
     }
 
-    if(!query){
-      const words=text
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g,'')
-        .replace(/[^a-z0-9\s-]/g,' ')
-        .split(/\s+/)
-        .filter(w=>w.length>=5&&!stop.has(w))
-        .slice(0,4);
-
-      if(words.length<2)continue;
-      query=words.join(' ');
-    }
+    // Quality-first fallback: never turn untranslated transcript fragments into
+    // stock-image searches. If we cannot map the sentence to a concrete visual,
+    // staying on the speaker is better than inserting irrelevant B-roll.
+    if(!query)continue;
 
     const startMs=Math.max(900,Number(c.startMs)||0);
     const baseDuration=Math.max(
