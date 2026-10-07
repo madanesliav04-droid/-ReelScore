@@ -470,7 +470,7 @@ async function runEdit(job,media,sourcePath,dir){
       version:1,
       duration_ms:timeline.outputDurationMs,
       timeline_json:timeline,
-      decision_model:'editplus-timeline-v2-contextual'
+      decision_model:'editplus-timeline-v3-premium'
     },{
       onConflict:'project_id,version'
     });
