@@ -655,52 +655,16 @@ async function importSource(url,dir){
     'youtubepot-bgutilhttp:base_url=http://127.0.0.1:4416'
   ];
 
+  // YouTube changes formats/client requirements frequently.
+  // Avoid legacy format ids (18/22/HLS) and let yt-dlp choose available A/V streams.
   const strategies=[
-    [
-      '--force-ipv6',
-      '--extractor-args','youtube:player_client=web_safari',
-      '-f','best[protocol^=m3u8][height<=1080]/best[protocol^=m3u8]/18/22/best[height<=720]/best'
-    ],
-    [
-      '--force-ipv6',
-      ...provider,
-      '--extractor-args','youtube:player_client=mweb',
-      '-f','18/22/best[height<=720]/best'
-    ],
-    [
-      ...provider,
-      '--extractor-args','youtube:player_client=mweb',
-      '-f','18/22/best[height<=720]/best'
-    ],
-    [
-      '--extractor-args','youtube:player_client=web_safari',
-      '-f','best[protocol^=m3u8][height<=1080]/best[protocol^=m3u8]/18/22/best[height<=720]/best'
-    ],
-    [
-      '--extractor-args','youtube:player_client=android_vr',
-      '-f','best[height<=720]/bestvideo[height<=720]+bestaudio/best'
-    ],
-    [
-      '--extractor-args','youtube:player_client=web_embedded',
-      '-f','18/22/best[height<=720]/best'
-    ],
-    [
-      '--extractor-args','youtube:player_client=tv_embedded',
-      '-f','best[height<=720]/bestvideo[height<=720]+bestaudio/best'
-    ],
-    [
-      '--extractor-args','youtube:player_client=ios',
-      '-f','best[height<=720]/bestvideo[height<=720]+bestaudio/best'
-    ],
-    [
-      '--extractor-args','youtube:player_client=tv',
-      '-f','best[height<=720]/bestvideo[height<=720]+bestaudio/best'
-    ],
-    [
-      ...provider,
-      '--extractor-args','youtube:player_client=mweb,web_safari,web_embedded,android_vr',
-      '-S','res:1080'
-    ]
+    ['-S','res:720'],
+    ['--extractor-args','youtube:player_client=android','-S','res:720'],
+    ['--extractor-args','youtube:player_client=tv_simply','-S','res:720'],
+    ['--extractor-args','youtube:player_client=tv','-S','res:720'],
+    [...provider,'--extractor-args','youtube:player_client=mweb','-S','res:720'],
+    ['--extractor-args','youtube:player_client=web_embedded','-S','res:720'],
+    ['--extractor-args','youtube:player_client=ios','-S','res:720']
   ];
 
   const failures=[];
