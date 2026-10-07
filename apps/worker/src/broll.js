@@ -76,7 +76,7 @@ ${transcript}`;
 
     const raw=Array.isArray(parsed?.cues)&&parsed.cues.length
       ?parsed.cues
-      :localCueCandidates(captions,maxCues,cfg);
+      :[];
     const cleaned=[];
     let lastEnd=-Infinity;
 
@@ -765,7 +765,9 @@ RÈGLES STRICTES:
 - REJETTE toute image qui demanderait une explication pour comprendre le lien.
 - Pour un Reel business moderne, privilégie une lecture instantanée et contemporaine.
 - Ne juge PAS la licence ici; elle a déjà été filtrée.
-- Retourne uniquement JSON: {"match":true,"confidence":0.0,"visible_match":"","reason":""}`;
+- Décompose séparément le sujet, l’action et l’objet requis. Chacun doit être visible.
+- Exemple: des mains formant un cœur sur un ventre ne correspondent PAS à une personne touchant sa poitrine. Une poignée de main ne prouve PAS une vente conclue.
+- Retourne uniquement JSON: {"match":true,"subject_match":true,"action_match":true,"object_match":true,"confidence":0.0,"visible_match":"","reason":""}`;
 
   for(const activeModel of [...new Set((models||[]).filter(Boolean))]){
     try{
@@ -811,6 +813,7 @@ RÈGLES STRICTES:
       const parsed=JSON.parse(raw);
       const ok=
         parsed?.match===true&&
+        parsed.subject_match===true&&parsed.action_match===true&&parsed.object_match===true&&
         Number(parsed?.confidence||0)>=0.88;
 
       console.log(JSON.stringify({

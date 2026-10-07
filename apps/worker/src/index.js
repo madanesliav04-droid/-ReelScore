@@ -5,7 +5,7 @@ import {createReadStream,createWriteStream} from 'node:fs';
 import {mkdtemp,rm,stat} from 'node:fs/promises';
 import {Readable} from 'node:stream';
 import {pipeline} from 'node:stream/promises';
-import {randomUUID} from 'node:crypto';
+import {randomUUID,createHash} from 'node:crypto';
 import {createClient} from '@supabase/supabase-js';
 import {analyzeVideo} from './viral.js';
 import {buildEditTimeline} from './edit.js';
@@ -251,7 +251,14 @@ async function recoverIdempotentResult(job){
 }
 
 async function runViral(job,media,filePath){
-  const result=await analyzeVideo({
+  const hash=createHash('sha256');
+  for await(const chunk of createReadStream(filePath))hash.update(chunk);
+  const digest=hash.digest('hex');
+  const {data:cached,error:cacheError}=await supabase.from('viralplus_analyses')
+    .select('result_json').eq('user_id',job.user_id).eq('video_sha256',digest)
+    .eq('score_version','vp-score-4-scale-safe').order('created_at',{ascending:false}).limit(1).maybeSingle();
+  if(cacheError)throw cacheError;
+  const result=cached?.result_json||await analyzeVideo({
     filePath,
     mimeType:media.mime_type,
     fileName:media.original_name||'video',
@@ -293,7 +300,7 @@ async function runViral(job,media,filePath){
     video_id:job.video_id,
     job_id:job.id,
     video_name:media.original_name||'video',
-    video_sha256:null,
+    video_sha256:digest,
     is_reanalysis:Boolean(payload.reanalysis||payload.is_reanalysis),
     baseline_analysis_id:baselineAnalysisId,
     final_score:result.final_score,

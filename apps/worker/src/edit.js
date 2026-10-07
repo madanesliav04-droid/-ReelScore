@@ -186,11 +186,13 @@ function buildGraphicCues({style,captions,outputDurationMs,styleCfg}){
     let text=raw;
     if(style==='data'){
       const m=raw.match(/(?:€|\$|£)?\b\d+(?:[.,]\d+)?(?:\s?%|\s?[kKmM])?\b/);
-      text=m?m[0]:raw.split(' ').slice(0,5).join(' ');
+      if(!m)continue;
+      text=raw;
     }else if(style==='impact'){
       text=raw.split(' ').slice(0,4).join(' ').toUpperCase();
     }else if(style==='explainer'){
-      text=raw.split(' ').slice(0,6).join(' ');
+      if(!/étape|premi[eè]r|deuxi[eè]me|troisi[eè]me|ensuite|puis|step|first|second|third|next/i.test(raw))continue;
+      text=raw;
     }else if(style==='ugc_native'){
       text=raw.split(' ').slice(0,5).join(' ');
     }
@@ -472,7 +474,7 @@ function buildPunchIns({
           :1250
   );
 
-  if(firstEnd>400){
+  if(firstEnd>400&&style==='impact'){
     windows.push({
       startMs:0,
       endMs:firstEnd,
@@ -536,18 +538,6 @@ function buildPunchIns({
     });
   }
 
-  const cadenceMs=Number(styleCfg?.visualSignature?.cadenceMs||0);
-  if(cadenceMs>0){
-    const pulseDuration=style==='impact'?720:style==='data'?900:1050;
-    for(let t=cadenceMs;t<outputDurationMs-500;t+=cadenceMs){
-      windows.push({
-        startMs:t,
-        endMs:Math.min(outputDurationMs,t+pulseDuration),
-        scale:Math.max(1.03,Number(styleCfg.punchScale||1.08)-0.015),
-        reason:'model_cadence'
-      });
-    }
-  }
 
   const max=Math.max(
     1,
