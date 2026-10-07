@@ -632,7 +632,7 @@ async function importSource(url,dir){
     '--socket-timeout','25',
     '--retries','4',
     '--fragment-retries','4',
-    '--retry-sleep','http:linear=1::2:5',
+    '--retry-sleep','http:linear=1:5:2',
     '--impersonate','chrome',
     ...(proxy?['--proxy',proxy]:[])
   ];
@@ -717,6 +717,10 @@ async function importSource(url,dir){
       if(file)return file;
     }catch(error){
       const detail=String(error?.message||error).slice(-700);
+      if(/yt-dlp exited 2:|no such option|invalid .* expression/i.test(detail)){
+        console.error(JSON.stringify({event:'youtube_import_configuration_error',error:detail}));
+        throw tagged('IMPORT_CONFIGURATION_ERROR','L’import par lien est temporairement indisponible. Importe le fichier vidéo pour continuer.');
+      }
       failures.push(detail);
       console.warn(JSON.stringify({
         event:'youtube_import_strategy_failed',
@@ -743,13 +747,12 @@ async function importSource(url,dir){
 
   const last=String(failures.at(-1)||'');
   const blocked=
-    availability==='available'||
-    /403|429|login|sign in|bot|po.?token|video unavailable|resolver/i.test(last);
+    /403|429|login|sign in|bot|po.?token/i.test(failures.join('\n'));
 
   throw tagged(
     blocked?'YOUTUBE_EGRESS_REQUIRED':'YOUTUBE_IMPORT_FAILED',
     blocked
-      ?'La vidéo est publique mais YouTube a refusé les routes d’import de ce worker. Une autre route réseau va être retentée automatiquement.'
+      ?'YouTube n’a pas autorisé l’import de cette source. Importe le fichier vidéo pour continuer.'
       :'L’import YouTube a échoué après toutes les stratégies disponibles.'
   );
 }
