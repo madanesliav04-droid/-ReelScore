@@ -100,6 +100,10 @@ export function Dashboard(){
   const [clipRights,setClipRights]=useState(false);
   const [clipCount,setClipCount]=useState<5|10|20>(5);
   const [clipProject,setClipProject]=useState<any>(null);
+  const [clipFallback,setClipFallback]=useState(false);
+  const [clipFile,setClipFile]=useState<File|null>(null);
+  const [clipMedia,setClipMedia]=useState<Media|null>(null);
+  const [clipUploadPct,setClipUploadPct]=useState(0);
   const [editModel,setEditModel]=useState("codie");
   const [editExportUrl,setEditExportUrl]=useState("");
   const [busy,setBusy]=useState(false);
@@ -142,7 +146,7 @@ export function Dashboard(){
   function displayJobError(current:Job){
     const code=String(current?.error_code||"");
     if(code==="NO_CLIPS_FOUND")return "Aucun passage suffisamment fort n’a été détecté dans cette vidéo.";
-    if(["YOUTUBE_EGRESS_REQUIRED","YOUTUBE_IMPORT_FAILED","YOUTUBE_UNAVAILABLE"].includes(code))return "Clip+ n’a pas pu récupérer cette vidéo YouTube après plusieurs routes d’import. Vérifie que la vidéo est publique et réessaie : le moteur retente automatiquement via d’autres workers.";
+    if(["YOUTUBE_EGRESS_REQUIRED","YOUTUBE_IMPORT_FAILED","YOUTUBE_UNAVAILABLE"].includes(code))return "YouTube bloque l’import automatique de cette source. Importe le fichier vidéo ci-dessous : Clip+ reprendra exactement le même pipeline de génération.";
     return String(current?.error||code||"Le traitement a échoué.");
   }
 
@@ -182,6 +186,36 @@ export function Dashboard(){
     upload.findPreviousUploads().then(previous=>{if(previous.length)upload.resumeFromPreviousUpload(previous[0]);upload.start()});
   }
 
+  async function uploadClipSource(selected:File){
+    let liveSession:any;
+    try{
+      liveSession=await freshSession();
+    }catch{
+      setError("Reconnecte-toi pour continuer.");
+      return;
+    }
+    const liveUserId=liveSession.user?.id;
+    if(!liveUserId)return setError("Session utilisateur invalide.");
+    setError("");setClipFile(selected);setClipMedia(null);setClipUploadPct(0);setJob(null);setClipProject(null);
+    const objectName=`${liveUserId}/${crypto.randomUUID()}-${safeName(selected.name)}`;
+    const upload=new tus.Upload(selected,{
+      endpoint:`https://${SUPABASE_PROJECT_REF}.storage.supabase.co/storage/v1/upload/resumable`,
+      retryDelays:[0,3000,5000,10000,20000],
+      headers:{authorization:`Bearer ${liveSession.access_token}`,"x-upsert":"false"},
+      uploadDataDuringCreation:true,removeFingerprintOnSuccess:true,chunkSize:6*1024*1024,
+      metadata:{bucketName:VIDEO_BUCKET,objectName,contentType:selected.type||"video/mp4",cacheControl:"3600"},
+      onError(err){setError(err.message||"Upload impossible")},
+      onProgress(sent,total){setClipUploadPct(Math.round(sent/total*100))},
+      async onSuccess(){
+        try{
+          const body=await api(functionUrl("viral-edit-jobs","media"),token,{method:"POST",body:JSON.stringify({storage_path:objectName,mime_type:selected.type||"video/mp4",size_bytes:selected.size,original_name:selected.name,module:"shared"})});
+          setClipMedia(body.media);setClipUploadPct(100);setError("");
+        }catch(e:any){setError(e.message)}
+      }
+    });
+    upload.findPreviousUploads().then(previous=>{if(previous.length)upload.resumeFromPreviousUpload(previous[0]);upload.start()});
+  }
+
   async function watchJob(id:string,kind:"core"|"clip"="core"){
     if(pollRef.current)clearInterval(pollRef.current);
     try{localStorage.setItem("viral-studio-active-job",JSON.stringify({id,channel:kind}))}catch{}
@@ -193,7 +227,12 @@ export function Dashboard(){
         if(!done)return false;
         if(pollRef.current)clearInterval(pollRef.current);pollRef.current=null;setBusy(false);
         try{localStorage.removeItem("viral-studio-active-job")}catch{}
-        if(body.job.status==="failed"){setError(displayJobError(body.job));return true}
+        if(body.job.status==="failed"){
+          const code=String(body.job.error_code||"");
+          if(kind==="clip"&&["YOUTUBE_EGRESS_REQUIRED","YOUTUBE_IMPORT_FAILED","YOUTUBE_UNAVAILABLE"].includes(code))setClipFallback(true);
+          setError(displayJobError(body.job));
+          return true;
+        }
         if(body.job.kind==="viral_analysis"){
           const {data,error:analysisError}=await supabase.from("viralplus_analyses").select("*").eq("job_id",id).maybeSingle();
           if(analysisError)throw analysisError;
@@ -239,12 +278,13 @@ export function Dashboard(){
 
   async function startClip(){
     if(busy)return;
-    if(!clipUrl.trim())return setError("Colle l’URL de la vidéo.");
+    if(!clipMedia&&!clipUrl.trim())return setError("Colle une URL YouTube ou importe la vidéo.");
     if(!clipRights)return setError("Confirme que tu as le droit de traiter cette vidéo.");
     setError("");setClipProject(null);setBusy(true);
     try{
       const body=await api(functionUrl("clip-jobs","create"),token,{method:"POST",body:JSON.stringify({
-        source_url:clipUrl.trim(),confirm_rights:true,clip_count:clipCount,min_duration_sec:20,max_duration_sec:60,caption_preset:"modern_bold",add_captions:true
+        ...(clipMedia?{source_video_id:clipMedia.id}:{source_url:clipUrl.trim()}),
+        confirm_rights:true,clip_count:clipCount,min_duration_sec:20,max_duration_sec:60,caption_preset:"modern_bold",add_captions:true
       })});
       setJob(body.job);setClipProject({project:body.project,clips:[]});await watchJob(body.job.id,"clip");
     }catch(e:any){setError(e.message);setBusy(false)}
@@ -320,12 +360,19 @@ export function Dashboard(){
         <section className="panel clip-url-panel">
           <small className="eyebrow">CLIP+ · YOUTUBE TO SHORTS</small><h3>Paste a long YouTube video. Get the best Shorts.</h3>
           <p className="clip-promise">URL → analyse complète → meilleurs passages → 9:16 → captions → clips prêts à poster.</p>
-          <div className="url-box"><Link2 size={20}/><input value={clipUrl} onChange={e=>setClipUrl(e.target.value)} placeholder="Paste YouTube URL"/></div>
+          <div className="url-box"><Link2 size={20}/><input value={clipUrl} onChange={e=>{setClipUrl(e.target.value);setClipMedia(null)}} placeholder="Paste YouTube URL"/></div>
+          <button type="button" className="clip-upload-toggle" onClick={()=>setClipFallback(v=>!v)}>{clipFallback?"Hide file import":"YouTube blocked? Import the video instead"}</button>
+          {clipFallback&&<div className="clip-upload-fallback">
+            <small>DIRECT FILE FALLBACK</small>
+            <p>MP4, MOV ou WebM. Le fichier rejoint ensuite le même moteur Clip+ : sélection des passages, 9:16 et captions.</p>
+            <label className="upload-zone compact"><input type="file" accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" onChange={e=>{const f=e.target.files?.[0];if(f)uploadClipSource(f)}}/><div><Upload size={24}/><b>{clipFile?clipFile.name:"Import the source video"}</b><span>{clipMedia?"Ready for Clip+":clipFile?`${clipUploadPct}% uploaded`:"Up to 500 MB"}</span></div></label>
+            {clipFile&&<div className="progress"><i style={{width:`${clipUploadPct}%`}}/></div>}
+          </div>}
           <div className="clip-count-label">How many clips do you want?</div>
           <div className="clip-count-selector">{([5,10,20] as const).map(n=><button key={n} className={clipCount===n?"selected":""} onClick={()=>setClipCount(n)}><strong>{n}</strong><span>clips</span></button>)}</div>
           <div className="quality-note"><Check size={14}/><span>Quality first: Clip+ can return fewer clips if the source does not contain enough strong standalone moments.</span></div>
           <label className="rights-check"><input type="checkbox" checked={clipRights} onChange={e=>setClipRights(e.target.checked)}/><span>Je confirme que je possède cette vidéo ou que j’ai l’autorisation de la traiter.</span></label>
-          <button className="btn primary full" onClick={startClip} disabled={!clipUrl.trim()||!clipRights||busy}><Scissors size={16}/> {busy&&job?.kind==="clip_generate"?`Creating up to ${clipCount} clips…`:`Generate ${clipCount} clips`}</button>
+          <button className="btn primary full" onClick={startClip} disabled={(!clipMedia&&!clipUrl.trim())||!clipRights||busy}><Scissors size={16}/> {busy&&job?.kind==="clip_generate"?`Creating up to ${clipCount} clips…`:clipMedia?`Generate ${clipCount} clips from upload`:`Generate ${clipCount} clips`}</button>
           <InlineJobState job={job?.kind==="clip_generate"?job:null}/>
           {error&&<div className="job-card error">{error}</div>}
         </section>
