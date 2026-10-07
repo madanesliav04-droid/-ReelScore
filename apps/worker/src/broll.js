@@ -294,11 +294,16 @@ function localCueCandidates(captions,maxCues,cfg){
 
   const concepts=[
     [/moins cher|prix|coût|coûte|tarif/i,'price tags retail shopping'],
-    [/prospect|client|vente|vendre/i,'sales meeting client office'],
+    [/prospect|client|vente|vendre|vendeur/i,'salesperson talking with customer'],
+    [/je me forme|formation|apprendre|cours/i,'person watching online course laptop'],
+    [/peaufine|peaufiner|travail.*pas terminé|pas terminé/i,'video editor editing timeline computer'],
+    [/reste[r]? à zéro|rester à zéro|à zéro|zero/i,'analytics dashboard zero sales'],
+    [/toucher le cœur|coeur|cœur/i,'person hand on chest speaking'],
+    [/aider les personnes|aider.*personne|besoin de toi/i,'one person helping another person'],
     [/offre|proposition|devis/i,'contract document desk office'],
     [/qualité|niveau/i,'quality control professional workplace'],
     [/accompagnement|suivi|support/i,'customer support agent headset'],
-    [/solution/i,'business planning whiteboard meeting'],
+    [/solution|résoudre|problème|problématique/i,'person solving problem whiteboard'],
     [/compare|comparaison|comparer/i,'product comparison shopping'],
     [/résultat/i,'analytics dashboard laptop'],
     [/contrat|accord/i,'contract signing office'],
