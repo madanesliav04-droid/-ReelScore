@@ -906,11 +906,32 @@ async function selectCandidates({
 }){
   const words=analysis.transcript?.words||[];
   const duration=Math.max(0,Number(analysis.measurable?.durationSec||0));
-  const transcript=compactTranscript(words,320000);
+  const transcriptWords=compactTranscript(words,220000);
+  const transcriptText=String(analysis.transcript?.text||'').trim().slice(0,120000);
+  const semanticAnchors=JSON.stringify({
+    detected_spoken_hook:analysis?.detected_spoken_hook||'',
+    detected_visual_hook:analysis?.detected_visual_hook||'',
+    verdict:analysis?.verdict||'',
+    main_problem:analysis?.main_problem||'',
+    why:analysis?.why||'',
+    timeline:Array.isArray(analysis?.timeline)?analysis.timeline.slice(0,10):[],
+    action_items:Array.isArray(analysis?.action_items)?analysis.action_items.slice(0,8):[]
+  });
   const selectionPoolSize=20;
+
+  console.log(JSON.stringify({
+    event:'clip_selection_context',
+    word_count:words.length,
+    transcript_chars:transcriptText.length,
+    timeline_count:Array.isArray(analysis?.timeline)?analysis.timeline.length:0,
+    analysis_basis:analysis?.analysis_basis||null,
+    transcript_error:analysis?.transcript?.error||null
+  }));
+
   const prompt=`Tu es Clip+, un directeur éditorial spécialisé short-form.
 
-À partir de la transcription horodatée d'une vidéo longue, sélectionne JUSQU'À ${selectionPoolSize} excellents passages autonomes à transformer en Reels/TikTok/Shorts. Le nombre demandé par l'utilisateur sera appliqué APRÈS ton classement, donc ne change jamais tes critères selon le quota utilisateur. Ne remplis jamais le quota avec des passages moyens: retourne moins de clips si la qualité n'est pas suffisante.
+Sélectionne JUSQU'À ${selectionPoolSize} excellents passages autonomes à transformer en Reels/TikTok/Shorts.
+Utilise en priorité les mots horodatés. S'ils sont absents ou incomplets, appuie-toi sur la transcription texte ET sur les ancres de l'analyse multimodale (timeline, hook, verdict) pour estimer les meilleurs intervalles. N'invente jamais un timestamp sans support dans les ancres disponibles. Le nombre demandé par l'utilisateur sera appliqué APRÈS ton classement, donc ne change jamais tes critères selon le quota utilisateur. Ne remplis jamais le quota avec des passages moyens: retourne moins de clips si la qualité n'est pas suffisante.
 Durée de chaque clip: ${minSec} à ${maxSec} secondes.
 Durée source: ${duration.toFixed(1)} secondes.
 
@@ -919,8 +940,14 @@ Classe les MEILLEURS passages disponibles et note-les honnêtement de 0 à 100, 
 
 Retourne UNIQUEMENT un JSON valide: {"clips":[{"start_sec":0,"end_sec":35,"title":"","hook":"","rationale":"","viral_score":0}]}. viral_score est une heuristique 0-100, pas une promesse de vues.
 
-TRANSCRIPTION:
-${transcript}`;
+MOTS HORODATÉS:
+${transcriptWords}
+
+TRANSCRIPTION TEXTE:
+${transcriptText||'AUCUNE TRANSCRIPTION TEXTE'}
+
+ANCRES MULTIMODALES HORODATÉES:
+${semanticAnchors}`;
 
   let parsed=null;
   const models=[model,fallbackModel].filter((v,i,a)=>v&&a.indexOf(v)===i);
