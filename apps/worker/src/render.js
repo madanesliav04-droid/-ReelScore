@@ -411,7 +411,7 @@ export async function renderNativeEdit({
 
     args.push(
       '-c:v','libx264',
-      '-preset','fast',
+      '-preset','veryfast',
       '-crf','17',
       '-pix_fmt','yuv420p',
       '-threads','1',
