@@ -100,6 +100,22 @@ async function processJob(job){
     const sourceInfo=await stat(sourcePath);
     if(sourceInfo.size>500*1024*1024)throw tagged('SOURCE_TOO_LARGE','La vidéo dépasse 500 Mo');
 
+    // Internal diagnostic path: validate source ingestion without spending Gemini/render compute.
+    if(payload?.internal_test===true&&payload?.settings?.import_only===true){
+      await supabase.from('clip_projects').update({
+        status:'completed',
+        updated_at:new Date().toISOString()
+      }).eq('id',projectId);
+      await complete(job,{
+        import_ok:true,
+        source_platform:project.source_platform||payload.source_platform||null,
+        source_url:sourceUrl||null,
+        bytes:sourceInfo.size,
+        worker_id:workerId
+      });
+      return;
+    }
+
     await progress(job,'transcribing',18,'Transcription et compréhension de la vidéo');
 
     let analysis=hasUpload
@@ -700,7 +716,13 @@ async function importSource(url,dir){
       const file=out.trim().split(/\r?\n/).filter(Boolean).at(-1);
       if(file)return file;
     }catch(error){
-      failures.push(String(error?.message||error).slice(-700));
+      const detail=String(error?.message||error).slice(-700);
+      failures.push(detail);
+      console.warn(JSON.stringify({
+        event:'youtube_import_strategy_failed',
+        strategy:i,
+        error:detail
+      }));
     }
   }
 
