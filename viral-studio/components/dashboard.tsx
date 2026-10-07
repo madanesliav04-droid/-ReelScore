@@ -110,6 +110,8 @@ export function Dashboard(){
   const sourceRef=useRef<HTMLVideoElement|null>(null);
   const [authNotice,setAuthNotice]=useState("");
   const [editExportUrl,setEditExportUrl]=useState("");
+  const [editOutputMediaId,setEditOutputMediaId]=useState("");
+  const [preFixScore,setPreFixScore]=useState<number|null>(null);
   const [busy,setBusy]=useState(false);
   const pollRef=useRef<ReturnType<typeof setInterval>|null>(null);
 
@@ -173,7 +175,7 @@ export function Dashboard(){
     }
     const liveUserId=liveSession.user?.id;
     if(!liveUserId)return setError("Session utilisateur invalide.");
-    setError("");setFile(selected);setMedia(null);setAnalysis(null);setJob(null);setUploadPct(0);setEditExportUrl("");
+    setError("");setFile(selected);setMedia(null);setAnalysis(null);setJob(null);setUploadPct(0);setEditExportUrl("");setEditOutputMediaId("");setPreFixScore(null);
     const objectName=`${liveUserId}/${crypto.randomUUID()}-${safeName(selected.name)}`;
     const upload=new tus.Upload(selected,{
       endpoint:`https://${SUPABASE_PROJECT_REF}.storage.supabase.co/storage/v1/upload/resumable`,
@@ -248,9 +250,12 @@ export function Dashboard(){
           if(!data)throw new Error("Analyse terminée mais résultat introuvable.");
           setAnalysis(data.result_json?{...data.result_json,id:data.id,analysis_id:data.id}:data);
         }
-        if(body.job.kind==="edit_render"&&body.job.result?.export_id){
-          const out=await api(functionUrl("viral-edit-jobs",`exports/${body.job.result.export_id}/url`),token);
-          if(out?.signed_url)setEditExportUrl(out.signed_url);
+        if(body.job.kind==="edit_render"){
+          if(body.job.result?.output_video_id)setEditOutputMediaId(String(body.job.result.output_video_id));
+          if(body.job.result?.export_id){
+            const out=await api(functionUrl("viral-edit-jobs",`exports/${body.job.result.export_id}/url`),token);
+            if(out?.signed_url)setEditExportUrl(out.signed_url);
+          }
         }
         if(body.job.kind==="clip_generate"&&body.job.result?.clip_project_id){
           const detail=await api(functionUrl("clip-jobs",`projects/${body.job.result.clip_project_id}`),token);
@@ -272,17 +277,68 @@ export function Dashboard(){
     }catch(e:any){setError(e.message);setBusy(false)}
   }
 
-  async function startEdit(){
+  function pickAutoFixModel(result:any){
+    const plan=Array.isArray(result?.fix_plan)?result.fix_plan:[];
+    const areas=plan.map((x:any)=>String(x?.area||"")+" "+String(x?.problem||"")).join(" ").toLowerCase();
+    if(/hook|retention|rhythm|pacing|editing|scroll/.test(areas))return "impact";
+    if(/clarity|structure|message|explain|compréhension/.test(areas))return "explainer";
+    if(/visual|caption|text|safe zone|framing/.test(areas))return "clean";
+
+    const s=result?.scores||{};
+    const metric=(key:string)=>Number.isFinite(Number(s[key]))?Number(s[key]):100;
+    if(Math.min(metric("hook"),metric("scroll_stop"),metric("retention"),metric("rhythm"))<65)return "impact";
+    if(Math.min(metric("clarity"),metric("structure"))<65)return "explainer";
+    if(Math.min(metric("visual"),metric("text_captions"))<65)return "clean";
+    return "codie";
+  }
+
+  async function startEdit(autoFix=false){
     if(busy)return;if(!media)return setError("Importe d’abord une vidéo.");
-    setError("");setEditExportUrl("");setBusy(true);
+    const modelToUse=autoFix?pickAutoFixModel(analysis):editModel;
+
+    if(autoFix){
+      const before=Number(score);
+      setPreFixScore(Number.isFinite(before)?before:null);
+      setEditModel(modelToUse);
+      setActive("edit");
+      history.replaceState(null,"","/dashboard?tool=edit");
+    }
+
+    setError("");setEditExportUrl("");setEditOutputMediaId("");setBusy(true);
     try{
       const body=await api(functionUrl("viral-edit-jobs","edit"),token,{method:"POST",body:JSON.stringify({
         video_id:media.id,
         analysis_id:analysis?.analysis_id||analysis?.id||null,
-        style:editModel, settings:{format}
+        style:modelToUse,
+        settings:{format}
       })});
       setJob(body.job);await watchJob(body.job.id);
     }catch(e:any){setError(e.message);setBusy(false)}
+  }
+
+  async function analyzeEditOutput(){
+    if(busy||!editOutputMediaId)return;
+    setError("");setBusy(true);
+    try{
+      const out=await api(functionUrl("viral-edit-jobs",`media/${editOutputMediaId}/url`),token);
+      if(!out?.media)throw new Error("Rendu Edit+ introuvable.");
+      setMedia(out.media);
+      setFile(null);
+      setAnalysis(null);
+      setSourceUrl(out.signed_url||"");
+      setActive("viral");
+      history.replaceState(null,"","/dashboard?tool=viral");
+
+      const body=await api(functionUrl("viral-edit-jobs","analysis"),token,{
+        method:"POST",
+        body:JSON.stringify({video_id:editOutputMediaId})
+      });
+      setJob(body.job);
+      await watchJob(body.job.id);
+    }catch(e:any){
+      setError(e.message);
+      setBusy(false);
+    }
   }
 
   async function startClip(){
@@ -368,7 +424,7 @@ export function Dashboard(){
             <div className="model-copy"><div><strong>{model.name}</strong><span>{model.category}</span></div>{editModel===model.id&&<Check size={18}/>}<p>{model.meta}</p></div>
           </button>)}</div>
           <label className="format-picker">Format de sortie <select className="field" value={format} onChange={e=>setFormat(e.target.value)} disabled={busy}><option value="native">Natif — conserver le format source</option><option value="portrait">Portrait — 1080 × 1920</option><option value="landscape">Paysage — 1920 × 1080</option></select></label>
-          <button className="btn primary create-edit" onClick={startEdit} disabled={!media||busy}><Clapperboard size={17}/> {busy&&job?.kind==="edit_render"?"Editing…":`Create with ${selectedModel.name}`}</button>
+          <button className="btn primary create-edit" onClick={()=>void startEdit(false)} disabled={!media||busy}><Clapperboard size={17}/> {busy&&job?.kind==="edit_render"?"Editing…":`Create with ${selectedModel.name}`}</button>
           <InlineJobState job={job?.kind==="edit_render"?job:null}/>
           {error&&<div className="job-card error">{error}</div>}
         </section>
@@ -397,12 +453,12 @@ export function Dashboard(){
         <BackendState media={null} job={job}/>
       </div>}
 
-      {active==="edit"&&editExportUrl&&<section className="result-panel edit-result"><div className="result-copy"><small>EDIT+ · READY</small><h2>{selectedModel.name} render ready.</h2><p>The final video was rendered with the locked {selectedModel.name} model.</p><div className="result-actions"><a className="btn primary" href={editExportUrl} target="_blank" rel="noreferrer">Open MP4 ↗</a></div></div><video className="result-video" src={editExportUrl} controls playsInline/></section>}
+      {active==="edit"&&editExportUrl&&<section className="result-panel edit-result"><div className="result-copy"><small>EDIT+ · READY</small><h2>{selectedModel.name} render ready.</h2><p>The final video was rendered with the locked {selectedModel.name} model.</p><div className="result-actions"><a className="btn primary" href={editExportUrl} target="_blank" rel="noreferrer">Open MP4 ↗</a><button className="btn ghost" onClick={()=>void analyzeEditOutput()} disabled={busy||!editOutputMediaId}>Analyze improved version →</button></div></div><video className="result-video" src={editExportUrl} controls playsInline/></section>}
 
       {active==="viral"&&analysis&&<>
         <section className="result-panel viral-hero-result">
-          <div><small>VIRAL SCORE</small><div className="score-big">{score??"—"}<span>/100</span></div><div className="score-version">Creative potential · pre-publish</div></div>
-          <div className="result-copy"><small>VERDICT</small><h2>{analysis.main_problem||"Diagnostic completed"}</h2><p>{analysis.verdict||analysis.why}</p><div className="result-why">{analysis.why}</div><button className="btn primary" onClick={()=>switchModule("edit")}>FIX WITH EDIT+ →</button></div>
+          <div><small>VIRAL SCORE</small><div className="score-big">{score??"—"}<span>/100</span></div><div className="score-version">{preFixScore!==null&&score!==null?`Before ${preFixScore} → Now ${score}`:"Creative potential · pre-publish"}</div></div>
+          <div className="result-copy"><small>VERDICT</small><h2>{analysis.main_problem||"Diagnostic completed"}</h2><p>{analysis.verdict||analysis.why}</p><div className="result-why">{analysis.why}</div><button className="btn primary" onClick={()=>void startEdit(true)} disabled={busy}>FIX WITH AI →</button></div>
         </section>
 
         <section className="viral-detail-section">
