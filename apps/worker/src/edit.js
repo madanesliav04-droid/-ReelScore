@@ -1,16 +1,16 @@
 const FILLERS=new Set(['euh','heu','uh','um','erm','hmm','hum']);
 
-export const MODEL_CONTRACT_VERSION='editplus-models-v1';
+export const MODEL_CONTRACT_VERSION='editplus-models-v2-premium';
 
 export const EDIT_STYLES={
-  codie:{label:'Codie',promise:'Business storytelling · facecam first',pace:'narrative',silenceThresholdMs:780,removeFillers:false,maxPunchInsPer30s:4,punchScale:1.10,punchSeverities:['red'],captions:'authority',broll:{maxPer30s:3,minDurationMs:1800,maxDurationMs:3200,minGapMs:4200},brollDirective:'Facecam dominante. B-roll uniquement lorsqu’il illustre précisément une phrase concrète. Pas de remplissage.',soundDesign:'minimal',visualSignature:{mode:'codie',contrast:1.02,saturation:1,accent:'#ff9b45',cadenceMs:0}},
-  impact:{label:'Impact',promise:'High-energy business · retention first',pace:'fast',silenceThresholdMs:420,removeFillers:true,maxPunchInsPer30s:8,punchScale:1.13,punchSeverities:['red','orange'],captions:'impact',broll:{maxPer30s:7,minDurationMs:1200,maxDurationMs:2300,minGapMs:1600},brollDirective:'B-roll fréquent mais concret: produits, chiffres, lieux, marques, actions. Chaque insert doit accélérer la compréhension.',soundDesign:'moderate',visualSignature:{mode:'impact',contrast:1.12,saturation:1.16,accent:'#37e6ff',cadenceMs:3600}},
-  clean:{label:'Clean',promise:'Modern creator · simple and polished',pace:'medium_fast',silenceThresholdMs:620,removeFillers:true,maxPunchInsPer30s:4,punchScale:1.07,punchSeverities:['red'],captions:'clean',broll:{maxPer30s:3,minDurationMs:1600,maxDurationMs:2800,minGapMs:3600},brollDirective:'Très peu de B-roll. Seulement quand une image clarifie mieux que la facecam.',soundDesign:'light',visualSignature:{mode:'clean',contrast:1.02,saturation:.98,accent:'#ffffff',cadenceMs:0}},
-  authority:{label:'Authority',promise:'Podcast & expert · calm premium',pace:'calm_premium',silenceThresholdMs:920,removeFillers:false,maxPunchInsPer30s:3,punchScale:1.06,punchSeverities:['red'],captions:'authority',broll:{maxPer30s:3,minDurationMs:2400,maxDurationMs:4200,minGapMs:5200},brollDirective:'B-roll rare, long, crédible et documentaire moderne. Priorité au visage et à la parole.',soundDesign:'minimal',visualSignature:{mode:'authority',contrast:1.05,saturation:.88,accent:'#ff9b45',cadenceMs:0}},
-  explainer:{label:'Explainer',promise:'Tutorial & SaaS · show what is being explained',pace:'medium_fast',silenceThresholdMs:560,removeFillers:true,maxPunchInsPer30s:5,punchScale:1.08,punchSeverities:['red','orange'],captions:'explainer',broll:{maxPer30s:6,minDurationMs:1600,maxDurationMs:3200,minGapMs:2100},brollDirective:'Cherche des interfaces, outils, objets ou étapes concrètes correspondant exactement à l’explication. Évite les images génériques.',soundDesign:'light',visualSignature:{mode:'explainer',contrast:1.04,saturation:1.03,accent:'#7ce8ff',cadenceMs:5200}},
-  data:{label:'Data',promise:'Numbers & evidence · proof on screen',pace:'fast',silenceThresholdMs:500,removeFillers:true,maxPunchInsPer30s:5,punchScale:1.09,punchSeverities:['red','orange'],captions:'data',broll:{maxPer30s:5,minDurationMs:1700,maxDurationMs:3000,minGapMs:2300},brollDirective:'Priorité aux preuves visuelles: documents modernes, tableaux, dashboards, produits comparés, lieux ou éléments cités. Pas d’archives décoratives.',soundDesign:'light',visualSignature:{mode:'data',contrast:1.07,saturation:.96,accent:'#ffd166',cadenceMs:4700}},
-  ugc_native:{label:'UGC Native',promise:'Native social · human and unpolished',pace:'natural',silenceThresholdMs:740,removeFillers:false,maxPunchInsPer30s:4,punchScale:1.05,punchSeverities:['red'],captions:'ugc',broll:{maxPer30s:2,minDurationMs:1400,maxDurationMs:2600,minGapMs:5000},brollDirective:'Très peu de B-roll. Favorise produit, geste, détail ou usage réel. Le rendu doit rester natif téléphone.',soundDesign:'light',visualSignature:{mode:'ugc_native',contrast:1.03,saturation:1.12,accent:'#ff3fbf',cadenceMs:7000}},
-  cinematic_story:{label:'Cinematic Story',promise:'Personal story · emotion and breathing room',pace:'story',silenceThresholdMs:1100,removeFillers:false,maxPunchInsPer30s:2,punchScale:1.04,punchSeverities:['red'],captions:'cinematic',broll:{maxPer30s:4,minDurationMs:3000,maxDurationMs:6000,minGapMs:4800},brollDirective:'B-roll narratif et émotionnel, plus long. Cherche des lieux, objets, actions ou atmosphères directement reliés à l’histoire.',soundDesign:'cinematic',visualSignature:{mode:'cinematic_story',contrast:1.08,saturation:.72,accent:'#ffffff',cadenceMs:0}},
+  codie:{label:'Codie',promise:'Business storytelling · facecam first',pace:'narrative',silenceThresholdMs:780,removeFillers:false,maxPunchInsPer30s:4,punchScale:1.10,punchSeverities:['red'],captions:'authority',broll:{maxPer30s:2,minDurationMs:1900,maxDurationMs:3400,minGapMs:5000},brollDirective:'Facecam dominante. B-roll uniquement lorsqu’il illustre précisément une phrase concrète. Pas de remplissage.',soundDesign:'minimal',visualSignature:{mode:'codie',contrast:1.02,saturation:1,accent:'#ff9b45',cadenceMs:0}},
+  impact:{label:'Impact',promise:'High-energy business · retention first',pace:'fast',silenceThresholdMs:420,removeFillers:true,maxPunchInsPer30s:8,punchScale:1.13,punchSeverities:['red','orange'],captions:'impact',broll:{maxPer30s:5,minDurationMs:1300,maxDurationMs:2400,minGapMs:2200},brollDirective:'B-roll fréquent mais concret: produits, chiffres, lieux, marques, actions. Chaque insert doit accélérer la compréhension.',soundDesign:'moderate',visualSignature:{mode:'impact',contrast:1.12,saturation:1.16,accent:'#37e6ff',cadenceMs:3600}},
+  clean:{label:'Clean',promise:'Modern creator · simple and polished',pace:'medium_fast',silenceThresholdMs:620,removeFillers:true,maxPunchInsPer30s:4,punchScale:1.07,punchSeverities:['red'],captions:'clean',broll:{maxPer30s:2,minDurationMs:1700,maxDurationMs:2900,minGapMs:4400},brollDirective:'Très peu de B-roll. Seulement quand une image clarifie mieux que la facecam.',soundDesign:'light',visualSignature:{mode:'clean',contrast:1.02,saturation:.98,accent:'#ffffff',cadenceMs:0}},
+  authority:{label:'Authority',promise:'Podcast & expert · calm premium',pace:'calm_premium',silenceThresholdMs:920,removeFillers:false,maxPunchInsPer30s:3,punchScale:1.06,punchSeverities:['red'],captions:'authority',broll:{maxPer30s:2,minDurationMs:2500,maxDurationMs:4300,minGapMs:6000},brollDirective:'B-roll rare, long, crédible et documentaire moderne. Priorité au visage et à la parole.',soundDesign:'minimal',visualSignature:{mode:'authority',contrast:1.05,saturation:.88,accent:'#ff9b45',cadenceMs:0}},
+  explainer:{label:'Explainer',promise:'Tutorial & SaaS · show what is being explained',pace:'medium_fast',silenceThresholdMs:560,removeFillers:true,maxPunchInsPer30s:5,punchScale:1.08,punchSeverities:['red','orange'],captions:'explainer',broll:{maxPer30s:5,minDurationMs:1700,maxDurationMs:3300,minGapMs:2600},brollDirective:'Cherche des interfaces, outils, objets ou étapes concrètes correspondant exactement à l’explication. Évite les images génériques.',soundDesign:'light',visualSignature:{mode:'explainer',contrast:1.04,saturation:1.03,accent:'#7ce8ff',cadenceMs:5200}},
+  data:{label:'Data',promise:'Numbers & evidence · proof on screen',pace:'fast',silenceThresholdMs:500,removeFillers:true,maxPunchInsPer30s:5,punchScale:1.09,punchSeverities:['red','orange'],captions:'data',broll:{maxPer30s:4,minDurationMs:1800,maxDurationMs:3100,minGapMs:2800},brollDirective:'Priorité aux preuves visuelles: documents modernes, tableaux, dashboards, produits comparés, lieux ou éléments cités. Pas d’archives décoratives.',soundDesign:'light',visualSignature:{mode:'data',contrast:1.07,saturation:.96,accent:'#ffd166',cadenceMs:4700}},
+  ugc_native:{label:'UGC Native',promise:'Native social · human and unpolished',pace:'natural',silenceThresholdMs:740,removeFillers:false,maxPunchInsPer30s:4,punchScale:1.05,punchSeverities:['red'],captions:'ugc',broll:{maxPer30s:1,minDurationMs:1500,maxDurationMs:2600,minGapMs:7000},brollDirective:'Très peu de B-roll. Favorise produit, geste, détail ou usage réel. Le rendu doit rester natif téléphone.',soundDesign:'light',visualSignature:{mode:'ugc_native',contrast:1.03,saturation:1.12,accent:'#ff3fbf',cadenceMs:7000}},
+  cinematic_story:{label:'Cinematic Story',promise:'Personal story · emotion and breathing room',pace:'story',silenceThresholdMs:1100,removeFillers:false,maxPunchInsPer30s:2,punchScale:1.04,punchSeverities:['red'],captions:'cinematic',broll:{maxPer30s:3,minDurationMs:3200,maxDurationMs:6200,minGapMs:5600},brollDirective:'B-roll narratif et émotionnel, plus long. Cherche des lieux, objets, actions ou atmosphères directement reliés à l’histoire.',soundDesign:'cinematic',visualSignature:{mode:'cinematic_story',contrast:1.08,saturation:.72,accent:'#ffffff',cadenceMs:0}},
   creator_clean:null,business_viral:null,podcast_authority:null
 };
 EDIT_STYLES.creator_clean=EDIT_STYLES.clean;
@@ -18,17 +18,17 @@ EDIT_STYLES.business_viral=EDIT_STYLES.impact;
 EDIT_STYLES.podcast_authority=EDIT_STYLES.authority;
 
 export const CAPTION_PRESETS={
-  authority:{fontFamily:'Noto Sans',fontWeight:800,fontSize:62,lineHeight:1.02,maxWordsPerLine:7,position:'lower_third',activeWord:true,textColor:'#ffffff',activeColor:'#ff9b45',stroke:4,shadow:true,background:false},
-  impact:{fontFamily:'DejaVu Sans',fontWeight:900,fontSize:78,lineHeight:.96,maxWordsPerLine:4,position:'middle_low',activeWord:true,textColor:'#ffffff',activeColor:'#37e6ff',stroke:6,shadow:true,background:false},
-  clean:{fontFamily:'Noto Sans',fontWeight:700,fontSize:58,lineHeight:1.04,maxWordsPerLine:7,position:'lower_third',activeWord:false,textColor:'#ffffff',activeColor:'#ffffff',stroke:3,shadow:true,background:false},
-  explainer:{fontFamily:'DejaVu Sans',fontWeight:800,fontSize:66,lineHeight:1,maxWordsPerLine:6,position:'middle_low',activeWord:true,textColor:'#ffffff',activeColor:'#7ce8ff',stroke:4,shadow:true,background:true},
-  data:{fontFamily:'Noto Sans',fontWeight:900,fontSize:68,lineHeight:.98,maxWordsPerLine:5,position:'lower_middle',activeWord:true,textColor:'#ffffff',activeColor:'#ffd166',stroke:5,shadow:true,background:false},
-  ugc:{fontFamily:'DejaVu Sans',fontWeight:850,fontSize:66,lineHeight:1,maxWordsPerLine:6,position:'middle_low',activeWord:true,textColor:'#ffffff',activeColor:'#ff3fbf',stroke:4,shadow:true,background:true},
-  cinematic:{fontFamily:'Noto Serif',fontWeight:700,fontSize:54,lineHeight:1.08,maxWordsPerLine:8,position:'lower_third',activeWord:false,textColor:'#ffffff',activeColor:'#ffffff',stroke:2,shadow:true,background:false},
-  modern_bold:{fontFamily:'DejaVu Sans',fontWeight:900,fontSize:76,lineHeight:.98,maxWordsPerLine:5,position:'lower_middle',activeWord:true,textColor:'#ffffff',activeColor:'#ff6a00',stroke:6,shadow:true,background:false},
-  minimal:{fontFamily:'Noto Sans',fontWeight:700,fontSize:58,lineHeight:1.04,maxWordsPerLine:7,position:'lower_third',activeWord:false,textColor:'#ffffff',activeColor:'#ffffff',stroke:3,shadow:true,background:false},
-  creator:{fontFamily:'DejaVu Sans',fontWeight:900,fontSize:72,lineHeight:.98,maxWordsPerLine:5,position:'middle_low',activeWord:true,textColor:'#ffffff',activeColor:'#37e6ff',stroke:5,shadow:true,background:false},
-  karaoke:{fontFamily:'DejaVu Sans',fontWeight:900,fontSize:70,lineHeight:1,maxWordsPerLine:5,position:'lower_middle',activeWord:true,textColor:'#8a8b98',activeColor:'#ffffff',stroke:4,shadow:true,background:true}
+  authority:{fontFamily:'Noto Sans',fontWeight:800,fontSize:64,lineHeight:1.02,maxWordsPerLine:5,maxChars:34,maxDurationMs:2100,position:'lower_third',activeWord:true,textColor:'#ffffff',activeColor:'#ff9b45',stroke:4,shadow:true,background:false},
+  impact:{fontFamily:'DejaVu Sans',fontWeight:900,fontSize:80,lineHeight:.96,maxWordsPerLine:3,maxChars:23,maxDurationMs:1500,position:'middle_low',activeWord:true,textColor:'#ffffff',activeColor:'#37e6ff',stroke:6,shadow:true,background:false},
+  clean:{fontFamily:'Noto Sans',fontWeight:750,fontSize:60,lineHeight:1.04,maxWordsPerLine:5,maxChars:34,maxDurationMs:2200,position:'lower_third',activeWord:false,textColor:'#ffffff',activeColor:'#ffffff',stroke:3,shadow:true,background:false},
+  explainer:{fontFamily:'DejaVu Sans',fontWeight:800,fontSize:68,lineHeight:1,maxWordsPerLine:4,maxChars:28,maxDurationMs:1850,position:'middle_low',activeWord:true,textColor:'#ffffff',activeColor:'#7ce8ff',stroke:4,shadow:true,background:true},
+  data:{fontFamily:'Noto Sans',fontWeight:900,fontSize:70,lineHeight:.98,maxWordsPerLine:4,maxChars:27,maxDurationMs:1750,position:'lower_middle',activeWord:true,textColor:'#ffffff',activeColor:'#ffd166',stroke:5,shadow:true,background:false},
+  ugc:{fontFamily:'DejaVu Sans',fontWeight:850,fontSize:68,lineHeight:1,maxWordsPerLine:4,maxChars:29,maxDurationMs:1900,position:'middle_low',activeWord:true,textColor:'#ffffff',activeColor:'#ff3fbf',stroke:4,shadow:true,background:true},
+  cinematic:{fontFamily:'Noto Serif',fontWeight:700,fontSize:56,lineHeight:1.08,maxWordsPerLine:6,maxChars:42,maxDurationMs:2800,position:'lower_third',activeWord:false,textColor:'#ffffff',activeColor:'#ffffff',stroke:2,shadow:true,background:false},
+  modern_bold:{fontFamily:'DejaVu Sans',fontWeight:900,fontSize:78,lineHeight:.98,maxWordsPerLine:4,maxChars:28,maxDurationMs:1750,position:'lower_middle',activeWord:true,textColor:'#ffffff',activeColor:'#ff6a00',stroke:6,shadow:true,background:false},
+  minimal:{fontFamily:'Noto Sans',fontWeight:700,fontSize:60,lineHeight:1.04,maxWordsPerLine:5,maxChars:34,maxDurationMs:2200,position:'lower_third',activeWord:false,textColor:'#ffffff',activeColor:'#ffffff',stroke:3,shadow:true,background:false},
+  creator:{fontFamily:'DejaVu Sans',fontWeight:900,fontSize:74,lineHeight:.98,maxWordsPerLine:4,maxChars:27,maxDurationMs:1750,position:'middle_low',activeWord:true,textColor:'#ffffff',activeColor:'#37e6ff',stroke:5,shadow:true,background:false},
+  karaoke:{fontFamily:'DejaVu Sans',fontWeight:900,fontSize:72,lineHeight:1,maxWordsPerLine:4,maxChars:27,maxDurationMs:1750,position:'lower_middle',activeWord:true,textColor:'#8a8b98',activeColor:'#ffffff',stroke:4,shadow:true,background:true}
 };
 
 export function buildEditTimeline({
@@ -87,7 +87,7 @@ export function buildEditTimeline({
     .filter(Boolean);
   const captions=groupCaptions(
     mappedWords,
-    captionCfg.maxWordsPerLine
+    captionCfg
   );
 
   const punchIns=buildPunchIns({
@@ -117,8 +117,8 @@ export function buildEditTimeline({
   const target=targetDimensions(format,sourceW,sourceH);
 
   return {
-    version:2,
-    engine:'editplus-timeline-v2-contextual',
+    version:3,
+    engine:'editplus-timeline-v3-premium',
     fps:30,
     width:target.width,
     height:target.height,
@@ -412,22 +412,27 @@ function mapWord(word,keepRanges){
   };
 }
 
-function groupCaptions(words,maxWords){
+function groupCaptions(words,cfg={}){
   const out=[];
   let group=[];
+  const maxWords=Math.max(2,Number(cfg.maxWordsPerLine)||5);
+  const maxChars=Math.max(18,Number(cfg.maxChars)||34);
+  const maxDurationMs=Math.max(900,Number(cfg.maxDurationMs)||2200);
+
+  const groupText=()=>group
+    .map(w=>String(w.text||'').trim())
+    .filter(Boolean)
+    .join(' ')
+    .replace(/\s+([,.;!?])/g,'$1');
 
   const flush=()=>{
     if(!group.length)return;
     const first=group[0];
     const last=group[group.length-1];
-
     out.push({
       startMs:first.startMs,
-      endMs:last.endMs,
-      text:group
-        .map(w=>w.text)
-        .join(' ')
-        .replace(/\s+([,.;!?])/g,'$1'),
+      endMs:Math.max(last.endMs,first.startMs+120),
+      text:groupText(),
       words:group.map(w=>({...w}))
     });
     group=[];
@@ -435,18 +440,27 @@ function groupCaptions(words,maxWords){
 
   for(const w of words){
     const prev=group[group.length-1];
-    const pause=prev
-      ?w.startMs-prev.endMs
+    const pause=prev?w.startMs-prev.endMs:0;
+    const nextText=group.length
+      ?groupText()+' '+String(w.text||'').trim()
+      :String(w.text||'').trim();
+    const nextDuration=group.length
+      ?Math.max(0,(Number(w.endMs)||0)-(Number(group[0].startMs)||0))
       :0;
 
     if(
-      group.length>=maxWords||
-      pause>480
+      group.length&&(
+        group.length>=maxWords||
+        nextText.length>maxChars||
+        nextDuration>maxDurationMs||
+        pause>330
+      )
     )flush();
 
     group.push(w);
 
-    if(/[.!?]$/.test(w.text)){
+    // Human caption phrasing: close on sentence boundaries and strong micro-pauses.
+    if(/[.!?]$/.test(String(w.text||''))||(pause>240&&group.length>=2)){
       flush();
     }
   }
