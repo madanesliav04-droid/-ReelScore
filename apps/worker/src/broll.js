@@ -54,11 +54,14 @@ RÈGLES:
 - Pour CHAQUE cue, fournis aussi exactement 3 alt_queries_en, du plus précis au plus simple.
 - La 3e alternative doit contenir seulement 1 à 3 noms concrets faciles à trouver en photo (ex: "calculator price", "laptop analytics", "product boxes").
 - Une image doit illustrer exactement la phrase prononcée.
+- Interdiction de proposer des recherches génériques du type "business meeting", "person working laptop", "success", "professional office" sauf si ces éléments sont EXPLICITEMENT cités.
+- Chaque cue doit avoir un visual_anchor concret: personne nommée, lieu, objet, interface, produit, geste, document, chiffre visualisable ou action précise.
+- Ajoute specificity de 0 à 1. N'utilise un cue que si specificity >= 0.72.
 - Évite deux B-rolls trop proches.
 - Retourne uniquement du JSON valide.
 
 FORMAT:
-{"cues":[{"start_sec":4.2,"end_sec":6.8,"query_en":"New York stock exchange trading floor","alt_queries_en":["stock exchange traders","trading floor screens","stock traders"],"reason":"illustre la bourse citée"}]}
+{"cues":[{"start_sec":4.2,"end_sec":6.8,"query_en":"New York stock exchange trading floor","alt_queries_en":["stock exchange traders","trading floor screens","stock traders"],"visual_anchor":"stock exchange trading floor","specificity":0.94,"reason":"illustre précisément la bourse citée"}]}
 
 TRANSCRIPTION MONTÉE:
 ${transcript}`;
@@ -128,11 +131,17 @@ ${transcript}`;
           .slice(0,4)
         :[];
 
+      const specificity=Number(cue.specificity??(String(cue.reason||'').includes('local transcript fallback')?0.78:0));
+      if(specificity<0.72)continue;
+      if(isLowValueBrollQuery(query))continue;
+
       cleaned.push({
         startMs,
         endMs,
         query,
         searchQueries:buildSearchVariants(query,altQueries),
+        visualAnchor:String(cue.visual_anchor||query).slice(0,160),
+        specificity,
         reason:String(cue.reason||'')
           .slice(0,240)
       });
@@ -159,35 +168,36 @@ ${transcript}`;
       let checked=0;
 
       for(const q of attempts){
-        if(checked>=6)break;
+        if(checked>=8)break;
 
-        const candidate=
-          await findOpenverseAsset(
-            q,
-            used
-          )||
-          await findCommonsAsset(
-            q,
-            used
-          );
+        // Try more than one visual for the same semantic query. The first
+        // search hit is often merely keyword-related, not editorially correct.
+        for(let candidateAttempt=0;candidateAttempt<2;candidateAttempt++){
+          const candidate=
+            await findOpenverseAsset(q,used)||
+            await findCommonsAsset(q,used);
 
-        if(!candidate)continue;
-        checked++;
+          if(!candidate)break;
+          checked++;
 
-        const approved=await validateBrollAsset({
-          cue,
-          searchQuery:q,
-          asset:candidate,
-          geminiKey,
-          models:[model,fallbackModel]
-        });
+          const approved=await validateBrollAsset({
+            cue,
+            searchQuery:q,
+            asset:candidate,
+            geminiKey,
+            models:[model,fallbackModel]
+          });
 
-        if(approved){
-          asset=candidate;
-          break;
+          if(approved){
+            asset=candidate;
+            break;
+          }
+
+          used.add(candidate.assetUrl);
+          if(checked>=8)break;
         }
 
-        used.add(candidate.assetUrl);
+        if(asset)break;
       }
 
       if(!asset){
@@ -226,6 +236,30 @@ ${transcript}`;
     }));
     return [];
   }
+}
+
+function isLowValueBrollQuery(query){
+  const q=String(query||'').toLowerCase().replace(/[^a-z0-9\s-]/g,' ').replace(/\s+/g,' ').trim();
+  if(!q)return true;
+
+  const generic=[
+    'business meeting',
+    'professional office',
+    'person working',
+    'people working',
+    'success business',
+    'happy business person',
+    'business people',
+    'office team',
+    'corporate office'
+  ];
+  if(generic.some(x=>q===x))return true;
+
+  const concrete=/\b(iphone|smartphone|laptop|computer|dashboard|analytics|chart|contract|document|calculator|car|house|restaurant|camera|microphone|trading|stock|instagram|tiktok|youtube|money|cash|product|package|store|phone|screen|website|app|keyboard|desk|signature|meeting room|whiteboard)\b/i;
+  const named=/\b[A-Z][a-z]{2,}\b/.test(String(query||''));
+  const action=/\b(signing|typing|filming|editing|speaking|presenting|driving|cooking|shopping|paying|scrolling|recording|trading|packing|shipping|calling)\b/i.test(q);
+
+  return !concrete.test(q)&&!named&&!action&&q.split(/\s+/).length<4;
 }
 
 function buildSearchVariants(query,alternates=[]){
@@ -312,6 +346,8 @@ function localCueCandidates(captions,maxCues,cfg){
       start_sec:startMs/1000,
       end_sec:endMs/1000,
       query_en:query,
+      visual_anchor:query,
+      specificity:0.78,
       reason:'local transcript fallback'
     });
 
@@ -431,7 +467,7 @@ async function findOpenverseAsset(
     const params=new URLSearchParams({
       q:variant,
       license:'pdm,cc0,by',
-      page_size:'20',
+      page_size:'32',
       mature:'false',
       categories:'photograph'
     });
@@ -485,7 +521,13 @@ async function findOpenverseAsset(
 
       const width=Number(item?.width||0);
       const height=Number(item?.height||0);
-      if(width&&height&&(width<480||height<320))continue;
+      if(
+        width&&height&&(
+          Math.max(width,height)<1000||
+          Math.min(width,height)<500||
+          Math.max(width/height,height/width)>3.2
+        )
+      )continue;
 
       const license=String(item?.license||'').toLowerCase();
       if(!['pdm','cc0','by'].includes(license))continue;
@@ -808,7 +850,7 @@ RÈGLES STRICTES:
       const ok=
         parsed?.match===true&&
         parsed.subject_match===true&&parsed.action_match===true&&parsed.object_match===true&&
-        Number(parsed?.confidence||0)>=0.88;
+        Number(parsed?.confidence||0)>=0.92;
 
       console.log(JSON.stringify({
         event:'broll_asset_validated',
