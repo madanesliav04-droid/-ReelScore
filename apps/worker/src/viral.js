@@ -228,67 +228,94 @@ async function transcribeFromVideo({
 
   try{
     const active=await waitForGeminiFile(uploaded.name,geminiKey);
-    const r=await fetch(`${GOOGLE_BASE}/v1beta/interactions`,{
-      method:'POST',
-      headers:{
-        'x-goog-api-key':geminiKey,
-        'content-type':'application/json'
-      },
-      body:JSON.stringify({
-        model,
-        input:[{
-          type:'audio',
-          uri:active.uri,
-          mime_type:'audio/mpeg'
-        }],
-        generation_config:{
-          transcription_config:{
-            mode:{
-              type:'verbatim',
-              timestamp_granularities:['word']
+    let primaryError=null;
+
+    try{
+      const r=await fetch(`${GOOGLE_BASE}/v1beta/interactions`,{
+        method:'POST',
+        headers:{
+          'x-goog-api-key':geminiKey,
+          'content-type':'application/json'
+        },
+        body:JSON.stringify({
+          model,
+          input:[{
+            type:'audio',
+            uri:active.uri,
+            mime_type:'audio/mpeg'
+          }],
+          generation_config:{
+            transcription_config:{
+              mode:{
+                type:'verbatim',
+                timestamp_granularities:['word']
+              }
             }
           }
-        }
-      })
-    });
+        })
+      });
 
-    if(!r.ok){
-      throw new Error(
-        `Gemini transcribe ${r.status}: ${(await r.text()).slice(0,500)}`
-      );
+      if(!r.ok){
+        throw new Error(
+          `Gemini transcribe interactions ${r.status}: ${(await r.text()).slice(0,500)}`
+        );
+      }
+
+      const body=await r.json();
+      const contents=(body.steps||[])
+        .flatMap(step=>step.content||[])
+        .filter(x=>x?.type==='text');
+
+      const text=String(
+        body.output_text||
+        contents.map(x=>x.text||'').join(' ')
+      ).trim();
+
+      const words=contents
+        .flatMap(x=>x.annotations||[])
+        .filter(x=>x?.type==='word_info'&&x.text)
+        .map(x=>({
+          text:String(x.text),
+          startMs:offsetToMs(x.start_offset),
+          endMs:offsetToMs(x.end_offset),
+          speaker:x.speaker||null
+        }))
+        .filter(x=>
+          Number.isFinite(x.startMs)&&
+          Number.isFinite(x.endMs)&&
+          x.endMs>=x.startMs
+        );
+
+      if(words.length){
+        return {
+          text,
+          words,
+          captions:wordsToCaptions(words),
+          error:null,
+          model
+        };
+      }
+
+      primaryError=new Error('Gemini interactions transcription returned no timed words');
+    }catch(error){
+      primaryError=error;
     }
 
-    const body=await r.json();
-    const contents=(body.steps||[])
-      .flatMap(step=>step.content||[])
-      .filter(x=>x?.type==='text');
+    console.warn(JSON.stringify({
+      event:'transcription_generate_content_fallback',
+      reason:String(primaryError?.message||primaryError).slice(0,500)
+    }));
 
-    const text=String(
-      body.output_text||
-      contents.map(x=>x.text||'').join(' ')
-    ).trim();
-
-    const words=contents
-      .flatMap(x=>x.annotations||[])
-      .filter(x=>x?.type==='word_info'&&x.text)
-      .map(x=>({
-        text:String(x.text),
-        startMs:offsetToMs(x.start_offset),
-        endMs:offsetToMs(x.end_offset),
-        speaker:x.speaker||null
-      }))
-      .filter(x=>
-        Number.isFinite(x.startMs)&&
-        Number.isFinite(x.endMs)&&
-        x.endMs>=x.startMs
-      );
+    const fallback=await transcribeViaGenerateContent({
+      fileUri:active.uri,
+      mimeType:'audio/mpeg',
+      geminiKey,
+      model
+    });
 
     return {
-      text,
-      words,
-      captions:wordsToCaptions(words),
-      error:null,
-      model
+      ...fallback,
+      error:`Interactions fallback: ${String(primaryError?.message||primaryError).slice(0,260)}`
     };
   }finally{
     if(uploaded?.name){
@@ -297,135 +324,89 @@ async function transcribeFromVideo({
   }
 }
 
-async function transcribeFallbackFromVideo({
-  filePath,
-  fileName,
+async function transcribeViaGenerateContent({
+  fileUri,
+  mimeType,
   geminiKey,
-  models,
-  durationSec
+  model
 }){
-  const audioPath=`${filePath}.audio-fallback.mp3`;
-  await run('ffmpeg',[
-    '-hide_banner','-loglevel','error','-y',
-    '-i',filePath,
-    '-vn','-ac','1','-ar','16000','-b:a','64k',
-    audioPath
-  ]);
-
-  const uploaded=await uploadGeminiFile({
-    filePath:audioPath,
-    mimeType:'audio/mpeg',
-    fileName:`${fileName||'video'}.fallback.mp3`,
-    geminiKey
-  });
-
-  try{
-    const active=await waitForGeminiFile(uploaded.name,geminiKey);
-    const prompt=`Transcris fidèlement cet audio.
-Retourne uniquement du JSON valide:
-{"text":"","segments":[{"start_sec":0,"end_sec":4.2,"text":""}]}
-
-Règles:
-- langue d'origine;
-- aucun résumé;
-- timestamps couvrant toute la parole;
-- segments courts de 2 à 8 secondes;
-- garde les hésitations utiles;
-- n'invente aucun mot.`;
-
-    let lastError=null;
-    for(const activeModel of [...new Set((models||[]).filter(Boolean))]){
-      try{
-        const r=await fetch(
-          `${GOOGLE_BASE}/v1beta/models/${encodeURIComponent(activeModel)}:generateContent`,
-          {
-            method:'POST',
-            signal:AbortSignal.timeout(30000),
-            headers:{
-              'x-goog-api-key':geminiKey,
-              'content-type':'application/json'
-            },
-            body:JSON.stringify({
-              contents:[{
-                role:'user',
-                parts:[
-                  {file_data:{mime_type:'audio/mpeg',file_uri:active.uri}},
-                  {text:prompt}
-                ]
-              }],
-              generationConfig:{
-                responseMimeType:'application/json',
-                temperature:0,
-                seed:37
-              }
-            })
+  const r=await fetch(
+    `${GOOGLE_BASE}/v1beta/models/${encodeURIComponent(model)}:generateContent`,
+    {
+      method:'POST',
+      signal:AbortSignal.timeout(45000),
+      headers:{
+        'x-goog-api-key':geminiKey,
+        'content-type':'application/json'
+      },
+      body:JSON.stringify({
+        contents:[{
+          role:'user',
+          parts:[{
+            fileData:{
+              fileUri,
+              mimeType
+            }
+          }]
+        }],
+        generationConfig:{
+          audioTranscriptionConfig:{
+            wordTimestamp:true
           }
-        );
-        if(!r.ok){
-          throw new Error(`Gemini fallback transcript ${activeModel} ${r.status}: ${(await r.text()).slice(0,400)}`);
         }
-        const body=await r.json();
-        const raw=(body.candidates||[])
-          .flatMap(c=>c.content?.parts||[])
-          .map(p=>p.text||'')
-          .join('')
-          .trim();
-        const parsed=parseJson(raw);
-        const segments=Array.isArray(parsed?.segments)?parsed.segments:[];
-        const words=[];
-
-        for(const seg of segments){
-          const text=String(seg?.text||'').trim();
-          if(!text)continue;
-          const tokens=text.split(/\s+/).filter(Boolean);
-          if(!tokens.length)continue;
-          const start=Math.max(0,Number(seg?.start_sec)||0)*1000;
-          const end=Math.max(start+120,Number(seg?.end_sec||0)*1000||start+tokens.length*260);
-          const step=Math.max(80,(end-start)/tokens.length);
-          tokens.forEach((token,index)=>{
-            words.push({
-              text:token,
-              startMs:Math.round(start+index*step),
-              endMs:Math.round(Math.min(end,start+(index+1)*step)),
-              speaker:null
-            });
-          });
-        }
-
-        const fallbackText=String(parsed?.text||segments.map(x=>x?.text||'').join(' ')).trim();
-        if(!words.length&&fallbackText){
-          const tokens=fallbackText.split(/\s+/).filter(Boolean);
-          const totalMs=Math.max(1000,Number(durationSec||0)*1000);
-          const step=totalMs/Math.max(1,tokens.length);
-          tokens.forEach((token,index)=>{
-            words.push({
-              text:token,
-              startMs:Math.round(index*step),
-              endMs:Math.round(Math.min(totalMs,(index+1)*step)),
-              speaker:null
-            });
-          });
-        }
-
-        if(!words.length)throw new Error('Fallback transcription returned no words');
-
-        return {
-          text:fallbackText||words.map(x=>x.text).join(' '),
-          words,
-          captions:wordsToCaptions(words),
-          error:null,
-          model:`${activeModel}:timestamp-fallback`
-        };
-      }catch(error){
-        lastError=error;
-      }
+      })
     }
-    throw lastError||new Error('Fallback transcription unavailable');
-  }finally{
-    if(uploaded?.name){
-      await deleteGeminiFile(uploaded.name,geminiKey).catch(()=>{});
-    }
+  );
+
+  if(!r.ok){
+    throw new Error(
+      `Gemini transcribe generateContent ${r.status}: ${(await r.text()).slice(0,500)}`
+    );
   }
+
+  const body=await r.json();
+  const parts=(body.candidates||[])
+    .flatMap(candidate=>candidate?.content?.parts||[]);
+
+  const transcriptions=parts
+    .map(part=>part?.audioTranscription)
+    .filter(Boolean);
+
+  const words=transcriptions
+    .flatMap(t=>{
+      const speaker=t?.speakerLabel||null;
+      return (t?.words||[]).map(w=>({
+        text:String(w?.word||'').trim(),
+        startMs:offsetToMs(w?.startOffset),
+        endMs:offsetToMs(w?.endOffset),
+        speaker
+      }));
+    })
+    .filter(x=>
+      x.text&&
+      Number.isFinite(x.startMs)&&
+      Number.isFinite(x.endMs)&&
+      x.endMs>=x.startMs
+    );
+
+  const text=transcriptions
+    .map(t=>String(t?.text||'').trim())
+    .filter(Boolean)
+    .join(' ')
+    .trim()||
+    parts.map(part=>String(part?.text||'').trim()).filter(Boolean).join(' ').trim();
+
+  if(!words.length){
+    throw new Error('Gemini generateContent transcription returned no timed words');
+  }
+
+  return {
+    text:text||words.map(x=>x.text).join(' '),
+    words,
+    captions:wordsToCaptions(words),
+    error:null,
+    model:`${model}:generateContent`
+  };
 }
 
 function offsetToMs(value){
