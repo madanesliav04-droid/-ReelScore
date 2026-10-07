@@ -383,7 +383,7 @@ async function uploadVideo(file){
   const upload=new tus.Upload(file,{endpoint:`https://${PROJECT_REF}.storage.supabase.co/storage/v1/upload/resumable`,retryDelays:[0,3000,5000,10000,20000],headers:{authorization:`Bearer ${token()}`,"x-upsert":"false"},uploadDataDuringCreation:true,removeFingerprintOnSuccess:true,chunkSize:6*1024*1024,metadata:{bucketName:BUCKET,objectName,contentType:file.type||"video/mp4",cacheControl:"3600"},
     onError(err){toast("Upload impossible : "+(err.message||err));$("#uploadText").textContent="Failed"},
     onProgress(sent,total){const p=Math.round(sent/total*100);$("#uploadProgress").style.width=p+"%";$("#uploadText").textContent=p+"%"},
-    async onSuccess(){try{const body=await api(fn("viral-edit-jobs","media"),{method:"POST",body:JSON.stringify({storage_path:objectName,mime_type:file.type||"video/mp4",size_bytes:file.size,original_name:file.name,module:"shared"})});media=body.media;$("#uploadText").textContent="Uploaded · Ready";$("#analyzeBtn").disabled=false;$("#editBtn").disabled=false;$("#editMedia").textContent=file.name+" · ready";setState(null);toast("Vidéo prête.")}catch(err){toast(err.message)}}});
+    async onSuccess(){try{const body=await api(fn("viral-edit-jobs","media"),{method:"POST",body:JSON.stringify({storage_path:objectName,mime_type:file.type||"video/mp4",size_bytes:file.size,original_name:file.name,module:"shared"})});media=body.media;$("#uploadText").textContent="Uploaded · Ready";$("#analyzeBtn").disabled=false;$("#editBtn").disabled=false;$("#editMedia").classList.remove("hidden");$("#editMedia").textContent=file.name+" · ready";setState(null);toast("Vidéo prête.")}catch(err){toast(err.message)}}});
   try{const prev=await upload.findPreviousUploads();if(prev.length)upload.resumeFromPreviousUpload(prev[0])}catch{}
   upload.start();
 }
@@ -872,13 +872,9 @@ $("#editFile")?.addEventListener("change",e=>{
   const file=e.target.files?.[0];
   if(!file)return;
   $("#editFileName").textContent=file.name;
-  uploadVideo(file).then(()=>{
-    if(media){
-      $("#editMedia").classList.remove("hidden");
-      $("#editMedia").textContent=file.name+" · ready for Edit+";
-      $("#editBtn").disabled=false;
-    }
-  });
+  // uploadVideo owns the async TUS lifecycle and enables Edit+ only in onSuccess.
+  // Do not treat the function return as upload completion.
+  uploadVideo(file);
 });
 
 (function heroCinemaV4(){
