@@ -97,8 +97,8 @@ export async function preprocessVideo({
 
       args.push(
         '-c:v','libx264',
-        '-preset','ultrafast',
-        '-crf','20',
+        '-preset','veryfast',
+        '-crf','17',
         '-pix_fmt','yuv420p',
         '-threads','1',
         ...(hasAudio
@@ -263,7 +263,8 @@ export async function renderNativeEdit({
           endMs:seg.endMs,
           width,
           height,
-          hasAudio
+          hasAudio,
+          mode:String(timeline?.modelId||timeline?.style||'clean')
         });
       }else{
         await renderSourceSegment({
@@ -404,14 +405,14 @@ export async function renderNativeEdit({
     if(hasAudio){
       args.push(
         '-af',
-        'loudnorm=I=-14:TP=-1:LRA=11'
+        audioFinishingFilter(timeline)
       );
     }
 
     args.push(
       '-c:v','libx264',
-      '-preset','ultrafast',
-      '-crf','19',
+      '-preset','fast',
+      '-crf','17',
       '-pix_fmt','yuv420p',
       '-threads','1',
       ...(hasAudio
@@ -481,8 +482,8 @@ async function renderSourceSegment({
     ),
     '-r','30',
     '-c:v','libx264',
-    '-preset','ultrafast',
-    '-crf','19',
+    '-preset','veryfast',
+    '-crf','17',
     '-pix_fmt','yuv420p',
     '-threads','1',
     ...(hasAudio
@@ -506,7 +507,8 @@ async function renderBrollSegment({
   endMs,
   width,
   height,
-  hasAudio
+  hasAudio,
+  mode='clean'
 }){
   const startSec=
     Math.max(0,startMs/1000);
@@ -532,15 +534,16 @@ async function renderBrollSegment({
   args.push(
     '-t',duration.toFixed(3),
     '-vf',
-    coverFilter(
+    brollMotionFilter(
       width,
       height,
-      1.04
+      duration,
+      mode
     ),
     '-r','30',
     '-c:v','libx264',
-    '-preset','ultrafast',
-    '-crf','18',
+    '-preset','veryfast',
+    '-crf','16',
     '-pix_fmt','yuv420p',
     '-threads','1',
     ...(hasAudio
@@ -928,39 +931,75 @@ function modelFinishingFilters(
     'clean'
   );
 
-  const filters=[];
+  const filters=['unsharp=5:5:0.22:5:5:0'];
 
   if(mode==='codie'){
-    filters.push('eq=contrast=1.02:saturation=1.0');
+    filters.push('eq=contrast=1.025:saturation=1.0:brightness=0.002');
   }else if(mode==='impact'){
-    filters.push('eq=contrast=1.12:saturation=1.16:brightness=0.01');
-    filters.push(`drawbox=x=0:y=0:w=${width}:h=8:color=0x37e6ff@0.92:t=fill`);
-    filters.push(`drawbox=x=0:y=${Math.max(0,height-8)}:w=${width}:h=8:color=0x37e6ff@0.72:t=fill`);
+    filters.push('eq=contrast=1.09:saturation=1.10:brightness=0.008');
   }else if(mode==='clean'){
-    filters.push('eq=contrast=1.02:saturation=0.98');
+    filters.push('eq=contrast=1.02:saturation=0.99:brightness=0.003');
   }else if(mode==='authority'){
-    filters.push('eq=contrast=1.05:saturation=0.88:brightness=-0.01');
-    filters.push('vignette=PI/5');
-    filters.push(`drawbox=x=0:y=${Math.max(0,height-10)}:w=${width}:h=10:color=0xff9b45@0.70:t=fill`);
+    filters.push('eq=contrast=1.045:saturation=0.92:brightness=-0.004');
+    filters.push('vignette=PI/7');
   }else if(mode==='explainer'){
-    filters.push('eq=contrast=1.04:saturation=1.03');
-    filters.push('drawbox=x=38:y=62:w=12:h=190:color=0x7ce8ff@0.92:t=fill');
-    filters.push('drawbox=x=58:y=62:w=120:h=4:color=0x7ce8ff@0.55:t=fill');
+    filters.push('eq=contrast=1.035:saturation=1.02:brightness=0.004');
   }else if(mode==='data'){
-    filters.push('eq=contrast=1.07:saturation=0.96');
-    filters.push('drawbox=x=0:y=0:w=12:h=ih:color=0xffd166@0.92:t=fill');
-    filters.push('drawbox=x=28:y=62:w=150:h=5:color=0xffd166@0.72:t=fill');
+    filters.push('eq=contrast=1.06:saturation=0.97:brightness=0.002');
   }else if(mode==='ugc_native'){
-    filters.push('eq=contrast=1.03:saturation=1.12');
-    filters.push('drawbox=x=34:y=58:w=9:h=120:color=0xff3fbf@0.78:t=fill');
+    filters.push('eq=contrast=1.025:saturation=1.06:brightness=0.006');
   }else if(mode==='cinematic_story'){
-    filters.push('eq=contrast=1.08:saturation=0.72:brightness=-0.015');
-    filters.push('vignette=PI/4');
-    filters.push(`drawbox=x=0:y=0:w=${width}:h=42:color=black@0.46:t=fill`);
-    filters.push(`drawbox=x=0:y=${Math.max(0,height-42)}:w=${width}:h=42:color=black@0.46:t=fill`);
+    filters.push('eq=contrast=1.075:saturation=0.82:brightness=-0.01');
+    filters.push('vignette=PI/5');
   }
 
   return filters;
+}
+
+function audioFinishingFilter(timeline){
+  const mode=String(timeline?.styleConfig?.soundDesign||'light');
+  const common='highpass=f=70,lowpass=f=15500';
+
+  if(mode==='minimal'){
+    return common+',acompressor=threshold=-20dB:ratio=1.6:attack=18:release=160,loudnorm=I=-14:TP=-1:LRA=9';
+  }
+  if(mode==='moderate'){
+    return common+',acompressor=threshold=-18dB:ratio=2.5:attack=12:release=120,equalizer=f=3200:t=q:w=1.2:g=1.2,loudnorm=I=-13.5:TP=-1:LRA=8';
+  }
+  if(mode==='cinematic'){
+    return common+',acompressor=threshold=-21dB:ratio=1.8:attack=25:release=220,equalizer=f=180:t=q:w=1:g=0.8,loudnorm=I=-14.5:TP=-1:LRA=10';
+  }
+  return common+',acompressor=threshold=-19dB:ratio=2:attack=15:release=140,loudnorm=I=-14:TP=-1:LRA=9';
+}
+
+function brollMotionFilter(width,height,duration,mode='clean'){
+  const zoomStep={
+    impact:0.0010,
+    explainer:0.00065,
+    data:0.00055,
+    cinematic_story:0.00032,
+    authority:0.00038,
+    ugc_native:0.00070,
+    codie:0.00042,
+    clean:0.00038
+  }[mode]||0.0004;
+  const maxZoom={
+    impact:1.075,
+    explainer:1.055,
+    data:1.05,
+    cinematic_story:1.04,
+    authority:1.04,
+    ugc_native:1.06,
+    codie:1.045,
+    clean:1.04
+  }[mode]||1.045;
+
+  return [
+    `scale=${Math.ceil(width*1.12/2)*2}:${Math.ceil(height*1.12/2)*2}:force_original_aspect_ratio=increase:flags=lanczos`,
+    `crop=${width}:${height}:(iw-${width})/2:(ih-${height})/2`,
+    `zoompan=z='min(zoom+${zoomStep.toFixed(5)},${maxZoom})':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:s=${width}x${height}:fps=30`,
+    'setsar=1'
+  ].join(',');
 }
 
 export async function finalEncode({
@@ -1201,7 +1240,7 @@ function buildAss(
                   );
 
                 return j===i
-                  ?`{\\c${activeColor}}${clean}{\\c${primary}}`
+                  ?`{\\c${activeColor}\\fs${Math.round(fontSize*1.08)}}${clean}{\\c${primary}\\fs${fontSize}}`
                   :clean;
               }
             )
