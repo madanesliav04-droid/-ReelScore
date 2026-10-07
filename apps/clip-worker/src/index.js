@@ -1016,7 +1016,39 @@ ${transcript}`;
     if(clean.length>=selectionPoolSize)break;
   }
 
-  // Quality-first: when Gemini returned a valid candidate pool, never pad it
+  // If semantic analysis itself had no transcript, do not fail the whole job.
+  // Use the measured audio/visual activity fallback only in that degraded-analysis case.
+  // When a real transcript exists, quality-first behavior remains strict: no padding.
+  if(
+    !clean.length&&
+    (
+      !words.length||
+      analysis?.analysis_basis==='local_audio_visual_fallback'
+    )
+  ){
+    const local=fallbackCandidates(
+      words,
+      duration,
+      selectionPoolSize,
+      minSec,
+      maxSec,
+      analysis
+    )
+      .filter(x=>Number(x.viral_score||0)>=Math.max(58,minClipQuality-6))
+      .sort((a,b)=>b.viral_score-a.viral_score)
+      .slice(0,count);
+
+    if(local.length){
+      console.warn(JSON.stringify({
+        event:'clip_selection_activity_fallback',
+        count:local.length,
+        reason:!words.length?'missing_transcript':'local_analysis'
+      }));
+      return local;
+    }
+  }
+
+  // Quality-first: when Gemini returned a valid semantic candidate pool, never pad it
   // with weaker local fallbacks just to satisfy the requested quota.
   return clean
     .sort((a,b)=>b.viral_score-a.viral_score)
