@@ -160,7 +160,7 @@ async function processJob(job){
     const count=requestedCount;
     const minSec=clampInt(payload.min_duration_sec??project.min_duration_sec,20,8,90);
     const maxSec=clampInt(payload.max_duration_sec??project.max_duration_sec,60,15,120);
-    const candidates=await selectCandidates({
+    const selectedCandidates=await selectCandidates({
       analysis,
       count,
       minSec,
@@ -169,7 +169,18 @@ async function processJob(job){
       model:process.env.GEMINI_MODEL||'gemini-3.8-flash',
       fallbackModel:process.env.GEMINI_FALLBACK_MODEL||'gemini-3.5-flash-lite'
     });
-    if(!candidates.length)throw tagged('NO_CLIPS_FOUND','Aucun passage exploitable détecté');
+
+    // Final quality gate: no code path is allowed to render a clip below
+    // the product's advertised minimum quality threshold.
+    const candidates=(selectedCandidates||[])
+      .filter(x=>Number(x?.viral_score||0)>=minClipQuality)
+      .sort((a,b)=>Number(b?.viral_score||0)-Number(a?.viral_score||0))
+      .slice(0,count);
+
+    if(!candidates.length)throw tagged(
+      'NO_CLIPS_FOUND',
+      `Aucun passage n’atteint le seuil qualité Clip+ (${minClipQuality}/100).`
+    );
 
     await supabase.from('clip_projects').update({status:'rendering',updated_at:new Date().toISOString()}).eq('id',projectId);
 
