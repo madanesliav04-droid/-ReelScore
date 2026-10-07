@@ -200,7 +200,7 @@ async function processJob(job){
       const useCaptions=project.settings?.add_captions!==false&&words.length>0;
       if(useCaptions)await writeFile(assPath,buildAss(words,c.start_sec*1000,c.end_sec*1000,project.settings?.caption_preset||'modern_bold'),'utf8');
       await renderClip({sourcePath,outputPath:clipPath,startSec:c.start_sec,endSec:c.end_sec,assPath:useCaptions?assPath:null});
-      const clipId=await persistClip({job,project,candidate:c,rank,filePath:clipPath});
+      const clipId=await persistClip({job,project,candidate:c,rank,filePath:clipPath,captionsRendered:useCaptions});
       outputIds.push(clipId);
     }
 
@@ -1256,12 +1256,12 @@ async function renderClip({sourcePath,outputPath,startSec,endSec,assPath}){
   ]);
 }
 
-async function persistClip({job,project,candidate,rank,filePath}){
+async function persistClip({job,project,candidate,rank,filePath,captionsRendered=false}){
   const info=await stat(filePath),storagePath=`${job.user_id}/clips/${project.id}/${String(rank).padStart(2,'0')}-${randomUUID()}.mp4`;
   const data=await readFile(filePath);
   const {error:ue}=await supabase.storage.from(bucket).upload(storagePath,data,{contentType:'video/mp4',upsert:false,cacheControl:'3600'});if(ue)throw ue;
   const {data:media,error:me}=await supabase.from('media_assets').insert({user_id:job.user_id,module:'clipplus',kind:'clip',storage_bucket:bucket,storage_path:storagePath,original_name:`clip-${rank}.mp4`,mime_type:'video/mp4',size_bytes:info.size,duration_ms:Math.round((candidate.end_sec-candidate.start_sec)*1000),width:1080,height:1920,status:'ready',metadata:{clip_project_id:project.id,source_url:project.source_url,rank}}).select('id').single();if(me)throw me;
-  const {data:clip,error:ce}=await supabase.from('clip_outputs').insert({project_id:project.id,job_id:job.id,user_id:job.user_id,output_video_id:media.id,rank,viral_score:candidate.viral_score,title:candidate.title,hook:candidate.hook,rationale:candidate.rationale,start_ms:Math.round(candidate.start_sec*1000),end_ms:Math.round(candidate.end_sec*1000),status:'ready',metadata:{format:'9:16',captions:project.settings?.add_captions!==false}}).select('id').single();if(ce)throw ce;
+  const {data:clip,error:ce}=await supabase.from('clip_outputs').insert({project_id:project.id,job_id:job.id,user_id:job.user_id,output_video_id:media.id,rank,viral_score:candidate.viral_score,title:candidate.title,hook:candidate.hook,rationale:candidate.rationale,start_ms:Math.round(candidate.start_sec*1000),end_ms:Math.round(candidate.end_sec*1000),status:'ready',metadata:{format:'9:16',captions:Boolean(captionsRendered)}}).select('id').single();if(ce)throw ce;
   return clip.id;
 }
 
