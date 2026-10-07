@@ -64,7 +64,7 @@ function asUser(req:Request){
 
 async function ownMedia(db:ReturnType<typeof admin>,userId:string,id:string){
   const {data,error}=await db.from("media_assets")
-    .select("id,user_id,storage_bucket,storage_path,mime_type,size_bytes,status")
+    .select("id,user_id,storage_bucket,storage_path,mime_type,size_bytes,sha256,status")
     .eq("id",id)
     .eq("user_id",userId)
     .is("deleted_at",null)
@@ -176,7 +176,7 @@ async function route(req:Request){
     }
     if(!media)return out({error:"MEDIA_NOT_FOUND"},404);
 
-    const digest=sha(body?.sha256)||String(media.id);
+    const digest=sha(media.sha256)||String(media.id);
     const baseline=isUuid(body?.baseline_analysis_id)?String(body.baseline_analysis_id):null;
     const mode=baseline?"reanalysis":"analysis";
     const key=`viral:${mode}:${digest}:${baseline||"base"}`;
@@ -216,6 +216,7 @@ async function route(req:Request){
     const caption=captionByModel[canonicalStyle]||"clean";
     const sourceAnalysisId=isUuid(body.analysis_id)?String(body.analysis_id):null;
     const requestId=crypto.randomUUID();
+    const format=["native","portrait","landscape"].includes(body.settings?.format)?body.settings.format:"native";
 
     const {data:project,error:projectError}=await db.from("edit_projects")
       .insert({
@@ -227,7 +228,7 @@ async function route(req:Request){
         status:"planning",
         settings:{
           ...(body.settings&&typeof body.settings==="object"?body.settings:{}),
-          format:"portrait",
+          format,
           model_contract_version:"editplus-models-v1"
         }
       })
@@ -241,7 +242,7 @@ async function route(req:Request){
         source_analysis_id:sourceAnalysisId,
         style:canonicalStyle,
         caption_preset:caption,
-        settings:{format:"portrait",model_contract_version:"editplus-models-v1"},
+        settings:{format,model_contract_version:"editplus-models-v1"},
         requested_at:new Date().toISOString()
       },`edit:${project.id}:${requestId}`);
       return out({project,job},202);

@@ -77,7 +77,7 @@ async function api(path:string,_token:string,init:RequestInit={},allowRetry=true
   if(!res.ok){
     const code=String(body?.error||body?.message||"");
     if(res.status===401||code==="AUTH_REQUIRED")throw new Error("Ta session a expiré. Reconnecte-toi une fois puis Edit+ gardera automatiquement la session active.");
-    throw new Error(code||`Request failed (${res.status})`);
+    throw new Error(/quota|credit|limit/i.test(code)?"La limite de traitement est atteinte. Réessaie plus tard.":"Le service n’a pas pu traiter la demande. Réessaie dans un instant.");
   }
   return body;
 }
@@ -105,6 +105,10 @@ export function Dashboard(){
   const [clipMedia,setClipMedia]=useState<Media|null>(null);
   const [clipUploadPct,setClipUploadPct]=useState(0);
   const [editModel,setEditModel]=useState("codie");
+  const [format,setFormat]=useState("native");
+  const [sourceUrl,setSourceUrl]=useState("");
+  const sourceRef=useRef<HTMLVideoElement|null>(null);
+  const [authNotice,setAuthNotice]=useState("");
   const [editExportUrl,setEditExportUrl]=useState("");
   const [busy,setBusy]=useState(false);
   const pollRef=useRef<ReturnType<typeof setInterval>|null>(null);
@@ -146,17 +150,20 @@ export function Dashboard(){
   function displayJobError(current:Job){
     const code=String(current?.error_code||"");
     if(code==="NO_CLIPS_FOUND")return "Aucun passage suffisamment fort n’a été détecté dans cette vidéo.";
-    if(["YOUTUBE_EGRESS_REQUIRED","YOUTUBE_IMPORT_FAILED","YOUTUBE_UNAVAILABLE"].includes(code))return "YouTube bloque l’import automatique de cette source. Importe le fichier vidéo ci-dessous : Clip+ reprendra exactement le même pipeline de génération.";
-    return String(current?.error||code||"Le traitement a échoué.");
+    if(["YOUTUBE_EGRESS_REQUIRED","YOUTUBE_IMPORT_FAILED","YOUTUBE_UNAVAILABLE","IMPORT_CONFIGURATION_ERROR"].includes(code))return "YouTube bloque l’import automatique de cette source. Importe le fichier vidéo ci-dessous : Clip+ reprendra exactement le même pipeline de génération.";
+    return "Le traitement n’a pas pu aboutir. Réessaie avec cette vidéo ou importe un autre fichier.";
   }
 
   async function authenticate(e:React.FormEvent){
     e.preventDefault();setAuthError("");
     const action=authMode==="login"?supabase.auth.signInWithPassword({email,password}):supabase.auth.signUp({email,password});
-    const {error}=await action;if(error)setAuthError(error.message);
+    const {data,error}=await action;if(error)setAuthError(error.message);else if(authMode==="signup"&&!data.session)setAuthNotice("Consulte tes emails pour confirmer ton compte, puis connecte-toi.");
   }
 
   async function uploadVideo(selected:File){
+    if(selected.size>500*1024*1024)return setError("Cette vidéo dépasse 500 Mo.");
+    if(busy)return;
+    setSourceUrl(URL.createObjectURL(selected));
     let liveSession:any;
     try{
       liveSession=await freshSession();
@@ -187,6 +194,8 @@ export function Dashboard(){
   }
 
   async function uploadClipSource(selected:File){
+    if(selected.size>500*1024*1024)return setError("Cette vidéo dépasse 500 Mo.");
+    if(busy)return;
     let liveSession:any;
     try{
       liveSession=await freshSession();
@@ -229,7 +238,7 @@ export function Dashboard(){
         try{localStorage.removeItem("viral-studio-active-job")}catch{}
         if(body.job.status==="failed"){
           const code=String(body.job.error_code||"");
-          if(kind==="clip"&&["YOUTUBE_EGRESS_REQUIRED","YOUTUBE_IMPORT_FAILED","YOUTUBE_UNAVAILABLE"].includes(code))setClipFallback(true);
+          if(kind==="clip"&&["YOUTUBE_EGRESS_REQUIRED","YOUTUBE_IMPORT_FAILED","YOUTUBE_UNAVAILABLE","IMPORT_CONFIGURATION_ERROR"].includes(code))setClipFallback(true);
           setError(displayJobError(body.job));
           return true;
         }
@@ -270,7 +279,7 @@ export function Dashboard(){
       const body=await api(functionUrl("viral-edit-jobs","edit"),token,{method:"POST",body:JSON.stringify({
         video_id:media.id,
         analysis_id:analysis?.analysis_id||analysis?.id||null,
-        style:editModel
+        style:editModel, settings:{format}
       })});
       setJob(body.job);await watchJob(body.job.id);
     }catch(e:any){setError(e.message);setBusy(false)}
@@ -298,11 +307,19 @@ export function Dashboard(){
     }catch(e:any){setError(e.message)}
   }
 
+  async function useClip(clip:any,next:Module){
+    if(busy)return;
+    try{
+      const body=await api(functionUrl("viral-edit-jobs",`media/${clip.output_video_id}/url`),token);
+      setMedia(body.media);setFile(null);setAnalysis(null);setEditExportUrl("");setSourceUrl(body.signed_url);switchModule(next);
+    }catch(e:any){setError(e.message)}
+  }
+
   if(!session)return <main className="auth-screen"><div className="auth-orb"/><section className="auth-box">
     <div className="side-brand big">VIRAL <span>STUDIO</span></div>
     <h1>{authMode==="login"?"Welcome back.":"Create your studio."}</h1><p>Clip. Edit. Analyze. Export.</p>
     <form onSubmit={authenticate}><input className="field" type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="Email" required/><input className="field" type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="Password" minLength={6} required/><button className="btn primary auth-submit">{authMode==="login"?"Sign in":"Create account"}</button></form>
-    {authError&&<div className="error auth-error">{authError}</div>}
+    {authError&&<div className="error auth-error">{authError}</div>}{authNotice&&<p role="status">{authNotice}</p>}
     <button className="auth-switch" onClick={()=>setAuthMode(authMode==="login"?"signup":"login")}>{authMode==="login"?"No account? Create one":"Already registered? Sign in"}</button>
   </section></main>;
 
@@ -324,24 +341,24 @@ export function Dashboard(){
       {active==="viral"&&<div className="workspace-grid">
         <section className="panel">
           <small className="eyebrow">VIRAL+ · ANALYZE</small><h3>Upload. Understand what blocks the video.</h3>
-          <label className="upload-zone"><input type="file" accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" onChange={e=>{const f=e.target.files?.[0];if(f)uploadVideo(f)}}/><div><Upload size={30}/><b>{file?file.name:"Drop a Reel here"}</b><span>MP4 · MOV · WebM</span></div></label>
+          <label className="upload-zone"><input type="file" accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" onChange={e=>{const f=e.target.files?.[0];if(f)uploadVideo(f)}}/><div><Upload size={30}/><b>{file?file.name:media?"Clip importé — prêt à analyser":"Drop a Reel here"}</b><span>MP4 · MOV · WebM</span></div></label>
           {file&&<div className="progress"><i style={{width:`${uploadPct}%`}}/></div>}
           <button className="btn primary full" onClick={startAnalysis} disabled={!media||busy}><Zap size={16}/> {busy&&job?.kind==="viral_analysis"?"Analyzing…":"Analyze video"}</button>
           <InlineJobState job={job?.kind==="viral_analysis"?job:null}/>
           {error&&<div className="job-card error">{error}</div>}
         </section>
-        <BackendState media={media} job={job}/>
+        {sourceUrl?<video ref={sourceRef} className="source-preview" src={sourceUrl} controls playsInline/>:<BackendState media={media} job={job}/>}
       </div>}
 
       {active==="edit"&&<>
         <div className="workspace-grid">
           <section className="panel">
             <small className="eyebrow">EDIT+ · AI EDIT</small><h3>Upload once. Pick the look. Edit+ does the rest.</h3>
-            <label className="upload-zone"><input type="file" accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" onChange={e=>{const f=e.target.files?.[0];if(f)uploadVideo(f)}}/><div><Upload size={30}/><b>{file?file.name:"Drop your video here"}</b><span>Then choose one of the 8 locked models</span></div></label>
+            <label className="upload-zone"><input type="file" accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" onChange={e=>{const f=e.target.files?.[0];if(f)uploadVideo(f)}}/><div><Upload size={30}/><b>{file?file.name:media?"Clip importé — prêt à monter":"Drop your video here"}</b><span>Then choose one of the 8 locked models</span></div></label>
             {file&&<div className="progress"><i style={{width:`${uploadPct}%`}}/></div>}
             <div className="status-row"><span>Video</span><span className="status-pill">{media?"Ready":file?`${uploadPct}%`:"Waiting"}</span></div>
           </section>
-          <BackendState media={media} job={job}/>
+          {sourceUrl?<video ref={sourceRef} className="source-preview" src={sourceUrl} controls playsInline/>:<BackendState media={media} job={job}/>}
         </div>
 
         <section className="model-library">
@@ -350,6 +367,7 @@ export function Dashboard(){
             <div className="model-preview"><div className="preview-face"/><div className="preview-caption">{model.preview}</div><div className="preview-cut"/><span className="preview-badge">{model.name}</span></div>
             <div className="model-copy"><div><strong>{model.name}</strong><span>{model.category}</span></div>{editModel===model.id&&<Check size={18}/>}<p>{model.meta}</p></div>
           </button>)}</div>
+          <label className="format-picker">Format de sortie <select className="field" value={format} onChange={e=>setFormat(e.target.value)} disabled={busy}><option value="native">Natif — conserver le format source</option><option value="portrait">Portrait — 1080 × 1920</option><option value="landscape">Paysage — 1920 × 1080</option></select></label>
           <button className="btn primary create-edit" onClick={startEdit} disabled={!media||busy}><Clapperboard size={17}/> {busy&&job?.kind==="edit_render"?"Editing…":`Create with ${selectedModel.name}`}</button>
           <InlineJobState job={job?.kind==="edit_render"?job:null}/>
           {error&&<div className="job-card error">{error}</div>}
@@ -396,8 +414,8 @@ export function Dashboard(){
 
         <section className="viral-fix-grid">
           <article className="viral-fix-card priority-card">
-            <small>EXACT FIX PLAN</small><h3>Change these before posting.</h3>
-            <div className="fix-plan-list">{(analysis.fix_plan?.length?analysis.fix_plan:(analysis.action_items||[]).map((item:any,i:number)=>({priority:i+1,area:"editing",problem:item,exact_change:item}))).map((item:any,i:number)=><div className="fix-plan-item" key={i}><div className="fix-priority">P{item.priority||i+1}</div><div><div className="fix-meta"><strong>{String(item.area||"editing").toUpperCase()}</strong>{Number(item.end_sec||0)>Number(item.start_sec||0)&&<span>{Number(item.start_sec||0).toFixed(1)}s → {Number(item.end_sec||0).toFixed(1)}s</span>}</div>{item.problem&&<p><b>Problem:</b> {item.problem}</p>}{item.why_it_matters&&<p><b>Why:</b> {item.why_it_matters}</p>}<div className="exact-change"><b>DO THIS →</b> {item.exact_change||item.problem}</div>{item.example&&<div className="fix-example"><b>Example:</b> {item.example}</div>}{item.expected_effect&&<small>{item.expected_effect}</small>}</div></div>)}</div>
+            <small>TOP 3 FIXES</small><h3>Change these before posting.</h3>
+            <div className="fix-plan-list">{(analysis.fix_plan?.length?analysis.fix_plan:(analysis.action_items||[]).map((item:any,i:number)=>({priority:i+1,area:"editing",problem:item,exact_change:item}))).slice(0,3).map((item:any,i:number)=><div className="fix-plan-item" key={i}><div className="fix-priority">P{item.priority||i+1}</div><div><div className="fix-meta"><strong>{String(item.area||"editing").toUpperCase()}</strong>{Number(item.end_sec||0)>Number(item.start_sec||0)&&<span>{Number(item.start_sec||0).toFixed(1)}s → {Number(item.end_sec||0).toFixed(1)}s</span>}</div>{item.problem&&<p><b>Problem:</b> {item.problem}</p>}{item.why_it_matters&&<p><b>Why:</b> {item.why_it_matters}</p>}<div className="exact-change"><b>DO THIS →</b> {item.exact_change||item.problem}</div>{item.example&&<div className="fix-example"><b>Example:</b> {item.example}</div>}{item.expected_effect&&<small>{item.expected_effect}</small>}</div></div>)}</div>
           </article>
           <article className="viral-fix-card rewrite-card">
             <small>REWRITE</small><h3>Use stronger packaging.</h3>
@@ -410,13 +428,13 @@ export function Dashboard(){
 
         {analysis.timeline?.length>0&&<section className="viral-timeline-panel">
           <div className="section-heading"><small>TIMELINE FIXES</small><h2>What to change, second by second.</h2></div>
-          <div className="viral-timeline">{analysis.timeline.map((x:any,i:number)=><article key={i} className={`timeline-fix ${x.severity||"orange"}`}><div className="timeline-time">{Number(x.start_sec||0).toFixed(1)}s → {Number(x.end_sec||0).toFixed(1)}s</div><div><strong>{x.label||"Moment to fix"}</strong><p>{x.problem}</p><small>{x.correction}</small>{x.broll_query&&<em>B-roll: {x.broll_query}</em>}</div></article>)}</div>
+          <div className="viral-timeline">{analysis.timeline.map((x:any,i:number)=><article key={i} className={`timeline-fix ${x.severity||"orange"}`}><button className="timeline-time" onClick={()=>{if(sourceRef.current){sourceRef.current.currentTime=Number(x.start_sec)||0;sourceRef.current.scrollIntoView({behavior:"smooth",block:"center"});}}}>{Number(x.start_sec||0).toFixed(1)}s → {Number(x.end_sec||0).toFixed(1)}s ▶</button><div><strong>{x.label||"Moment to fix"}</strong><p>{x.problem}</p><small>{x.correction}</small>{x.broll_query&&<em>B-roll: {x.broll_query}</em>}</div></article>)}</div>
         </section>}
 
         {safeZone&&<section className="safe-zone-panel"><div className="safe-phone"><div className="unsafe top"/><div className="safe-frame"><span>UNIVERSAL SAFE</span></div><div className="unsafe right"/><div className="unsafe bottom"/></div><div className="safe-copy"><small>SAFE ZONE</small><h2>{safeZone.score??"—"}<span>/100</span></h2><p>{safeZone.summary||"Framing, text and caption placement checked for short-form UI risk."}</p><div className="safe-metrics"><span>Framing <b>{safeZone.framing}</b></span><span>Text <b>{safeZone.text_safety}</b></span><span>Captions <b>{safeZone.caption_safety}</b></span><span>Platform fit <b>{safeZone.platform_fit}</b></span></div>{safeZone.issues?.length>0&&<div className="safe-issues">{safeZone.issues.slice(0,6).map((x:any,i:number)=><div className={`safe-issue ${x.severity}`} key={i}><strong>{x.element}</strong><span>{x.problem}</span><small>{x.correction}</small></div>)}</div>}</div></section>}
       </>}
 
-      {active==="clip"&&clipProject?.clips?.length>0&&<section className="clips-section"><div className="section-heading"><small>CLIP+ · READY</small><h2>{clipProject.clips.length} strong clip{clipProject.clips.length>1?"s":""} found.</h2><p>{clipProject.clips.length<clipCount?`You asked for ${clipCount}. Clip+ stopped at ${clipProject.clips.length} because quality comes before quota.`:"All requested clips passed the quality threshold."}</p></div><div className="clips-grid">{clipProject.clips.map((clip:any)=><article className="clip-card" key={clip.id}><div className="clip-rank">0{clip.rank}</div><strong>{clip.viral_score??"—"}</strong><small>Viral potential</small><h3>{clip.title||"Untitled clip"}</h3><p>{clip.hook||clip.rationale}</p><button className="btn primary clip-open" onClick={()=>openClip(clip.id)}>Open clip ↗</button></article>)}</div></section>}
+      {active==="clip"&&clipProject?.clips?.length>0&&<section className="clips-section"><div className="section-heading"><small>CLIP+ · READY</small><h2>{clipProject.clips.length} strong clip{clipProject.clips.length>1?"s":""} found.</h2><p>{clipProject.clips.length<clipCount?`You asked for ${clipCount}. Clip+ stopped at ${clipProject.clips.length} because quality comes before quota.`:"All requested clips passed the quality threshold."}</p></div><div className="clips-grid">{clipProject.clips.map((clip:any)=><article className="clip-card" key={clip.id}><div className="clip-rank">0{clip.rank}</div><strong>{clip.viral_score??"—"}</strong><small>Viral potential</small><h3>{clip.title||"Untitled clip"}</h3><p>{clip.hook||clip.rationale}</p><button className="btn primary clip-open" onClick={()=>openClip(clip.id)}>Open clip ↗</button><button className="btn ghost" onClick={()=>useClip(clip,"edit")}>Open in Edit+ →</button><button className="btn ghost" onClick={()=>useClip(clip,"viral")}>Analyze with Viral+ →</button></article>)}</div></section>}
     </section>
   </main>;
 }
