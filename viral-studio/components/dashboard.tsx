@@ -4,6 +4,7 @@ import {useEffect,useMemo,useRef,useState} from "react";
 import {BarChart3,Clapperboard,LogOut,Scissors,Upload,Zap,Check,Link2} from "lucide-react";
 import * as tus from "tus-js-client";
 import {functionUrl,supabase,SUPABASE_PROJECT_REF,VIDEO_BUCKET} from "@/lib/supabase";
+import {authMessage} from "@/lib/auth-message";
 
 type Module="viral"|"edit"|"clip";
 type Job={id:string;kind?:string;status:string;progress?:number;stage?:string;result?:any;error?:any;error_code?:string};
@@ -89,6 +90,8 @@ export function Dashboard(){
   const [password,setPassword]=useState("");
   const [authMode,setAuthMode]=useState<"login"|"signup">("login");
   const [authError,setAuthError]=useState("");
+  const [authPending,setAuthPending]=useState(false);
+  const authLock=useRef(false);
   const [active,setActive]=useState<Module>("viral");
   const [file,setFile]=useState<File|null>(null);
   const [media,setMedia]=useState<Media|null>(null);
@@ -177,9 +180,15 @@ export function Dashboard(){
   }
 
   async function authenticate(e:React.FormEvent){
-    e.preventDefault();setAuthError("");
-    const action=authMode==="login"?supabase.auth.signInWithPassword({email,password}):supabase.auth.signUp({email,password});
-    const {data,error}=await action;if(error)setAuthError(error.message);else if(authMode==="signup"&&!data.session)setAuthNotice("Consulte tes emails pour confirmer ton compte, puis connecte-toi.");
+    e.preventDefault();if(authLock.current)return;
+    authLock.current=true;setAuthPending(true);setAuthError("");setAuthNotice("");
+    try{
+      const credentials={email:email.trim(),password};
+      const {data,error}=await (authMode==="login"?supabase.auth.signInWithPassword(credentials):supabase.auth.signUp(credentials));
+      if(error)setAuthError(authMessage(error));
+      else if(authMode==="signup"&&!data.session)setAuthNotice("Consulte tes emails pour confirmer ton compte, puis connecte-toi.");
+    }catch(error){setAuthError(authMessage(error))}
+    finally{authLock.current=false;setAuthPending(false)}
   }
 
   async function uploadVideo(selected:File){return uploadSource(selected,false)}
@@ -414,9 +423,9 @@ export function Dashboard(){
   if(!session)return <main className="auth-screen"><div className="auth-orb"/><section className="auth-box">
     <div className="side-brand big">VIRAL <span>STUDIO</span></div>
     <h1>{authMode==="login"?"Welcome back.":"Create your studio."}</h1><p>Clip. Edit. Analyze. Export.</p>
-    <form onSubmit={authenticate}><input className="field" type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="Email" required/><input className="field" type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="Password" minLength={6} required/><button className="btn primary auth-submit">{authMode==="login"?"Sign in":"Create account"}</button></form>
-    {authError&&<div className="error auth-error">{authError}</div>}{authNotice&&<p role="status">{authNotice}</p>}
-    <button className="auth-switch" onClick={()=>setAuthMode(authMode==="login"?"signup":"login")}>{authMode==="login"?"No account? Create one":"Already registered? Sign in"}</button>
+    <form onSubmit={authenticate} aria-busy={authPending}><input className="field" type="email" autoComplete="email" disabled={authPending} value={email} onChange={e=>setEmail(e.target.value)} placeholder="Email" required/><input className="field" type="password" autoComplete={authMode==="login"?"current-password":"new-password"} disabled={authPending} value={password} onChange={e=>setPassword(e.target.value)} placeholder="Password" minLength={6} required/><button type="submit" disabled={authPending} className="btn primary auth-submit">{authPending?"Connexion…":authMode==="login"?"Sign in":"Create account"}</button></form>
+    {authError&&<div role="alert" className="error auth-error">{authError}</div>}{authNotice&&<p role="status">{authNotice}</p>}
+    <button className="auth-switch" disabled={authPending} onClick={()=>{setAuthError("");setAuthNotice("");setAuthMode(authMode==="login"?"signup":"login")}}>{authMode==="login"?"No account? Create one":"Already registered? Sign in"}</button>
   </section></main>;
 
   return <main className="dashboard-shell">
