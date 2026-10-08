@@ -244,7 +244,7 @@ function isYouTubeSource(value){
   try{
     const u=new URL(normalizeSourceUrl(value));
     const h=u.hostname.toLowerCase().replace(/^www\./,'');
-    return h==='youtu.be'||h.endsWith('youtube.com');
+    return h==='youtu.be'||(h==='youtube.com'||h.endsWith('.youtube.com'));
   }catch{
     return false;
   }
@@ -813,7 +813,7 @@ function normalizeSourceUrl(value){
       const id=u.pathname.split('/').filter(Boolean)[0];
       if(id)return 'https://www.youtube.com/watch?v='+encodeURIComponent(id);
     }
-    if(h.endsWith('youtube.com')){
+    if((h==='youtube.com'||h.endsWith('.youtube.com'))){
       const id=u.searchParams.get('v');
       if(id)return 'https://www.youtube.com/watch?v='+encodeURIComponent(id);
       const parts=u.pathname.split('/').filter(Boolean);
@@ -831,7 +831,7 @@ function allowedSource(value){
   try{
     const u=new URL(value);if(u.protocol!=='https:')return false;
     const h=u.hostname.toLowerCase().replace(/^www\./,'');
-    return h==='youtu.be'||h.endsWith('youtube.com')||h.endsWith('tiktok.com')||h.endsWith('instagram.com')||h.endsWith('vimeo.com');
+    return h==='youtu.be'||(h==='youtube.com'||h.endsWith('.youtube.com'))||(h==='tiktok.com'||h.endsWith('.tiktok.com'))||(h==='instagram.com'||h.endsWith('.instagram.com'))||(h==='vimeo.com'||h.endsWith('.vimeo.com'));
   }catch{return false}
 }
 
