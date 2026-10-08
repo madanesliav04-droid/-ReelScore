@@ -1094,6 +1094,14 @@ export function buildEditorialGraphicsAss(timeline,width,height){
   for(const cue of timeline?.graphicCues||[]){
     if(cue.mode!=='editorial_breakdown'||cue.evidence!=='timestamped_transcript')continue;
     const start=assTime(cue.startMs),end=assTime(cue.endMs);
+    if(cue.kind==='statement'){
+      const headline=escapeAssText(String(cue.text||'').slice(0,76));
+      if(headline){
+        const quoteSize=Math.round(fontsize*.70);
+        ev.push(`Dialogue: 2,${start},${end},Editorial,,0,0,0,,{\\\\an8\\\\pos(${x},${y})\\\\fs${quoteSize}\\\\fad(220,280)}${headline}`);
+      }
+      continue;
+    }
     const figures=(Array.isArray(cue.figures)?cue.figures:[]).map(v=>String(v||'').trim()).filter(Boolean);
     if(!figures.length)continue;
     const size=figures.some(v=>v.length>11)?Math.round(fontsize*.66):fontsize;
