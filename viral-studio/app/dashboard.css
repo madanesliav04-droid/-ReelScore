@@ -90,3 +90,18 @@
 .score-weight b{color:#cbd2df}
 
 .source-preview{width:100%;max-height:520px;object-fit:contain;background:#080810;border-radius:24px}.format-picker{display:block;max-width:440px;margin:24px 0;color:#ccc}.format-picker select{margin-top:10px}.timeline-time{cursor:pointer;border:1px solid #ffffff25;border-radius:10px;background:#ffffff08;color:inherit;padding:10px}.clip-card .btn{margin-top:10px;width:100%}
+
+
+/* Edit+ V3 — selected model's concrete, testable editorial decisions */
+.model-action-contract{margin-top:18px;padding:20px;border-radius:16px;background:linear-gradient(145deg,#111621,#0b0e15);border:1px solid rgba(140,135,255,.22)}
+.contract-head>span{display:block;font-size:10px;font-weight:800;letter-spacing:.12em;color:#b1a5ff}
+.contract-head h3{font-size:19px;line-height:1.3;letter-spacing:-.02em;margin:8px 0;color:#f4f5fa}
+.contract-notice{font-size:12px;line-height:1.5;color:#a6aebd;max-width:740px}
+.model-action-contract ol{list-style:none;padding:0;margin:17px 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.model-action-contract li{display:flex;align-items:flex-start;gap:12px;background:rgba(255,255,255,.025);padding:12px;border:1px solid rgba(255,255,255,.06);border-radius:11px}
+.model-action-contract li>span{font-size:11px;color:#aa9eff;font-weight:800;min-width:22px}
+.model-action-contract li p{font-size:12px;line-height:1.5;color:#d2d7e3;margin:0}
+.contract-avoid{border-top:1px solid rgba(255,255,255,.07);padding-top:14px;display:flex;gap:12px;align-items:baseline}
+.contract-avoid strong{font-size:11px;color:#ffc4a9;flex-shrink:0}
+.contract-avoid p{font-size:12px;line-height:1.5;color:#aeb5c4;margin:0}
+@media(max-width:680px){.model-action-contract{padding:14px}.model-action-contract ol{grid-template-columns:1fr}.contract-head h3{font-size:17px}.contract-avoid{display:block}.contract-avoid p{margin-top:5px}}
