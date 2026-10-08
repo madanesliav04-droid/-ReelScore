@@ -50,7 +50,7 @@ async function freshSession(){
     if(refreshed.error)throw refreshed.error;
     current=refreshed.data.session;
   }
-  if(!current?.access_token)throw new Error("SESSION_REQUIRED");
+  if(!current?.access_token)throw Object.assign(new Error("Reconnecte-toi pour reprendre ton travail."),{status:401});
   return current;
 }
 
@@ -76,8 +76,8 @@ async function api(path:string,_token:string,init:RequestInit={},allowRetry=true
   const body=await res.json().catch(()=>({}));
   if(!res.ok){
     const code=String(body?.error||body?.message||"");
-    if(res.status===401||code==="AUTH_REQUIRED")throw new Error("Ta session a expiré. Reconnecte-toi une fois puis Edit+ gardera automatiquement la session active.");
-    throw new Error(/quota|credit|limit/i.test(code)?"La limite de traitement est atteinte. Réessaie plus tard.":"Le service n’a pas pu traiter la demande. Réessaie dans un instant.");
+    if(res.status===401||code==="AUTH_REQUIRED")throw Object.assign(new Error("Ta session a expiré. Reconnecte-toi pour reprendre ton travail."),{status:401});
+    throw Object.assign(new Error(/quota|credit|limit/i.test(code)?"La limite de traitement est atteinte. Réessaie plus tard.":"Le service n’a pas pu traiter la demande. Réessaie dans un instant."),{status:res.status});
   }
   return body;
 }
@@ -113,7 +113,11 @@ export function Dashboard(){
   const [editOutputMediaId,setEditOutputMediaId]=useState("");
   const [preFixScore,setPreFixScore]=useState<number|null>(null);
   const [busy,setBusy]=useState(false);
-  const pollRef=useRef<ReturnType<typeof setInterval>|null>(null);
+  const pollRef=useRef<ReturnType<typeof setTimeout>|null>(null);
+  const pollGeneration=useRef(0);
+  const uploadRef=useRef<tus.Upload|null>(null);
+  const uploadLocked=useRef(false);
+  const [uploading,setUploading]=useState(false);
 
   useEffect(()=>{
     const requested=new URLSearchParams(window.location.search).get("tool");
@@ -122,18 +126,34 @@ export function Dashboard(){
     const {data}=supabase.auth.onAuthStateChange((_event,next)=>setSession(next));
     return ()=>data.subscription.unsubscribe();
   },[]);
-  useEffect(()=>()=>{if(pollRef.current)clearInterval(pollRef.current)},[]);
   useEffect(()=>{
-    if(!session?.access_token)return;
-    try{
-      const saved=localStorage.getItem("viral-studio-active-job");
-      if(!saved)return;
-      const parsed=JSON.parse(saved);
-      if(!parsed?.id||!["core","clip"].includes(parsed?.channel))return;
-      setBusy(true);
-      void watchJob(parsed.id,parsed.channel);
-    }catch{}
-  },[session?.access_token]);
+    const owner=session?.user?.id;
+    pollGeneration.current++;
+    if(pollRef.current)clearTimeout(pollRef.current);
+    void uploadRef.current?.abort();
+    uploadRef.current=null;uploadLocked.current=false;setUploading(false);
+    setBusy(false);setJob(null);setMedia(null);setFile(null);setSourceUrl("");
+    setAnalysis(null);setClipMedia(null);setClipFile(null);setClipProject(null);
+    setEditExportUrl("");setEditOutputMediaId("");setError("");
+    if(owner){
+      try{
+        const saved=localStorage.getItem(`viral-studio-active-job:${owner}`);
+        const parsed=saved?JSON.parse(saved):null;
+        if(parsed?.id&&["core","clip"].includes(parsed.channel)){
+          setActive(parsed.module||"viral");setBusy(true);
+          void watchJob(parsed.id,parsed.channel);
+        }
+      }catch{}
+    }
+    return ()=>{
+      pollGeneration.current++;
+      if(pollRef.current)clearTimeout(pollRef.current);
+      void uploadRef.current?.abort();
+    };
+  },[session?.user?.id]);
+  useEffect(()=>()=>{
+    if(sourceUrl.startsWith("blob:"))URL.revokeObjectURL(sourceUrl);
+  },[sourceUrl]);
 
   const token=session?.access_token||"";
   const userId=session?.user?.id||"";
@@ -142,7 +162,7 @@ export function Dashboard(){
   const safeZone=analysis?.safe_zone||null;
 
   function switchModule(next:Module){
-    if(busy)return;
+    if(busy||uploadLocked.current)return;
     setActive(next);
     setError("");
     setJob(null);
@@ -162,114 +182,134 @@ export function Dashboard(){
     const {data,error}=await action;if(error)setAuthError(error.message);else if(authMode==="signup"&&!data.session)setAuthNotice("Consulte tes emails pour confirmer ton compte, puis connecte-toi.");
   }
 
-  async function uploadVideo(selected:File){
-    if(selected.size>500*1024*1024)return setError("Cette vidéo dépasse 500 Mo.");
-    if(busy)return;
-    setSourceUrl(URL.createObjectURL(selected));
-    let liveSession:any;
-    try{
-      liveSession=await freshSession();
-    }catch{
-      setError("Reconnecte-toi pour continuer.");
-      return;
-    }
-    const liveUserId=liveSession.user?.id;
-    if(!liveUserId)return setError("Session utilisateur invalide.");
-    setError("");setFile(selected);setMedia(null);setAnalysis(null);setJob(null);setUploadPct(0);setEditExportUrl("");setEditOutputMediaId("");setPreFixScore(null);
-    const objectName=`${liveUserId}/${crypto.randomUUID()}-${safeName(selected.name)}`;
-    const upload=new tus.Upload(selected,{
-      endpoint:`https://${SUPABASE_PROJECT_REF}.storage.supabase.co/storage/v1/upload/resumable`,
-      retryDelays:[0,3000,5000,10000,20000],
-      headers:{authorization:`Bearer ${liveSession.access_token}`,"x-upsert":"false"},
-      uploadDataDuringCreation:true,removeFingerprintOnSuccess:true,chunkSize:6*1024*1024,
-      metadata:{bucketName:VIDEO_BUCKET,objectName,contentType:selected.type||"video/mp4",cacheControl:"3600"},
-      onError(err){setError(err.message||"Upload impossible")},
-      onProgress(sent,total){setUploadPct(Math.round(sent/total*100))},
-      async onSuccess(){
-        try{
-          const body=await api(functionUrl("viral-edit-jobs","media"),token,{method:"POST",body:JSON.stringify({storage_path:objectName,mime_type:selected.type||"video/mp4",size_bytes:selected.size,original_name:selected.name,module:"shared"})});
-          setMedia(body.media);setUploadPct(100);
-        }catch(e:any){setError(e.message)}
-      }
-    });
-    upload.findPreviousUploads().then(previous=>{if(previous.length)upload.resumeFromPreviousUpload(previous[0]);upload.start()});
-  }
+  async function uploadVideo(selected:File){return uploadSource(selected,false)}
+  async function uploadClipSource(selected:File){return uploadSource(selected,true)}
 
-  async function uploadClipSource(selected:File){
+  async function uploadSource(selected:File,isClip:boolean){
+    if(busy||uploadLocked.current)return;
+    if(!selected.size)return setError("Ce fichier est vide. Choisis une vidéo.");
     if(selected.size>500*1024*1024)return setError("Cette vidéo dépasse 500 Mo.");
-    if(busy)return;
-    let liveSession:any;
+    const ext=selected.name.split(".").pop()?.toLowerCase();
+    const mime=({mp4:"video/mp4",mov:"video/quicktime",webm:"video/webm"} as Record<string,string>)[ext||""];
+    if(!mime)return setError("Choisis une vidéo MP4, MOV ou WebM.");
+    uploadLocked.current=true;setUploading(true);setError("");
+    const release=()=>{uploadLocked.current=false;setUploading(false);uploadRef.current=null};
     try{
-      liveSession=await freshSession();
-    }catch{
-      setError("Reconnecte-toi pour continuer.");
-      return;
-    }
-    const liveUserId=liveSession.user?.id;
-    if(!liveUserId)return setError("Session utilisateur invalide.");
-    setError("");setClipFile(selected);setClipMedia(null);setClipUploadPct(0);setJob(null);setClipProject(null);
-    const objectName=`${liveUserId}/${crypto.randomUUID()}-${safeName(selected.name)}`;
-    const upload=new tus.Upload(selected,{
-      endpoint:`https://${SUPABASE_PROJECT_REF}.storage.supabase.co/storage/v1/upload/resumable`,
-      retryDelays:[0,3000,5000,10000,20000],
-      headers:{authorization:`Bearer ${liveSession.access_token}`,"x-upsert":"false"},
-      uploadDataDuringCreation:true,removeFingerprintOnSuccess:true,chunkSize:6*1024*1024,
-      metadata:{bucketName:VIDEO_BUCKET,objectName,contentType:selected.type||"video/mp4",cacheControl:"3600"},
-      onError(err){setError(err.message||"Upload impossible")},
-      onProgress(sent,total){setClipUploadPct(Math.round(sent/total*100))},
-      async onSuccess(){
-        try{
-          const body=await api(functionUrl("viral-edit-jobs","media"),token,{method:"POST",body:JSON.stringify({storage_path:objectName,mime_type:selected.type||"video/mp4",size_bytes:selected.size,original_name:selected.name,module:"shared"})});
-          setClipMedia(body.media);setClipUploadPct(100);setError("");
-        }catch(e:any){setError(e.message)}
+      const liveSession=await freshSession();
+      const owner=liveSession.user.id;
+      const generation=pollGeneration.current;
+      const alive=()=>generation===pollGeneration.current;
+      let objectName=`${owner}/${crypto.randomUUID()}-${safeName(selected.name)}`;
+      if(isClip){setClipFile(selected);setClipMedia(null);setClipUploadPct(0);setClipProject(null)}
+      else{
+        setSourceUrl(URL.createObjectURL(selected));setFile(selected);setMedia(null);
+        setAnalysis(null);setUploadPct(0);setEditExportUrl("");setEditOutputMediaId("");setPreFixScore(null);
       }
-    });
-    upload.findPreviousUploads().then(previous=>{if(previous.length)upload.resumeFromPreviousUpload(previous[0]);upload.start()});
+      setJob(null);
+      const upload=new tus.Upload(selected,{
+        endpoint:`https://${SUPABASE_PROJECT_REF}.storage.supabase.co/storage/v1/upload/resumable`,
+        fingerprint:async()=>JSON.stringify(["viral-studio-v2",owner,selected.name,selected.size,selected.lastModified]),
+        retryDelays:[0,3000,5000,10000,20000],
+        headers:{"x-upsert":"false"},
+        onBeforeRequest:async req=>{
+          const current=await freshSession();
+          if(current.user.id!==owner)throw new Error("Session modifiée.");
+          req.setHeader("authorization",`Bearer ${current.access_token}`);
+        },
+        uploadDataDuringCreation:true,removeFingerprintOnSuccess:true,chunkSize:6*1024*1024,
+        metadata:{bucketName:VIDEO_BUCKET,objectName,contentType:mime,cacheControl:"3600"},
+        onError(){if(alive()){setError("L’import a été interrompu. Sélectionne le même fichier pour reprendre.");release()}},
+        onProgress(sent,total){if(alive())(isClip?setClipUploadPct:setUploadPct)(Math.round(sent/total*100))},
+        async onSuccess(){
+          if(!alive())return;
+          try{
+            const body=await api(functionUrl("viral-edit-jobs","media"),token,{method:"POST",body:JSON.stringify({storage_path:objectName,mime_type:mime,size_bytes:selected.size,original_name:selected.name,module:"shared"})});
+            if(alive()){(isClip?setClipMedia:setMedia)(body.media);(isClip?setClipUploadPct:setUploadPct)(100)}
+          }catch{if(alive())setError("La vidéo a été envoyée mais sa préparation a échoué. Réessaie l’import.")}
+          finally{if(alive())release()}
+        }
+      });
+      uploadRef.current=upload;
+      const previous=await upload.findPreviousUploads();
+      if(!alive())return;
+      const resumable=previous.find(p=>p.metadata?.bucketName===VIDEO_BUCKET&&p.metadata?.objectName?.startsWith(owner+"/"));
+      if(resumable){objectName=resumable.metadata.objectName;upload.options.metadata={...upload.options.metadata,objectName};upload.resumeFromPreviousUpload(resumable)}
+      upload.start();
+    }catch{setError("L’import n’a pas démarré. Vérifie ta connexion et reconnecte-toi si nécessaire.");release()}
   }
 
   async function watchJob(id:string,kind:"core"|"clip"="core"){
-    if(pollRef.current)clearInterval(pollRef.current);
-    try{localStorage.setItem("viral-studio-active-job",JSON.stringify({id,channel:kind}))}catch{}
+    if(pollRef.current)clearTimeout(pollRef.current);
+    const generation=++pollGeneration.current;
+    const alive=()=>generation===pollGeneration.current;
+    const storageKey=`viral-studio-active-job:${session.user.id}`;
+    try{localStorage.setItem(storageKey,JSON.stringify({id,channel:kind,module:active}))}catch{}
+    let failures=0;
     const tick=async()=>{
+      if(!alive())return;
+      let finished=false;
       try{
         const url=kind==="clip"?functionUrl("clip-jobs",`jobs/${id}`):functionUrl("viral-edit-jobs",`jobs/${id}`);
-        const body=await api(url,token);setJob(body.job);
-        const done=["completed","failed"].includes(body.job.status);
-        if(!done)return false;
-        if(pollRef.current)clearInterval(pollRef.current);pollRef.current=null;setBusy(false);
-        try{localStorage.removeItem("viral-studio-active-job")}catch{}
-        if(body.job.status==="failed"){
+        const body=await api(url,token);
+        if(!alive())return;
+        setJob(body.job);
+        setActive(body.job.kind==="clip_generate"?"clip":body.job.kind==="edit_render"?"edit":"viral");
+        if(["failed","cancelled"].includes(body.job.status)){
           const code=String(body.job.error_code||"");
           if(kind==="clip"&&["YOUTUBE_EGRESS_REQUIRED","YOUTUBE_IMPORT_FAILED","YOUTUBE_UNAVAILABLE","IMPORT_CONFIGURATION_ERROR"].includes(code))setClipFallback(true);
-          setError(displayJobError(body.job));
-          return true;
-        }
-        if(body.job.kind==="viral_analysis"){
-          const {data,error:analysisError}=await supabase.from("viralplus_analyses").select("*").eq("job_id",id).maybeSingle();
-          if(analysisError)throw analysisError;
-          if(!data)throw new Error("Analyse terminée mais résultat introuvable.");
-          setAnalysis(data.result_json?{...data.result_json,id:data.id,analysis_id:data.id}:data);
-        }
-        if(body.job.kind==="edit_render"){
-          if(body.job.result?.output_video_id)setEditOutputMediaId(String(body.job.result.output_video_id));
-          if(body.job.result?.export_id){
-            const out=await api(functionUrl("viral-edit-jobs",`exports/${body.job.result.export_id}/url`),token);
-            if(out?.signed_url)setEditExportUrl(out.signed_url);
+          setError(body.job.status==="cancelled"?"Ce traitement a été annulé. Tu peux en lancer un nouveau.":displayJobError(body.job));
+          finished=true;
+        }else if(body.job.status==="completed"){
+          // Retrieve every result before removing the recovery pointer.
+          if(body.job.kind==="viral_analysis"){
+            const {data,error:analysisError}=await supabase.from("viralplus_analyses").select("*").eq("job_id",id).maybeSingle();
+            if(analysisError||!data)throw analysisError||new Error("Résultat indisponible.");
+            const source=await api(functionUrl("viral-edit-jobs",`media/${body.job.video_id}/url`),token);
+            if(!alive())return;
+            setMedia(source.media);setSourceUrl(source.signed_url);
+            setAnalysis(data.result_json?{...data.result_json,id:data.id,analysis_id:data.id}:data);
           }
+          if(body.job.kind==="edit_render"){
+            if(!body.job.result?.export_id)throw new Error("Export indisponible.");
+            const out=await api(functionUrl("viral-edit-jobs",`exports/${body.job.result.export_id}/url`),token);
+            if(!out?.signed_url)throw new Error("Export indisponible.");
+            if(!alive())return;
+            setEditOutputMediaId(String(body.job.result.output_video_id||out.media?.id||""));
+            setEditExportUrl(out.signed_url);
+          }
+          if(body.job.kind==="clip_generate"){
+            if(!body.job.result?.clip_project_id)throw new Error("Clips indisponibles.");
+            const detail=await api(functionUrl("clip-jobs",`projects/${body.job.result.clip_project_id}`),token);
+            if(!alive())return;
+            setClipProject(detail);
+          }
+          setError("");finished=true;
+        }else{setError("")}
+        failures=0;
+      }catch(e:any){
+        if(!alive())return;
+        if([401,403,404].includes(e?.status)){
+          setError(e.status===404?"Ce traitement n’est plus disponible. Tu peux en lancer un nouveau.":"Reconnecte-toi pour reprendre ton traitement conservé.");
+          setBusy(false);pollRef.current=null;
+          if(e.status===404){try{localStorage.removeItem(storageKey)}catch{}}
+          return;
         }
-        if(body.job.kind==="clip_generate"&&body.job.result?.clip_project_id){
-          const detail=await api(functionUrl("clip-jobs",`projects/${body.job.result.clip_project_id}`),token);
-          setClipProject(detail);
-        }
-        return true;
-      }catch(e:any){setError(e.message);setBusy(false);try{localStorage.removeItem("viral-studio-active-job")}catch{};if(pollRef.current)clearInterval(pollRef.current);pollRef.current=null;return true}
+        failures++;
+        setError("Connexion interrompue. Ton traitement reste conservé ; reconnexion automatique…");
+      }
+      if(!alive())return;
+      if(finished){
+        setBusy(false);pollRef.current=null;
+        try{localStorage.removeItem(storageKey)}catch{}
+      }else{
+        pollRef.current=setTimeout(()=>void tick(),Math.min(30000,2000*2**Math.min(failures,4)));
+      }
     };
-    pollRef.current=setInterval(()=>void tick(),2000);
     await tick();
   }
 
   async function startAnalysis(){
-    if(busy)return;if(!media)return setError("Importe d’abord une vidéo.");
+    if(busy||uploadLocked.current)return;if(!media)return setError("Importe d’abord une vidéo.");
     setError("");setAnalysis(null);setBusy(true);
     try{
       const body=await api(functionUrl("viral-edit-jobs","analysis"),token,{method:"POST",body:JSON.stringify({video_id:media.id})});
@@ -293,7 +333,7 @@ export function Dashboard(){
   }
 
   async function startEdit(autoFix=false){
-    if(busy)return;if(!media)return setError("Importe d’abord une vidéo.");
+    if(busy||uploadLocked.current)return;if(!media)return setError("Importe d’abord une vidéo.");
     const modelToUse=autoFix?pickAutoFixModel(analysis):editModel;
 
     if(autoFix){
@@ -342,7 +382,7 @@ export function Dashboard(){
   }
 
   async function startClip(){
-    if(busy)return;
+    if(busy||uploadLocked.current)return;
     if(!clipMedia&&!clipUrl.trim())return setError("Colle une URL YouTube ou importe la vidéo.");
     if(!clipRights)return setError("Confirme que tu as le droit de traiter cette vidéo.");
     setError("");setClipProject(null);setBusy(true);
@@ -364,7 +404,7 @@ export function Dashboard(){
   }
 
   async function useClip(clip:any,next:Module){
-    if(busy)return;
+    if(busy||uploadLocked.current)return;
     try{
       const body=await api(functionUrl("viral-edit-jobs",`media/${clip.output_video_id}/url`),token);
       setMedia(body.media);setFile(null);setAnalysis(null);setEditExportUrl("");setSourceUrl(body.signed_url);switchModule(next);
@@ -397,9 +437,9 @@ export function Dashboard(){
       {active==="viral"&&<div className="workspace-grid">
         <section className="panel">
           <small className="eyebrow">VIRAL+ · ANALYZE</small><h3>Upload. Understand what blocks the video.</h3>
-          <label className="upload-zone"><input type="file" accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" onChange={e=>{const f=e.target.files?.[0];if(f)uploadVideo(f)}}/><div><Upload size={30}/><b>{file?file.name:media?"Clip importé — prêt à analyser":"Drop a Reel here"}</b><span>MP4 · MOV · WebM</span></div></label>
+          <label className="upload-zone"><input type="file" disabled={busy||uploading} accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" onChange={e=>{const f=e.target.files?.[0];if(f)uploadVideo(f)}}/><div><Upload size={30}/><b>{file?file.name:media?"Clip importé — prêt à analyser":"Drop a Reel here"}</b><span>MP4 · MOV · WebM</span></div></label>
           {file&&<div className="progress"><i style={{width:`${uploadPct}%`}}/></div>}
-          <button className="btn primary full" onClick={startAnalysis} disabled={!media||busy}><Zap size={16}/> {busy&&job?.kind==="viral_analysis"?"Analyzing…":"Analyze video"}</button>
+          <button className="btn primary full" onClick={startAnalysis} disabled={!media||busy||uploading}><Zap size={16}/> {busy&&job?.kind==="viral_analysis"?"Analyzing…":"Analyze video"}</button>
           <InlineJobState job={job?.kind==="viral_analysis"?job:null}/>
           {error&&<div className="job-card error">{error}</div>}
         </section>
@@ -410,7 +450,7 @@ export function Dashboard(){
         <div className="workspace-grid">
           <section className="panel">
             <small className="eyebrow">EDIT+ · AI EDIT</small><h3>Upload once. Pick the look. Edit+ does the rest.</h3>
-            <label className="upload-zone"><input type="file" accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" onChange={e=>{const f=e.target.files?.[0];if(f)uploadVideo(f)}}/><div><Upload size={30}/><b>{file?file.name:media?"Clip importé — prêt à monter":"Drop your video here"}</b><span>Then choose one of the 8 locked models</span></div></label>
+            <label className="upload-zone"><input type="file" disabled={busy||uploading} accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" onChange={e=>{const f=e.target.files?.[0];if(f)uploadVideo(f)}}/><div><Upload size={30}/><b>{file?file.name:media?"Clip importé — prêt à monter":"Drop your video here"}</b><span>Then choose one of the 8 locked models</span></div></label>
             {file&&<div className="progress"><i style={{width:`${uploadPct}%`}}/></div>}
             <div className="status-row"><span>Video</span><span className="status-pill">{media?"Ready":file?`${uploadPct}%`:"Waiting"}</span></div>
           </section>
@@ -424,7 +464,7 @@ export function Dashboard(){
             <div className="model-copy"><div><strong>{model.name}</strong><span>{model.category}</span></div>{editModel===model.id&&<Check size={18}/>}<p>{model.meta}</p></div>
           </button>)}</div>
           <label className="format-picker">Format de sortie <select className="field" value={format} onChange={e=>setFormat(e.target.value)} disabled={busy}><option value="native">Natif — conserver le format source</option><option value="portrait">Portrait — 1080 × 1920</option><option value="landscape">Paysage — 1920 × 1080</option></select></label>
-          <button className="btn primary create-edit" onClick={()=>void startEdit(false)} disabled={!media||busy}><Clapperboard size={17}/> {busy&&job?.kind==="edit_render"?"Editing…":`Create with ${selectedModel.name}`}</button>
+          <button className="btn primary create-edit" onClick={()=>void startEdit(false)} disabled={!media||busy||uploading}><Clapperboard size={17}/> {busy&&job?.kind==="edit_render"?"Editing…":`Create with ${selectedModel.name}`}</button>
           <InlineJobState job={job?.kind==="edit_render"?job:null}/>
           {error&&<div className="job-card error">{error}</div>}
         </section>
@@ -439,14 +479,14 @@ export function Dashboard(){
           {clipFallback&&<div className="clip-upload-fallback">
             <small>DIRECT FILE FALLBACK</small>
             <p>MP4, MOV ou WebM. Le fichier rejoint ensuite le même moteur Clip+ : sélection des passages, 9:16 et captions.</p>
-            <label className="upload-zone compact"><input type="file" accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" onChange={e=>{const f=e.target.files?.[0];if(f)uploadClipSource(f)}}/><div><Upload size={24}/><b>{clipFile?clipFile.name:"Import the source video"}</b><span>{clipMedia?"Ready for Clip+":clipFile?`${clipUploadPct}% uploaded`:"Up to 500 MB"}</span></div></label>
+            <label className="upload-zone compact"><input type="file" disabled={busy||uploading} accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" onChange={e=>{const f=e.target.files?.[0];if(f)uploadClipSource(f)}}/><div><Upload size={24}/><b>{clipFile?clipFile.name:"Import the source video"}</b><span>{clipMedia?"Ready for Clip+":clipFile?`${clipUploadPct}% uploaded`:"Up to 500 MB"}</span></div></label>
             {clipFile&&<div className="progress"><i style={{width:`${clipUploadPct}%`}}/></div>}
           </div>}
           <div className="clip-count-label">How many clips do you want?</div>
           <div className="clip-count-selector">{([5,10,20] as const).map(n=><button key={n} className={clipCount===n?"selected":""} onClick={()=>setClipCount(n)}><strong>{n}</strong><span>clips</span></button>)}</div>
           <div className="quality-note"><Check size={14}/><span>Quality first: Clip+ can return fewer clips if the source does not contain enough strong standalone moments.</span></div>
           <label className="rights-check"><input type="checkbox" checked={clipRights} onChange={e=>setClipRights(e.target.checked)}/><span>Je confirme que je possède cette vidéo ou que j’ai l’autorisation de la traiter.</span></label>
-          <button className="btn primary full" onClick={startClip} disabled={(!clipMedia&&!clipUrl.trim())||!clipRights||busy}><Scissors size={16}/> {busy&&job?.kind==="clip_generate"?`Creating up to ${clipCount} clips…`:clipMedia?`Generate ${clipCount} clips from upload`:`Generate ${clipCount} clips`}</button>
+          <button className="btn primary full" onClick={startClip} disabled={(!clipMedia&&!clipUrl.trim())||!clipRights||busy||uploading}><Scissors size={16}/> {busy&&job?.kind==="clip_generate"?`Creating up to ${clipCount} clips…`:clipMedia?`Generate ${clipCount} clips from upload`:`Generate ${clipCount} clips`}</button>
           <InlineJobState job={job?.kind==="clip_generate"?job:null}/>
           {error&&<div className="job-card error">{error}</div>}
         </section>
