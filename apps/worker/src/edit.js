@@ -1,21 +1,51 @@
 const FILLERS=new Set(['euh','heu','uh','um','erm','hmm','hum']);
 
-export const MODEL_CONTRACT_VERSION='editplus-models-v2-premium';
+export const MODEL_CONTRACT_VERSION='editplus-models-v3-action-contracts';
 
 export const EDIT_STYLES={
-  codie:{label:'Codie',promise:'Business storytelling · facecam first',pace:'narrative',silenceThresholdMs:780,removeFillers:false,maxPunchInsPer30s:4,punchScale:1.10,punchSeverities:['red'],captions:'authority',broll:{maxPer30s:2,minDurationMs:1900,maxDurationMs:3400,minGapMs:5000},brollDirective:'Facecam dominante. B-roll uniquement lorsqu’il illustre précisément une phrase concrète. Pas de remplissage.',soundDesign:'minimal',visualSignature:{mode:'codie',contrast:1.02,saturation:1,accent:'#ff9b45',cadenceMs:0}},
+  codie:{label:'Codie',promise:'Business storytelling · facecam first',pace:'narrative',silenceThresholdMs:780,removeFillers:false,maxPunchInsPer30s:3,punchScale:1.10,punchSeverities:['red'],captions:'authority',broll:{maxPer30s:2,minDurationMs:1900,maxDurationMs:3400,minGapMs:5000},brollDirective:'Facecam dominante. B-roll uniquement lorsqu’il illustre précisément une phrase concrète. Pas de remplissage.',soundDesign:'minimal',visualSignature:{mode:'codie',contrast:1.02,saturation:1,accent:'#ff9b45',cadenceMs:0}},
   impact:{label:'Impact',promise:'High-energy business · retention first',pace:'fast',silenceThresholdMs:420,removeFillers:true,maxPunchInsPer30s:8,punchScale:1.13,punchSeverities:['red','orange'],captions:'impact',broll:{maxPer30s:5,minDurationMs:1300,maxDurationMs:2400,minGapMs:2200},brollDirective:'B-roll fréquent mais concret: produits, chiffres, lieux, marques, actions. Chaque insert doit accélérer la compréhension.',soundDesign:'moderate',visualSignature:{mode:'impact',contrast:1.12,saturation:1.16,accent:'#37e6ff',cadenceMs:3600}},
-  clean:{label:'Clean',promise:'Modern creator · simple and polished',pace:'medium_fast',silenceThresholdMs:620,removeFillers:true,maxPunchInsPer30s:4,punchScale:1.07,punchSeverities:['red'],captions:'clean',broll:{maxPer30s:2,minDurationMs:1700,maxDurationMs:2900,minGapMs:4400},brollDirective:'Très peu de B-roll. Seulement quand une image clarifie mieux que la facecam.',soundDesign:'light',visualSignature:{mode:'clean',contrast:1.02,saturation:.98,accent:'#ffffff',cadenceMs:0}},
-  authority:{label:'Authority',promise:'Podcast & expert · calm premium',pace:'calm_premium',silenceThresholdMs:920,removeFillers:false,maxPunchInsPer30s:3,punchScale:1.06,punchSeverities:['red'],captions:'authority',broll:{maxPer30s:2,minDurationMs:2500,maxDurationMs:4300,minGapMs:6000},brollDirective:'B-roll rare, long, crédible et documentaire moderne. Priorité au visage et à la parole.',soundDesign:'minimal',visualSignature:{mode:'authority',contrast:1.05,saturation:.88,accent:'#ff9b45',cadenceMs:0}},
+  clean:{label:'Clean',promise:'Modern creator · simple and polished',pace:'medium_fast',silenceThresholdMs:620,removeFillers:true,maxPunchInsPer30s:3,punchScale:1.07,punchSeverities:['red'],captions:'clean',broll:{maxPer30s:1,minDurationMs:1700,maxDurationMs:2900,minGapMs:4400},brollDirective:'Très peu de B-roll. Seulement quand une image clarifie mieux que la facecam.',soundDesign:'light',visualSignature:{mode:'clean',contrast:1.02,saturation:.98,accent:'#ffffff',cadenceMs:0}},
+  authority:{label:'Authority',promise:'Podcast & expert · calm premium',pace:'calm_premium',silenceThresholdMs:920,removeFillers:false,maxPunchInsPer30s:2,punchScale:1.06,punchSeverities:['red'],captions:'authority',broll:{maxPer30s:2,minDurationMs:2500,maxDurationMs:4300,minGapMs:6000},brollDirective:'B-roll rare, long, crédible et documentaire moderne. Priorité au visage et à la parole.',soundDesign:'minimal',visualSignature:{mode:'authority',contrast:1.05,saturation:.88,accent:'#ff9b45',cadenceMs:0}},
   explainer:{label:'Explainer',promise:'Tutorial & SaaS · show what is being explained',pace:'medium_fast',silenceThresholdMs:560,removeFillers:true,maxPunchInsPer30s:5,punchScale:1.08,punchSeverities:['red','orange'],captions:'explainer',broll:{maxPer30s:5,minDurationMs:1700,maxDurationMs:3300,minGapMs:2600},brollDirective:'Cherche des interfaces, outils, objets ou étapes concrètes correspondant exactement à l’explication. Évite les images génériques.',soundDesign:'light',visualSignature:{mode:'explainer',contrast:1.04,saturation:1.03,accent:'#7ce8ff',cadenceMs:5200}},
   data:{label:'Data',promise:'Numbers & evidence · proof on screen',pace:'fast',silenceThresholdMs:500,removeFillers:true,maxPunchInsPer30s:5,punchScale:1.09,punchSeverities:['red','orange'],captions:'data',broll:{maxPer30s:4,minDurationMs:1800,maxDurationMs:3100,minGapMs:2800},brollDirective:'Priorité aux preuves visuelles: documents modernes, tableaux, dashboards, produits comparés, lieux ou éléments cités. Pas d’archives décoratives.',soundDesign:'light',visualSignature:{mode:'data',contrast:1.07,saturation:.96,accent:'#ffd166',cadenceMs:4700}},
-  ugc_native:{label:'UGC Native',promise:'Native social · human and unpolished',pace:'natural',silenceThresholdMs:740,removeFillers:false,maxPunchInsPer30s:4,punchScale:1.05,punchSeverities:['red'],captions:'ugc',broll:{maxPer30s:1,minDurationMs:1500,maxDurationMs:2600,minGapMs:7000},brollDirective:'Très peu de B-roll. Favorise produit, geste, détail ou usage réel. Le rendu doit rester natif téléphone.',soundDesign:'light',visualSignature:{mode:'ugc_native',contrast:1.03,saturation:1.12,accent:'#ff3fbf',cadenceMs:7000}},
+  ugc_native:{label:'UGC Native',promise:'Native social · human and unpolished',pace:'natural',silenceThresholdMs:740,removeFillers:false,maxPunchInsPer30s:3,punchScale:1.05,punchSeverities:['red'],captions:'ugc',broll:{maxPer30s:1,minDurationMs:1500,maxDurationMs:2600,minGapMs:7000},brollDirective:'Très peu de B-roll. Favorise produit, geste, détail ou usage réel. Le rendu doit rester natif téléphone.',soundDesign:'light',visualSignature:{mode:'ugc_native',contrast:1.03,saturation:1.12,accent:'#ff3fbf',cadenceMs:7000}},
   cinematic_story:{label:'Cinematic Story',promise:'Personal story · emotion and breathing room',pace:'story',silenceThresholdMs:1100,removeFillers:false,maxPunchInsPer30s:2,punchScale:1.04,punchSeverities:['red'],captions:'cinematic',broll:{maxPer30s:3,minDurationMs:3200,maxDurationMs:6200,minGapMs:5600},brollDirective:'B-roll narratif et émotionnel, plus long. Cherche des lieux, objets, actions ou atmosphères directement reliés à l’histoire.',soundDesign:'cinematic',visualSignature:{mode:'cinematic_story',contrast:1.08,saturation:.72,accent:'#ffffff',cadenceMs:0}},
   creator_clean:null,business_viral:null,podcast_authority:null
 };
 EDIT_STYLES.creator_clean=EDIT_STYLES.clean;
 EDIT_STYLES.business_viral=EDIT_STYLES.impact;
 EDIT_STYLES.podcast_authority=EDIT_STYLES.authority;
+
+const GRAPHIC_TRIGGERS={
+  codie:'none: authentic facecam and restrained text-only captions',
+  impact:'emphasis: short spoken keywords, not invented claims',
+  clean:'none: clean captions with no ornamental graphics',
+  authority:'none: do not fabricate credentials or source citations',
+  explainer:'steps: a spoken step marker is required',
+  data:'numbers: only a number actually present in the transcript',
+  ugc_native:'none: preserve natural phone-native video',
+  cinematic_story:'none: rely on shots and timing, not auto-generated quote cards'
+};
+
+export function describeEditActions(style){
+  const canonical={creator_clean:'clean',business_viral:'impact',podcast_authority:'authority'}[style]||style;
+  const cfg=EDIT_STYLES[canonical]||EDIT_STYLES.clean;
+  return {
+    version:MODEL_CONTRACT_VERSION,
+    model:canonical,
+    silenceCutThresholdMs:cfg.silenceThresholdMs,
+    removeFillers:cfg.removeFillers,
+    punchIns:{trigger:cfg.punchSeverities,maxPer30s:cfg.maxPunchInsPer30s,scale:cfg.punchScale},
+    broll:{maxPer30s:cfg.broll.maxPer30s,minDurationMs:cfg.broll.minDurationMs,maxDurationMs:cfg.broll.maxDurationMs,trigger:cfg.brollDirective},
+    graphicsTrigger:GRAPHIC_TRIGGERS[canonical],
+    captions:cfg.captions,
+    soundFinishing:cfg.soundDesign,
+    videoFinishing:cfg.visualSignature.mode,
+    limits:'Maximums are ceilings, not mandatory insertions; no invented proof or unsupported visual claims.'
+  };
+}
+
 
 export const CAPTION_PRESETS={
   authority:{fontFamily:'Noto Sans',fontWeight:800,fontSize:64,lineHeight:1.02,maxWordsPerLine:5,maxChars:34,maxDurationMs:2100,position:'lower_third',activeWord:true,textColor:'#ffffff',activeColor:'#ff9b45',stroke:4,shadow:true,background:false},
@@ -127,6 +157,7 @@ export function buildEditTimeline({
     style:canonicalStyle,
     modelId:canonicalStyle,
     modelContractVersion:MODEL_CONTRACT_VERSION,
+    actionContract:describeEditActions(canonicalStyle),
     styleLabel:styleCfg.label,
     styleConfig:styleCfg,
     captionPreset:preset,
@@ -158,7 +189,7 @@ export function buildEditTimeline({
 
 
 function buildGraphicCues({style,captions,outputDurationMs,styleCfg}){
-  if(['codie','clean'].includes(style))return [];
+  if(['codie','clean','authority','ugc_native','cinematic_story'].includes(style))return [];
   const cadence={
     impact:3200,
     explainer:5200,
@@ -185,16 +216,17 @@ function buildGraphicCues({style,captions,outputDurationMs,styleCfg}){
     if(!raw)continue;
     let text=raw;
     if(style==='data'){
-      const m=raw.match(/(?:€|\$|£)?\b\d+(?:[.,]\d+)?(?:\s?%|\s?[kKmM])?\b/);
+      // Numerical overlays must reproduce exactly what was spoken.
+      // Never derive a comparison, growth rate or citation from unrelated stock imagery.
+      const m=raw.match(/(?:[€$£]\s*\d+(?:[\s.,]\d+)*|\b\d+(?:[\s.,]\d+)*(?:\s?(?:%|€|\$|£|k|K|M|millions?|milliards?|euros?|dollars?|heures?|jours?|ans?|clients?|abonnés?|vues?|views?))?\b)/i);
       if(!m)continue;
-      text=raw;
+      text=m[0].trim();
     }else if(style==='impact'){
       text=raw.split(' ').slice(0,4).join(' ').toUpperCase();
     }else if(style==='explainer'){
-      if(!/étape|premi[eè]r|deuxi[eè]me|troisi[eè]me|ensuite|puis|step|first|second|third|next/i.test(raw))continue;
-      text=raw;
-    }else if(style==='ugc_native'){
-      text=raw.split(' ').slice(0,5).join(' ');
+      // A step card only appears when a sequence is genuinely spoken.
+      if(!/\b(?:étape\s*[1-9]|premi[eè]rement|deuxi[eè]mement|troisi[eè]mement|ensuite|puis|enfin|step\s*[1-9]|first|second|third|next|finally)\b/i.test(raw))continue;
+      text=raw.split(' ').slice(0,7).join(' ');
     }
     cues.push({
       startMs:start,
