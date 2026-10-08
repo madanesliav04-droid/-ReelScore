@@ -68,6 +68,12 @@ const EDIT_MODELS:EditModel[]=[
     never:"Jamais de donnée, pourcentage, courbe ou preuve inventés."
   },
   {
+    id:"editorial_breakdown",name:"Editorial Breakdown",category:"Business · chiffres expliqués",preview:"$100 / H",meta:"Typographie serif · comparatifs · calculs parlés",
+    goal:"Reproduire le langage de la référence : facecam premium, chiffres élégants, tableaux semi-transparents et raisonnements visuels synchronisés.",
+    actions:["Préserver les respirations naturelles et ne retirer que les silences de plus de 850 ms.","Utiliser une typographie serif ivoire en haut du cadre et des sous-titres fins, distincts du style Data.","Afficher les montants, durées et pourcentages uniquement s'ils sont prononcés dans la transcription horodatée.","Activer une comparaison en deux colonnes translucides seulement lorsque plusieurs valeurs sont réellement citées.","Limiter les recadrages narratifs à 2 par 30 secondes, sans zoom décoratif.","Ne placer aucun B-roll automatique : laisser les chiffres et la démonstration vivre sur la facecam.","Appliquer un étalonnage subtilement désaturé et une finition voix maîtrisée."],
+    never:"Jamais de calcul ou graphique inventé, de tableau sans valeurs citées, de B-roll de remplissage ou de fausse statistique."
+  },
+  {
     id:"ugc_native",name:"UGC Native",category:"Native social",preview:"UGC",meta:"Human · phone-native · direct",
     goal:"Conserver un rendu smartphone naturel, spontané et convaincant.",
     actions:["Préserver les respirations courtes, les gestes et les imperfections humaines utiles.","Ne couper que les silences de 740 ms ou plus.","Limiter à 3 zooms subtils et 1 insert produit pertinent par 30 s.","Utiliser des sous-titres modernes aux couleurs du modèle sans cartouche publicitaire forcé.","Nettoyer légèrement l’image et la voix sans dénaturer la captation."],
@@ -516,7 +522,7 @@ export function Dashboard(){
         <div className="workspace-grid">
           <section className="panel">
             <small className="eyebrow">EDIT+ · AI EDIT</small><h3>Upload once. Pick the look. Edit+ does the rest.</h3>
-            <label className="upload-zone"><input type="file" disabled={busy||uploading} accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" onChange={e=>{const f=e.target.files?.[0];if(f)uploadVideo(f)}}/><div><Upload size={30}/><b>{file?file.name:media?"Clip importé — prêt à monter":"Drop your video here"}</b><span>Then choose one of the 8 locked models</span></div></label>
+            <label className="upload-zone"><input type="file" disabled={busy||uploading} accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" onChange={e=>{const f=e.target.files?.[0];if(f)uploadVideo(f)}}/><div><Upload size={30}/><b>{file?file.name:media?"Clip importé — prêt à monter":"Drop your video here"}</b><span>Then choose one of the 9 locked models</span></div></label>
             {file&&<div className="progress"><i style={{width:`${uploadPct}%`}}/></div>}
             <div className="status-row"><span>Video</span><span className="status-pill">{media?"Ready":file?`${uploadPct}%`:"Waiting"}</span></div>
           </section>
@@ -524,9 +530,9 @@ export function Dashboard(){
         </div>
 
         <section className="model-library">
-          <div className="section-heading"><small>8 LOCKED MODELS</small><h2>Choose the actual editing language.</h2><p>Every model changes pacing, captions, crops, graphics, B-roll rules and finishing. Same source ≠ same render.</p></div>
+          <div className="section-heading"><small>9 LOCKED MODELS</small><h2>Choose the actual editing language.</h2><p>Every model changes pacing, captions, crops, graphics, B-roll rules and finishing. Same source ≠ same render.</p></div>
           <div className="model-grid">{EDIT_MODELS.map(model=><button key={model.id} className={`model-card ${editModel===model.id?"selected":""}`} data-model={model.id} onClick={()=>setEditModel(model.id)}>
-            <div className="model-preview"><div className="preview-face"/><div className="preview-caption">{model.preview}</div><div className="preview-cut"/><span className="preview-badge">{model.name}</span></div>
+            <div className={`model-preview ${model.id==="editorial_breakdown"?"editorial-preview":""}`}><div className="preview-face"/><div className="preview-caption">{model.preview}</div><div className="preview-cut"/><span className="preview-badge">{model.name}</span></div>
             <div className="model-copy"><div><strong>{model.name}</strong><span>{model.category}</span></div>{editModel===model.id&&<Check size={18}/>}<p>{model.meta}</p></div>
           </button>)}</div>
           <section className="model-action-contract" data-testid="edit-model-action-contract" aria-live="polite">
