@@ -17,6 +17,8 @@ const workerId=process.env.WORKER_ID||`clip-${os.hostname()}-${process.pid}`;
 const port=Number(process.env.PORT||3000);
 const pollMs=Math.max(1200,Number(process.env.POLL_MS||3000));
 const bucket=process.env.VIDEO_BUCKET||'viralplus-videos';
+// Keep encoded clips below the effective 50 MiB single-object upload ceiling.
+const MAX_CLIP_UPLOAD_BYTES=45*1024*1024;
 const minClipQuality=Math.max(50,Math.min(90,Number(process.env.CLIP_MIN_QUALITY||64)));
 let activeJob=null,lastError=null,stopping=false;
 
@@ -1246,6 +1248,7 @@ async function renderClip({sourcePath,outputPath,startSec,endSec,assPath}){
     ...(assPath?[`ass='${filterEscape(assPath)}'`]:[])
   ].join(',');
 
+  const maxVideoKbps=Math.max(850,Math.min(5000,Math.floor(MAX_CLIP_UPLOAD_BYTES*8/duration/1000*0.85)-160));
   await run('ffmpeg',[
     '-hide_banner','-loglevel','error','-y',
     '-ss',String(startSec),
@@ -1256,8 +1259,10 @@ async function renderClip({sourcePath,outputPath,startSec,endSec,assPath}){
     '-vf',vf,
     '-r','30',
     '-c:v','libx264',
-    '-preset','ultrafast',
-    '-crf','20',
+    '-preset','veryfast',
+    '-crf','21',
+    '-maxrate',`${maxVideoKbps}k`,
+    '-bufsize',`${maxVideoKbps*2}k`,
     '-pix_fmt','yuv420p',
     '-threads','1',
     '-c:a','aac',
@@ -1269,9 +1274,20 @@ async function renderClip({sourcePath,outputPath,startSec,endSec,assPath}){
 }
 
 async function persistClip({job,project,candidate,rank,filePath,captionsRendered=false}){
-  const info=await stat(filePath),storagePath=`${job.user_id}/clips/${project.id}/${String(rank).padStart(2,'0')}-${randomUUID()}.mp4`;
+  const info=await stat(filePath);
+  if(info.size>MAX_CLIP_UPLOAD_BYTES)throw tagged('OUTPUT_TOO_LARGE',`Clip ${rank} trop volumineux (${info.size} octets), export bloqué avant upload`);
+  const probe=JSON.parse(await runStdout('ffprobe',['-v','error','-show_entries','format=duration:stream=codec_type','-of','json',filePath]));
+  const durationSec=Number(probe?.format?.duration);
+  const expectedSec=Number(candidate.end_sec)-Number(candidate.start_sec);
+  if(!probe?.streams?.some(s=>s.codec_type==='video')||!Number.isFinite(durationSec)||durationSec<1||Math.abs(durationSec-expectedSec)>3){
+    throw tagged('INVALID_EXPORT',`Clip ${rank}: MP4 invalide ou durée inattendue`);
+  }
+  console.log(JSON.stringify({event:'clip_export_verified',job:job.id,rank,bytes:info.size,duration_sec:durationSec}));
+  const storagePath=`${job.user_id}/clips/${project.id}/${String(rank).padStart(2,'0')}-${randomUUID()}.mp4`;
   const data=await readFile(filePath);
   const {error:ue}=await supabase.storage.from(bucket).upload(storagePath,data,{contentType:'video/mp4',upsert:false,cacheControl:'3600'});if(ue)throw ue;
+  const {data:verified,error:verifyError}=await supabase.storage.from(bucket).createSignedUrl(storagePath,120);
+  if(verifyError||!verified?.signedUrl)throw tagged('STORAGE_VERIFY_FAILED',`Export ${rank} indisponible après upload`);
   const {data:media,error:me}=await supabase.from('media_assets').insert({user_id:job.user_id,module:'clipplus',kind:'clip',storage_bucket:bucket,storage_path:storagePath,original_name:`clip-${rank}.mp4`,mime_type:'video/mp4',size_bytes:info.size,duration_ms:Math.round((candidate.end_sec-candidate.start_sec)*1000),width:1080,height:1920,status:'ready',metadata:{clip_project_id:project.id,source_url:project.source_url,rank}}).select('id').single();if(me)throw me;
   const {data:clip,error:ce}=await supabase.from('clip_outputs').insert({project_id:project.id,job_id:job.id,user_id:job.user_id,output_video_id:media.id,rank,viral_score:candidate.viral_score,title:candidate.title,hook:candidate.hook,rationale:candidate.rationale,start_ms:Math.round(candidate.start_sec*1000),end_ms:Math.round(candidate.end_sec*1000),status:'ready',metadata:{format:'9:16',captions:Boolean(captionsRendered)}}).select('id').single();if(ce)throw ce;
   return clip.id;
@@ -1354,7 +1370,9 @@ async function fail(job,error){
     'SOURCE_TOO_LARGE',
     'SOURCE_MEDIA_NOT_FOUND',
     'UNSUPPORTED_SOURCE',
-    'NO_CLIPS_FOUND'
+    'NO_CLIPS_FOUND',
+    'OUTPUT_TOO_LARGE',
+    'INVALID_EXPORT'
   ]);
   const terminal=permanentCodes.has(code)||retry>max;
   const now=new Date();
