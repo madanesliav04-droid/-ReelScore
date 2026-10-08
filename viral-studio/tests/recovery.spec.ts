@@ -3,12 +3,12 @@ import {test,expect,Page} from '@playwright/test';
 const owner='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const other='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 const key=`viral-studio-active-job:${owner}`;
-async function setup(page:Page,jobOwner=owner){
-  await page.addInitScript(({owner,jobOwner})=>{
+async function setup(page:Page,jobOwner=owner,channel:'core'|'clip'='core'){
+  await page.addInitScript(({owner,jobOwner,channel})=>{
     const token='eyJhbGciOiJIUzI1NiJ9.'+btoa(JSON.stringify({sub:owner,exp:Math.floor(Date.now()/1000)+3600}))+'.test';
     localStorage.setItem('sb-eiypztjpmxdiuaqxjuqx-auth-token',JSON.stringify({access_token:token,refresh_token:'test-only',expires_at:Math.floor(Date.now()/1000)+3600,expires_in:3600,token_type:'bearer',user:{id:owner,email:'qa@example.invalid',aud:'authenticated',role:'authenticated'}}));
-    localStorage.setItem(`viral-studio-active-job:${jobOwner}`,JSON.stringify({id:'job-qa',channel:'core',module:'edit'}));
-  },{owner,jobOwner});
+    localStorage.setItem(`viral-studio-active-job:${jobOwner}`,JSON.stringify({id:'job-qa',channel,module:channel==='clip'?'clip':'edit'}));
+  },{owner,jobOwner,channel});
   await page.route('**/auth/v1/**',r=>r.fulfill({json:{id:owner,email:'qa@example.invalid'}}));
 }
 test('network interruption keeps job and retries without overlapping requests',async({page})=>{
@@ -102,4 +102,20 @@ test('resumed upload registers original storage object and locks concurrent uplo
   patchResolve!();
   await expect(page.getByRole('button',{name:'Analyze video',exact:true})).toBeEnabled();
   expect(registered).toBe(original);
+});
+
+test('Clip+ reveals ready outputs during rendering without fabricated percent',async({page})=>{
+  await setup(page,owner,'clip');
+  await page.route('**/api/clip-jobs/jobs/job-qa',route=>route.fulfill({json:{
+    job:{id:'job-qa',kind:'clip_generate',status:'rendering',progress:31,stage:'Rendu du clip 2/5',clip_project_id:'project-qa'}
+  }}));
+  await page.route('**/api/clip-jobs/projects/project-qa',route=>route.fulfill({json:{
+    project:{id:'project-qa',status:'rendering',requested_clip_count:5},
+    clips:[{id:'clip-ready-1',rank:1,title:'Premier clip',status:'ready',viral_score:81}]
+  }}));
+  await page.goto('/dashboard');
+  await expect(page.getByRole('heading',{name:/1 clip disponible/i})).toBeVisible({timeout:12000});
+  await expect(page.getByRole('button',{name:'Télécharger MP4 ↓'})).toBeVisible();
+  await expect(page.getByText('Étape en cours').first()).toBeVisible();
+  await expect(page.getByText('31%')).toHaveCount(0);
 });
