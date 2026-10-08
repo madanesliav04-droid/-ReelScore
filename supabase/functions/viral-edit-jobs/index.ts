@@ -149,6 +149,21 @@ async function route(req:Request){
   const db=admin();
   const userDb=asUser(req);
 
+  if(req.method==="GET"&&tail[0]==="quota"){
+    const {data:profile,error}=await db.from("viralplus_profiles")
+      .select("analyses_used,analysis_limit,period_start")
+      .eq("user_id",user.id)
+      .maybeSingle();
+    if(error)return out({error:"QUOTA_READ_FAILED"},500);
+    const now=new Date();
+    const currentMonth=Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),1);
+    const period=profile?.period_start?new Date(profile.period_start).getTime():currentMonth;
+    const used=period<currentMonth?0:Math.max(0,Number(profile?.analyses_used||0));
+    const limit=Math.max(1,Number(profile?.analysis_limit||20));
+    const resetAt=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth()+1,1)).toISOString();
+    return out({quota:{used,limit,remaining:Math.max(0,limit-used),reset_at:resetAt}});
+  }
+
   if(req.method==="POST"&&tail[0]==="media"){
     const body=await req.json().catch(()=>null);
     if(!body)return out({error:"INVALID_BODY"},400);
