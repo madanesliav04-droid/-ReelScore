@@ -64,7 +64,7 @@ Deno.serve(async(req:Request)=>{
       ownedMedia=data;
     }
 
-    const count=boundedInt(body.clip_count,5,1,20), min=boundedInt(body.min_duration_sec,10,8,90), max=boundedInt(body.max_duration_sec,15,15,120);
+    const count=boundedInt(body.clip_count,5,1,20), min=boundedInt(body.min_duration_sec,10,10,15), max=boundedInt(body.max_duration_sec,15,15,15);
     if(max<min)return out({error:"INVALID_DURATION_RANGE"},400);
 
     const settings={
