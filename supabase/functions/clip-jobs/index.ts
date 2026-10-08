@@ -124,8 +124,10 @@ Deno.serve(async(req:Request)=>{
   }
 
   if(req.method==="GET"&&tail[0]==="jobs"&&uuid(tail[1])){
-    const {data,error}=await db.from("processing_jobs").select("id,kind,status,progress,stage,result,error,error_code,created_at,updated_at,completed_at").eq("id",tail[1]).eq("user_id",user.id).maybeSingle();
-    if(error)return out({error:error.message},500);if(!data)return out({error:"JOB_NOT_FOUND"},404);return out({job:data});
+    const {data,error}=await db.from("processing_jobs").select("id,kind,status,progress,stage,result,error,error_code,created_at,updated_at,completed_at,payload").eq("id",tail[1]).eq("user_id",user.id).maybeSingle();
+    if(error)return out({error:error.message},500);if(!data)return out({error:"JOB_NOT_FOUND"},404);
+    const {payload,...publicJob}=data;
+    return out({job:{...publicJob,clip_project_id:uuid(payload?.clip_project_id)?payload.clip_project_id:null}});
   }
 
   if(req.method==="GET"&&tail[0]==="projects"&&uuid(tail[1])){
@@ -136,11 +138,13 @@ Deno.serve(async(req:Request)=>{
   }
 
   if(req.method==="GET"&&tail[0]==="clips"&&uuid(tail[1])&&tail[2]==="url"){
-    const {data:clip,error}=await db.from("clip_outputs").select("id,user_id,output_video_id").eq("id",tail[1]).eq("user_id",user.id).maybeSingle();
-    if(error)return out({error:error.message},500);if(!clip)return out({error:"CLIP_NOT_FOUND"},404);
+    const {data:clip,error}=await db.from("clip_outputs").select("id,user_id,output_video_id,rank,status").eq("id",tail[1]).eq("user_id",user.id).maybeSingle();
+    if(error)return out({error:error.message},500);if(!clip||clip.status!=="ready")return out({error:"CLIP_NOT_READY"},404);
     const {data:media,error:me}=await db.from("media_assets").select("id,storage_bucket,storage_path,mime_type,size_bytes,status").eq("id",clip.output_video_id).eq("user_id",user.id).maybeSingle();
-    if(me||!media)return out({error:me?.message||"OUTPUT_MEDIA_NOT_FOUND"},404);
-    const {data:signed,error:se}=await db.storage.from(media.storage_bucket||VIDEO_BUCKET).createSignedUrl(media.storage_path,600);
+    if(me||!media||media.status!=="ready")return out({error:me?.message||"OUTPUT_MEDIA_NOT_READY"},404);
+    const download=url.searchParams.get("download")==="1";
+    const filename=`clip-${Number(clip.rank)||1}.mp4`;
+    const {data:signed,error:se}=await db.storage.from(media.storage_bucket||VIDEO_BUCKET).createSignedUrl(media.storage_path,600,download?{download:filename}:{});
     if(se||!signed?.signedUrl)return out({error:se?.message||"SIGNED_URL_FAILED"},500);
     return out({clip,media,signed_url:signed.signedUrl,expires_in:600});
   }
