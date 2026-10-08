@@ -268,13 +268,29 @@ function buildEditorialBreakdownCues(captions,outputDurationMs){
   const cues=[];
   const numeric=/(?:[$€£]\s*\d+(?:[.,]\d+)*(?:\s*\/\s*(?:h|hr|hour|heure))?|\b\d+(?:[.,]\d+)?\s*(?:%|[$€£]|hours?|hrs?|heures?|minutes?|days?|jours?|clients?|euros?|dollars?|fois|times)?)(?!\w)/gi;
   let availableAt=900;
+  let lastStatement=-10000;
   for(const caption of captions||[]){
     const sentence=String(caption?.text||'').replace(/\s+/g,' ').trim();
     const at=Math.max(0,Math.round(Number(caption?.startMs)||0));
     if(at<availableAt||!sentence)continue;
     const tokens=[...sentence.matchAll(numeric)].map(m=>m[0].trim())
       .filter(v=>/\d/.test(v)&&!/^0+(?:[.,]0+)?$/.test(v)).slice(0,3);
-    if(!tokens.length)continue;
+    if(!tokens.length){
+      // The reference also uses restrained serif editorial statements and
+      // questions. Their wording must come directly from spoken captions.
+      const editorialPhrase=/\\b(?:why|because|without|but|however|actually|means|costs?|money|pourquoi|parce|mais|sans|signifie|coûte|perdre|économiser)\\b|[?？]/i.test(sentence);
+      if(editorialPhrase&&sentence.length>=9&&sentence.length<=76&&
+        sentence.split(' ').length>=2&&at-lastStatement>=7500){
+        cues.push({
+          startMs:at,endMs:Math.min(outputDurationMs,at+2600),
+          kind:'statement',mode:'editorial_breakdown',text:sentence,
+          figures:[],sourceText:sentence,evidence:'timestamped_transcript',accent:'#f5eee2'
+        });
+        lastStatement=at;
+        availableAt=at+2600;
+      }
+      continue;
+    }
     const unique=[...new Set(tokens)];
     const explicitEquals=/[=×*]|(?:\b(?:equals?|égal(?:e|ent)?|x|multiplied|fois)\b)/i.test(sentence);
     const kind=unique.length>1?(explicitEquals?'equation':'comparison'):'stat';
