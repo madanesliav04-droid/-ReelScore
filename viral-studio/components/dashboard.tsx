@@ -9,7 +9,7 @@ import {authMessage} from "@/lib/auth-message";
 type Module="viral"|"edit"|"clip";
 type Job={id:string;kind?:string;status:string;progress?:number;stage?:string;result?:any;error?:any;error_code?:string};
 type Media={id:string;storage_path:string;mime_type:string;size_bytes:number;original_name?:string};
-type EditModel={id:string;name:string;category:string;preview:string;meta:string};
+type EditModel={id:string;name:string;category:string;preview:string;meta:string;goal:string;actions:string[];never:string};
 
 const VIRAL_METRICS=[
   ["hook","Hook"],
@@ -31,14 +31,54 @@ function scoreTone(value:any){
 }
 
 const EDIT_MODELS:EditModel[]=[
-  {id:"codie",name:"Codie",category:"Business storytelling",preview:"FACE CAM",meta:"Narrative · restrained B-roll"},
-  {id:"impact",name:"Impact",category:"High-energy business",preview:"IMPACT",meta:"Fast · punchy · visual"},
-  {id:"clean",name:"Clean",category:"Modern creator",preview:"CLEAN",meta:"Simple · polished · minimal"},
-  {id:"authority",name:"Authority",category:"Podcast & expert",preview:"AUTHORITY",meta:"Calm · premium · credible"},
-  {id:"explainer",name:"Explainer",category:"Tutorial & SaaS",preview:"EXPLAIN",meta:"Show · label · clarify"},
-  {id:"data",name:"Data",category:"Numbers & evidence",preview:"DATA",meta:"Proof · numbers · comparison"},
-  {id:"ugc_native",name:"UGC Native",category:"Native social",preview:"UGC",meta:"Human · phone-native · direct"},
-  {id:"cinematic_story",name:"Cinematic Story",category:"Personal story",preview:"STORY",meta:"Emotional · breathing room"}
+  {
+    id:"codie",name:"Codie",category:"Business storytelling",preview:"FACE CAM",meta:"Narrative · restrained B-roll",
+    goal:"Faire ressortir une histoire business forte, facecam dominante.",
+    actions:["Supprimer les silences de 780 ms ou plus, en préservant les respirations courtes.","Déclencher un zoom narratif seulement sur une rupture importante : au plus 3 par 30 s.","Ajouter jusqu’à 2 B-rolls de 1,9 à 3,4 s lorsqu’un élément concret est cité et illustrable.","Afficher des sous-titres blancs, avec accent orange pour les mots réellement prononcés.","Appliquer un traitement voix premium discret."],
+    never:"Pas de zoom automatique, de carte citation décorative ou de B-roll abstrait."
+  },
+  {
+    id:"impact",name:"Impact",category:"High-energy business",preview:"IMPACT",meta:"Fast · punchy · visual",
+    goal:"Créer une vidéo énergique qui accélère la compréhension et la rétention.",
+    actions:["Couper les silences dès 420 ms et les hésitations transcrites.","Accentuer visuellement le hook avec un punch-in court.","Jusqu’à 8 punch-ins narratifs et 5 B-rolls concrets par 30 s.","Afficher un mot-clé ou une phrase de 4 mots maximum en grand lors de moments forts.","Sous-titres dynamiques et finition audio plus incisive."],
+    never:"Pas d’inserts sans rapport avec le discours, ni de cuts qui amputent le sens."
+  },
+  {
+    id:"clean",name:"Clean",category:"Modern creator",preview:"CLEAN",meta:"Simple · polished · minimal",
+    goal:"Améliorer la fluidité d’une facecam sans attirer l’attention sur le montage.",
+    actions:["Couper les silences de plus de 620 ms et les hésitations détectées.","Ajouter au maximum 3 recadrages légers par 30 s, seulement si la narration le justifie.","Limiter à 1 B-roll explicatif par 30 s.","Afficher des sous-titres blancs lisibles et stables.","Équilibrer voix et image sans effet d’habillage superflu."],
+    never:"Pas de cartouche graphique automatique, d’animation ou de zoom décoratif."
+  },
+  {
+    id:"authority",name:"Authority",category:"Podcast & expert",preview:"AUTHORITY",meta:"Calm · premium · credible",
+    goal:"Mettre la parole d’un expert en valeur avec une réalisation crédible.",
+    actions:["Préserver les silences inférieurs à 920 ms pour garder une parole naturelle.","Jusqu’à 2 recadrages narratifs subtils par 30 s.","Autoriser au plus 2 inserts documentaires contextualisés par 30 s.","Conserver des sous-titres sobres avec accent orange et une finition audio maîtrisée.","Éviter les graphiques non attribués et les incrustations non sourcées."],
+    never:"Jamais de faux diplôme, label EXPERT gratuit, autorité fabriquée ou statistique inventée."
+  },
+  {
+    id:"explainer",name:"Explainer",category:"Tutorial & SaaS",preview:"EXPLAIN",meta:"Show · label · clarify",
+    goal:"Transformer une démonstration en étapes faciles à comprendre.",
+    actions:["Supprimer les silences dès 560 ms et les hésitations détectées.","Afficher des cartes d’étapes uniquement si une étape est réellement annoncée.","Jusqu’à 5 recadrages et 5 B-rolls d’outils, objets ou interfaces cités par 30 s.","Faire correspondre la durée des illustrations aux phrases et actions expliquées.","Utiliser des sous-titres didactiques et un son discret."],
+    never:"Pas de capture de logiciel fictive, d’étape créée de toutes pièces ou d’image générique."
+  },
+  {
+    id:"data",name:"Data",category:"Numbers & evidence",preview:"DATA",meta:"Proof · numbers · comparison",
+    goal:"Rendre les chiffres prononcés compréhensibles et visuellement vérifiables.",
+    actions:["Couper les silences de 500 ms ou plus et les hésitations détectées.","Détecter les montants, quantités et pourcentages réellement dits : reproduire les valeurs exactes.","Afficher un chiffre au moment de sa prononciation, avec l’unité si elle a été citée.","Jusqu’à 5 recadrages et 4 B-rolls documentaires par 30 s, si pertinents.","N’afficher une comparaison que si les deux valeurs existent dans la source."],
+    never:"Jamais de donnée, pourcentage, courbe ou preuve inventés."
+  },
+  {
+    id:"ugc_native",name:"UGC Native",category:"Native social",preview:"UGC",meta:"Human · phone-native · direct",
+    goal:"Conserver un rendu smartphone naturel, spontané et convaincant.",
+    actions:["Préserver les respirations courtes, les gestes et les imperfections humaines utiles.","Ne couper que les silences de 740 ms ou plus.","Limiter à 3 zooms subtils et 1 insert produit pertinent par 30 s.","Utiliser des sous-titres modernes aux couleurs du modèle sans cartouche publicitaire forcé.","Nettoyer légèrement l’image et la voix sans dénaturer la captation."],
+    never:"Pas de badges commerciaux, de cartes graphiques automatiques, ni de montage trop publicitaire."
+  },
+  {
+    id:"cinematic_story",name:"Cinematic Story",category:"Personal story",preview:"STORY",meta:"Emotional · breathing room",
+    goal:"Construire une narration émotionnelle avec des temps de respiration.",
+    actions:["Préserver les pauses émotionnelles jusqu’à 1 100 ms.","Ajouter au plus 2 zooms narratifs doux par 30 s.","Chercher jusqu’à 3 plans B-roll évocateurs, de 3,2 à 6,2 s, quand ils illustrent l’histoire.","Sous-titres fins de style cinématographique et étalonnage plus doux.","Appliquer une finition audio cinématique sans masquer la voix."],
+    never:"Pas de carte STORY générée automatiquement ni de montage frénétique."
+  }
 ];
 
 async function freshSession(){
@@ -472,6 +512,12 @@ export function Dashboard(){
             <div className="model-preview"><div className="preview-face"/><div className="preview-caption">{model.preview}</div><div className="preview-cut"/><span className="preview-badge">{model.name}</span></div>
             <div className="model-copy"><div><strong>{model.name}</strong><span>{model.category}</span></div>{editModel===model.id&&<Check size={18}/>}<p>{model.meta}</p></div>
           </button>)}</div>
+          <section className="model-action-contract" data-testid="edit-model-action-contract" aria-live="polite">
+            <div className="contract-head"><span>CONTRAT DE MONTAGE · {selectedModel.name.toUpperCase()}</span><h3>{selectedModel.goal}</h3></div>
+            <p className="contract-notice">Actions déclenchées par le contenu. Les quantités annoncées sont des plafonds, pas des effets obligatoires.</p>
+            <ol>{selectedModel.actions.map((action,i)=><li key={i}><span>{String(i+1).padStart(2,"0")}</span><p>{action}</p></li>)}</ol>
+            <div className="contract-avoid"><strong>À éviter</strong><p>{selectedModel.never}</p></div>
+          </section>
           <label className="format-picker">Format de sortie <select className="field" value={format} onChange={e=>setFormat(e.target.value)} disabled={busy}><option value="native">Natif — conserver le format source</option><option value="portrait">Portrait — 1080 × 1920</option><option value="landscape">Paysage — 1920 × 1080</option></select></label>
           <button className="btn primary create-edit" onClick={()=>void startEdit(false)} disabled={!media||busy||uploading}><Clapperboard size={17}/> {busy&&job?.kind==="edit_render"?"Editing…":`Create with ${selectedModel.name}`}</button>
           <InlineJobState job={job?.kind==="edit_render"?job:null}/>
