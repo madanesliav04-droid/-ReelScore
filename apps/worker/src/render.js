@@ -1117,7 +1117,7 @@ function buildEditorialGraphicsAss(timeline,width,height){
     ev.push(`Dialogue: 2,${start},${end},Editorial,,0,0,0,,{\\an8\\pos(${Math.round(width*.30)},${y})}${animation}${leftValue}`);
     ev.push(`Dialogue: 2,${start},${end},Editorial,,0,0,0,,{\\an8\\pos(${Math.round(width*.70)},${y})}${animation}${rightValue}`);
   }
-  return header.concat(ev).join('\\n');
+  return header.concat(ev).join('\n');
 }
 
 function buildAss(
