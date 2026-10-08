@@ -635,6 +635,7 @@ async function importSource(url,dir){
   const common=[
     '--no-playlist',
     '--no-warnings',
+    '--js-runtimes','node',
     '--restrict-filenames',
     '--max-filesize','500M',
     '--merge-output-format','mp4',
