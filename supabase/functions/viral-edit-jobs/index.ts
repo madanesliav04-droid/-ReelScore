@@ -199,7 +199,7 @@ async function route(req:Request){
     const media=await ownMedia(db,user.id,String(body.video_id));
     if(!media)return out({error:"MEDIA_NOT_FOUND"},404);
 
-    const allowedStyles=["codie","impact","clean","authority","explainer","data","ugc_native","cinematic_story","creator_clean","business_viral","podcast_authority"];
+    const allowedStyles=["codie","impact","clean","authority","explainer","data","ugc_native","cinematic_story","editorial_breakdown","creator_clean","business_viral","podcast_authority"];
     const requestedStyle=String(body.style||"clean");
     const style=allowedStyles.includes(requestedStyle)?requestedStyle:"clean";
     const canonicalStyle={creator_clean:"clean",business_viral:"impact",podcast_authority:"authority"}[style]||style;
@@ -211,7 +211,8 @@ async function route(req:Request){
       explainer:"explainer",
       data:"data",
       ugc_native:"ugc",
-      cinematic_story:"cinematic"
+      cinematic_story:"cinematic",
+      editorial_breakdown:"editorial"
     };
     const caption=captionByModel[canonicalStyle]||"clean";
     const sourceAnalysisId=isUuid(body.analysis_id)?String(body.analysis_id):null;
@@ -229,7 +230,7 @@ async function route(req:Request){
         settings:{
           ...(body.settings&&typeof body.settings==="object"?body.settings:{}),
           format,
-          model_contract_version:"editplus-models-v1"
+          model_contract_version:"editplus-models-v3-editorial-breakdown"
         }
       })
       .select("*")
@@ -242,7 +243,7 @@ async function route(req:Request){
         source_analysis_id:sourceAnalysisId,
         style:canonicalStyle,
         caption_preset:caption,
-        settings:{format,model_contract_version:"editplus-models-v1"},
+        settings:{format,model_contract_version:"editplus-models-v3-editorial-breakdown"},
         requested_at:new Date().toISOString()
       },`edit:${project.id}:${requestId}`);
       return out({project,job},202);
