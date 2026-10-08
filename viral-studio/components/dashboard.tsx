@@ -7,7 +7,7 @@ import {functionUrl,supabase,SUPABASE_PROJECT_REF,VIDEO_BUCKET} from "@/lib/supa
 import {authMessage} from "@/lib/auth-message";
 
 type Module="viral"|"edit"|"clip";
-type Job={id:string;kind?:string;status:string;progress?:number;stage?:string;result?:any;error?:any;error_code?:string};
+type Job={id:string;kind?:string;status:string;progress?:number;stage?:string;result?:any;error?:any;error_code?:string;clip_project_id?:string|null};
 type Media={id:string;storage_path:string;mime_type:string;size_bytes:number;original_name?:string};
 type EditModel={id:string;name:string;category:string;preview:string;meta:string;goal:string;actions:string[];never:string};
 
@@ -303,6 +303,15 @@ export function Dashboard(){
         if(!alive())return;
         setJob(body.job);
         setActive(body.job.kind==="clip_generate"?"clip":body.job.kind==="edit_render"?"edit":"viral");
+        // Every ready output becomes accessible immediately, including after a browser restart.
+        if(kind==="clip"&&body.job.clip_project_id){
+          try{
+            const partial=await api(functionUrl("clip-jobs",`projects/${body.job.clip_project_id}`),token);
+            if(alive())setClipProject(partial);
+          }catch{
+            // A transient project-read failure must not interrupt durable job polling.
+          }
+        }
         if(["failed","cancelled"].includes(body.job.status)){
           const code=String(body.job.error_code||"");
           if(kind==="clip"&&["YOUTUBE_EGRESS_REQUIRED","YOUTUBE_IMPORT_FAILED","YOUTUBE_UNAVAILABLE","IMPORT_CONFIGURATION_ERROR"].includes(code))setClipFallback(true);
@@ -444,12 +453,20 @@ export function Dashboard(){
     }catch(e:any){setError(e.message);setBusy(false)}
   }
 
-  async function openClip(clipId:string){
+  async function openClip(clipId:string,download=false){
+    // Open synchronously from the click gesture to avoid popup blockers after API awaits.
+    const tab=window.open("about:blank","_blank");
+    if(tab)tab.opener=null;
     try{
-      const body=await api(functionUrl("clip-jobs",`clips/${clipId}/url`),token);
+      const suffix=download?"?download=1":"";
+      const body=await api(functionUrl("clip-jobs",`clips/${clipId}/url`)+suffix,token);
       if(!body?.signed_url)throw new Error("Clip indisponible.");
-      window.open(body.signed_url,"_blank","noopener,noreferrer");
-    }catch(e:any){setError(e.message)}
+      if(tab)tab.location.href=body.signed_url;
+      else window.location.assign(body.signed_url);
+    }catch(e:any){
+      tab?.close();
+      setError(e.message);
+    }
   }
 
   async function useClip(clip:any,next:Module){
@@ -585,19 +602,19 @@ export function Dashboard(){
         {safeZone&&<section className="safe-zone-panel"><div className="safe-phone"><div className="unsafe top"/><div className="safe-frame"><span>UNIVERSAL SAFE</span></div><div className="unsafe right"/><div className="unsafe bottom"/></div><div className="safe-copy"><small>SAFE ZONE</small><h2>{safeZone.score??"—"}<span>/100</span></h2><p>{safeZone.summary||"Framing, text and caption placement checked for short-form UI risk."}</p><div className="safe-metrics"><span>Framing <b>{safeZone.framing}</b></span><span>Text <b>{safeZone.text_safety}</b></span><span>Captions <b>{safeZone.caption_safety}</b></span><span>Platform fit <b>{safeZone.platform_fit}</b></span></div>{safeZone.issues?.length>0&&<div className="safe-issues">{safeZone.issues.slice(0,6).map((x:any,i:number)=><div className={`safe-issue ${x.severity}`} key={i}><strong>{x.element}</strong><span>{x.problem}</span><small>{x.correction}</small></div>)}</div>}</div></section>}
       </>}
 
-      {active==="clip"&&clipProject?.clips?.length>0&&<section className="clips-section"><div className="section-heading"><small>CLIP+ · READY</small><h2>{clipProject.clips.length} strong clip{clipProject.clips.length>1?"s":""} found.</h2><p>{clipProject.clips.length<clipCount?`You asked for ${clipCount}. Clip+ stopped at ${clipProject.clips.length} because quality comes before quota.`:"All requested clips passed the quality threshold."}</p></div><div className="clips-grid">{clipProject.clips.map((clip:any)=><article className="clip-card" key={clip.id}><div className="clip-rank">0{clip.rank}</div><strong>{clip.viral_score??"—"}</strong><small>Viral potential</small><h3>{clip.title||"Untitled clip"}</h3><p>{clip.hook||clip.rationale}</p><button className="btn primary clip-open" onClick={()=>openClip(clip.id)}>Open clip ↗</button><button className="btn ghost" onClick={()=>useClip(clip,"edit")}>Open in Edit+ →</button><button className="btn ghost" onClick={()=>useClip(clip,"viral")}>Analyze with Viral+ →</button></article>)}</div></section>}
+      {active==="clip"&&clipProject?.clips?.length>0&&<section className="clips-section"><div className="section-heading"><small>CLIP+ · {job?.kind==="clip_generate"&&job.status!=="completed"?"EN COURS":"READY"}</small><h2>{clipProject.clips.length} clip{clipProject.clips.length>1?"s":""} disponible{clipProject.clips.length>1?"s":""}.</h2><p>{job?.kind==="clip_generate"&&!["completed","failed","cancelled"].includes(job.status)?`${clipProject.clips.length}/${clipProject.project?.requested_clip_count||clipCount} export(s) prêt(s). Les autres continuent en arrière-plan.`:clipProject.clips.length<clipCount?`Tu as demandé ${clipCount} clips : ${clipProject.clips.length} ont franchi le seuil qualité.`:"Les clips demandés sont disponibles."}</p></div><div className="clips-grid">{clipProject.clips.map((clip:any)=><article className="clip-card" key={clip.id}><div className="clip-rank">0{clip.rank}</div><strong>{clip.viral_score??"—"}</strong><small>Viral potential</small><h3>{clip.title||"Untitled clip"}</h3><p>{clip.hook||clip.rationale}</p><button className="btn primary clip-open" onClick={()=>openClip(clip.id)}>Voir le clip ↗</button><button className="btn ghost" onClick={()=>openClip(clip.id,true)}>Télécharger MP4 ↓</button><button className="btn ghost" onClick={()=>useClip(clip,"edit")}>Open in Edit+ →</button><button className="btn ghost" onClick={()=>useClip(clip,"viral")}>Analyze with Viral+ →</button></article>)}</div></section>}
     </section>
   </main>;
 }
 
 function BackendState({media,job}:{media:Media|null;job:Job|null}){
-  return <aside className="panel backend-state"><h3>Live state</h3><div className="status-row"><span>Source</span><span className="status-pill">{media?.id?"Registered":"—"}</span></div><div className="status-row"><span>Job</span><span className="status-pill">{job?.status||"—"}</span></div><div className="status-row"><span>Stage</span><span className="status-pill">{job?.stage||"—"}</span></div><div className="status-row"><span>Progress</span><span className="status-pill">{typeof job?.progress==="number"?job.progress+"%":"—"}</span></div>{job&&<div className="job-card"><strong>{job.status}</strong><small>{job.id}</small></div>}</aside>
+  return <aside className="panel backend-state"><h3>Live state</h3><div className="status-row"><span>Source</span><span className="status-pill">{media?.id?"Registered":"—"}</span></div><div className="status-row"><span>Job</span><span className="status-pill">{job?.status||"—"}</span></div><div className="status-row"><span>Stage</span><span className="status-pill">{job?.stage||"—"}</span></div><div className="status-row"><span>Progress</span><span className="status-pill">{job?.status==="completed"?"100 %":job?"Étape en cours":"—"}</span></div>{job&&<div className="job-card"><strong>{job.status}</strong><small>{job.id}</small></div>}</aside>
 }
 
 
 function InlineJobState({job}:{job:Job|null}){
   if(!job)return null;
-  const progress=typeof job.progress==="number"?Math.max(0,Math.min(100,job.progress)):0;
+  const done=job.status==="completed";
   const label=job.status==="queued"
     ?"Queued — waiting for worker"
     :job.status==="completed"
@@ -606,7 +623,7 @@ function InlineJobState({job}:{job:Job|null}){
         ?"Failed"
         :job.stage||job.status||"Processing";
   return <div className="inline-job-state">
-    <div><span>{label}</span><b>{progress}%</b></div>
-    <div className="progress"><i style={{width:`${progress}%`}}/></div>
+    <div><span>{label}</span><b>{done?"100 %":"Étape en cours"}</b></div>
+    {done&&<div className="progress"><i style={{width:"100%"}}/></div>}
   </div>;
 }
