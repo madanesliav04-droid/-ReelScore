@@ -1098,7 +1098,7 @@ export function buildEditorialGraphicsAss(timeline,width,height){
       const headline=escapeAssText(String(cue.text||'').slice(0,76));
       if(headline){
         const quoteSize=Math.round(fontsize*.70);
-        ev.push(`Dialogue: 2,${start},${end},Editorial,,0,0,0,,{\\\\an8\\\\pos(${x},${y})\\\\fs${quoteSize}\\\\fad(220,280)}${headline}`);
+        ev.push(`Dialogue: 2,${start},${end},Editorial,,0,0,0,,{\\an8\\pos(${x},${y})\\fs${quoteSize}\\fad(220,280)}${headline}`);
       }
       continue;
     }
