@@ -189,7 +189,6 @@ export function Dashboard(){
     setEditExportUrl("");setEditOutputMediaId("");setError("");
     setViralQuota(null);
     if(owner){
-      void api(functionUrl("viral-edit-jobs","quota"),"").then(body=>setViralQuota(body.quota||null)).catch(()=>{});
       try{
         const saved=localStorage.getItem(`viral-studio-active-job:${owner}`);
         const parsed=saved?JSON.parse(saved):null;
@@ -221,6 +220,7 @@ export function Dashboard(){
     setError("");
     setJob(null);
     history.replaceState(null,"",`/dashboard?tool=${next}`);
+    if(next==="viral")void api(functionUrl("viral-edit-jobs","quota"),"").then(q=>setViralQuota(q.quota||null)).catch(()=>{});
   }
 
   function displayJobError(current:Job){
@@ -289,6 +289,7 @@ export function Dashboard(){
           try{
             const body=await api(functionUrl("viral-edit-jobs","media"),token,{method:"POST",body:JSON.stringify({storage_path:objectName,mime_type:mime,size_bytes:selected.size,original_name:selected.name,module:"shared"})});
             if(alive()){(isClip?setClipMedia:setMedia)(body.media);(isClip?setClipUploadPct:setUploadPct)(100)}
+            if(!isClip)void api(functionUrl("viral-edit-jobs","quota"),"").then(q=>setViralQuota(q.quota||null)).catch(()=>{});
           }catch{if(alive())setError("La vidéo a été envoyée mais sa préparation a échoué. Réessaie l’import.")}
           finally{if(alive())release()}
         }
