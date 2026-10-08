@@ -28,6 +28,11 @@
 .model-card[data-model="authority"] .model-preview{background:radial-gradient(circle at 50% 25%,rgba(255,155,69,.16),transparent 40%),#0b0d11}.model-card[data-model="authority"] .preview-caption{font-size:12px;color:#fff}
 .model-card[data-model="explainer"] .preview-caption{background:rgba(0,0,0,.55);padding:5px;border-radius:5px;color:#7ce8ff}
 .model-card[data-model="data"] .preview-caption{font-size:18px;color:#ffd166}
+.model-card[data-model="editorial_breakdown"] .model-preview{background:linear-gradient(180deg,rgba(24,20,22,.76),rgba(13,12,15,.92)),repeating-linear-gradient(90deg,transparent 0,transparent 25%,rgba(245,238,226,.09) 25.2%,transparent 25.5%),#18151a}
+.model-card[data-model="editorial_breakdown"] .model-preview:before{content:"";position:absolute;left:10%;right:10%;top:14%;height:55%;border:1px solid rgba(247,241,226,.32);border-radius:6px;background:linear-gradient(90deg,rgba(255,255,255,.07) 49.7%,rgba(255,255,255,.23) 50%,rgba(255,255,255,.07) 50.3%);backdrop-filter:blur(5px)}
+.model-card[data-model="editorial_breakdown"] .preview-face{filter:grayscale(1);opacity:.42}
+.model-card[data-model="editorial_breakdown"] .preview-caption{font-family:Georgia,"Times New Roman",serif;font-size:21px;letter-spacing:-.055em;font-weight:400;color:#f5eee2;text-shadow:0 2px 12px #18151a;bottom:56px}
+
 .model-card[data-model="ugc_native"] .model-preview{background:linear-gradient(160deg,#28152a,#0c0b10)}.model-card[data-model="ugc_native"] .preview-caption{color:#ff3fbf}
 .model-card[data-model="cinematic_story"] .model-preview{background:linear-gradient(180deg,#1d2430,#07090c)}.model-card[data-model="cinematic_story"] .preview-caption{font-family:serif;font-weight:600;font-size:12px}
 .model-copy{padding:14px;display:grid;grid-template-columns:1fr auto;gap:3px 8px;align-items:start}.model-copy div{display:flex;flex-direction:column}.model-copy strong{font-size:15px}.model-copy span{font-size:10px;color:#747e91;margin-top:2px}.model-copy p{grid-column:1/-1;color:#9098a8;font-size:11px;margin:7px 0 0}
