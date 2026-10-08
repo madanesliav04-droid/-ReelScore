@@ -5,6 +5,7 @@ import {BarChart3,Clapperboard,LogOut,Scissors,Upload,Zap,Check,Link2} from "luc
 import * as tus from "tus-js-client";
 import {functionUrl,supabase,SUPABASE_PROJECT_REF,VIDEO_BUCKET} from "@/lib/supabase";
 import {authMessage} from "@/lib/auth-message";
+import {MAX_VIDEO_UPLOAD_MIB,videoUploadPreflight,videoUploadErrorMessage} from "@/lib/upload-limits";
 
 type Module="viral"|"edit"|"clip";
 type Job={id:string;kind?:string;status:string;progress?:number;stage?:string;result?:any;error?:any;error_code?:string;clip_project_id?:string|null};
@@ -242,8 +243,8 @@ export function Dashboard(){
 
   async function uploadSource(selected:File,isClip:boolean){
     if(busy||uploadLocked.current)return;
-    if(!selected.size)return setError("Ce fichier est vide. Choisis une vidéo.");
-    if(selected.size>500*1024*1024)return setError("Cette vidéo dépasse 500 Mo.");
+    const preflightError=videoUploadPreflight(selected);
+    if(preflightError)return setError(preflightError);
     const ext=selected.name.split(".").pop()?.toLowerCase();
     const mime=({mp4:"video/mp4",mov:"video/quicktime",webm:"video/webm"} as Record<string,string>)[ext||""];
     if(!mime)return setError("Choisis une vidéo MP4, MOV ou WebM.");
@@ -273,7 +274,11 @@ export function Dashboard(){
         },
         uploadDataDuringCreation:true,removeFingerprintOnSuccess:true,chunkSize:6*1024*1024,
         metadata:{bucketName:VIDEO_BUCKET,objectName,contentType:mime,cacheControl:"3600"},
-        onError(){if(alive()){setError("L’import a été interrompu. Sélectionne le même fichier pour reprendre.");release()}},
+        onError(uploadError){
+          const status=Number((uploadError as any)?.originalResponse?.getStatus?.()||0);
+          console.warn("Video upload failed",status);
+          if(alive()){setError(videoUploadErrorMessage(status));release()}
+        },
         onProgress(sent,total){if(alive())(isClip?setClipUploadPct:setUploadPct)(Math.round(sent/total*100))},
         async onSuccess(){
           if(!alive())return;
@@ -509,7 +514,7 @@ export function Dashboard(){
       {active==="viral"&&<div className="workspace-grid">
         <section className="panel">
           <small className="eyebrow">VIRAL+ · ANALYZE</small><h3>Upload. Understand what blocks the video.</h3>
-          <label className="upload-zone"><input type="file" disabled={busy||uploading} accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" onChange={e=>{const f=e.target.files?.[0];if(f)uploadVideo(f)}}/><div><Upload size={30}/><b>{file?file.name:media?"Clip importé — prêt à analyser":"Drop a Reel here"}</b><span>MP4 · MOV · WebM</span></div></label>
+          <label className="upload-zone"><input type="file" disabled={busy||uploading} accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" onChange={e=>{const f=e.currentTarget.files?.[0];e.currentTarget.value="";if(f)void uploadVideo(f)}}/><div><Upload size={30}/><b>{file?file.name:media?"Clip importé — prêt à analyser":"Drop a Reel here"}</b><span>MP4 · MOV · WebM · max {MAX_VIDEO_UPLOAD_MIB} Mo</span></div></label>
           {file&&<div className="progress"><i style={{width:`${uploadPct}%`}}/></div>}
           <button className="btn primary full" onClick={startAnalysis} disabled={!media||busy||uploading}><Zap size={16}/> {busy&&job?.kind==="viral_analysis"?"Analyzing…":"Analyze video"}</button>
           <InlineJobState job={job?.kind==="viral_analysis"?job:null}/>
@@ -522,8 +527,9 @@ export function Dashboard(){
         <div className="workspace-grid">
           <section className="panel">
             <small className="eyebrow">EDIT+ · AI EDIT</small><h3>Upload once. Pick the look. Edit+ does the rest.</h3>
-            <label className="upload-zone"><input type="file" disabled={busy||uploading} accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" onChange={e=>{const f=e.target.files?.[0];if(f)uploadVideo(f)}}/><div><Upload size={30}/><b>{file?file.name:media?"Clip importé — prêt à monter":"Drop your video here"}</b><span>Then choose one of the 9 locked models</span></div></label>
+            <label className="upload-zone"><input type="file" disabled={busy||uploading} accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" onChange={e=>{const f=e.currentTarget.files?.[0];e.currentTarget.value="";if(f)void uploadVideo(f)}}/><div><Upload size={30}/><b>{file?file.name:media?"Clip importé — prêt à monter":"Drop your video here"}</b><span>MP4 · MOV · WebM · max {MAX_VIDEO_UPLOAD_MIB} Mo · 9 modèles</span></div></label>
             {file&&<div className="progress"><i style={{width:`${uploadPct}%`}}/></div>}
+            {error&&<div role="alert" className="job-card error">{error}</div>}
             <div className="status-row"><span>Video</span><span className="status-pill">{media?"Ready":file?`${uploadPct}%`:"Waiting"}</span></div>
           </section>
           {sourceUrl?<video ref={sourceRef} className="source-preview" src={sourceUrl} controls playsInline/>:<BackendState media={media} job={job}/>}
@@ -544,7 +550,6 @@ export function Dashboard(){
           <label className="format-picker">Format de sortie <select className="field" value={format} onChange={e=>setFormat(e.target.value)} disabled={busy}><option value="native">Natif — conserver le format source</option><option value="portrait">Portrait — 1080 × 1920</option><option value="landscape">Paysage — 1920 × 1080</option></select></label>
           <button className="btn primary create-edit" onClick={()=>void startEdit(false)} disabled={!media||busy||uploading}><Clapperboard size={17}/> {busy&&job?.kind==="edit_render"?"Editing…":`Create with ${selectedModel.name}`}</button>
           <InlineJobState job={job?.kind==="edit_render"?job:null}/>
-          {error&&<div className="job-card error">{error}</div>}
         </section>
       </>}
 
@@ -557,7 +562,7 @@ export function Dashboard(){
           {clipFallback&&<div className="clip-upload-fallback">
             <small>DIRECT FILE FALLBACK</small>
             <p>MP4, MOV ou WebM. Le fichier rejoint ensuite le même moteur Clip+ : sélection des passages, 9:16 et captions.</p>
-            <label className="upload-zone compact"><input type="file" disabled={busy||uploading} accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" onChange={e=>{const f=e.target.files?.[0];if(f)uploadClipSource(f)}}/><div><Upload size={24}/><b>{clipFile?clipFile.name:"Import the source video"}</b><span>{clipMedia?"Ready for Clip+":clipFile?`${clipUploadPct}% uploaded`:"Up to 500 MB"}</span></div></label>
+            <label className="upload-zone compact"><input type="file" disabled={busy||uploading} accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" onChange={e=>{const f=e.currentTarget.files?.[0];e.currentTarget.value="";if(f)void uploadClipSource(f)}}/><div><Upload size={24}/><b>{clipFile?clipFile.name:"Import the source video"}</b><span>{clipMedia?"Ready for Clip+":clipFile?`${clipUploadPct}% uploaded`:`Max ${MAX_VIDEO_UPLOAD_MIB} Mo actuellement`}</span></div></label>
             {clipFile&&<div className="progress"><i style={{width:`${clipUploadPct}%`}}/></div>}
           </div>}
           <div className="clip-count-label">How many clips do you want?</div>
