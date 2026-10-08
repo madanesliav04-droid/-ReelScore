@@ -1073,7 +1073,7 @@ function buildGraphicsAss(timeline,width,height){
 
 // Dedicated typography/diagram renderer for the Editorial Breakdown model.
  // All numbers come from the timeline's transcript-evidenced graphic cues.
-function buildEditorialGraphicsAss(timeline,width,height){
+export function buildEditorialGraphicsAss(timeline,width,height){
   const fontsize=Math.max(24,Math.round(73*Math.min(1,height/1920)));
   const x=Math.round(width*.5),y=Math.round(height*.198);
   const header=[
