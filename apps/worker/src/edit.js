@@ -279,7 +279,7 @@ function buildEditorialBreakdownCues(captions,outputDurationMs){
     const explicitEquals=/[=×*]|(?:\\b(?:equals?|égal(?:e|ent)?|x|multiplied|fois)\\b)/i.test(sentence);
     const kind=unique.length>1?(explicitEquals?'equation':'comparison'):'stat';
     // Never invent the arithmetic result: display only the verbatim values.
-    const text=kind==='stat'?unique[0]:unique.join(explicitEquals?'  =  ':'   ·   ');
+    const text=kind==='stat'?unique[0]:unique.join('   ·   ');
     const dur=kind==='stat'?2700:3500;
     cues.push({
       startMs:at,
