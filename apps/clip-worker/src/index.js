@@ -494,7 +494,13 @@ async function persistExternalClip({
   rationale
 }){
   const info=await stat(filePath);
-  const safeDuration=Math.max(1000,Math.round(Number(durationMs||0)||1000));
+  if(info.size>MAX_CLIP_UPLOAD_BYTES)throw tagged('OUTPUT_TOO_LARGE','Clip externe trop volumineux');
+  const externalProbe=JSON.parse(await runStdout('ffprobe',['-v','error','-show_entries','format=duration:stream=codec_type','-of','json',filePath]));
+  const actualExternalDuration=Number(externalProbe?.format?.duration);
+  if(!externalProbe?.streams?.some(s=>s.codec_type==='video')||!Number.isFinite(actualExternalDuration)||actualExternalDuration<9.75||actualExternalDuration>15.25){
+    throw tagged('INVALID_EXPORT','La source externe ne respecte pas la durée Clip+ de 10 à 15 secondes');
+  }
+  const safeDuration=Math.round(actualExternalDuration*1000);
   const storagePath=
     `${job.user_id}/clips/${project.id}/${String(rank).padStart(2,'0')}-${randomUUID()}.mp4`;
 
@@ -1125,7 +1131,7 @@ async function persistClip({job,project,candidate,rank,filePath,captionsRendered
   const probe=JSON.parse(await runStdout('ffprobe',['-v','error','-show_entries','format=duration:stream=codec_type','-of','json',filePath]));
   const durationSec=Number(probe?.format?.duration);
   const expectedSec=Number(candidate.end_sec)-Number(candidate.start_sec);
-  if(!probe?.streams?.some(s=>s.codec_type==='video')||!Number.isFinite(durationSec)||durationSec<1||Math.abs(durationSec-expectedSec)>3){
+  if(!probe?.streams?.some(s=>s.codec_type==='video')||!Number.isFinite(durationSec)||durationSec<9.75||durationSec>15.25||Math.abs(durationSec-expectedSec)>.4){
     throw tagged('INVALID_EXPORT',`Clip ${rank}: MP4 invalide ou durée inattendue`);
   }
   console.log(JSON.stringify({event:'clip_export_verified',job:job.id,rank,bytes:info.size,duration_sec:durationSec}));
