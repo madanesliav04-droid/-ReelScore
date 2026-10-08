@@ -125,6 +125,7 @@ async function api(path:string,_token:string,init:RequestInit={},allowRetry=true
   if(!res.ok){
     const code=String(body?.error||body?.message||"");
     if(res.status===401||code==="AUTH_REQUIRED")throw Object.assign(new Error("Ta session a expiré. Reconnecte-toi pour reprendre ton travail."),{status:401});
+    if(code.toLowerCase().includes("quota_exhausted"))throw Object.assign(new Error("Ton quota mensuel d’analyses Viral+ est atteint. Consulte le compteur, puis réessaie après son renouvellement."),{status:429,code});
     throw Object.assign(new Error(/quota|credit|limit/i.test(code)?"La limite de traitement est atteinte. Réessaie plus tard.":"Le service n’a pas pu traiter la demande. Réessaie dans un instant."),{status:res.status});
   }
   return body;
@@ -143,6 +144,7 @@ export function Dashboard(){
   const [file,setFile]=useState<File|null>(null);
   const [media,setMedia]=useState<Media|null>(null);
   const [uploadPct,setUploadPct]=useState(0);
+  const [viralQuota,setViralQuota]=useState<{used:number;limit:number;remaining:number;reset_at:string}|null>(null);
   const [job,setJob]=useState<Job|null>(null);
   const [analysis,setAnalysis]=useState<any>(null);
   const [error,setError]=useState("");
@@ -185,7 +187,9 @@ export function Dashboard(){
     setBusy(false);setJob(null);setMedia(null);setFile(null);setSourceUrl("");
     setAnalysis(null);setClipMedia(null);setClipFile(null);setClipProject(null);
     setEditExportUrl("");setEditOutputMediaId("");setError("");
+    setViralQuota(null);
     if(owner){
+      void api(functionUrl("viral-edit-jobs","quota"),"").then(body=>setViralQuota(body.quota||null)).catch(()=>{});
       try{
         const saved=localStorage.getItem(`viral-studio-active-job:${owner}`);
         const parsed=saved?JSON.parse(saved):null;
@@ -382,7 +386,9 @@ export function Dashboard(){
     setError("");setAnalysis(null);setBusy(true);
     try{
       const body=await api(functionUrl("viral-edit-jobs","analysis"),token,{method:"POST",body:JSON.stringify({video_id:media.id})});
-      setJob(body.job);await watchJob(body.job.id);
+      setJob(body.job);
+      void api(functionUrl("viral-edit-jobs","quota"),"").then(q=>setViralQuota(q.quota||null)).catch(()=>{});
+      await watchJob(body.job.id);
     }catch(e:any){setError(e.message);setBusy(false)}
   }
 
@@ -458,7 +464,7 @@ export function Dashboard(){
     try{
       const body=await api(functionUrl("clip-jobs","create"),token,{method:"POST",body:JSON.stringify({
         ...(clipMedia?{source_video_id:clipMedia.id}:{source_url:clipUrl.trim()}),
-        confirm_rights:true,clip_count:clipCount,min_duration_sec:20,max_duration_sec:60,caption_preset:"modern_bold",add_captions:true
+        confirm_rights:true,clip_count:clipCount,min_duration_sec:10,max_duration_sec:15,caption_preset:"modern_bold",add_captions:true
       })});
       setJob(body.job);setClipProject({project:body.project,clips:[]});await watchJob(body.job.id,"clip");
     }catch(e:any){setError(e.message);setBusy(false)}
@@ -514,6 +520,7 @@ export function Dashboard(){
       {active==="viral"&&<div className="workspace-grid">
         <section className="panel">
           <small className="eyebrow">VIRAL+ · ANALYZE</small><h3>Upload. Understand what blocks the video.</h3>
+          {viralQuota&&<p role="status" className="quota-status" data-testid="viral-monthly-quota">Analyses ce mois : <strong>{viralQuota.used}/{viralQuota.limit}</strong> · {viralQuota.remaining} disponibles · renouvellement le {new Date(viralQuota.reset_at).toLocaleDateString("fr-FR",{day:"numeric",month:"long"})}</p>}
           <label className="upload-zone"><input type="file" disabled={busy||uploading} accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" onChange={e=>{const f=e.currentTarget.files?.[0];e.currentTarget.value="";if(f)void uploadVideo(f)}}/><div><Upload size={30}/><b>{file?file.name:media?"Clip importé — prêt à analyser":"Drop a Reel here"}</b><span>MP4 · MOV · WebM · max {MAX_VIDEO_UPLOAD_MIB} Mo</span></div></label>
           {file&&<div className="progress"><i style={{width:`${uploadPct}%`}}/></div>}
           <button className="btn primary full" onClick={startAnalysis} disabled={!media||busy||uploading}><Zap size={16}/> {busy&&job?.kind==="viral_analysis"?"Analyzing…":"Analyze video"}</button>
@@ -556,7 +563,7 @@ export function Dashboard(){
       {active==="clip"&&<div className="workspace-grid">
         <section className="panel clip-url-panel">
           <small className="eyebrow">CLIP+ · YOUTUBE TO SHORTS</small><h3>Paste a long YouTube video. Get the best Shorts.</h3>
-          <p className="clip-promise">URL → analyse complète → meilleurs passages → 9:16 → captions → clips prêts à poster.</p>
+          <p className="clip-promise">URL → analyse des moments forts → extraits de 10 à 15 secondes → 9:16 → captions → clips prêts à poster.</p>
           <div className="url-box"><Link2 size={20}/><input value={clipUrl} onChange={e=>{setClipUrl(e.target.value);setClipMedia(null)}} placeholder="Paste YouTube URL"/></div>
           <button type="button" className="clip-upload-toggle" onClick={()=>setClipFallback(v=>!v)}>{clipFallback?"Hide file import":"YouTube blocked? Import the video instead"}</button>
           {clipFallback&&<div className="clip-upload-fallback">
@@ -565,9 +572,9 @@ export function Dashboard(){
             <label className="upload-zone compact"><input type="file" disabled={busy||uploading} accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" onChange={e=>{const f=e.currentTarget.files?.[0];e.currentTarget.value="";if(f)void uploadClipSource(f)}}/><div><Upload size={24}/><b>{clipFile?clipFile.name:"Import the source video"}</b><span>{clipMedia?"Ready for Clip+":clipFile?`${clipUploadPct}% uploaded`:`Max ${MAX_VIDEO_UPLOAD_MIB} Mo actuellement`}</span></div></label>
             {clipFile&&<div className="progress"><i style={{width:`${clipUploadPct}%`}}/></div>}
           </div>}
-          <div className="clip-count-label">How many clips do you want?</div>
+          <div className="clip-count-label">Combien d’extraits courts de 10–15 s veux-tu ?</div>
           <div className="clip-count-selector">{([5,10,20] as const).map(n=><button key={n} className={clipCount===n?"selected":""} onClick={()=>setClipCount(n)}><strong>{n}</strong><span>clips</span></button>)}</div>
-          <div className="quality-note"><Check size={14}/><span>Quality first: Clip+ can return fewer clips if the source does not contain enough strong standalone moments.</span></div>
+          <div className="quality-note"><Check size={14}/><span>Meilleurs moments uniquement : hook immédiat, idée autonome, chute naturelle. Clip+ peut en produire moins si la vidéo ne contient pas assez de passages forts.</span></div>
           <label className="rights-check"><input type="checkbox" checked={clipRights} onChange={e=>setClipRights(e.target.checked)}/><span>Je confirme que je possède cette vidéo ou que j’ai l’autorisation de la traiter.</span></label>
           <button className="btn primary full" onClick={startClip} disabled={(!clipMedia&&!clipUrl.trim())||!clipRights||busy||uploading}><Scissors size={16}/> {busy&&job?.kind==="clip_generate"?`Creating up to ${clipCount} clips…`:clipMedia?`Generate ${clipCount} clips from upload`:`Generate ${clipCount} clips`}</button>
           <InlineJobState job={job?.kind==="clip_generate"?job:null}/>
