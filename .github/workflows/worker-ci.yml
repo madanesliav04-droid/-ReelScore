@@ -20,6 +20,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install worker dependencies
         run: npm install --no-audit --no-fund
+      - name: Install FFmpeg for real export smoke tests
+        run: sudo apt-get update -qq && sudo apt-get install -y ffmpeg fonts-noto-core
       - name: Syntax checks
         run: npm run check
       - name: Build worker image
