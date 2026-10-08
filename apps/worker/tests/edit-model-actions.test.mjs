@@ -98,7 +98,7 @@ test('Editorial Breakdown displays only timestamped figures actually spoken',()=
   assert.ok(timeline.graphicCues.length>=1);
   assert.ok(timeline.graphicCues.some(c=>c.figures.some(n=>n.includes('400'))));
   assert.ok(timeline.graphicCues.every(c=>c.evidence==='timestamped_transcript'));
-  assert.ok(timeline.graphicCues.every(c=>c.figures.every(v=>/\\d/.test(v))));
+  assert.ok(timeline.graphicCues.every(c=>c.figures.every(v=>/\d/.test(v))));
   assert.ok(timeline.graphicCues.every(c=>!c.text.includes('600')));
   assert.equal(timeline.captionPreset,'editorial');
 });
