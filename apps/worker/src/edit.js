@@ -278,7 +278,7 @@ function buildEditorialBreakdownCues(captions,outputDurationMs){
     if(!tokens.length){
       // The reference also uses restrained serif editorial statements and
       // questions. Their wording must come directly from spoken captions.
-      const editorialPhrase=/\\b(?:why|because|without|but|however|actually|means|costs?|money|pourquoi|parce|mais|sans|signifie|coûte|perdre|économiser)\\b|[?？]/i.test(sentence);
+      const editorialPhrase=/\b(?:why|because|without|but|however|actually|means|costs?|money|pourquoi|parce|mais|sans|signifie|coûte|perdre|économiser)\b|[?？]/i.test(sentence);
       if(editorialPhrase&&sentence.length>=9&&sentence.length<=76&&
         sentence.split(' ').length>=2&&at-lastStatement>=7500){
         cues.push({
