@@ -9,6 +9,7 @@ import {spawn} from 'node:child_process';
 import {randomUUID} from 'node:crypto';
 import {createClient} from '@supabase/supabase-js';
 import {analyzeVideo,extractMeasurableSignals} from './viral.js';
+import {rankHighlights,DEFAULT_MIN_HIGHLIGHT_SECONDS,DEFAULT_MAX_HIGHLIGHT_SECONDS} from './clip-highlights.js';
 
 const required=['SUPABASE_URL','SUPABASE_SERVICE_ROLE_KEY','GEMINI_API_KEY'];
 const missing=required.filter(k=>!process.env[k]);
@@ -160,8 +161,8 @@ async function processJob(job){
     await supabase.from('clip_projects').update({status:'analyzing',title:project.title||analysis.detected_title_text||null,updated_at:new Date().toISOString()}).eq('id',projectId);
     await progress(job,'analyzing',48,'Sélection IA des meilleurs moments');
     const count=requestedCount;
-    const minSec=clampInt(payload.min_duration_sec??project.min_duration_sec,20,8,90);
-    const maxSec=clampInt(payload.max_duration_sec??project.max_duration_sec,60,15,120);
+    const minSec=clampInt(payload.min_duration_sec??project.min_duration_sec,DEFAULT_MIN_HIGHLIGHT_SECONDS,8,90);
+    const maxSec=clampInt(payload.max_duration_sec??project.max_duration_sec,DEFAULT_MAX_HIGHLIGHT_SECONDS,15,120);
     const selectedCandidates=await selectCandidates({
       analysis,
       count,
@@ -944,15 +945,15 @@ async function selectCandidates({
 
   const prompt=`Tu es Clip+, un directeur éditorial spécialisé short-form.
 
-Sélectionne JUSQU'À ${selectionPoolSize} excellents passages autonomes à transformer en Reels/TikTok/Shorts.
+Sélectionne JUSQU'À ${selectionPoolSize} micro-extraits réellement autonomes, orientés rétention, de ${minSec} à ${maxSec} secondes. Un bon extrait démarre directement sur une phrase qui arrête le défilement (max 1,5 seconde), apporte UNE idée précise et se termine naturellement sur sa chute. Chaque découpe doit être vérifiable grâce à la transcription ou aux ancres multimodales. Pour chaque candidat, propose l'intervalle le plus court qui conserve le hook et le payoff.
 Utilise en priorité les mots horodatés. S'ils sont absents ou incomplets, appuie-toi sur la transcription texte ET sur les ancres de l'analyse multimodale (timeline, hook, verdict) pour estimer les meilleurs intervalles. N'invente jamais un timestamp sans support dans les ancres disponibles. Le nombre demandé par l'utilisateur sera appliqué APRÈS ton classement, donc ne change jamais tes critères selon le quota utilisateur. Ne remplis jamais le quota avec des passages moyens: retourne moins de clips si la qualité n'est pas suffisante.
 Durée de chaque clip: ${minSec} à ${maxSec} secondes.
 Durée source: ${duration.toFixed(1)} secondes.
 
-Priorités: hook immédiat, idée compréhensible sans contexte, tension/curiosité, valeur concrète, émotion ou opinion forte, fin naturelle, potentiel de partage. Évite les intros, sponsors, transitions molles, passages incomplets et doublons. Les clips ne doivent pas se chevaucher fortement.
+Classement qualitatif: priorité aux phrases choc autonomes, contradictions, révélations, conseils applicables, erreurs coûteuses, émotions et conclusions percutantes. Évalue l'impact des deux premières secondes, l'autonomie sans contexte, la densité d'information et une chute complète avant 15 secondes. Écarte salutations, intros, sponsors, blabla, phrases tronquées, contextes indispensables et répétitions. N'allonge JAMAIS pour atteindre un nombre de clips. Ne propose que des extraits de ${minSec} à ${maxSec} secondes avec timestamps réels. Les clips ne doivent pas se chevaucher fortement.
 Classe les MEILLEURS passages disponibles et note-les honnêtement de 0 à 100, même si aucun n'atteint ${minClipQuality}. Retourne au moins le meilleur passage autonome dès qu'il existe réellement. Le code appliquera ensuite le seuil qualité et pourra ne garder qu'un seul "best available". N'invente jamais un score pour faire passer le seuil.
 
-Retourne UNIQUEMENT un JSON valide: {"clips":[{"start_sec":0,"end_sec":35,"title":"","hook":"","rationale":"","viral_score":0}]}. viral_score est une heuristique 0-100, pas une promesse de vues.
+Retourne UNIQUEMENT un JSON valide: {"clips":[{"start_sec":0,"end_sec":12,"title":"","hook":"","rationale":"","viral_score":0,"hook_time_sec":0}]}. Le hook reprend les mots prononcés au début. viral_score est une heuristique éditoriale, pas une prédiction de vues. Si aucun extrait autonome de 10-15 secondes n’existe, retourne {"clips":[]}.
 
 MOTS HORODATÉS:
 ${transcriptWords}
@@ -1023,128 +1024,31 @@ ${semanticAnchors}`;
   }
 
   if(!parsed){
-    console.warn(JSON.stringify({
-      event:'clip_selection_fallback',
-      reason:errors.at(-1)||'gemini_unavailable'
-    }));
-    return fallbackCandidates(words,duration,selectionPoolSize,minSec,maxSec,analysis)
-      .filter(x=>Number(x.viral_score||0)>=Math.max(58,minClipQuality-6))
-      .sort((a,b)=>b.viral_score-a.viral_score)
-      .slice(0,count);
+    console.warn(JSON.stringify({event:'clip_selection_unavailable',reason:errors.at(-1)||'gemini_unavailable'}));
+    // Without semantic evidence we must never label evenly spaced footage "best moments".
+    throw tagged('SELECTION_UNAVAILABLE','La sélection IA est momentanément indisponible. Aucun clip approximatif ne sera inventé.');
   }
 
   const raw=Array.isArray(parsed.clips)?parsed.clips:[];
-  const valid=[];
-  for(const x of raw){
-    let start=Math.max(0,Number(x.start_sec)||0);
-    let end=Math.min(duration,Number(x.end_sec)||0);
-    if(end<=start)continue;
-    if(end-start<minSec)end=Math.min(duration,start+minSec);
-    if(end-start>maxSec)end=start+maxSec;
-    if(end-start<Math.min(minSec,12))continue;
-
-    const item={
-      start_sec:round(start,3),
-      end_sec:round(end,3),
-      title:String(x.title||'Clip '+(valid.length+1)).slice(0,140),
-      hook:String(x.hook||'').slice(0,220),
-      rationale:String(x.rationale||'').slice(0,500),
-      viral_score:clampInt(x.viral_score,55,0,100)
-    };
-
-    if(valid.some(y=>overlapRatio(item,y)>.5))continue;
-    valid.push(item);
-    if(valid.length>=selectionPoolSize)break;
-  }
-
-  const clean=valid
-    .filter(x=>x.viral_score>=minClipQuality)
-    .sort((a,b)=>b.viral_score-a.viral_score);
-
-  // If semantic analysis itself had no transcript, do not fail the whole job.
-  // Use the measured audio/visual activity fallback only in that degraded-analysis case.
-  // When a real transcript exists, quality-first behavior remains strict: no padding.
-  if(
-    !clean.length&&
-    (
-      !words.length||
-      analysis?.analysis_basis==='local_audio_visual_fallback'
-    )
-  ){
-    const local=fallbackCandidates(
-      words,
-      duration,
-      selectionPoolSize,
-      minSec,
-      maxSec,
-      analysis
-    )
-      .filter(x=>Number(x.viral_score||0)>=Math.max(58,minClipQuality-6))
-      .sort((a,b)=>b.viral_score-a.viral_score)
-      .slice(0,count);
-
-    if(local.length){
-      console.warn(JSON.stringify({
-        event:'clip_selection_activity_fallback',
-        count:local.length,
-        reason:!words.length?'missing_transcript':'local_analysis'
-      }));
-      return local;
-    }
-  }
-
-  if(clean.length){
-    return clean.slice(0,count);
-  }
-
-  // No candidate cleared the normal quality threshold. If Gemini still found a
-  // coherent standalone moment, return only the strongest one with its REAL
-  // score instead of failing the whole Clip+ job. This keeps quality honest:
-  // the UI can show that the source had no high-confidence clip.
-  const bestAvailable=valid
-    .filter(x=>x.viral_score>=50)
-    .sort((a,b)=>b.viral_score-a.viral_score)[0];
-
-  if(bestAvailable){
-    console.warn(JSON.stringify({
-      event:'clip_selection_best_available',
-      score:bestAvailable.viral_score,
-      threshold:minClipQuality,
-      start_sec:bestAvailable.start_sec,
-      end_sec:bestAvailable.end_sec
-    }));
-    return [{
-      ...bestAvailable,
-      rationale:
-        (bestAvailable.rationale
-          ?bestAvailable.rationale+' '
-          :'')+
-        `Best available: score below preferred threshold ${minClipQuality}.`
-    }];
-  }
-
-  // Last-resort semantic-safe fallback: only one clip, never padding the quota.
-  // Use measured/transcript timing and keep the low heuristic score visible.
-  const fallback=fallbackCandidates(
-    words,
+  const selected=rankHighlights(raw,{
     duration,
-    1,
+    words,
     minSec,
     maxSec,
-    analysis
-  )
-    .sort((a,b)=>b.viral_score-a.viral_score)
-    .slice(0,1);
-
-  if(fallback.length){
-    console.warn(JSON.stringify({
-      event:'clip_selection_single_fallback',
-      score:fallback[0].viral_score
-    }));
-    return fallback;
-  }
-
-  return [];
+    minQuality:minClipQuality,
+    count,
+    poolSize:selectionPoolSize
+  });
+  console.log(JSON.stringify({
+    event:'clip_micro_highlights_ranked',
+    requested:count,
+    proposed:raw.length,
+    accepted:selected.length,
+    bounds_sec:[minSec,maxSec],
+    scores:selected.map(x=>x.viral_score),
+    ranges:selected.map(x=>[x.start_sec,x.end_sec])
+  }));
+  return selected;
 }
 
 function compactTranscript(words,maxChars){
@@ -1159,65 +1063,6 @@ function compactTranscript(words,maxChars){
   const step=Math.ceil(joined.length/maxChars);
   joined=lines.filter((_,i)=>i%step===0).join('\n');
   return joined.slice(0,maxChars);
-}
-
-function fallbackCandidates(words,duration,count,minSec,maxSec,analysis=null){
-  const out=[];
-  const target=Math.min(maxSec,Math.max(minSec,45));
-  const activity=Array.isArray(analysis?.timeline)
-    ?analysis.timeline
-      .map(x=>({
-        start:Number(x.start_sec)||0,
-        end:Number(x.end_sec)||0,
-        score:Number(x.local_activity_score)||0
-      }))
-      .filter(x=>x.end>x.start)
-      .sort((a,b)=>b.score-a.score)
-    :[];
-
-  for(const window of activity){
-    let start=Math.max(0,window.start);
-    let end=Math.min(
-      duration,
-      Math.max(
-        start+Math.min(minSec,Math.max(12,target*.6)),
-        Math.min(start+target,window.end||start+target)
-      )
-    );
-    if(end-start<Math.min(minSec,12))continue;
-
-    const item={
-      start_sec:round(start,3),
-      end_sec:round(end,3),
-      title:'Moment dynamique',
-      hook:'',
-      rationale:'Sélection locale basée sur activité visuelle et densité audio.',
-      viral_score:Math.max(45,Math.min(75,Math.round(window.score||55)))
-    };
-    if(!out.some(y=>overlapRatio(item,y)>.5))out.push(item);
-    if(out.length>=count)return out;
-  }
-
-  for(let i=0;i<count;i++){
-    const center=duration*((i+1)/(count+1));
-    let start=Math.max(0,center-target*.25);
-    let end=Math.min(duration,start+target);
-    const near=words.find(w=>Math.abs((Number(w.startMs)||0)/1000-start)<2);
-    if(near)start=Math.max(0,(Number(near.startMs)||0)/1000);
-    end=Math.min(duration,start+target);
-    if(end-start>=12){
-      const item={
-        start_sec:round(start,3),
-        end_sec:round(end,3),
-        title:`Moment fort ${i+1}`,
-        hook:'',
-        rationale:'Sélection de secours répartie sur la vidéo.',
-        viral_score:55-i
-      };
-      if(!out.some(y=>overlapRatio(item,y)>.5))out.push(item);
-    }
-  }
-  return out.slice(0,count);
 }
 
 function overlapRatio(a,b){const x=Math.max(0,Math.min(a.end_sec,b.end_sec)-Math.max(a.start_sec,b.start_sec));return x/Math.max(1,Math.min(a.end_sec-a.start_sec,b.end_sec-b.start_sec))}
