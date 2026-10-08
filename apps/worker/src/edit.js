@@ -266,17 +266,17 @@ function buildGraphicCues({style,captions,outputDurationMs,styleCfg}){
  // multiple actual spoken values; never infer revenue, retention or percentages.
 function buildEditorialBreakdownCues(captions,outputDurationMs){
   const cues=[];
-  const numeric=/(?:[$€£]\\s*\\d+(?:[.,]\\d+)*(?:\\s*\\/\\s*(?:h|hr|hour|heure))?|\\b\\d+(?:[.,]\\d+)?\\s*(?:%|[$€£]|hours?|hrs?|heures?|minutes?|days?|jours?|clients?|euros?|dollars?|fois|times)?)(?!\\w)/gi;
+  const numeric=/(?:[$€£]\s*\d+(?:[.,]\d+)*(?:\s*\/\s*(?:h|hr|hour|heure))?|\b\d+(?:[.,]\d+)?\s*(?:%|[$€£]|hours?|hrs?|heures?|minutes?|days?|jours?|clients?|euros?|dollars?|fois|times)?)(?!\w)/gi;
   let availableAt=900;
   for(const caption of captions||[]){
-    const sentence=String(caption?.text||'').replace(/\\s+/g,' ').trim();
+    const sentence=String(caption?.text||'').replace(/\s+/g,' ').trim();
     const at=Math.max(0,Math.round(Number(caption?.startMs)||0));
     if(at<availableAt||!sentence)continue;
     const tokens=[...sentence.matchAll(numeric)].map(m=>m[0].trim())
-      .filter(v=>/\\d/.test(v)&&!/^0+(?:[.,]0+)?$/.test(v)).slice(0,3);
+      .filter(v=>/\d/.test(v)&&!/^0+(?:[.,]0+)?$/.test(v)).slice(0,3);
     if(!tokens.length)continue;
     const unique=[...new Set(tokens)];
-    const explicitEquals=/[=×*]|(?:\\b(?:equals?|égal(?:e|ent)?|x|multiplied|fois)\\b)/i.test(sentence);
+    const explicitEquals=/[=×*]|(?:\b(?:equals?|égal(?:e|ent)?|x|multiplied|fois)\b)/i.test(sentence);
     const kind=unique.length>1?(explicitEquals?'equation':'comparison'):'stat';
     // Never invent the arithmetic result: display only the verbatim values.
     const text=kind==='stat'?unique[0]:unique.join('   ·   ');
