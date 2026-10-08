@@ -218,14 +218,14 @@ function buildGraphicCues({style,captions,outputDurationMs,styleCfg}){
     if(style==='data'){
       // Numerical overlays must reproduce exactly what was spoken.
       // Never derive a comparison, growth rate or citation from unrelated stock imagery.
-      const m=raw.match(/(?:[€$£]\s*\d+(?:[\s.,]\d+)*|\b\d+(?:[\s.,]\d+)*(?:\s?(?:%|€|\$|£|k|K|M|millions?|milliards?|euros?|dollars?|heures?|jours?|ans?|clients?|abonnés?|vues?|views?))?\b)/i);
+      const m=raw.match(/(?:[€$£]\s*\d+(?:[.,]\d+)*|\b\d+(?:[\s\u00a0]\d{3})*(?:[.,]\d+)?(?:\s?(?:%|€|\$|£|k|K|M|millions?|milliards?|euros?|dollars?|heures?|jours?|ans?|clients?|abonnés?|vues?|views?))?)(?=$|[\s.,;!?])/i);
       if(!m)continue;
       text=m[0].trim();
     }else if(style==='impact'){
       text=raw.split(' ').slice(0,4).join(' ').toUpperCase();
     }else if(style==='explainer'){
       // A step card only appears when a sequence is genuinely spoken.
-      if(!/\b(?:étape\s*[1-9]|premi[eè]rement|deuxi[eè]mement|troisi[eè]mement|ensuite|puis|enfin|step\s*[1-9]|first|second|third|next|finally)\b/i.test(raw))continue;
+      if(!/(?:^|\s)(?:étape\s*[1-9]|premi[eè]rement|deuxi[eè]mement|troisi[eè]mement|ensuite|puis|enfin|step\s*[1-9]|first|second|third|next|finally)(?:\b|$)/i.test(raw))continue;
       text=raw.split(' ').slice(0,7).join(' ');
     }
     cues.push({
@@ -234,7 +234,7 @@ function buildGraphicCues({style,captions,outputDurationMs,styleCfg}){
       text:text.slice(0,54),
       mode:style,
       label:style==='data'
-        ?((/^(?:€|\$|£)?\d/).test(text)?'DATA':'CLAIM')
+        ?'DATA'
         :style==='authority'
           ?'EXPERT'
           :style==='cinematic_story'
