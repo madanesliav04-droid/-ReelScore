@@ -944,6 +944,8 @@ function modelFinishingFilters(
     filters.push('vignette=PI/7');
   }else if(mode==='explainer'){
     filters.push('eq=contrast=1.035:saturation=1.02:brightness=0.004');
+  }else if(mode==='editorial_breakdown'){
+    filters.push('eq=contrast=1.035:saturation=0.87:brightness=0.002');
   }else if(mode==='data'){
     filters.push('eq=contrast=1.06:saturation=0.97:brightness=0.002');
   }else if(mode==='ugc_native'){
@@ -1019,6 +1021,7 @@ export async function finalEncode({
 
 
 function buildGraphicsAss(timeline,width,height){
+  if(String(timeline?.modelId||timeline?.style)==='editorial_breakdown')return buildEditorialGraphicsAss(timeline,width,height);
   const mode=String(timeline?.modelId||timeline?.style||'clean');
   const accent={
     impact:'&H00FFE637',
@@ -1066,6 +1069,55 @@ function buildGraphicsAss(timeline,width,height){
     return `Dialogue: 1,${assTime(g.startMs)},${assTime(g.endMs)},Graphic,,0,0,0,,${text}`;
   });
   return header.concat(events).join('\n');
+}
+
+// Dedicated typography/diagram renderer for the Editorial Breakdown model.
+ // All numbers come from the timeline's transcript-evidenced graphic cues.
+function buildEditorialGraphicsAss(timeline,width,height){
+  const fontsize=Math.max(24,Math.round(73*Math.min(1,height/1920)));
+  const x=Math.round(width*.5),y=Math.round(height*.198);
+  const header=[
+    '[Script Info]','ScriptType: v4.00+',`PlayResX: ${width}`,`PlayResY: ${height}`,
+    'WrapStyle: 2','ScaledBorderAndShadow: yes','',
+    '[V4+ Styles]',
+    'Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding',
+    `Style: Editorial,Noto Serif,${fontsize},&H00E9F2F7,&H00E9F2F7,&H44111111,&HFF000000,0,0,0,0,100,100,-1,0,1,1,1,8,64,64,150,1`,
+    'Style: Panel,Noto Serif,20,&H00E9F2F7,&H00E9F2F7,&H00FFFFFF,&HFF000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1',
+    '',
+    '[Events]','Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text'
+  ];
+  const ev=[];
+  const drawRect=(left,top,right,bottom)=>
+    `{\\an7\\pos(0,0)\\p1\\bord0\\shad0\\1c&H1A1512&\\1a&HA7&}m ${left} ${top} l ${right} ${top} ${right} ${bottom} ${left} ${bottom}{\\p0}`;
+  const drawLine=(left,top,right,bottom)=>
+    `{\\an7\\pos(0,0)\\p1\\bord0\\shad0\\1c&HE8E5E1&\\1a&H9A&}m ${left} ${top} l ${right} ${top} ${right} ${bottom} ${left} ${bottom}{\\p0}`;
+  for(const cue of timeline?.graphicCues||[]){
+    if(cue.mode!=='editorial_breakdown'||cue.evidence!=='timestamped_transcript')continue;
+    const start=assTime(cue.startMs),end=assTime(cue.endMs);
+    const figures=(Array.isArray(cue.figures)?cue.figures:[]).map(v=>String(v||'').trim()).filter(Boolean);
+    if(!figures.length)continue;
+    const size=figures.some(v=>v.length>11)?Math.round(fontsize*.66):fontsize;
+    const animation=`{\\fad(190,260)\\fscx105\\fscy105\\t(0,380,\\fscx100\\fscy100)\\fs${size}}`;
+    if(figures.length===1){
+      const text=escapeAssText(figures[0].slice(0,30));
+      ev.push(`Dialogue: 2,${start},${end},Editorial,,0,0,0,,{\\an8\\pos(${x},${y})}${animation}${text}`);
+      continue;
+    }
+    const top=Math.round(height*.15),bottom=Math.round(height*.264);
+    const left=Math.round(width*.10),right=Math.round(width*.90);
+    const middle=Math.round(width*.5);
+    const panel=drawRect(left,top,right,bottom);
+    ev.push(`Dialogue: 0,${start},${end},Panel,,0,0,0,,{\\fad(180,280)}${panel}`);
+    // A fine grid like the reference is only displayed when at least
+    // two independent figures are genuinely present in the speech.
+    ev.push(`Dialogue: 1,${start},${end},Panel,,0,0,0,,{\\fad(180,280)}${drawLine(middle,top,middle+2,bottom)}`);
+    const isWide=figures.length>2;
+    const leftValue=escapeAssText(figures[0].slice(0,22));
+    const rightValue=escapeAssText((isWide?figures.slice(1).join(' · '):figures[1]).slice(0,24));
+    ev.push(`Dialogue: 2,${start},${end},Editorial,,0,0,0,,{\\an8\\pos(${Math.round(width*.30)},${y})}${animation}${leftValue}`);
+    ev.push(`Dialogue: 2,${start},${end},Editorial,,0,0,0,,{\\an8\\pos(${Math.round(width*.70)},${y})}${animation}${rightValue}`);
+  }
+  return header.concat(ev).join('\\n');
 }
 
 function buildAss(
