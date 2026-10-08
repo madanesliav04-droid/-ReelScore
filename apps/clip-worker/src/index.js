@@ -161,8 +161,8 @@ async function processJob(job){
     await supabase.from('clip_projects').update({status:'analyzing',title:project.title||analysis.detected_title_text||null,updated_at:new Date().toISOString()}).eq('id',projectId);
     await progress(job,'analyzing',48,'Sélection IA des meilleurs moments');
     const count=requestedCount;
-    const minSec=clampInt(payload.min_duration_sec??project.min_duration_sec,DEFAULT_MIN_HIGHLIGHT_SECONDS,8,90);
-    const maxSec=clampInt(payload.max_duration_sec??project.max_duration_sec,DEFAULT_MAX_HIGHLIGHT_SECONDS,15,120);
+    const minSec=clampInt(payload.min_duration_sec??project.min_duration_sec,DEFAULT_MIN_HIGHLIGHT_SECONDS,10,15);
+    const maxSec=clampInt(payload.max_duration_sec??project.max_duration_sec,DEFAULT_MAX_HIGHLIGHT_SECONDS,15,15);
     const selectedCandidates=await selectCandidates({
       analysis,
       count,
@@ -384,6 +384,7 @@ async function processVizardYouTube({
 
   const providerVideos=(result.videos||[])
     .filter(x=>x?.videoUrl)
+    .filter(x=>Number(x.videoMsDuration||0)>=10000&&Number(x.videoMsDuration||0)<=15000)
     .sort((a,b)=>Number(b?.viralScore||0)-Number(a?.viralScore||0))
     .slice(0,count);
 
