@@ -80,3 +80,37 @@ test('Data overlays contain only spoken figures and no unsupported CLAIM label',
   assert.ok(cues.every(x=>x.label==='DATA'));
   assert.ok(cues.every(x=>!x.text.includes('invented')));
 });
+
+
+test('Editorial Breakdown has a separate action contract from the original eight',()=>{
+  const editorial=describeEditActions('editorial_breakdown');
+  const clean=describeEditActions('clean');
+  assert.equal(editorial.model,'editorial_breakdown');
+  assert.equal(editorial.broll.maxPer30s,0);
+  assert.equal(editorial.punchIns.maxPer30s,2);
+  assert.equal(editorial.captions,'editorial');
+  assert.notEqual(editorial.silenceCutThresholdMs,clean.silenceCutThresholdMs);
+  assert.equal(make('editorial_breakdown').modelId,'editorial_breakdown');
+});
+
+test('Editorial Breakdown displays only timestamped figures actually spoken',()=>{
+  const timeline=make('editorial_breakdown');
+  assert.ok(timeline.graphicCues.length>=1);
+  assert.ok(timeline.graphicCues.some(c=>c.figures.some(n=>n.includes('400'))));
+  assert.ok(timeline.graphicCues.every(c=>c.evidence==='timestamped_transcript'));
+  assert.ok(timeline.graphicCues.every(c=>c.figures.every(v=>/\\d/.test(v))));
+  assert.ok(timeline.graphicCues.every(c=>!c.text.includes('600')));
+  assert.equal(timeline.captionPreset,'editorial');
+});
+
+test('Editorial Breakdown never synthesizes percentages or equations without evidence',()=>{
+  const a={measurable:{durationSec:12,width:1080,height:1920,audioCodec:'aac',silenceWindows:[]},
+    transcript:{words:[
+      {text:'Le',startMs:2000,endMs:2300},
+      {text:'montage',startMs:2300,endMs:2700},
+      {text:'est',startMs:2700,endMs:3000},
+      {text:'important',startMs:3000,endMs:3500}
+    ]},timeline:[]};
+  const timeline=buildEditTimeline({analysis:a,style:'editorial_breakdown',format:'portrait'});
+  assert.deepEqual(timeline.graphicCues,[]);
+});
