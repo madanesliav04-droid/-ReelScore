@@ -1,6 +1,6 @@
 const FILLERS=new Set(['euh','heu','uh','um','erm','hmm','hum']);
 
-export const MODEL_CONTRACT_VERSION='editplus-models-v3-action-contracts';
+export const MODEL_CONTRACT_VERSION='editplus-models-v3-editorial-breakdown';
 
 export const EDIT_STYLES={
   codie:{label:'Codie',promise:'Business storytelling · facecam first',pace:'narrative',silenceThresholdMs:780,removeFillers:false,maxPunchInsPer30s:3,punchScale:1.10,punchSeverities:['red'],captions:'authority',broll:{maxPer30s:2,minDurationMs:1900,maxDurationMs:3400,minGapMs:5000},brollDirective:'Facecam dominante. B-roll uniquement lorsqu’il illustre précisément une phrase concrète. Pas de remplissage.',soundDesign:'minimal',visualSignature:{mode:'codie',contrast:1.02,saturation:1,accent:'#ff9b45',cadenceMs:0}},
@@ -11,6 +11,16 @@ export const EDIT_STYLES={
   data:{label:'Data',promise:'Numbers & evidence · proof on screen',pace:'fast',silenceThresholdMs:500,removeFillers:true,maxPunchInsPer30s:5,punchScale:1.09,punchSeverities:['red','orange'],captions:'data',broll:{maxPer30s:4,minDurationMs:1800,maxDurationMs:3100,minGapMs:2800},brollDirective:'Priorité aux preuves visuelles: documents modernes, tableaux, dashboards, produits comparés, lieux ou éléments cités. Pas d’archives décoratives.',soundDesign:'light',visualSignature:{mode:'data',contrast:1.07,saturation:.96,accent:'#ffd166',cadenceMs:4700}},
   ugc_native:{label:'UGC Native',promise:'Native social · human and unpolished',pace:'natural',silenceThresholdMs:740,removeFillers:false,maxPunchInsPer30s:3,punchScale:1.05,punchSeverities:['red'],captions:'ugc',broll:{maxPer30s:1,minDurationMs:1500,maxDurationMs:2600,minGapMs:7000},brollDirective:'Très peu de B-roll. Favorise produit, geste, détail ou usage réel. Le rendu doit rester natif téléphone.',soundDesign:'light',visualSignature:{mode:'ugc_native',contrast:1.03,saturation:1.12,accent:'#ff3fbf',cadenceMs:7000}},
   cinematic_story:{label:'Cinematic Story',promise:'Personal story · emotion and breathing room',pace:'story',silenceThresholdMs:1100,removeFillers:false,maxPunchInsPer30s:2,punchScale:1.04,punchSeverities:['red'],captions:'cinematic',broll:{maxPer30s:3,minDurationMs:3200,maxDurationMs:6200,minGapMs:5600},brollDirective:'B-roll narratif et émotionnel, plus long. Cherche des lieux, objets, actions ou atmosphères directement reliés à l’histoire.',soundDesign:'cinematic',visualSignature:{mode:'cinematic_story',contrast:1.08,saturation:.72,accent:'#ffffff',cadenceMs:0}},
+  // Editorial Breakdown: inspired by restrained business-math storytelling,
+  // not a generic Data preset. Figures and comparisons are transcript-grounded.
+  editorial_breakdown:{
+    label:'Editorial Breakdown',promise:'Editorial numbers · illustrated reasoning',
+    pace:'editorial',silenceThresholdMs:850,removeFillers:false,maxPunchInsPer30s:2,
+    punchScale:1.055,punchSeverities:['red'],captions:'editorial',
+    broll:{maxPer30s:0,minDurationMs:0,maxDurationMs:0,minGapMs:999999},
+    brollDirective:'Aucun B-roll automatique: les chiffres et tableaux contextualisés restent sur la facecam.',
+    soundDesign:'minimal',visualSignature:{mode:'editorial_breakdown',contrast:1.035,saturation:.87,accent:'#f5eee2',cadenceMs:0}
+  },
   creator_clean:null,business_viral:null,podcast_authority:null
 };
 EDIT_STYLES.creator_clean=EDIT_STYLES.clean;
@@ -25,7 +35,8 @@ const GRAPHIC_TRIGGERS={
   explainer:'steps: a spoken step marker is required',
   data:'numbers: only a number actually present in the transcript',
   ugc_native:'none: preserve natural phone-native video',
-  cinematic_story:'none: rely on shots and timing, not auto-generated quote cards'
+  cinematic_story:'none: rely on shots and timing, not auto-generated quote cards',
+  editorial_breakdown:'editorial serif metrics, equations and comparison only when directly supported by spoken numbers; no fake data or decorative stock imagery'
 };
 
 export function describeEditActions(style){
@@ -48,6 +59,7 @@ export function describeEditActions(style){
 
 
 export const CAPTION_PRESETS={
+  editorial:{fontFamily:'Noto Serif',fontWeight:500,fontSize:49,lineHeight:1.1,maxWordsPerLine:7,maxChars:42,maxDurationMs:2900,position:'lower_third',activeWord:false,textColor:'#f7f2e9',activeColor:'#f7f2e9',stroke:2,shadow:true,background:false},
   authority:{fontFamily:'Noto Sans',fontWeight:800,fontSize:64,lineHeight:1.02,maxWordsPerLine:5,maxChars:34,maxDurationMs:2100,position:'lower_third',activeWord:true,textColor:'#ffffff',activeColor:'#ff9b45',stroke:4,shadow:true,background:false},
   impact:{fontFamily:'DejaVu Sans',fontWeight:900,fontSize:80,lineHeight:.96,maxWordsPerLine:3,maxChars:23,maxDurationMs:1500,position:'middle_low',activeWord:true,textColor:'#ffffff',activeColor:'#37e6ff',stroke:6,shadow:true,background:false},
   clean:{fontFamily:'Noto Sans',fontWeight:750,fontSize:60,lineHeight:1.04,maxWordsPerLine:5,maxChars:34,maxDurationMs:2200,position:'lower_third',activeWord:false,textColor:'#ffffff',activeColor:'#ffffff',stroke:3,shadow:true,background:false},
@@ -189,6 +201,7 @@ export function buildEditTimeline({
 
 
 function buildGraphicCues({style,captions,outputDurationMs,styleCfg}){
+  if(style==='editorial_breakdown')return buildEditorialBreakdownCues(captions,outputDurationMs);
   if(['codie','clean','authority','ugc_native','cinematic_story'].includes(style))return [];
   const cadence={
     impact:3200,
@@ -246,6 +259,42 @@ function buildGraphicCues({style,captions,outputDurationMs,styleCfg}){
     if(cues.length>=Math.max(2,Math.ceil(outputDurationMs/7000)))break;
   }
   return cues;
+}
+
+// Metrics are extracted only from caption text backed by timestamped transcript words.
+ // The reference's translucent side-by-side arithmetic is only permitted with
+ // multiple actual spoken values; never infer revenue, retention or percentages.
+function buildEditorialBreakdownCues(captions,outputDurationMs){
+  const cues=[];
+  const numeric=/(?:[$€£]\\s*\\d+(?:[.,]\\d+)*(?:\\s*\\/\\s*(?:h|hr|hour|heure))?|\\b\\d+(?:[.,]\\d+)?\\s*(?:%|[$€£]|hours?|hrs?|heures?|minutes?|days?|jours?|clients?|euros?|dollars?|fois|times)?)(?!\\w)/gi;
+  let availableAt=900;
+  for(const caption of captions||[]){
+    const sentence=String(caption?.text||'').replace(/\\s+/g,' ').trim();
+    const at=Math.max(0,Math.round(Number(caption?.startMs)||0));
+    if(at<availableAt||!sentence)continue;
+    const tokens=[...sentence.matchAll(numeric)].map(m=>m[0].trim())
+      .filter(v=>/\\d/.test(v)&&!/^0+(?:[.,]0+)?$/.test(v)).slice(0,3);
+    if(!tokens.length)continue;
+    const unique=[...new Set(tokens)];
+    const explicitEquals=/[=×*]|(?:\\b(?:equals?|égal(?:e|ent)?|x|multiplied|fois)\\b)/i.test(sentence);
+    const kind=unique.length>1?(explicitEquals?'equation':'comparison'):'stat';
+    // Never invent the arithmetic result: display only the verbatim values.
+    const text=kind==='stat'?unique[0]:unique.join(explicitEquals?'  =  ':'   ·   ');
+    const dur=kind==='stat'?2700:3500;
+    cues.push({
+      startMs:at,
+      endMs:Math.min(outputDurationMs,at+dur),
+      kind,mode:'editorial_breakdown',
+      text:text.slice(0,66),
+      figures:unique,
+      sourceText:sentence.slice(0,180),
+      evidence:'timestamped_transcript',
+      accent:'#f5eee2'
+    });
+    availableAt=at+(kind==='stat'?2250:3200);
+    if(cues.length>=Math.max(2,Math.ceil(outputDurationMs/5200)))break;
+  }
+  return cues.filter(c=>c.endMs>c.startMs+300);
 }
 
 function targetDimensions(format,width,height){
