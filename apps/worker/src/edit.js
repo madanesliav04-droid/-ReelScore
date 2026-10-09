@@ -659,7 +659,7 @@ function buildPunchIns({
   const spokenTrigger={
     impact:/^(mais|jamais|attention|erreur|pourquoi|non|stop|imagine|regarde|impossible|never|why|mistake|instead)[.!?,:]?$/i,
     explainer:/^(étape|ensuite|puis|enfin|premièrement|deuxièmement|step|next|finally)[.!?,:]?$/i,
-    data:/^(?:[$€£]?\\d+(?:[.,]\\d+)?%?|prix|coût|chiffre|total|pourcentage|euros|dollars)[.!?,:]?$/i
+    data:/^(?:[$€£]?\d+(?:[.,]\d+)?%?|prix|coût|chiffre|total|pourcentage|euros|dollars)[.!?,:]?$/i
   }[style];
   if(spokenTrigger&&Array.isArray(mappedWords)){
     const gap=style==='impact'?1900:2500;
