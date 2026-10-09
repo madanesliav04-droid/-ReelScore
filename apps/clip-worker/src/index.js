@@ -574,7 +574,7 @@ async function persistExternalClip({
 async function importUploadedSource({sourceVideoId,userId,dir}){
   const {data:media,error}=await supabase
     .from('media_assets')
-    .select('id,user_id,storage_bucket,storage_path,original_name,mime_type,size_bytes,status')
+    .select('id,user_id,storage_bucket,storage_path,original_name,mime_type,size_bytes,metadata,status')
     .eq('id',sourceVideoId)
     .eq('user_id',userId)
     .maybeSingle();
@@ -590,7 +590,8 @@ async function importUploadedSource({sourceVideoId,userId,dir}){
   await downloadStorageObject({
     bucketName:media.storage_bucket||bucket,
     storagePath:media.storage_path,
-    outputPath:filePath
+    outputPath:filePath,
+    multipartParts:media.metadata?.multipart?.parts
   });
 
   return {
@@ -599,33 +600,29 @@ async function importUploadedSource({sourceVideoId,userId,dir}){
   };
 }
 
-async function downloadStorageObject({bucketName,storagePath,outputPath}){
-  const encoded=String(storagePath)
-    .split('/')
-    .map(x=>encodeURIComponent(x))
-    .join('/');
-
-  const url=
-    `${process.env.SUPABASE_URL}/storage/v1/object/authenticated/${encodeURIComponent(bucketName)}/${encoded}`;
-
-  const response=await fetch(url,{
-    headers:{
+async function downloadStorageObject({bucketName,storagePath,outputPath,multipartParts=null}){
+  const parts=Array.isArray(multipartParts)&&multipartParts.length>1
+    ?multipartParts:[{path:storagePath}];
+  const owner=String(storagePath).split("/")[0];
+  for(let i=0;i<parts.length;i++){
+    const current=String(parts[i].path||"");
+    if(!current.startsWith(owner+"/")||current.includes(".."))throw tagged("INVALID_MULTIPART_PART","Invalid multipart object path");
+    const encoded=current.split("/").map(x=>encodeURIComponent(x)).join("/");
+    const url=`${process.env.SUPABASE_URL}/storage/v1/object/authenticated/${encodeURIComponent(bucketName)}/${encoded}`;
+    const response=await fetch(url,{headers:{
       apikey:process.env.SUPABASE_SERVICE_ROLE_KEY,
       Authorization:`Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`
-    }
-  });
-
-  if(!response.ok||!response.body){
-    throw tagged(
-      'STORAGE_READ_FAILED',
-      `Storage read ${response.status}: ${(await response.text()).slice(0,500)}`
+    }});
+    if(!response.ok||!response.body)throw tagged(
+      "STORAGE_READ_FAILED",`Storage read ${response.status}: ${(await response.text()).slice(0,500)}`
     );
+    await pipeline(Readable.fromWeb(response.body),createWriteStream(outputPath,{flags:i===0?"w":"a"}));
   }
-
-  await pipeline(
-    Readable.fromWeb(response.body),
-    createWriteStream(outputPath)
-  );
+  if(parts.length>1){
+    const info=await stat(outputPath);
+    const expected=parts.reduce((sum,p)=>sum+Number(p.size||0),0);
+    if(info.size!==expected)throw tagged("MULTIPART_ASSEMBLY_FAILED","Source video is incomplete");
+  }
 }
 
 function extensionFor(mime,name){
