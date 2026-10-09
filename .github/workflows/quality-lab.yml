@@ -24,5 +24,5 @@ jobs:
           ffprobe -version | head -1
       - name: Media integrity tests with generated MP4s
         run: node --test quality/tools/check-render.test.mjs
-      - name: Six-style adaptive planner tests
-        run: node --test quality/engine/adaptive-director.test.mjs
+      - name: Six-style adaptive planner and real-render tests
+        run: node --test quality/engine/adaptive-director.test.mjs quality/engine/timeline-adapter.test.mjs
