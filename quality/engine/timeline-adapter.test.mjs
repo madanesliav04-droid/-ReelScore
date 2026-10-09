@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-import {mkdtemp,rm} from 'node:fs/promises';
+import {mkdtemp,rm,mkdir,copyFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
@@ -45,6 +45,11 @@ test('two narrative models produce valid and visually distinct MP4s',async()=>{
     const frame=path.join(dir,style+'.png');
     exec('ffmpeg',['-hide_banner','-loglevel','error','-y','-ss','1.3','-i',out,'-frames:v','1',frame]);
     hashes.push(createHash('sha256').update(await readFile(frame)).digest('hex'));
+    if(process.env.QA_ARTIFACT_DIR){
+      await mkdir(process.env.QA_ARTIFACT_DIR,{recursive:true});
+      await copyFile(out,path.join(process.env.QA_ARTIFACT_DIR,style+'-synthetic-edit.mp4'));
+      await copyFile(frame,path.join(process.env.QA_ARTIFACT_DIR,style+'-synthetic-frame.png'));
+    }
   }
   assert.notEqual(hashes[0],hashes[1],'Codie and Leila must not render identical frames');
  }finally{await rm(dir,{recursive:true,force:true})}
