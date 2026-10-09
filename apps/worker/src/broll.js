@@ -92,10 +92,11 @@ ${transcript}`;
       cfg
     );
 
-    // Always keep concrete transcript fallbacks available. AI suggestions are
-    // evaluated first, but if they fail specificity/visual validation the
-    // fallback can still fill that editorial moment instead of returning 0 B-roll.
-    const raw=[...aiRaw,...localRaw]
+    // Codie: no generic keyword-to-stock shortcut. A beautiful but unrelated
+    // image damages a premium edit more than no image. Only transcript-grounded
+    // AI cues can propose an insert; every selected photo still passes pixel QA.
+    // Keep legacy fallback behavior for other models while they are refined.
+    const raw=(style==='codie'?aiRaw:[...aiRaw,...localRaw])
       .sort((a,b)=>Number(a.start_sec||0)-Number(b.start_sec||0));
 
     const cleaned=[];
@@ -147,7 +148,7 @@ ${transcript}`;
         :[];
 
       const specificity=Number(cue.specificity??(String(cue.reason||'').includes('local transcript fallback')?0.78:0));
-      if(specificity<0.72)continue;
+      if(specificity<(style==='codie'?0.88:0.72))continue;
       if(isLowValueBrollQuery(query))continue;
 
       cleaned.push({
@@ -200,6 +201,7 @@ ${transcript}`;
             searchQuery:q,
             asset:candidate,
             artDirection,
+            minEditorialQuality:style==='codie'?0.88:0.75,
             geminiKey,
             models:[model,fallbackModel]
           });
@@ -774,6 +776,7 @@ async function validateBrollAsset({
   searchQuery,
   asset,
   artDirection,
+  minEditorialQuality=0.75,
   geminiKey,
   models
 }){
@@ -884,7 +887,7 @@ RÈGLES STRICTES:
         parsed?.match===true&&
         parsed.subject_match===true&&parsed.action_match===true&&parsed.object_match===true&&
         Number(parsed?.confidence||0)>=0.92&&
-        Number(parsed?.editorial_quality||0)>=0.75;
+        Number(parsed?.editorial_quality||0)>=minEditorialQuality;
 
       console.log(JSON.stringify({
         event:'broll_asset_validated',
