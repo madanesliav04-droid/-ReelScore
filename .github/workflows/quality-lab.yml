@@ -1,0 +1,24 @@
+name: Viral Studio Quality Lab (isolated)
+on:
+  push:
+    branches: [editplus-quality-lab-v1]
+    paths:
+      - 'quality/tools/**'
+      - '.github/workflows/quality-lab.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  media-integrity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ensure required free tools exist
+        run: |
+          node --version
+          ffmpeg -version | head -1
+          ffprobe -version | head -1
+      - name: Media integrity tests with generated MP4s
+        run: node --test quality/tools/check-render.test.mjs
