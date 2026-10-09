@@ -90,6 +90,43 @@ async function registerMedia(db:ReturnType<typeof admin>,userId:string,body:any)
   const exists=(list||[]).some(x=>x.name===name);
   if(!exists)throw new Error("STORAGE_OBJECT_NOT_FOUND");
 
+  // A 500 MiB source is stored as <=40 MiB user-owned objects. Validate every
+  // part against the actual Storage metadata before accepting any manifest.
+  const submitted=body?.metadata?.multipart;
+  let trustedMetadata=body?.metadata&&typeof body.metadata==="object"?body.metadata:{};
+  if(submitted){
+    const pieces=Array.isArray(submitted.parts)?submitted.parts:[];
+    if(submitted.version!==1||pieces.length<2||pieces.length>13)throw new Error("INVALID_MULTIPART_MANIFEST");
+    const firstName=path.split("/").at(-1)||"";
+    if(!firstName.endsWith("-part000"))throw new Error("INVALID_MULTIPART_PREFIX");
+    const stem=firstName.slice(0,-8);
+    let verifiedTotal=0;
+    for(let i=0;i<pieces.length;i++){
+      const part=pieces[i];
+      const expectedPath=userId+"/"+stem+"-part"+String(i).padStart(3,"0");
+      const currentPath=safePath(part?.path);
+      const reportedSize=Number(part?.size);
+      if(currentPath!==expectedPath||!Number.isSafeInteger(reportedSize)||reportedSize<1||reportedSize>40*1024*1024){
+        throw new Error("INVALID_MULTIPART_PART");
+      }
+      if(i<pieces.length-1&&reportedSize!==40*1024*1024)throw new Error("INVALID_MULTIPART_PART_SIZE");
+      const {data:objects,error:objectsError}=await db.storage.from(VIDEO_BUCKET).list(userId,{search:expectedPath.split("/").at(-1),limit:10});
+      if(objectsError)throw objectsError;
+      const actual=(objects||[]).find((item:any)=>item.name===expectedPath.split("/").at(-1));
+      if(!actual)throw new Error("MULTIPART_OBJECT_MISSING");
+      const actualSize=Number((actual as any)?.metadata?.size||0);
+      if(actualSize!==reportedSize)throw new Error("MULTIPART_OBJECT_SIZE_MISMATCH");
+      verifiedTotal+=actualSize;
+    }
+    if(verifiedTotal!==size)throw new Error("INVALID_MULTIPART_TOTAL");
+    trustedMetadata={multipart:{
+      version:1,
+      parts:pieces.map((piece:any)=>({path:String(piece.path),size:Number(piece.size)}))
+    }};
+  }else if(size>50*1024*1024){
+    throw new Error("MULTIPART_REQUIRED");
+  }
+
   const row={
     user_id:userId,
     module:"viralplus",
@@ -104,7 +141,7 @@ async function registerMedia(db:ReturnType<typeof admin>,userId:string,body:any)
     height:Number.isFinite(Number(body?.height))?Math.max(1,Math.round(Number(body.height))):null,
     sha256:sha(body?.sha256),
     status:"uploaded",
-    metadata:body?.metadata&&typeof body.metadata==="object"?body.metadata:{}
+    metadata:trustedMetadata
   };
 
   const {data,error}=await db.from("media_assets")
