@@ -31,11 +31,12 @@ function scoreTone(value:any){
   return n>=80?"good":n>=60?"mid":"bad";
 }
 
+// Five focused models. Historical exports from retired models remain accessible.
 const EDIT_MODELS:EditModel[]=[
   {
     id:"codie",name:"Codie",category:"Business storytelling",preview:"FACE CAM",meta:"Narrative · restrained B-roll",
     goal:"Faire ressortir une histoire business forte, facecam dominante.",
-    actions:["Supprimer les silences de 780 ms ou plus, en préservant les respirations courtes.","Déclencher un zoom narratif seulement sur une rupture importante : au plus 3 par 30 s.","Ajouter jusqu’à 2 B-rolls de 1,9 à 3,4 s lorsqu’un élément concret est cité et illustrable.","Afficher des sous-titres blancs, avec accent orange pour les mots réellement prononcés.","Appliquer un traitement voix premium discret."],
+    actions:["Supprimer les silences de 780 ms ou plus, en préservant les respirations courtes.","Déclencher un zoom narratif seulement sur une rupture importante : au plus 3 par 30 s.","Ajouter jusqu’à 2 B-rolls de 1,9 à 3,4 s lorsqu’un élément concret est cité et illustrable.","Afficher des sous-titres blancs premium, sans surlignage mot-à-mot systématique.","Appliquer un traitement voix premium discret."],
     never:"Pas de zoom automatique, de carte citation décorative ou de B-roll abstrait."
   },
   {
@@ -51,28 +52,10 @@ const EDIT_MODELS:EditModel[]=[
     never:"Pas de cartouche graphique automatique, d’animation ou de zoom décoratif."
   },
   {
-    id:"authority",name:"Authority",category:"Podcast & expert",preview:"AUTHORITY",meta:"Calm · premium · credible",
-    goal:"Mettre la parole d’un expert en valeur avec une réalisation crédible.",
-    actions:["Préserver les silences inférieurs à 920 ms pour garder une parole naturelle.","Jusqu’à 2 recadrages narratifs subtils par 30 s.","Autoriser au plus 2 inserts documentaires contextualisés par 30 s.","Conserver des sous-titres sobres avec accent orange et une finition audio maîtrisée.","Éviter les graphiques non attribués et les incrustations non sourcées."],
-    never:"Jamais de faux diplôme, label EXPERT gratuit, autorité fabriquée ou statistique inventée."
-  },
-  {
     id:"explainer",name:"Explainer",category:"Tutorial & SaaS",preview:"EXPLAIN",meta:"Show · label · clarify",
     goal:"Transformer une démonstration en étapes faciles à comprendre.",
     actions:["Supprimer les silences dès 560 ms et les hésitations détectées.","Afficher des cartes d’étapes uniquement si une étape est réellement annoncée.","Jusqu’à 5 recadrages et 5 B-rolls d’outils, objets ou interfaces cités par 30 s.","Faire correspondre la durée des illustrations aux phrases et actions expliquées.","Utiliser des sous-titres didactiques et un son discret."],
     never:"Pas de capture de logiciel fictive, d’étape créée de toutes pièces ou d’image générique."
-  },
-  {
-    id:"data",name:"Data",category:"Numbers & evidence",preview:"DATA",meta:"Proof · numbers · comparison",
-    goal:"Rendre les chiffres prononcés compréhensibles et visuellement vérifiables.",
-    actions:["Couper les silences de 500 ms ou plus et les hésitations détectées.","Détecter les montants, quantités et pourcentages réellement dits : reproduire les valeurs exactes.","Afficher un chiffre au moment de sa prononciation, avec l’unité si elle a été citée.","Jusqu’à 5 recadrages et 4 B-rolls documentaires par 30 s, si pertinents.","N’afficher une comparaison que si les deux valeurs existent dans la source."],
-    never:"Jamais de donnée, pourcentage, courbe ou preuve inventés."
-  },
-  {
-    id:"editorial_breakdown",name:"Editorial Breakdown",category:"Business · chiffres expliqués",preview:"$100 / H",meta:"Typographie serif · comparatifs · calculs parlés",
-    goal:"Reproduire le langage de la référence : facecam premium, chiffres élégants, tableaux semi-transparents et raisonnements visuels synchronisés.",
-    actions:["Préserver les respirations naturelles et ne retirer que les silences de plus de 850 ms.","Utiliser une typographie serif ivoire en haut du cadre et des sous-titres fins, distincts du style Data.","Afficher les montants, durées et pourcentages uniquement s'ils sont prononcés dans la transcription horodatée.","Activer une comparaison en deux colonnes translucides seulement lorsque plusieurs valeurs sont réellement citées.","Limiter les recadrages narratifs à 2 par 30 secondes, sans zoom décoratif.","Ne placer aucun B-roll automatique : laisser les chiffres et la démonstration vivre sur la facecam.","Appliquer un étalonnage subtilement désaturé et une finition voix maîtrisée."],
-    never:"Jamais de calcul ou graphique inventé, de tableau sans valeurs citées, de B-roll de remplissage ou de fausse statistique."
   },
   {
     id:"ugc_native",name:"UGC Native",category:"Native social",preview:"UGC",meta:"Human · phone-native · direct",
@@ -80,12 +63,6 @@ const EDIT_MODELS:EditModel[]=[
     actions:["Préserver les respirations courtes, les gestes et les imperfections humaines utiles.","Ne couper que les silences de 740 ms ou plus.","Limiter à 3 zooms subtils et 1 insert produit pertinent par 30 s.","Utiliser des sous-titres modernes aux couleurs du modèle sans cartouche publicitaire forcé.","Nettoyer légèrement l’image et la voix sans dénaturer la captation."],
     never:"Pas de badges commerciaux, de cartes graphiques automatiques, ni de montage trop publicitaire."
   },
-  {
-    id:"cinematic_story",name:"Cinematic Story",category:"Personal story",preview:"STORY",meta:"Emotional · breathing room",
-    goal:"Construire une narration émotionnelle avec des temps de respiration.",
-    actions:["Préserver les pauses émotionnelles jusqu’à 1 100 ms.","Ajouter au plus 2 zooms narratifs doux par 30 s.","Chercher jusqu’à 3 plans B-roll évocateurs, de 3,2 à 6,2 s, quand ils illustrent l’histoire.","Sous-titres fins de style cinématographique et étalonnage plus doux.","Appliquer une finition audio cinématique sans masquer la voix."],
-    never:"Pas de carte STORY générée automatiquement ni de montage frénétique."
-  }
 ];
 
 async function freshSession(){
@@ -551,7 +528,7 @@ export function Dashboard(){
         <div className="workspace-grid">
           <section className="panel">
             <small className="eyebrow">EDIT+ · AI EDIT</small><h3>Upload once. Pick the look. Edit+ does the rest.</h3>
-            <label className="upload-zone"><input type="file" disabled={busy||uploading} accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" onChange={e=>{const f=e.currentTarget.files?.[0];e.currentTarget.value="";if(f)void uploadVideo(f)}}/><div><Upload size={30}/><b>{file?file.name:media?"Clip importé — prêt à monter":"Drop your video here"}</b><span>MP4 · MOV · WebM · max {MAX_VIDEO_UPLOAD_MIB} Mo · 9 modèles</span></div></label>
+            <label className="upload-zone"><input type="file" disabled={busy||uploading} accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" onChange={e=>{const f=e.currentTarget.files?.[0];e.currentTarget.value="";if(f)void uploadVideo(f)}}/><div><Upload size={30}/><b>{file?file.name:media?"Clip importé — prêt à monter":"Drop your video here"}</b><span>MP4 · MOV · WebM · max {MAX_VIDEO_UPLOAD_MIB} Mo · 5 modèles ciblés</span></div></label>
             {file&&<div className="progress"><i style={{width:`${uploadPct}%`}}/></div>}
             {error&&<div role="alert" className="job-card error">{error}</div>}
             <div className="status-row"><span>Video</span><span className="status-pill">{media?"Ready":file?`${uploadPct}%`:"Waiting"}</span></div>
@@ -560,7 +537,7 @@ export function Dashboard(){
         </div>
 
         <section className="model-library">
-          <div className="section-heading"><small>9 LOCKED MODELS</small><h2>Choose the actual editing language.</h2><p>Every model changes pacing, captions, crops, graphics, B-roll rules and finishing. Same source ≠ same render.</p></div>
+          <div className="section-heading"><small>5 MODÈLES CIBLÉS</small><h2>Choisis ton langage de montage.</h2><p>Codie, Impact, Clean, Explainer et UGC Native. Les autres styles sont retirés temporairement pour concentrer le travail sur la qualité réelle des exports.</p></div>
           <div className="model-grid">{EDIT_MODELS.map(model=><button key={model.id} className={`model-card ${editModel===model.id?"selected":""}`} data-model={model.id} onClick={()=>setEditModel(model.id)}>
             <div className={`model-preview ${model.id==="editorial_breakdown"?"editorial-preview":""}`}><div className="preview-face"/><div className="preview-caption">{model.preview}</div><div className="preview-cut"/><span className="preview-badge">{model.name}</span></div>
             <div className="model-copy"><div><strong>{model.name}</strong><span>{model.category}</span></div>{editModel===model.id&&<Check size={18}/>}<p>{model.meta}</p></div>
