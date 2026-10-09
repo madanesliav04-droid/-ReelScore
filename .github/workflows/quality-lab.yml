@@ -18,6 +18,7 @@ jobs:
       - name: Ensure required free tools exist
         run: |
           node --version
+          sudo apt-get update -qq && sudo apt-get install -y ffmpeg
           ffmpeg -version | head -1
           ffprobe -version | head -1
       - name: Media integrity tests with generated MP4s
