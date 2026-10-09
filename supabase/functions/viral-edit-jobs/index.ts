@@ -251,12 +251,14 @@ async function route(req:Request){
     const media=await ownMedia(db,user.id,String(body.video_id));
     if(!media)return out({error:"MEDIA_NOT_FOUND"},404);
 
-    const allowedStyles=["codie","impact","clean","authority","explainer","data","ugc_native","cinematic_story","editorial_breakdown","creator_clean","business_viral","podcast_authority"];
+    // A focused public beta: exactly five available models for new jobs.
+    // Historical exports and projects remain readable and untouched.
+    const allowedStyles=["codie","impact","clean","explainer","ugc_native","creator_clean","business_viral"];
     const requestedStyle=String(body.style||"clean");
-    const style=allowedStyles.includes(requestedStyle)?requestedStyle:"clean";
-    const canonicalStyle={creator_clean:"clean",business_viral:"impact",podcast_authority:"authority"}[style]||style;
+    if(!allowedStyles.includes(requestedStyle))return out({error:"EDIT_MODEL_NOT_AVAILABLE",available_models:["codie","impact","clean","explainer","ugc_native"]},422);
+    const canonicalStyle={creator_clean:"clean",business_viral:"impact"}[requestedStyle]||requestedStyle;
     const captionByModel={
-      codie:"authority",
+      codie:"codie",
       impact:"impact",
       clean:"clean",
       authority:"authority",
