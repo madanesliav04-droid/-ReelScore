@@ -8,7 +8,7 @@ test('preserves entire source in portrait canvas rather than center-cropping',()
   assert.doesNotMatch(vf,/crop=1080:1920:\(iw-1080\)\/2:\(ih-1920\)\*0\.42/);
 });
 test('mobile captions remain in safe zone and wrap under four words',()=>{
-  const words=Array.from({length:8},(_,i)=>({startMs:1000+i*400,endMs:1300+i*400,text:'essentiel'}));
+  const words=Array.from({length:8},(_,i)=>({startMs:1000+i*400,endMs:1300+i*400,text:'phrase'}));
   const ass=buildClipCaptionAss(words,1000,6000);
   assert.match(ass,/95,95,430,1/);
   assert.match(ass,/WrapStyle: 0/);
