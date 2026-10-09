@@ -284,7 +284,7 @@ async function route(req:Request){
         settings:{
           ...(body.settings&&typeof body.settings==="object"?body.settings:{}),
           format,
-          model_contract_version:"editplus-models-v3-editorial-breakdown"
+          model_contract_version:"editplus-focus-five-v4"
         }
       })
       .select("*")
@@ -297,7 +297,7 @@ async function route(req:Request){
         source_analysis_id:sourceAnalysisId,
         style:canonicalStyle,
         caption_preset:caption,
-        settings:{format,model_contract_version:"editplus-models-v3-editorial-breakdown"},
+        settings:{format,model_contract_version:"editplus-focus-five-v4"},
         requested_at:new Date().toISOString()
       },`edit:${project.id}:${requestId}`);
       return out({project,job},202);
