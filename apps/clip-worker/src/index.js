@@ -10,6 +10,7 @@ import {randomUUID} from 'node:crypto';
 import {createClient} from '@supabase/supabase-js';
 import {analyzeVideo,extractMeasurableSignals} from './viral.js';
 import {rankHighlights,DEFAULT_MIN_HIGHLIGHT_SECONDS,DEFAULT_MAX_HIGHLIGHT_SECONDS} from './clip-highlights.js';
+import {buildClipCaptionAss,buildClipVideoFilter} from './clip-presentation.js';
 
 const required=['SUPABASE_URL','SUPABASE_SERVICE_ROLE_KEY','GEMINI_API_KEY'];
 const missing=required.filter(k=>!process.env[k]);
@@ -212,7 +213,7 @@ async function processJob(job){
       const assPath=path.join(dir,`clip-${rank}.ass`);
       const words=(analysis.transcript?.words||[]).filter(w=>Number(w.endMs)>=c.start_sec*1000&&Number(w.startMs)<=c.end_sec*1000);
       const useCaptions=project.settings?.add_captions!==false&&words.length>0;
-      if(useCaptions)await writeFile(assPath,buildAss(words,c.start_sec*1000,c.end_sec*1000,project.settings?.caption_preset||'modern_bold'),'utf8');
+      if(useCaptions)await writeFile(assPath,buildClipCaptionAss(words,c.start_sec*1000,c.end_sec*1000,project.settings?.caption_preset||'modern_bold'),'utf8');
       await renderClip({sourcePath,outputPath:clipPath,startSec:c.start_sec,endSec:c.end_sec,assPath:useCaptions?assPath:null});
       const clipId=await persistClip({job,project,candidate:c,rank,filePath:clipPath,captionsRendered:useCaptions});
       outputIds.push(clipId);
@@ -1071,33 +1072,11 @@ function compactTranscript(words,maxChars){
 
 function overlapRatio(a,b){const x=Math.max(0,Math.min(a.end_sec,b.end_sec)-Math.max(a.start_sec,b.start_sec));return x/Math.max(1,Math.min(a.end_sec-a.start_sec,b.end_sec-b.start_sec))}
 
-function buildAss(words,clipStartMs,clipEndMs,preset){
-  const style=preset==='minimal'?{size:52,margin:260,outline:3}:preset==='authority'?{size:58,margin:280,outline:4}:{size:64,margin:300,outline:5};
-  const groups=[];let g=[];
-  const flush=()=>{if(!g.length)return;groups.push(g);g=[]};
-  for(const w of words){
-    const s=Math.max(clipStartMs,Number(w.startMs)||0),e=Math.min(clipEndMs,Number(w.endMs)||0);if(e<=s)continue;
-    const prev=g.at(-1),pause=prev?s-(Number(prev.endMs)||0):0;
-    if(g.length>=5||pause>450)flush();g.push({...w,startMs:s,endMs:e});if(/[.!?]$/.test(String(w.text||'')))flush();
-  }flush();
-  const header=`[Script Info]\nScriptType: v4.00+\nPlayResX: 1080\nPlayResY: 1920\nWrapStyle: 2\n\n[V4+ Styles]\nFormat: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\nStyle: Default,Arial,${style.size},&H00FFFFFF,&H00FFFFFF,&H00101012,&H58000000,-1,0,0,0,100,100,0,0,1,${style.outline},1,2,70,70,${style.margin},1\n\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n`;
-  return header+groups.map(group=>{
-    const start=(Number(group[0].startMs)-clipStartMs)/1000,end=(Number(group.at(-1).endMs)-clipStartMs)/1000;
-    const text=group.map(w=>assEscape(w.text)).join(' ');
-    return `Dialogue: 0,${assTime(start)},${assTime(end)},Default,,0,0,0,,${text}`;
-  }).join('\n');
-}
-
 async function renderClip({sourcePath,outputPath,startSec,endSec,assPath}){
   const duration=Math.max(.1,endSec-startSec);
-  const vf=[
-    'scale=1080:1920:force_original_aspect_ratio=increase:flags=lanczos',
-    'crop=1080:1920:(iw-1080)/2:(ih-1920)*0.42',
-    'setsar=1',
-    ...(assPath?[`ass='${filterEscape(assPath)}'`]:[])
-  ].join(',');
+  const vf=buildClipVideoFilter(assPath);
 
-  const maxVideoKbps=Math.max(850,Math.min(5000,Math.floor(MAX_CLIP_UPLOAD_BYTES*8/duration/1000*0.85)-160));
+  const maxVideoKbps=Math.max(850,Math.min(7000,Math.floor(MAX_CLIP_UPLOAD_BYTES*8/duration/1000*0.85)-192));
   await run('ffmpeg',[
     '-hide_banner','-loglevel','error','-y',
     '-ss',String(startSec),
@@ -1108,14 +1087,14 @@ async function renderClip({sourcePath,outputPath,startSec,endSec,assPath}){
     '-vf',vf,
     '-r','30',
     '-c:v','libx264',
-    '-preset','veryfast',
-    '-crf','21',
+    '-preset','medium',
+    '-crf','19',
     '-maxrate',`${maxVideoKbps}k`,
     '-bufsize',`${maxVideoKbps*2}k`,
     '-pix_fmt','yuv420p',
     '-threads','1',
     '-c:a','aac',
-    '-b:a','160k',
+    '-b:a','192k',
     '-af','loudnorm=I=-14:TP=-1.5:LRA=11',
     '-movflags','+faststart',
     outputPath
