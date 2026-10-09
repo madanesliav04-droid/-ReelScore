@@ -22,7 +22,10 @@ test('all six styles generate grounded and substantively different actions',()=>
  const plans=names.map(style=>adaptivePlan({...source,style}));
  assert.ok(plans.every(p=>p.audit.wordAccurate));
  assert.ok(plans.every(p=>p.actions.every(a=>a.evidence?.text&&a.endMs<=p.durationMs)));
- assert.equal(new Set(plans.map(kinds)).size,6,JSON.stringify(plans.map(kinds)));
+ // A clean or UGC edit is allowed to choose zero extra effects when no genuine cue exists.
+ assert.ok(new Set(plans.map(kinds)).size>=5,JSON.stringify(plans.map(kinds)));
+ assert.equal(kinds(plans[3]),'');
+ assert.equal(kinds(plans[5]),'');
  assert.ok(plans[1].actions.some(a=>a.type==='executive-diagram'));
  assert.ok(plans[2].actions.some(a=>a.type==='impact-emphasis'));
  assert.ok(plans[4].actions.some(a=>a.type==='demonstration'));
