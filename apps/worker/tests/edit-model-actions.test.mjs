@@ -114,3 +114,19 @@ test('Editorial Breakdown never synthesizes percentages or equations without evi
   const timeline=buildEditTimeline({analysis:a,style:'editorial_breakdown',format:'portrait'});
   assert.deepEqual(timeline.graphicCues,[]);
 });
+
+test('Codie has a distinct spoken-narrative caption contract from Authority',()=>{
+  assert.equal(make('codie').captionPreset,'codie');
+  assert.notEqual(make('codie').captionPreset,make('authority').captionPreset);
+  assert.equal(make('codie').captionConfig.activeWord,false);
+});
+test('high-energy, explanatory and data styles use only speech-backed emphasis',()=>{
+  const impact=make('impact').punchIns;
+  const clean=make('clean').punchIns;
+  const explainer=make('explainer').punchIns;
+  const data=make('data').punchIns;
+  assert.ok(impact.length>clean.length);
+  assert.ok(explainer.some(x=>String(x.reason).includes('spoken_emphasis:')));
+  assert.ok(data.some(x=>String(x.reason).includes('spoken_emphasis:')));
+  assert.ok(impact.every(x=>x.endMs>x.startMs));
+});
