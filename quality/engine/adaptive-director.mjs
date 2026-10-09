@@ -134,6 +134,9 @@ export function adaptivePlan({
   return {
     contract:'editplus-adaptive-lab-1',style,sourceId,durationMs:duration,
     styleTokens:STYLES[style],renderReady:wordAccurate,
+    // Preserve actual speech timing for subtitle reflow: never estimate word
+    // positions from sentence length when composing visual captions.
+    wordTiming:wordAccurate?(Array.isArray(words)?words.map(w=>({text:String(w.text||''),startMs:num(w.startMs),endMs:num(w.endMs)})):[]):[],
     actions:wordAccurate?actions:[],
     editorialSuggestions:wordAccurate?[]:actions.filter(a=>a.type!=='caption').map(a=>({...a,renderSafe:false})),
     audit:{
