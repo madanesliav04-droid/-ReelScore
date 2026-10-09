@@ -1128,6 +1128,23 @@ export function buildEditorialGraphicsAss(timeline,width,height){
   return header.concat(ev).join('\n');
 }
 
+export function captionEntranceTag(entrance){
+  if(entrance==='fast-pop'){
+    return String.raw`{\fad(30,60)\fscx113\fscy113\t(0,120,\fscx100\fscy100)}`;
+  }
+  if(entrance==='subtle-pop'){
+    return String.raw`{\fad(55,90)\fscx105\fscy105\t(0,150,\fscx100\fscy100)}`;
+  }
+  if(entrance==='soft-fade'){
+    return String.raw`{\fad(85,95)}`;
+  }
+  return '';
+}
+
+export function buildCaptionAss(timeline,width,height){
+  return buildAss(timeline,width,height);
+}
+
 function buildAss(
   timeline,
   width,
@@ -1235,6 +1252,8 @@ function buildAss(
         )
         :[];
 
+    const captionEntrance=captionEntranceTag(cfg.entrance);
+
     if(
       cfg.activeWord&&
       words.length
@@ -1310,7 +1329,7 @@ function buildAss(
           dialogue(
             start,
             end,
-            text
+            i===0?captionEntrance+text:text
           )
         );
       }
@@ -1335,7 +1354,7 @@ function buildAss(
             caption.startMs||0
           )+
           500,
-          text
+          captionEntrance+text
         )
       );
     }
