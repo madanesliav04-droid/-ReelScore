@@ -27,7 +27,7 @@ const make=(style,format='portrait')=>buildEditTimeline({analysis,style,format})
 
 test('exactly eight operational contracts have distinct editorial configurations',()=>{
   assert.equal(ids.length,8);
-  assert.match(MODEL_CONTRACT_VERSION,/v3/);
+  assert.match(MODEL_CONTRACT_VERSION,/v4/);
   const signature=new Set();
   for(const id of ids){
     const config=EDIT_STYLES[id];
