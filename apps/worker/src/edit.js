@@ -777,6 +777,10 @@ function buildPunchIns({
     )
   );
 
+  if(style==='codie'){
+    return curateCodiePunchIns(windows,mappedWords,outputDurationMs,max);
+  }
+
   return windows
     .sort((a,b)=>a.startMs-b.startMs)
     .filter((item,index,arr)=>
@@ -784,4 +788,55 @@ function buildPunchIns({
       item.startMs-arr[index-1].startMs>300
     )
     .slice(0,max);
+}
+
+/**
+ * Codie editorial curation. Select meaningful events by narrative evidence,
+ * rather than taking the first N timeline markers. Deliberately allow zero cuts.
+ * Allowed camera levels: 1.0 (base), 1.065 (medium), 1.125 (punchline).
+ * Never generate timed/periodic zooms and never truncate a spoken event into
+ * a sub-700ms decorative flash.
+ */
+export function curateCodiePunchIns(windows=[],words=[],durationMs=0,maxCuts=3){
+  const duration=Math.max(0,Number(durationMs)||0);
+  const wordStarts=Array.isArray(words)
+    ?words.map(w=>Number(w?.startMs)).filter(Number.isFinite)
+    :[];
+  const candidates=(Array.isArray(windows)?windows:[])
+    .map(x=>{
+      const reason=String(x?.reason||'').trim();
+      const lower=reason.toLowerCase();
+      const originalStart=Number(x?.startMs);
+      const originalEnd=Number(x?.endMs);
+      if(!Number.isFinite(originalStart)||!Number.isFinite(originalEnd))return null;
+      if(!reason||/^(editorial_emphasis|emphase narrative|default|generic|none)$/i.test(reason))return null;
+      const nearby=wordStarts
+        .filter(t=>Math.abs(t-originalStart)<=180)
+        .sort((a,b)=>Math.abs(a-originalStart)-Math.abs(b-originalStart))[0];
+      const start=Math.round(Math.max(0,Math.min(duration,nearby??originalStart)));
+      const end=Math.round(Math.max(start,Math.min(duration,originalEnd)));
+      if(end-start<700)return null;
+      const high=/(punchline|reveal|twist|contradiction|preuve|proof|key insight|révélation|surprise|climax|payoff|chiffre|amount|statistic|number|hook)/i.test(lower);
+      const relevant=/(strong|important|erreur|mistake|point|consequence|conséquence|rupture|opposition|affirmation|emphase|emphasis|insight)/i.test(lower);
+      const score=(high?4:relevant?2:1)+Math.min((end-start)/2300,0.9);
+      return {
+        startMs:start,
+        endMs:Math.min(end,start+(high?1700:1550)),
+        scale:high?1.125:1.065,
+        reason,
+        editorialScore:Number(score.toFixed(3)),
+        evidence:'analysis_timeline'
+      };
+    })
+    .filter(Boolean)
+    .sort((a,b)=>b.editorialScore-a.editorialScore||a.startMs-b.startMs);
+  const selected=[];
+  const max=Math.max(0,Math.min(8,Math.floor(Number(maxCuts)||0)));
+  for(const c of candidates){
+    if(selected.length>=max)break;
+    // An editorial cut needs room for the viewer to settle before the next.
+    if(selected.some(p=>c.startMs<p.endMs+2400&&c.endMs>p.startMs-2400))continue;
+    selected.push(c);
+  }
+  return selected.sort((a,b)=>a.startMs-b.startMs);
 }
