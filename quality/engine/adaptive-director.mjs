@@ -128,12 +128,17 @@ export function adaptivePlan({
     if(media)emit(u,'verified-broll',{assetId:media.assetId,license:media.license||'user-owned',rationale:'Speech-grounded visually inspected media'});
   }
   actions.sort((a,b)=>a.startMs-b.startMs||(a.type==='caption'?-1:1));
+  const wordAccurate=unit.length>0&&unit.every(x=>x.timing==='word');
+  // Segment timing can span 20+ seconds; never falsely place animated graphics
+  // or subtitles based on that imprecision. Allow editor suggestions only.
   return {
     contract:'editplus-adaptive-lab-1',style,sourceId,durationMs:duration,
-    styleTokens:STYLES[style],actions,
+    styleTokens:STYLES[style],renderReady:wordAccurate,
+    actions:wordAccurate?actions:[],
+    editorialSuggestions:wordAccurate?[]:actions.filter(a=>a.type!=='caption').map(a=>({...a,renderSafe:false})),
     audit:{
       speechUnits:unit.length,
-      wordAccurate:unit.length>0&&unit.every(x=>x.timing==='word'),
+      wordAccurate,
       visualFactsReviewed:Array.isArray(visualFacts)?visualFacts.length:0,
       warnings:[
         ...(!unit.length?['NO_TRANSCRIPT_NO_EDITORIAL_ACTIONS']:[]),
