@@ -1,4 +1,5 @@
 import {EDIT_STYLES} from './edit.js';
+import {brollDirectionPrompt} from './broll-art-direction.js';
 
 export async function planContextualBroll({
   timeline,
@@ -17,6 +18,7 @@ export async function planContextualBroll({
         :[];
 
     if(!captions.length)return [];
+    const artDirection=brollDirectionPrompt(style);
 
     const durationMs=Math.max(
       1,
@@ -40,6 +42,7 @@ export async function planContextualBroll({
 Tu dois choisir uniquement les moments où une vraie image améliore clairement la compréhension de ce qui est dit.
 Ne remplis PAS la vidéo de B-roll.
 Style de montage: ${style}.
+${artDirection}
 Durée vidéo montée: ${(durationMs/1000).toFixed(1)} s.
 Maximum: ${maxCues} B-rolls.\nCONTRAT DU MODÈLE: ${cfg.brollDirective||'B-roll uniquement pertinent.'}
 
@@ -196,6 +199,7 @@ ${transcript}`;
             cue,
             searchQuery:q,
             asset:candidate,
+            artDirection,
             geminiKey,
             models:[model,fallbackModel]
           });
@@ -769,6 +773,7 @@ async function validateBrollAsset({
   cue,
   searchQuery,
   asset,
+  artDirection,
   geminiKey,
   models
 }){
@@ -815,6 +820,7 @@ N'utilise PAS le titre, la légende, la page source, le contexte historique ou u
 Recherche principale: ${cue.query}
 Recherche utilisée: ${searchQuery}
 Raison éditoriale: ${cue.reason||''}
+${artDirection||''}
 
 RÈGLES STRICTES:
 - APPROUVE seulement si le sujet principal ET l'action/objet demandés sont immédiatement visibles sans explication.
@@ -824,11 +830,13 @@ RÈGLES STRICTES:
 - REJETTE les correspondances basées sur l'ambiance, l'émotion supposée, le contexte de la page ou un seul mot générique.
 - REJETTE documents historiques, archives, cartes, schémas, vieilles coupures, peintures, affiches ou photos anciennes sauf demande explicite.
 - REJETTE toute image qui demanderait une explication pour comprendre le lien.
+- ÉVALUE la qualité éditoriale réellement visible : composition lisible, sujet net, photographie contemporaine, cadrage crédible, lumière adaptée au style. REJETTE les miniatures floues, illustrations génériques, filigranes et mises en scène clichées.
+- La pertinence sémantique prime sur l'esthétique: un plan beau mais hors sujet ne passe jamais.
 - Pour un Reel business moderne, privilégie une lecture instantanée et contemporaine.
 - Ne juge PAS la licence ici; elle a déjà été filtrée.
 - Décompose séparément le sujet, l’action et l’objet requis. Chacun doit être visible.
 - Exemple: des mains formant un cœur sur un ventre ne correspondent PAS à une personne touchant sa poitrine. Une poignée de main ne prouve PAS une vente conclue.
-- Retourne uniquement JSON: {"match":true,"subject_match":true,"action_match":true,"object_match":true,"confidence":0.0,"visible_match":"","reason":""}`;
+- Retourne uniquement JSON: {"match":true,"subject_match":true,"action_match":true,"object_match":true,"confidence":0.0,"editorial_quality":0.0,"visible_match":"","reason":""}`;
 
   for(const activeModel of [...new Set((models||[]).filter(Boolean))]){
     try{
@@ -875,7 +883,8 @@ RÈGLES STRICTES:
       const ok=
         parsed?.match===true&&
         parsed.subject_match===true&&parsed.action_match===true&&parsed.object_match===true&&
-        Number(parsed?.confidence||0)>=0.92;
+        Number(parsed?.confidence||0)>=0.92&&
+        Number(parsed?.editorial_quality||0)>=0.75;
 
       console.log(JSON.stringify({
         event:'broll_asset_validated',
@@ -884,6 +893,7 @@ RÈGLES STRICTES:
         provider:asset.provider,
         approved:ok,
         confidence:Number(parsed?.confidence||0),
+        editorial_quality:Number(parsed?.editorial_quality||0),
         reason:String(parsed?.reason||'').slice(0,240),
         sourcePage:asset.sourcePage||null
       }));
