@@ -7,7 +7,7 @@ import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {adaptivePlan} from './adaptive-director.mjs';
-import {timelineFromAdaptivePlan} from './timeline-adapter.mjs';
+import {timelineFromAdaptivePlan,buildTimedCaptions} from './timeline-adapter.mjs';
 import {renderNativeEdit} from '../../apps/worker/src/render.js';
 import {checkRender} from '../tools/check-render.mjs';
 function exec(command,args,timeout=60000){
@@ -28,7 +28,7 @@ test('two narrative models produce valid and visually distinct MP4s',async()=>{
  try{
   const source=path.join(dir,'source.mp4');
   exec('ffmpeg',['-hide_banner','-loglevel','error','-y',
-    '-f','lavfi','-i','testsrc2=size=360x640:rate=30:duration=3',
+    '-f','lavfi','-i','color=c=0x393632:s=360x640:r=30:d=3',
     '-f','lavfi','-i','sine=frequency=440:duration=3',
     '-c:v','libx264','-threads','1','-pix_fmt','yuv420p',
     '-c:a','aac','-shortest',source]);
@@ -38,6 +38,8 @@ test('two narrative models produce valid and visually distinct MP4s',async()=>{
     assert.equal(plan.renderReady,true);
     const timeline=timelineFromAdaptivePlan(plan,{width:360,height:640,hasAudio:true});
     if(style==='leila')assert.ok(timeline.graphicCues.some(x=>x.mode==='editorial_breakdown'&&x.figures.length));
+    assert.ok(timeline.captions.length>=2,'Captions must be split into readable timed phrases');
+    assert.ok(timeline.captions.every(c=>c.text.length<=22),JSON.stringify(timeline.captions));
     const out=path.join(dir,style+'.mp4');
     await renderNativeEdit({sourcePath:source,outputPath:out,durationMs:3000,timeline});
     const qa=await checkRender(out,{width:360,height:640});
@@ -53,4 +55,14 @@ test('two narrative models produce valid and visually distinct MP4s',async()=>{
   }
   assert.notEqual(hashes[0],hashes[1],'Codie and Leila must not render identical frames');
  }finally{await rm(dir,{recursive:true,force:true})}
+});
+
+test('long sentence never overflows a narrow portrait card',()=>{
+ const cfg={fontSize:80,maxWordsPerLine:5};
+ const words='An extremely meaningful sentence about an important business decision'.split(' ')
+    .map((text,i)=>({text,startMs:i*230,endMs:i*230+200}));
+ const captions=buildTimedCaptions(words,cfg,360,640);
+ assert.ok(captions.length>2);
+ assert.ok(captions.every(c=>c.text.length<=18||c.words.length===1),JSON.stringify(captions));
+ assert.ok(captions.every(c=>c.endMs>c.startMs));
 });
