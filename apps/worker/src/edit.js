@@ -58,15 +58,106 @@ export function describeEditActions(style){
 }
 
 
+
+/**
+ * Edit+ V4 production contracts.
+ * Design tokens here are contractual: the render timeline, typography and QA
+ * tests must agree with them. Pinterest is a visual reference only, not a media
+ * licensing or downloading source.
+ */
+export const PREMIUM_MODEL_CONTRACT_VERSION='editplus-focus-five-v4';
+export const PREMIUM_MODEL_CONTRACTS=Object.freeze({
+  codie:{
+    name:'Codie',
+    intent:'Business storytelling documentaire, humain et premium',
+    viewerEffect:'Le propos est crédible et narrativement marquant, sans artifices',
+    hook:'Texte directement sur la vidéo, jamais un encadré blanc; conserver la facecam comme ancrage',
+    typography:{font:'Noto Sans',weight:850,sizePx1080x1920:66,primary:'#FFFFFF',accent:'#FF9B45',position:'middle_low',maxWords:4,wordHighlight:false,entrance:'soft-fade'},
+    framing:'Facecam dominante; 3 niveaux au maximum (normal, crop, close-up punchline); aucun crop gratuit',
+    edits:'Couper seulement les longs silences >780ms; conserver les respirations utiles; 3 punch-ins maximum par 30s, déclenchés par la narration',
+    broll:'0 à 2 inserts concrets de 1.9–3.4s par 30s; preuve, lieu, objet, action ou information nommée, jamais décoration',
+    graphics:'Pas de cartes citation décoratives; texte de hook et chiffres justifiés par les paroles uniquement',
+    transitions:'Cut net ou retour facecam; pas de transitions flashy',
+    sound:'Voix naturelle équilibrée à -14 LUFS, compression légère; pas de SFX gratuits',
+    color:'Contraste naturel, tons chauds neutres, conservation de la peau',
+    forbidden:['cadres blancs','faux témoignages','B-roll abstrait','zoom métronomique']
+  },
+  impact:{
+    name:'Impact',
+    intent:'Opinion et argument fort, énergie maîtrisée et lisibilité immédiate',
+    viewerEffect:'Chaque rupture révèle un argument, pas un effet gratuit',
+    hook:'Punch-in bref et texte fort seulement si l’introduction justifie une rupture',
+    typography:{font:'DejaVu Sans',weight:900,sizePx1080x1920:80,primary:'#FFFFFF',accent:'#37E6FF',position:'middle_low',maxWords:3,wordHighlight:true,entrance:'fast-pop'},
+    framing:'Facecam expressive, 2 à 3 niveaux, 8 punch-ins maximum par 30s seulement aux pics du discours',
+    edits:'Silences >420ms, hésitations inutiles et ruptures de sens conservées à bon escient',
+    broll:'0 à 5 inserts très concrets de 1.3–2.4s par 30s, orientés démonstration et opposition',
+    graphics:'Mots ou nombres prononcés, 4 mots maximum par impact; aucun fait inventé',
+    transitions:'Hard cuts rapides; pas de flash ou glitch automatique',
+    sound:'Voix claire -13.5 LUFS; SFX réservés aux accents éditoriaux, jamais ajoutés pour remplir',
+    color:'Contraste soutenu, saturation légèrement rehaussée, accent cyan',
+    forbidden:['surmontage aléatoire','effets agressifs continus','titres non prononcés','fake proof']
+  },
+  clean:{
+    name:'Clean',
+    intent:'Personal brand premium, simplicité professionnelle',
+    viewerEffect:'L’attention reste sur la personne et la qualité de sa parole',
+    hook:'Aucune animation décorative; première phrase lisible immédiatement',
+    typography:{font:'Noto Sans',weight:750,sizePx1080x1920:60,primary:'#FFFFFF',accent:'#FFFFFF',position:'lower_third',maxWords:5,wordHighlight:false,entrance:'soft-fade'},
+    framing:'Facecam fixe, 3 recadrages subtils maximum par 30s et seulement si nécessaires',
+    edits:'Silences >620ms et hésitations inutiles, avec transitions invisibles',
+    broll:'0 à 1 insert utile de 1.7–2.9s par 30s; sinon pas de B-roll',
+    graphics:'Aucune carte graphique automatique',
+    transitions:'Cuts invisibles, aucun effet',
+    sound:'Voix naturelle normalisée à -14 LUFS, sans musique forcée',
+    color:'Balance neutre, saturation naturelle, pas de filtre spectaculaire',
+    forbidden:['word-by-word karaoke','cartouches inutiles','effets de transition','zoom décoratif']
+  },
+  explainer:{
+    name:'Explainer',
+    intent:'Tutoriel, produit ou méthode dont chaque étape devient compréhensible',
+    viewerEffect:'Le spectateur voit l’objet ou l’étape exacts quand ils sont expliqués',
+    hook:'Montrer le problème ou le résultat concret annoncé, pas une accroche décorative',
+    typography:{font:'DejaVu Sans',weight:800,sizePx1080x1920:68,primary:'#FFFFFF',accent:'#7CE8FF',position:'middle_low',maxWords:4,wordHighlight:true,entrance:'soft-fade'},
+    framing:'Facecam lisible; 5 recadrages au maximum par 30s au moment de démontrer',
+    edits:'Silences >560ms et fillers inutiles, sans couper les consignes',
+    broll:'0 à 5 inserts démonstratifs de 1.7–3.3s par 30s; interfaces réelles, outils et gestes cités',
+    graphics:'Cartes étapes seulement si une étape est énoncée; jamais de faux écran ni de faux logiciel',
+    transitions:'Cut vers preuve/démonstration et retour; aucun mouvement masquant l’information',
+    sound:'Voix au premier plan, effets minimaux pour préserver les consignes',
+    color:'Bleu cyan #7CE8FF pour guider le regard, contrastes utiles',
+    forbidden:['interface fictive','étapes inventées','photos de laptop génériques','schémas illisibles']
+  },
+  ugc_native:{
+    name:'UGC Native',
+    intent:'Témoignage ou démonstration produit authentique filmée au téléphone',
+    viewerEffect:'Le créateur paraît spontané, pas produit par une agence',
+    hook:'Commencer sur geste, phrase ou produit réel; conserver le rythme naturel',
+    typography:{font:'DejaVu Sans',weight:850,sizePx1080x1920:68,primary:'#FFFFFF',accent:'#FF3FBF',position:'middle_low',maxWords:4,wordHighlight:true,entrance:'subtle-pop'},
+    framing:'Recadrages très légers, 3 maximum par 30s; gestuelle et produit toujours visibles',
+    edits:'Silences >740ms, garder les hésitations humaines qui ajoutent de l’authenticité',
+    broll:'0 à 1 insert produit authentique de 1.5–2.6s par 30s, jamais image de remplacement trompeuse',
+    graphics:'Sous-titres lisibles et spontanés; ne pas afficher de badge commercial automatique',
+    transitions:'Cuts natifs, pas de publicité flashy',
+    sound:'Voix naturelle, réduction minimale du bruit, effets sonores généralement absents',
+    color:'Couleur smartphone crédible, saturation légère, pas d’étalonnage cinématique',
+    forbidden:['fausses démonstrations','surproduction','publicité artificielle','B-roll décoratif']
+  }
+});
+
+export function premiumModelContract(style){
+  const alias={creator_clean:'clean',business_viral:'impact'};
+  return PREMIUM_MODEL_CONTRACTS[alias[style]||style]||null;
+}
+
 export const CAPTION_PRESETS={
-  codie:{fontFamily:'Noto Sans',fontWeight:850,fontSize:66,lineHeight:1.02,maxWordsPerLine:4,maxChars:30,maxDurationMs:1900,position:'middle_low',activeWord:false,textColor:'#ffffff',activeColor:'#ff9b45',stroke:3,shadow:true,background:false},
+  codie:{fontFamily:'Noto Sans',fontWeight:850,fontSize:66,lineHeight:1.02,maxWordsPerLine:4,maxChars:30,maxDurationMs:1900,position:'middle_low',activeWord:false,textColor:'#ffffff',activeColor:'#ff9b45',stroke:3,shadow:true,background:false,entrance:'soft-fade'},
   editorial:{fontFamily:'Noto Serif',fontWeight:500,fontSize:49,lineHeight:1.1,maxWordsPerLine:7,maxChars:42,maxDurationMs:2900,position:'lower_third',activeWord:false,textColor:'#f7f2e9',activeColor:'#f7f2e9',stroke:2,shadow:true,background:false},
   authority:{fontFamily:'Noto Sans',fontWeight:800,fontSize:64,lineHeight:1.02,maxWordsPerLine:5,maxChars:34,maxDurationMs:2100,position:'lower_third',activeWord:true,textColor:'#ffffff',activeColor:'#ff9b45',stroke:4,shadow:true,background:false},
-  impact:{fontFamily:'DejaVu Sans',fontWeight:900,fontSize:80,lineHeight:.96,maxWordsPerLine:3,maxChars:23,maxDurationMs:1500,position:'middle_low',activeWord:true,textColor:'#ffffff',activeColor:'#37e6ff',stroke:6,shadow:true,background:false},
-  clean:{fontFamily:'Noto Sans',fontWeight:750,fontSize:60,lineHeight:1.04,maxWordsPerLine:5,maxChars:34,maxDurationMs:2200,position:'lower_third',activeWord:false,textColor:'#ffffff',activeColor:'#ffffff',stroke:3,shadow:true,background:false},
-  explainer:{fontFamily:'DejaVu Sans',fontWeight:800,fontSize:68,lineHeight:1,maxWordsPerLine:4,maxChars:28,maxDurationMs:1850,position:'middle_low',activeWord:true,textColor:'#ffffff',activeColor:'#7ce8ff',stroke:4,shadow:true,background:true},
+  impact:{fontFamily:'DejaVu Sans',fontWeight:900,fontSize:80,lineHeight:.96,maxWordsPerLine:3,maxChars:23,maxDurationMs:1500,position:'middle_low',activeWord:true,textColor:'#ffffff',activeColor:'#37e6ff',stroke:6,shadow:true,background:false,entrance:'fast-pop'},
+  clean:{fontFamily:'Noto Sans',fontWeight:750,fontSize:60,lineHeight:1.04,maxWordsPerLine:5,maxChars:34,maxDurationMs:2200,position:'lower_third',activeWord:false,textColor:'#ffffff',activeColor:'#ffffff',stroke:3,shadow:true,background:false,entrance:'soft-fade'},
+  explainer:{fontFamily:'DejaVu Sans',fontWeight:800,fontSize:68,lineHeight:1,maxWordsPerLine:4,maxChars:28,maxDurationMs:1850,position:'middle_low',activeWord:true,textColor:'#ffffff',activeColor:'#7ce8ff',stroke:4,shadow:true,background:true,entrance:'soft-fade'},
   data:{fontFamily:'Noto Sans',fontWeight:900,fontSize:70,lineHeight:.98,maxWordsPerLine:4,maxChars:27,maxDurationMs:1750,position:'lower_middle',activeWord:true,textColor:'#ffffff',activeColor:'#ffd166',stroke:5,shadow:true,background:false},
-  ugc:{fontFamily:'DejaVu Sans',fontWeight:850,fontSize:68,lineHeight:1,maxWordsPerLine:4,maxChars:29,maxDurationMs:1900,position:'middle_low',activeWord:true,textColor:'#ffffff',activeColor:'#ff3fbf',stroke:4,shadow:true,background:true},
+  ugc:{fontFamily:'DejaVu Sans',fontWeight:850,fontSize:68,lineHeight:1,maxWordsPerLine:4,maxChars:29,maxDurationMs:1900,position:'middle_low',activeWord:true,textColor:'#ffffff',activeColor:'#ff3fbf',stroke:4,shadow:true,background:true,entrance:'subtle-pop'},
   cinematic:{fontFamily:'Noto Serif',fontWeight:700,fontSize:56,lineHeight:1.08,maxWordsPerLine:6,maxChars:42,maxDurationMs:2800,position:'lower_third',activeWord:false,textColor:'#ffffff',activeColor:'#ffffff',stroke:2,shadow:true,background:false},
   modern_bold:{fontFamily:'DejaVu Sans',fontWeight:900,fontSize:78,lineHeight:.98,maxWordsPerLine:4,maxChars:28,maxDurationMs:1750,position:'lower_middle',activeWord:true,textColor:'#ffffff',activeColor:'#ff6a00',stroke:6,shadow:true,background:false},
   minimal:{fontFamily:'Noto Sans',fontWeight:700,fontSize:60,lineHeight:1.04,maxWordsPerLine:5,maxChars:34,maxDurationMs:2200,position:'lower_third',activeWord:false,textColor:'#ffffff',activeColor:'#ffffff',stroke:3,shadow:true,background:false},
