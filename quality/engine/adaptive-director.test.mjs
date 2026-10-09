@@ -43,6 +43,9 @@ test('no words/segments means no invented editorial choices',()=>{
 test('segment-only evidence is never labeled word-accurate',()=>{
  const p=adaptivePlan({style:'leila',durationMs:10000,segments:[{text:'Compare 100 euros versus 200 euros',startSeconds:1,endSeconds:8}]});
  assert.equal(p.audit.wordAccurate,false);
+ assert.equal(p.renderReady,false);
+ assert.equal(p.actions.length,0);
+ assert.ok(p.editorialSuggestions.every(a=>a.renderSafe===false));
  assert.ok(p.audit.warnings.includes('SEGMENT_TIMING_NOT_FRAME_ACCURATE'));
 });
 test('verified and licensed media only',()=>{
