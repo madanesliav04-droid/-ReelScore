@@ -1,6 +1,6 @@
 const FILLERS=new Set(['euh','heu','uh','um','erm','hmm','hum']);
 
-export const MODEL_CONTRACT_VERSION='editplus-models-v3-editorial-breakdown';
+export const MODEL_CONTRACT_VERSION='editplus-focus-five-v4';
 
 export const EDIT_STYLES={
   codie:{label:'Codie',promise:'Business storytelling · facecam first',pace:'narrative',silenceThresholdMs:780,removeFillers:false,maxPunchInsPer30s:3,punchScale:1.10,punchSeverities:['red'],captions:'codie',broll:{maxPer30s:2,minDurationMs:1900,maxDurationMs:3400,minGapMs:5000},brollDirective:'Facecam dominante. B-roll uniquement lorsqu’il illustre précisément une phrase concrète. Pas de remplissage.',soundDesign:'minimal',visualSignature:{mode:'codie',contrast:1.02,saturation:1,accent:'#ff9b45',cadenceMs:0}},
