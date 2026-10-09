@@ -3,7 +3,7 @@ const FILLERS=new Set(['euh','heu','uh','um','erm','hmm','hum']);
 export const MODEL_CONTRACT_VERSION='editplus-models-v3-editorial-breakdown';
 
 export const EDIT_STYLES={
-  codie:{label:'Codie',promise:'Business storytelling · facecam first',pace:'narrative',silenceThresholdMs:780,removeFillers:false,maxPunchInsPer30s:3,punchScale:1.10,punchSeverities:['red'],captions:'authority',broll:{maxPer30s:2,minDurationMs:1900,maxDurationMs:3400,minGapMs:5000},brollDirective:'Facecam dominante. B-roll uniquement lorsqu’il illustre précisément une phrase concrète. Pas de remplissage.',soundDesign:'minimal',visualSignature:{mode:'codie',contrast:1.02,saturation:1,accent:'#ff9b45',cadenceMs:0}},
+  codie:{label:'Codie',promise:'Business storytelling · facecam first',pace:'narrative',silenceThresholdMs:780,removeFillers:false,maxPunchInsPer30s:3,punchScale:1.10,punchSeverities:['red'],captions:'codie',broll:{maxPer30s:2,minDurationMs:1900,maxDurationMs:3400,minGapMs:5000},brollDirective:'Facecam dominante. B-roll uniquement lorsqu’il illustre précisément une phrase concrète. Pas de remplissage.',soundDesign:'minimal',visualSignature:{mode:'codie',contrast:1.02,saturation:1,accent:'#ff9b45',cadenceMs:0}},
   impact:{label:'Impact',promise:'High-energy business · retention first',pace:'fast',silenceThresholdMs:420,removeFillers:true,maxPunchInsPer30s:8,punchScale:1.13,punchSeverities:['red','orange'],captions:'impact',broll:{maxPer30s:5,minDurationMs:1300,maxDurationMs:2400,minGapMs:2200},brollDirective:'B-roll fréquent mais concret: produits, chiffres, lieux, marques, actions. Chaque insert doit accélérer la compréhension.',soundDesign:'moderate',visualSignature:{mode:'impact',contrast:1.12,saturation:1.16,accent:'#37e6ff',cadenceMs:3600}},
   clean:{label:'Clean',promise:'Modern creator · simple and polished',pace:'medium_fast',silenceThresholdMs:620,removeFillers:true,maxPunchInsPer30s:3,punchScale:1.07,punchSeverities:['red'],captions:'clean',broll:{maxPer30s:1,minDurationMs:1700,maxDurationMs:2900,minGapMs:4400},brollDirective:'Très peu de B-roll. Seulement quand une image clarifie mieux que la facecam.',soundDesign:'light',visualSignature:{mode:'clean',contrast:1.02,saturation:.98,accent:'#ffffff',cadenceMs:0}},
   authority:{label:'Authority',promise:'Podcast & expert · calm premium',pace:'calm_premium',silenceThresholdMs:920,removeFillers:false,maxPunchInsPer30s:2,punchScale:1.06,punchSeverities:['red'],captions:'authority',broll:{maxPer30s:2,minDurationMs:2500,maxDurationMs:4300,minGapMs:6000},brollDirective:'B-roll rare, long, crédible et documentaire moderne. Priorité au visage et à la parole.',soundDesign:'minimal',visualSignature:{mode:'authority',contrast:1.05,saturation:.88,accent:'#ff9b45',cadenceMs:0}},
@@ -59,6 +59,7 @@ export function describeEditActions(style){
 
 
 export const CAPTION_PRESETS={
+  codie:{fontFamily:'Noto Sans',fontWeight:850,fontSize:66,lineHeight:1.02,maxWordsPerLine:4,maxChars:30,maxDurationMs:1900,position:'middle_low',activeWord:false,textColor:'#ffffff',activeColor:'#ff9b45',stroke:3,shadow:true,background:false},
   editorial:{fontFamily:'Noto Serif',fontWeight:500,fontSize:49,lineHeight:1.1,maxWordsPerLine:7,maxChars:42,maxDurationMs:2900,position:'lower_third',activeWord:false,textColor:'#f7f2e9',activeColor:'#f7f2e9',stroke:2,shadow:true,background:false},
   authority:{fontFamily:'Noto Sans',fontWeight:800,fontSize:64,lineHeight:1.02,maxWordsPerLine:5,maxChars:34,maxDurationMs:2100,position:'lower_third',activeWord:true,textColor:'#ffffff',activeColor:'#ff9b45',stroke:4,shadow:true,background:false},
   impact:{fontFamily:'DejaVu Sans',fontWeight:900,fontSize:80,lineHeight:.96,maxWordsPerLine:3,maxChars:23,maxDurationMs:1500,position:'middle_low',activeWord:true,textColor:'#ffffff',activeColor:'#37e6ff',stroke:6,shadow:true,background:false},
@@ -139,7 +140,8 @@ export function buildEditTimeline({
     keepRanges,
     outputDurationMs,
     style:canonicalStyle,
-    styleCfg
+    styleCfg,
+    mappedWords
   });
   const graphicCues=buildGraphicCues({
     style:canonicalStyle,
@@ -571,7 +573,8 @@ function buildPunchIns({
   keepRanges,
   outputDurationMs,
   style,
-  styleCfg
+  styleCfg,
+  mappedWords=[]
 }){
   const windows=[];
   const firstEnd=Math.min(
@@ -647,6 +650,31 @@ function buildPunchIns({
         item.problem||
         'editorial_emphasis'
     });
+  }
+
+
+  // Narration-led emphasis: when multimodal analysis doesn't provide enough
+  // timestamped high-impact events, use only actual spoken word anchors.
+  // No arbitrary rhythmic zooms and no pseudo-retention effects.
+  const spokenTrigger={
+    impact:/^(mais|jamais|attention|erreur|pourquoi|non|stop|imagine|regarde|impossible|never|why|mistake|instead)[.!?,:]?$/i,
+    explainer:/^(étape|ensuite|puis|enfin|premièrement|deuxièmement|step|next|finally)[.!?,:]?$/i,
+    data:/^(?:[$€£]?\\d+(?:[.,]\\d+)?%?|prix|coût|chiffre|total|pourcentage|euros|dollars)[.!?,:]?$/i
+  }[style];
+  if(spokenTrigger&&Array.isArray(mappedWords)){
+    const gap=style==='impact'?1900:2500;
+    for(const word of mappedWords){
+      const label=String(word?.text||'').trim();
+      const start=Math.round(Number(word?.startMs)||0);
+      if(!spokenTrigger.test(label)||start<700||start>outputDurationMs-450)continue;
+      if(windows.some(v=>Math.abs(v.startMs-start)<gap))continue;
+      windows.push({
+        startMs:start,
+        endMs:Math.min(outputDurationMs,start+(style==='impact'?1050:1350)),
+        scale:styleCfg.punchScale,
+        reason:'spoken_emphasis:'+label.slice(0,30)
+      });
+    }
   }
 
 
