@@ -5,7 +5,7 @@ import {BarChart3,Clapperboard,LogOut,Scissors,Upload,Zap,Check,Link2} from "luc
 import * as tus from "tus-js-client";
 import {functionUrl,supabase,SUPABASE_PROJECT_REF,VIDEO_BUCKET} from "@/lib/supabase";
 import {authMessage} from "@/lib/auth-message";
-import {MAX_VIDEO_UPLOAD_MIB,videoUploadPreflight,videoUploadErrorMessage} from "@/lib/upload-limits";
+import {MAX_VIDEO_UPLOAD_MIB,uploadParts,videoUploadPreflight,videoUploadErrorMessage} from "@/lib/upload-limits";
 
 type Module="viral"|"edit"|"clip";
 type Job={id:string;kind?:string;status:string;progress?:number;stage?:string;result?:any;error?:any;error_code?:string;clip_project_id?:string|null};
@@ -259,16 +259,24 @@ export function Dashboard(){
       const owner=liveSession.user.id;
       const generation=pollGeneration.current;
       const alive=()=>generation===pollGeneration.current;
-      let objectName=`${owner}/${crypto.randomUUID()}-${safeName(selected.name)}`;
+      const parts=uploadParts(selected.size);
+      const multipart=parts.length>1;
+      const baseName=`${owner}/${crypto.randomUUID()}-${safeName(selected.name)}`;
+      const chunkManifest:{path:string;size:number}[]=[];
       if(isClip){setClipFile(selected);setClipMedia(null);setClipUploadPct(0);setClipProject(null)}
       else{
         setSourceUrl(URL.createObjectURL(selected));setFile(selected);setMedia(null);
         setAnalysis(null);setUploadPct(0);setEditExportUrl("");setEditOutputMediaId("");setPreFixScore(null);
       }
       setJob(null);
-      const upload=new tus.Upload(selected,{
+      const sendPart=async(partIndex:number):Promise<void>=>{
+        if(!alive())return;
+        const part=parts[partIndex];
+        let objectName=multipart?baseName+"-part"+String(partIndex).padStart(3,"0"):baseName;
+        const blob=multipart?selected.slice(part.start,part.end,mime):selected;
+        const upload=new tus.Upload(blob,{
         endpoint:`https://${SUPABASE_PROJECT_REF}.storage.supabase.co/storage/v1/upload/resumable`,
-        fingerprint:async()=>JSON.stringify(["viral-studio-v2",owner,selected.name,selected.size,selected.lastModified]),
+        fingerprint:async()=>JSON.stringify(["viral-studio-v2",owner,selected.name,selected.size,selected.lastModified,...(multipart?[partIndex]:[])]),
         retryDelays:[0,3000,5000,10000,20000],
         headers:{"x-upsert":"false"},
         onBeforeRequest:async req=>{
@@ -283,11 +291,17 @@ export function Dashboard(){
           console.warn("Video upload failed",status);
           if(alive()){setError(videoUploadErrorMessage(status));release()}
         },
-        onProgress(sent,total){if(alive())(isClip?setClipUploadPct:setUploadPct)(Math.round(sent/total*100))},
+        onProgress(sent,total){if(alive())(isClip?setClipUploadPct:setUploadPct)(Math.min(99,Math.round((part.start+sent)/selected.size*100)))},
         async onSuccess(){
           if(!alive())return;
+          chunkManifest.push({path:objectName,size:part.size});
+          if(partIndex+1<parts.length){
+            try{await sendPart(partIndex+1)}
+            catch(err){console.warn("Multipart upload continuation failed",err);if(alive()){setError("L’import est interrompu. Sélectionne le même fichier pour reprendre.");release()}}
+            return;
+          }
           try{
-            const body=await api(functionUrl("viral-edit-jobs","media"),token,{method:"POST",body:JSON.stringify({storage_path:objectName,mime_type:mime,size_bytes:selected.size,original_name:selected.name,module:"shared"})});
+            const body=await api(functionUrl("viral-edit-jobs","media"),token,{method:"POST",body:JSON.stringify({storage_path:chunkManifest[0]?.path,mime_type:mime,size_bytes:selected.size,original_name:selected.name,module:"shared",...(multipart?{metadata:{multipart:{version:1,parts:chunkManifest}}}:{})})});
             if(alive()){(isClip?setClipMedia:setMedia)(body.media);(isClip?setClipUploadPct:setUploadPct)(100)}
             if(!isClip)void api(functionUrl("viral-edit-jobs","quota"),"").then(q=>setViralQuota(q.quota||null)).catch(()=>{});
           }catch{if(alive())setError("La vidéo a été envoyée mais sa préparation a échoué. Réessaie l’import.")}
@@ -300,6 +314,8 @@ export function Dashboard(){
       const resumable=previous.find(p=>p.metadata?.bucketName===VIDEO_BUCKET&&p.metadata?.objectName?.startsWith(owner+"/"));
       if(resumable){objectName=resumable.metadata.objectName;upload.options.metadata={...upload.options.metadata,objectName};upload.resumeFromPreviousUpload(resumable)}
       upload.start();
+      };
+      await sendPart(0);
     }catch{setError("L’import n’a pas démarré. Vérifie ta connexion et reconnecte-toi si nécessaire.");release()}
   }
 
