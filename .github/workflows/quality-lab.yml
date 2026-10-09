@@ -25,4 +25,14 @@ jobs:
       - name: Media integrity tests with generated MP4s
         run: node --test quality/tools/check-render.test.mjs
       - name: Six-style adaptive planner and real-render tests
+        env:
+          QA_ARTIFACT_DIR: ${{ github.workspace }}/quality_out
         run: node --test quality/engine/adaptive-director.test.mjs quality/engine/timeline-adapter.test.mjs
+      - name: Preserve synthetic output videos for visual QA
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: editplus-codie-leila-qa-${{ github.run_number }}
+          path: quality_out/*
+          if-no-files-found: warn
+          retention-days: 7
