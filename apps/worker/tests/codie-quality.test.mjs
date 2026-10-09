@@ -46,7 +46,9 @@ test('Codie quality policy is used in the real timeline builder',()=>{
   };
   const timeline=buildEditTimeline({analysis,style:'codie',format:'portrait'});
   assert.equal(timeline.modelId,'codie');
-  assert.equal(timeline.punchIns.length,3);
+  // 20 seconds at a 3/30s ceiling permits only two deliberate punch-ins.
+  assert.equal(timeline.punchIns.length,2);
+  assert.deepEqual(timeline.punchIns.map(p=>p.startMs),[3500,14800]);
   assert.ok(timeline.punchIns.every(p=>p.evidence==='analysis_timeline'));
   assert.ok(!timeline.punchIns.some(p=>p.reason==='editorial_emphasis'));
   assert.ok(timeline.punchIns.every(p=>[1.065,1.125].includes(p.scale)));
