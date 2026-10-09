@@ -36,31 +36,31 @@ const EDIT_MODELS:EditModel[]=[
   {
     id:"codie",name:"Codie",category:"Business storytelling",preview:"FACE CAM",meta:"Narrative · restrained B-roll",
     goal:"Faire ressortir une histoire business forte, facecam dominante.",
-    actions:["Supprimer les silences de 780 ms ou plus, en préservant les respirations courtes.","Déclencher un zoom narratif seulement sur une rupture importante : au plus 3 par 30 s.","Ajouter jusqu’à 2 B-rolls de 1,9 à 3,4 s lorsqu’un élément concret est cité et illustrable.","Afficher des sous-titres blancs premium, sans surlignage mot-à-mot systématique.","Appliquer un traitement voix premium discret."],
+    actions:["IDENTITÉ VERROUILLÉE : Noto Sans 850, taille 66 px en 1080×1920, blanc #FFFFFF, accent orange #FF9B45; 4 mots maximum, position middle-low, apparition douce.","NARRATION : facecam principale, maximum 3 cadrages (normal / crop / close-up); zoom uniquement sur passage fort, pas de bruitage ou transition gratuit.","Supprimer les silences de 780 ms ou plus, en préservant les respirations courtes.","Déclencher un zoom narratif seulement sur une rupture importante : au plus 3 par 30 s.","Ajouter jusqu’à 2 B-rolls de 1,9 à 3,4 s lorsqu’un élément concret est cité et illustrable.","Afficher des sous-titres blancs premium, sans surlignage mot-à-mot systématique.","Appliquer un traitement voix premium discret."],
     never:"Pas de zoom automatique, de carte citation décorative ou de B-roll abstrait."
   },
   {
     id:"impact",name:"Impact",category:"High-energy business",preview:"IMPACT",meta:"Fast · punchy · visual",
     goal:"Créer une vidéo énergique qui accélère la compréhension et la rétention.",
-    actions:["Couper les silences dès 420 ms et les hésitations transcrites.","Accentuer visuellement le hook avec un punch-in court.","Jusqu’à 8 punch-ins narratifs et 5 B-rolls concrets par 30 s.","Afficher un mot-clé ou une phrase de 4 mots maximum en grand lors de moments forts.","Sous-titres dynamiques et finition audio plus incisive."],
+    actions:["IDENTITÉ VERROUILLÉE : DejaVu Sans 900, taille 80 px en 1080×1920, blanc #FFFFFF, accent cyan #37E6FF; 3 mots maximum, mot actif et pop rapide.","RYTHME : hard cuts éditoriaux, 8 punch-ins maximum par 30 s, éléments de langage percutants; refuser glitch et flash non motivés.","Couper les silences dès 420 ms et les hésitations transcrites.","Accentuer visuellement le hook avec un punch-in court.","Jusqu’à 8 punch-ins narratifs et 5 B-rolls concrets par 30 s.","Afficher un mot-clé ou une phrase de 4 mots maximum en grand lors de moments forts.","Sous-titres dynamiques et finition audio plus incisive."],
     never:"Pas d’inserts sans rapport avec le discours, ni de cuts qui amputent le sens."
   },
   {
     id:"clean",name:"Clean",category:"Modern creator",preview:"CLEAN",meta:"Simple · polished · minimal",
     goal:"Améliorer la fluidité d’une facecam sans attirer l’attention sur le montage.",
-    actions:["Couper les silences de plus de 620 ms et les hésitations détectées.","Ajouter au maximum 3 recadrages légers par 30 s, seulement si la narration le justifie.","Limiter à 1 B-roll explicatif par 30 s.","Afficher des sous-titres blancs lisibles et stables.","Équilibrer voix et image sans effet d’habillage superflu."],
+    actions:["IDENTITÉ VERROUILLÉE : Noto Sans 750, taille 60 px en 1080×1920, blanc #FFFFFF, sans couleur secondaire; 5 mots maximum en bas de cadre, apparition douce.","SOBRIÉTÉ : cadrage stable, montage invisible, aucune carte graphique, aucun karaoké ou transition décorative.","Couper les silences de plus de 620 ms et les hésitations détectées.","Ajouter au maximum 3 recadrages légers par 30 s, seulement si la narration le justifie.","Limiter à 1 B-roll explicatif par 30 s.","Afficher des sous-titres blancs lisibles et stables.","Équilibrer voix et image sans effet d’habillage superflu."],
     never:"Pas de cartouche graphique automatique, d’animation ou de zoom décoratif."
   },
   {
     id:"explainer",name:"Explainer",category:"Tutorial & SaaS",preview:"EXPLAIN",meta:"Show · label · clarify",
     goal:"Transformer une démonstration en étapes faciles à comprendre.",
-    actions:["Supprimer les silences dès 560 ms et les hésitations détectées.","Afficher des cartes d’étapes uniquement si une étape est réellement annoncée.","Jusqu’à 5 recadrages et 5 B-rolls d’outils, objets ou interfaces cités par 30 s.","Faire correspondre la durée des illustrations aux phrases et actions expliquées.","Utiliser des sous-titres didactiques et un son discret."],
+    actions:["IDENTITÉ VERROUILLÉE : DejaVu Sans 800, taille 68 px en 1080×1920, blanc #FFFFFF, accent cyan clair #7CE8FF; 4 mots maximum, mot actif et apparition douce.","PÉDAGOGIE : images uniquement lorsque les outils et étapes sont réellement cités; aucun écran fictif; retour rapide vers la facecam.","Supprimer les silences dès 560 ms et les hésitations détectées.","Afficher des cartes d’étapes uniquement si une étape est réellement annoncée.","Jusqu’à 5 recadrages et 5 B-rolls d’outils, objets ou interfaces cités par 30 s.","Faire correspondre la durée des illustrations aux phrases et actions expliquées.","Utiliser des sous-titres didactiques et un son discret."],
     never:"Pas de capture de logiciel fictive, d’étape créée de toutes pièces ou d’image générique."
   },
   {
     id:"ugc_native",name:"UGC Native",category:"Native social",preview:"UGC",meta:"Human · phone-native · direct",
     goal:"Conserver un rendu smartphone naturel, spontané et convaincant.",
-    actions:["Préserver les respirations courtes, les gestes et les imperfections humaines utiles.","Ne couper que les silences de 740 ms ou plus.","Limiter à 3 zooms subtils et 1 insert produit pertinent par 30 s.","Utiliser des sous-titres modernes aux couleurs du modèle sans cartouche publicitaire forcé.","Nettoyer légèrement l’image et la voix sans dénaturer la captation."],
+    actions:["IDENTITÉ VERROUILLÉE : DejaVu Sans 850, taille 68 px en 1080×1920, blanc #FFFFFF, accent rose #FF3FBF; 4 mots maximum, mot actif et pop léger.","NATIVITÉ : gestuelle et produit visibles, cuts smartphone, très peu de B-rolls, aucun effet publicitaire ou preuve inventée.","Préserver les respirations courtes, les gestes et les imperfections humaines utiles.","Ne couper que les silences de 740 ms ou plus.","Limiter à 3 zooms subtils et 1 insert produit pertinent par 30 s.","Utiliser des sous-titres modernes aux couleurs du modèle sans cartouche publicitaire forcé.","Nettoyer légèrement l’image et la voix sans dénaturer la captation."],
     never:"Pas de badges commerciaux, de cartes graphiques automatiques, ni de montage trop publicitaire."
   },
 ];
@@ -544,7 +544,7 @@ export function Dashboard(){
           </button>)}</div>
           <section className="model-action-contract" data-testid="edit-model-action-contract" aria-live="polite">
             <div className="contract-head"><span>CONTRAT DE MONTAGE · {selectedModel.name.toUpperCase()}</span><h3>{selectedModel.goal}</h3></div>
-            <p className="contract-notice">Actions déclenchées par le contenu. Les quantités annoncées sont des plafonds, pas des effets obligatoires.</p>
+            <p className="contract-notice">Identité visuelle verrouillée par modèle. Les quantités sont des plafonds, pas des effets obligatoires : un montage utile prime sur le remplissage.</p>
             <ol>{selectedModel.actions.map((action,i)=><li key={i}><span>{String(i+1).padStart(2,"0")}</span><p>{action}</p></li>)}</ol>
             <div className="contract-avoid"><strong>À éviter</strong><p>{selectedModel.never}</p></div>
           </section>
