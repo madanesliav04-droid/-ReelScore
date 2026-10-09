@@ -183,7 +183,8 @@ async function processJob(job){
     await downloadStorageObject({
       bucket:media.storage_bucket,
       storagePath:media.storage_path,
-      outputPath:sourcePath
+      outputPath:sourcePath,
+      multipartParts:media.metadata?.multipart?.parts
     });
 
     if(job.kind==='viral_analysis'){
@@ -756,34 +757,31 @@ async function updateMediaFromAnalysis(media,analysis){
   if(error)throw error;
 }
 
-async function downloadStorageObject({
-  bucket,
-  storagePath,
-  outputPath
-}){
-  const encoded=encodeStoragePath(storagePath);
-  const url=
-    `${process.env.SUPABASE_URL}/storage/v1/object/authenticated/${encodeURIComponent(bucket)}/${encoded}`;
-
-  const response=await fetch(url,{
-    headers:{
+async function downloadStorageObject({bucket,storagePath,outputPath,multipartParts=null}){
+  const pieces=Array.isArray(multipartParts)&&multipartParts.length>1
+    ?multipartParts:[{path:storagePath}];
+  const owner=String(storagePath).split("/")[0];
+  let totalBytes=0;
+  for(let i=0;i<pieces.length;i++){
+    const item=pieces[i];
+    const current=String(item.path||"");
+    if(!current.startsWith(owner+"/")||current.includes(".."))throw tagged("INVALID_MULTIPART_PART","Invalid multipart object path");
+    const url=`${process.env.SUPABASE_URL}/storage/v1/object/authenticated/${encodeURIComponent(bucket)}/${encodeStoragePath(current)}`;
+    const response=await fetch(url,{headers:{
       apikey:process.env.SUPABASE_SERVICE_ROLE_KEY,
-      Authorization:
-        `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`
-    }
-  });
-
-  if(!response.ok||!response.body){
-    throw tagged(
-      'STORAGE_READ_FAILED',
-      `Storage read ${response.status}: ${(await response.text()).slice(0,500)}`
+      Authorization:`Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`
+    }});
+    if(!response.ok||!response.body)throw tagged(
+      "STORAGE_READ_FAILED",`Storage read ${response.status}: ${(await response.text()).slice(0,500)}`
     );
+    const counted=Readable.fromWeb(response.body);
+    await pipeline(counted,createWriteStream(outputPath,{flags:i===0?"w":"a"}));
+    totalBytes+=Number(item.size||0);
   }
-
-  await pipeline(
-    Readable.fromWeb(response.body),
-    createWriteStream(outputPath)
-  );
+  if(pieces.length>1){
+    const local=await stat(outputPath);
+    if(local.size!==totalBytes)throw tagged("MULTIPART_ASSEMBLY_FAILED","Incomplete multipart video assembly");
+  }
 }
 
 async function uploadStorageObject({
