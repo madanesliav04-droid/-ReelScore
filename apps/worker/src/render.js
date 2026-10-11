@@ -7,6 +7,7 @@ import {
 } from 'node:fs/promises';
 import {spawn} from 'node:child_process';
 import {buildOrganicAss} from './organic-render.js';
+import {applyAutomaticTextContrast} from './visual-contrast.js';
 
 export async function preprocessVideo({
   inputPath,
@@ -359,6 +360,7 @@ export async function renderNativeEdit({
 
     const hasGraphics=Array.isArray(timeline?.graphicCues)&&timeline.graphicCues.length>0;
     if(hasGraphics){
+      await applyAutomaticTextContrast({sourcePath:visualSource,timeline,width,height});
       await writeFile(
         graphicsAssPath,
         buildGraphicsAss(timeline,width,height),
