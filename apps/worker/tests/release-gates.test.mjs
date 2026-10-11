@@ -1,0 +1,17 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {validateTimedTranscript,validateEditTimeline,filterLicensedBroll,validateProbe,ReleaseGateError} from '../src/release-gates.js';
+const timeline={outputDurationMs:2500,keepRanges:[{startMs:0,endMs:2500}],captions:[{startMs:500,endMs:1500,text:'Bonjour tout le monde'}],export:{width:512,height:910},audio:{hasAudio:true}};
+const probe={streams:[{codec_type:'video',codec_name:'h264',width:512,height:910,avg_frame_rate:'30/1'},{codec_type:'audio',codec_name:'aac'}],format:{duration:'2.5'}};
+test('valid timeline passes',()=>assert.equal(validateEditTimeline(timeline).durationMs,2500));
+test('overlap blocks export',()=>assert.throws(()=>validateEditTimeline({...timeline,keepRanges:[{startMs:0,endMs:1500},{startMs:1200,endMs:2500}]}),ReleaseGateError));
+test('empty captions block export',()=>assert.throws(()=>validateEditTimeline({...timeline,captions:[]}),ReleaseGateError));
+test('bad caption timings block export',()=>assert.throws(()=>validateEditTimeline({...timeline,captions:[{text:'bad',startMs:1800,endMs:3700}]}),ReleaseGateError));
+test('missing ASR blocks export',()=>assert.throws(()=>validateTimedTranscript({transcript:{words:[]}},2500),ReleaseGateError));
+test('valid ASR words pass',()=>assert.equal(validateTimedTranscript({transcript:{words:[{text:'Bonjour',startMs:0,endMs:200},{text:'tout',startMs:200,endMs:400},{text:'le',startMs:400,endMs:600}]}},2500).wordCount,3));
+test('ASR non-monotonic words block export',()=>assert.throws(()=>validateTimedTranscript({transcript:{words:[{text:'a',startMs:150,endMs:300},{text:'b',startMs:90,endMs:310},{text:'c',startMs:350,endMs:600}]}},2500),ReleaseGateError));
+test('B-roll without license or attribution blocked',()=>{const x=filterLicensedBroll([{license:'cc0',sourcePage:'https://example.org/1',assetUrl:'https://example.org/pic'},{license:'by',sourcePage:'https://example.org/2',assetUrl:'https://example.org/pic'},{license:'copyright',sourcePage:'https://example.org/3',assetUrl:'https://example.org/pic'}]);assert.equal(x.accepted.length,1);assert.equal(x.rejected.length,2)});
+test('valid H264 AAC passes',()=>assert.equal(validateProbe(probe,{width:512,height:910,durationMs:2500}).fps,30));
+test('missing audio blocks export',()=>assert.throws(()=>validateProbe({...probe,streams:[probe.streams[0]]},{width:512,height:910,durationMs:2500}),ReleaseGateError));
+test('wrong duration blocks export',()=>assert.throws(()=>validateProbe({...probe,format:{duration:'8'}},{width:512,height:910,durationMs:2500}),ReleaseGateError));
+test('wrong raster blocks export',()=>assert.throws(()=>validateProbe(probe,{width:1080,height:1920,durationMs:2500}),ReleaseGateError));
