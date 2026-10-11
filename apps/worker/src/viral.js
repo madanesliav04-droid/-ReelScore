@@ -118,6 +118,7 @@ export async function analyzeVideo({
     recommended_title:String(semantic.recommended_title||''),
     recommended_cta:String(semantic.recommended_cta||''),
     timeline,
+    editorial_director:semantic?.editorial_director||null,
     action_items:Array.isArray(semantic.action_items)
       ?semantic.action_items.slice(0,8)
       :[],
@@ -513,6 +514,7 @@ Schéma:
       "broll_query":""
     }
   ],
+  "editorial_director":{"decisions":[{"start_sec":0,"end_sec":2,"action":"hold","spoken_anchor":"","visual_evidence":"","visual_confidence":0,"audio_confidence":0,"subject_centered":false,"safe_area":"none","protected_regions":[{"type":"face","x":0.4,"y":0.3,"w":0.2,"h":0.25}]}]},
   "action_items":["","",""],
   "fix_plan":[
     {
@@ -549,6 +551,7 @@ Règles:
 - si un élément est absent ou impossible à lire, écris INDETECTABLE;
 - pour les hooks proposés, conserve le sens réel du contenu mais rends-les plus spécifiques;
 - broll_query doit être vide si aucun B-roll n'est utile.
+- EDITORIAL DIRECTOR: Observe les visages, mains, tableaux, objets et gestes en contexte avec la parole. Propose 0 à 6 interventions parmi hold, graphic et soft_punch; zéro est acceptable. Pour chaque intervention, spoken_anchor est une CITATION MOT POUR MOT de la vidéo, start_sec/end_sec correspondant aux paroles prononcées. visual_evidence doit nommer ce qui est visiblement présent à ce moment, et protected_regions contient les rectangles NORMALISÉS x/y/w/h des éléments essentiels visibles (face, hands, board, product, text). safe_area doit être top, left, right ou none. visual_confidence et audio_confidence sont des nombres de 0 à 1; > 0.83 seulement si la preuve est très forte. Ne mets aucun effet si placement douteux. subject_centered ne peut être true que si les gestes et objets sont entièrement dans la zone centrale. Ne propose AUCUN B-roll, recadrage ou fait inventé.
 - SAFE ZONE: évalue la composition pour une vidéo verticale short-form. Vérifie visage/sujet, hook texte, captions et CTA par rapport aux bords et aux zones d'interface usuelles Reels/TikTok/Shorts.
 - safe_zone est un diagnostic Universal Safe, pas une garantie pixel-perfect propre à une plateforme.
 - x et y sont des coordonnées normalisées 0..1 du centre de l'élément observé.
