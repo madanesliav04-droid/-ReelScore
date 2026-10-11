@@ -1022,7 +1022,7 @@ export async function finalEncode({
 
 
 function buildGraphicsAss(timeline,width,height){
-  if((timeline?.graphicCues||[]).some(c=>c.mode==='organic'))return buildOrganicAss(timeline,width,height);
+  if((timeline?.graphicCues||[]).some(c=>c.mode==='organic'||c.mode==='multimodal_organic'))return buildOrganicAss(timeline,width,height);
   if(String(timeline?.modelId||timeline?.style)==='editorial_breakdown')return buildEditorialGraphicsAss(timeline,width,height);
   const mode=String(timeline?.modelId||timeline?.style||'clean');
   const accent={
