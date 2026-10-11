@@ -10,6 +10,7 @@ import {createClient} from '@supabase/supabase-js';
 import {analyzeVideo} from './viral.js';
 import {buildEditTimeline} from './edit.js';
 import {planContextualBroll} from './broll.js';
+import {validateTimedTranscript,validateEditTimeline,filterLicensedBroll,verifyExport} from './release-gates.js';
 import {
   preprocessVideo,
   renderNativeEdit,
@@ -425,6 +426,8 @@ async function runEdit(job,media,sourcePath,dir){
     project.settings?.format||
     'native';
 
+  // Beta release gate: no invented or untimed captions for paid exports.
+  const transcriptAudit=validateTimedTranscript(analysis,Math.round(Number(analysis?.measurable?.durationSec||0)*1000));
   const timeline=buildEditTimeline({
     analysis,
     style:selectedStyle,
@@ -463,6 +466,10 @@ async function runEdit(job,media,sourcePath,dir){
         'gemini-3.5-flash-lite'
     });
 
+  const mediaRights=filterLicensedBroll(timeline.brollCues);
+  timeline.brollCues=mediaRights.accepted;
+  const timelineAudit=validateEditTimeline(timeline);
+  timeline.releaseGate={policy:'editplus-beta-gates-v1',transcript:transcriptAudit,timeline:timelineAudit,brollRejected:mediaRights.rejected};
   const {error:timelineError}=await supabase
     .from('edit_timelines')
     .upsert({
@@ -543,6 +550,9 @@ async function runEdit(job,media,sourcePath,dir){
       progress(job,'encoding',pct,stage)
   });
 
+  // Fail closed before creating an export or exposing a download URL.
+  await progress(job,'encoding',95,'Vérification du fichier vidéo');
+  const qualityReport=await verifyExport({filePath:finalPath,timeline});
   const outputStoragePath=
     `${job.user_id}/exports/${project.id}/${job.id}.mp4`;
 
@@ -587,7 +597,11 @@ async function runEdit(job,media,sourcePath,dir){
         caption_preset:timeline.captionPreset,
         engine:timeline.engine,
         format:timeline.format,
+        broll_planned_count:timeline.brollCues?.length||0,
         broll_count:timeline.brollCues?.length||0,
+        qa_report:qualityReport,
+        qa_policy:qualityReport.policy,
+        broll_rejected:mediaRights.rejected.length,
         broll_sources:(timeline.brollCues||[]).map(x=>({
           provider:x.provider||null,
           source_page:x.sourcePage||null,
@@ -933,7 +947,12 @@ async function failJob(job,error){
     'EDIT_PROJECT_ACCESS_DENIED',
     'UNSUPPORTED_JOB',
     'GEMINI_NOT_CONFIGURED',
-    'INVALID_VIDEO'
+    'INVALID_VIDEO',
+    'ASR_NOT_READY', 'ASR_TIMING_INVALID', 'INVALID_EDIT_DURATION',
+    'INVALID_EDIT_RANGES', 'EDIT_DURATION_MISMATCH', 'CAPTIONS_NOT_READY',
+    'CAPTION_TIMING_INVALID', 'EXPORT_DIMENSIONS_INVALID',
+    'EXPORT_DIMENSIONS_MISMATCH', 'BAD_VIDEO_CODEC', 'MISSING_AUDIO',
+    'EXPORT_DURATION_MISMATCH', 'BAD_FRAME_RATE', 'EXPORT_TOO_SMALL'
   ]);
 
   const retryable=!nonRetryable.has(error?.code);
