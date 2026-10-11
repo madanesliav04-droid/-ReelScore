@@ -1,0 +1,23 @@
+name: Edit+ multimodal director QA
+on:
+  push:
+    branches: [editplus-premium-director-v10]
+    paths:
+      - 'apps/worker/src/**'
+      - 'apps/worker/tests/**'
+      - '.github/workflows/editplus-multimodal-qa.yml'
+  workflow_dispatch:
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: apps/worker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check src/index.js && node --check src/viral.js && node --check src/edit.js && node --check src/render.js && node --check src/organic-render.js && node --check src/multimodal-director.js
+      - run: node --test tests/multimodal-director.test.mjs tests/organic-director.test.mjs tests/release-gates.test.mjs
