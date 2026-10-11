@@ -1,4 +1,5 @@
 import {buildOrganicCues} from './organic-director.js';
+import {buildVisualEditorialDecisions} from './multimodal-director.js';
 const FILLERS=new Set(['euh','heu','uh','um','erm','hmm','hum']);
 
 export const MODEL_CONTRACT_VERSION='editplus-focus-five-v4';
@@ -225,7 +226,12 @@ export function buildEditTimeline({
     captionCfg
   );
 
-  const punchIns=buildPunchIns({
+  // Experimental multimodal path; disabled by default until full video QA.
+  const multimodalMode=process.env.ENABLE_MULTIMODAL_EDITORIAL==='true';
+  const multimodal=multimodalMode?buildVisualEditorialDecisions({
+    analysis,mappedWords,outputDurationMs,maxPer30s:2
+  }):null;
+  const punchIns=multimodalMode?multimodal.punchIns:buildPunchIns({
     editorialTimeline:Array.isArray(analysis?.timeline)
       ?analysis.timeline
       :[],
@@ -239,7 +245,7 @@ export function buildEditTimeline({
   const organicCues=process.env.ENABLE_ORGANIC_EDITORIAL==='true'
     ?buildOrganicCues({captions,words:mappedWords,durationMs:outputDurationMs,maxPer30s:2})
     :[];
-  const graphicCues=organicCues.length?organicCues:buildGraphicCues({
+  const graphicCues=multimodalMode?multimodal.cues:organicCues.length?organicCues:buildGraphicCues({
     style:canonicalStyle,
     captions,
     outputDurationMs,
@@ -279,6 +285,7 @@ export function buildEditTimeline({
     captions,
     punchIns,
     graphicCues,
+    director:multimodalMode?multimodal:null,
     brollCues:[],
     audio:{
       hasAudio:Boolean(analysis?.measurable?.audioCodec),
