@@ -10,9 +10,13 @@ export function buildOrganicAss(timeline,width,height){
   'Style: Organic,Noto Serif,'+fontsize+',&H00282725,&H00282725,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,5,14,14,10,1','',
   '[Events]','Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text'];
  for(const cue of timeline?.graphicCues||[]){
-  if(cue.mode!=='organic'||cue.evidence!=='timed_transcript')continue;
+  const experimental=cue.mode==='multimodal_organic'&&cue.evidence==='gemini_visual_observation_plus_verbatim_timed_words';
+  if(!experimental&&!(cue.mode==='organic'&&cue.evidence==='timed_transcript'))continue;
   const text=esc(cue.text).slice(0,62);if(!text)continue;
-  lines.push('Dialogue: 1,'+tt(cue.startMs)+','+tt(cue.endMs)+',Organic,,0,0,0,,{\\an5\\move('+x+','+(y+7)+','+x+','+y+',0,300)\\fad(175,180)}'+text);
+  const px=experimental?(cue.lane==='left'?Math.round(width*.26):cue.lane==='right'?Math.round(width*.72):Math.round(width*.5)):x;
+  const py=experimental?(cue.lane==='left'||cue.lane==='right'?Math.round(height*.4):Math.round(height*.18)):y;
+  const color=experimental?'\\c&HFFFFFF&\\3c&H111111&\\bord2':'';
+  lines.push('Dialogue: 1,'+tt(cue.startMs)+','+tt(cue.endMs)+',Organic,,0,0,0,,{\\an5\\move('+px+','+(py+7)+','+px+','+py+',0,300)\\fad(175,180)'+color+'}'+text);
  }
  return lines.join('\n');
 }
