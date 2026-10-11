@@ -40,7 +40,7 @@ export function validateEditTimeline(t){
   reject("EXPORT_DIMENSIONS_INVALID","Unsupported output dimensions.");
  return {durationMs,width,height,captionCount:captions.length};
 }
-const licenses=new Set(["cc0","pdm","cc-by","cc-by-sa","by","by-sa"]);
+const licenses=new Set(["cc0","pdm"]); // Attribution-required assets blocked until customer-facing credits exist.
 export function filterLicensedBroll(cues){
  const accepted=[],rejected=[];
  for(const c of Array.isArray(cues)?cues:[]){
@@ -78,6 +78,7 @@ export async function verifyExport({filePath,timeline}){
  if(file.size<100000)reject("EXPORT_TOO_SMALL","Output missing or abnormally small.");
  const data=JSON.parse(await exec("ffprobe",["-v","error","-show_streams","-show_format","-of","json",filePath],60000));
  const inspected=validateProbe(data,{...expected,expectAudio:timeline.audio?.hasAudio!==false});
- await exec("ffmpeg",["-nostdin","-v","error","-xerror","-i",filePath,"-map","0:v:0","-map","0:a:0?","-f","null","-"],Math.max(60000,expected.durationMs*5));
+ try {await exec("ffmpeg",["-nostdin","-v","error","-xerror","-i",filePath,"-map","0:v:0","-map","0:a:0?","-f","null","-"],Math.max(60000,expected.durationMs*5));}
+ catch {reject("EXPORT_DECODE_FAILED","Fichier vidéo non décodable intégralement.");}
  return {passed:true,bytes:file.size,inspected,captionCount:expected.captionCount,policy:"editplus-beta-gates-v1"};
 }
