@@ -15,7 +15,7 @@ export function buildOrganicAss(timeline,width,height){
   const text=esc(cue.text).slice(0,62);if(!text)continue;
   const px=experimental?(cue.lane==='left'?Math.round(width*.26):cue.lane==='right'?Math.round(width*.72):Math.round(width*.5)):x;
   const py=experimental?(cue.lane==='left'||cue.lane==='right'?Math.round(height*.4):Math.round(height*.18)):y;
-  const color=experimental?'\\c&HFFFFFF&\\3c&H111111&\\bord2':'';
+  const color=experimental?(cue.textTone==='dark'?'\\c&H1F2628&\\3c&H1F2628&\\bord0\\shad0':'\\c&HFFFFFF&\\3c&H111111&\\bord2'):'';
   lines.push('Dialogue: 1,'+tt(cue.startMs)+','+tt(cue.endMs)+',Organic,,0,0,0,,{\\an5\\move('+px+','+(py+7)+','+px+','+py+',0,300)\\fad(175,180)'+color+'}'+text);
  }
  return lines.join('\n');
