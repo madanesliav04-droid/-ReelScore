@@ -371,7 +371,9 @@ async function runEdit(job,media,sourcePath,dir){
     analysis=data?.result_json||null;
   }
 
-  if(!analysis?.transcript?.words?.length){
+  if(!analysis?.transcript?.words?.length ||
+     (process.env.ENABLE_MULTIMODAL_EDITORIAL==='true' &&
+      !Array.isArray(analysis?.editorial_director?.decisions))){
     await progress(
       job,
       'transcribing',
@@ -601,6 +603,7 @@ async function runEdit(job,media,sourcePath,dir){
         broll_count:timeline.brollCues?.length||0,
         qa_report:qualityReport,
         qa_policy:qualityReport.policy,
+        experimental_director:timeline.director?{origin:timeline.director.origin,accepted_graphics:timeline.director.cues.length,accepted_punches:timeline.director.punchIns.length,rejections:timeline.director.rejected.length,limitations:timeline.director.limitations}:null,
         broll_rejected:mediaRights.rejected.length,
         broll_sources:(timeline.brollCues||[]).map(x=>({
           provider:x.provider||null,
