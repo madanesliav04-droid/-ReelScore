@@ -1,0 +1,24 @@
+name: Edit+ beta release gates
+on:
+  push:
+    branches: [editplus-commercial-beta-qa-v1]
+    paths:
+      - 'apps/worker/src/release-gates.js'
+      - 'apps/worker/src/index.js'
+      - 'apps/worker/tests/release-gates.test.mjs'
+      - '.github/workflows/editplus-beta-release-gates.yml'
+  workflow_dispatch:
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    defaults:
+      run:
+        working-directory: apps/worker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check src/release-gates.js && node --check src/index.js
+      - run: node --test tests/release-gates.test.mjs
