@@ -1,3 +1,4 @@
+import {buildOrganicCues} from './organic-director.js';
 const FILLERS=new Set(['euh','heu','uh','um','erm','hmm','hum']);
 
 export const MODEL_CONTRACT_VERSION='editplus-focus-five-v4';
@@ -234,7 +235,11 @@ export function buildEditTimeline({
     styleCfg,
     mappedWords
   });
-  const graphicCues=buildGraphicCues({
+  // Feature flag OFF by default: requires blind multimodal / face-safe acceptance testing.
+  const organicCues=process.env.ENABLE_ORGANIC_EDITORIAL==='true'
+    ?buildOrganicCues({captions,words:mappedWords,durationMs:outputDurationMs,maxPer30s:2})
+    :[];
+  const graphicCues=organicCues.length?organicCues:buildGraphicCues({
     style:canonicalStyle,
     captions,
     outputDurationMs,
