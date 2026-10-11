@@ -1,0 +1,26 @@
+name: Edit+ premium experimental director
+on:
+  push:
+    branches: [editplus-premium-director-v10]
+    paths:
+      - 'apps/worker/src/organic-director.js'
+      - 'apps/worker/src/organic-render.js'
+      - 'apps/worker/src/edit.js'
+      - 'apps/worker/src/render.js'
+      - 'apps/worker/tests/organic-director.test.mjs'
+      - '.github/workflows/editplus-premium-director.yml'
+  workflow_dispatch:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    defaults:
+      run:
+        working-directory: apps/worker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check src/organic-director.js && node --check src/organic-render.js && node --check src/edit.js && node --check src/render.js
+      - run: node --test tests/organic-director.test.mjs
