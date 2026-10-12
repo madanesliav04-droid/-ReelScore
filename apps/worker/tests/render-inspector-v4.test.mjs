@@ -45,3 +45,12 @@ test('real FFmpeg black fixture is detected',async()=>{
   assert.ok(r.review.some(x=>x.type==='EXTENDED_BLACK_FRAME'));
  }finally{await rm(dir,{recursive:true,force:true})}
 });
+
+test('trailing freeze with no closure is inspected',()=>{
+ const r=parseRenderSignals('freeze_start: 1',5);
+ assert.equal(r.review[0].type,'POSSIBLE_FREEZE');
+});
+test('trailing long silence with no closure is inspected',()=>{
+ const r=parseRenderSignals('silence_start: 1',6);
+ assert.equal(r.review[0].type,'LONG_AUDIO_SILENCE');
+});
