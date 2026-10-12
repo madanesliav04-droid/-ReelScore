@@ -627,6 +627,7 @@ async function runEdit(job,media,sourcePath,dir){
         qa_report:qualityReport,
         qa_policy:qualityReport.policy,
         creative_audit:timeline.creativeAudit,
+        storyboard_audit:timeline.storyboardReview?{policy:timeline.storyboardReview.policy,accepted:timeline.storyboardReview.accepted.length,rejected:timeline.storyboardReview.rejected}:null,
         observed_render_qa:observedRenderQA,
         cut_decisions:{accepted:timeline.cutReview?.accepted?.length||0,held:timeline.cutReview?.held?.length||0},
         rejected_dominant_effects:timeline.effectDecisions?.rejected?.length||0,
