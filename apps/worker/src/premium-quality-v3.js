@@ -62,7 +62,7 @@ export function arbitrateEditorialEffects({punchIns=[],graphicCues=[],brollCues=
  items.sort((a,b)=>b.priority-a.priority||a.startMs-b.startMs);
  const kept=[];
  for(const item of items){
-  const collides=kept.find(k=>overlaps(item,k,60));
+  const collides=kept.find(k=>overlaps(item,k,0));
   if(collides)rejected.push({kind:item.kind,index:item.index,reason:'DOMINANT_EFFECT_COLLISION',with:collides.kind});
   else kept.push(item);
  }
