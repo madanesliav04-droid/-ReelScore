@@ -12,6 +12,7 @@ import {buildEditTimeline} from './edit.js';
 import {planContextualBroll} from './broll.js';
 import {validateTimedTranscript,validateEditTimeline,filterLicensedBroll,verifyExport} from './release-gates.js';
 import {arbitrateEditorialEffects,inspectPremiumQuality} from './premium-quality-v3.js';
+import {inspectRenderedVideo} from './render-inspector-v4.js';
 import {
   preprocessVideo,
   renderNativeEdit,
@@ -568,6 +569,15 @@ async function runEdit(job,media,sourcePath,dir){
   // Fail closed before creating an export or exposing a download URL.
   await progress(job,'encoding',95,'Vérification du fichier vidéo');
   const qualityReport=await verifyExport({filePath:finalPath,timeline});
+  // Optional second FFmpeg pass: observable defects; never an aesthetic certification.
+  // Disabled by default until latency benchmarking in staging.
+  const observedRenderQA=process.env.ENABLE_POST_RENDER_QA==='true'
+    ?await inspectRenderedVideo(finalPath,{
+      durationSec:timeline.outputDurationMs/1000,
+      hasAudio:Boolean(timeline.audio?.hasAudio)
+    })
+    :{policy:'editplus-render-observable-signals-v4',status:'SKIPPED_FEATURE_DISABLED'};
+
   const outputStoragePath=
     `${job.user_id}/exports/${project.id}/${job.id}.mp4`;
 
@@ -617,6 +627,7 @@ async function runEdit(job,media,sourcePath,dir){
         qa_report:qualityReport,
         qa_policy:qualityReport.policy,
         creative_audit:timeline.creativeAudit,
+        observed_render_qa:observedRenderQA,
         cut_decisions:{accepted:timeline.cutReview?.accepted?.length||0,held:timeline.cutReview?.held?.length||0},
         rejected_dominant_effects:timeline.effectDecisions?.rejected?.length||0,
         experimental_director:timeline.director?{origin:timeline.director.origin,accepted_graphics:timeline.director.cues.length,accepted_punches:timeline.director.punchIns.length,rejections:timeline.director.rejected.length,limitations:timeline.director.limitations}:null,
