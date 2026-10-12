@@ -1,0 +1,63 @@
+name: Edit+ Supervised Editorial Rework V9
+on:
+  push:
+    branches: [editplus-editorial-rework-v9-20261012]
+    paths:
+      - .github/workflows/editplus-premium-rework-v9.yml
+      - apps/worker/tools/render_editorial_v9.py
+  workflow_dispatch:
+jobs:
+  render-and-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 28
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install renderer and fonts
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg fonts-dejavu-core >/dev/null
+          python3 -m pip install --disable-pip-version-check --quiet --break-system-packages "numpy<3" pillow opencv-python-headless
+      - name: Acquire original-speech clean video bases
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p sourced
+          curl --fail --location --silent --show-error --retry 3 \
+             "https://viralplus.floot.app/_cdn/static/be190b0c-df89-4db5-85a9-7d7ad5a42908-editplus_clean_a.mp4" -o sourced/source_a.mp4
+          curl --fail --location --silent --show-error --retry 3 \
+             "https://viralplus.floot.app/_cdn/static/836d5bac-774a-4ec2-93f0-1e2589d70afc-editplus_clean_b.mp4" -o sourced/source_b.mp4
+          curl --fail --location --silent --show-error --retry 3 \
+             "https://viralplus.floot.app/_cdn/static/fcb9212b-ae20-4eef-9e97-124ed501c664-editplus_clean_c.mp4" -o sourced/source_c.mp4
+          for a in sourced/*.mp4; do
+            ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0 "$a"
+            test "$(stat -c %s "$a")" -gt 1000000
+          done
+      - name: Acquire cinema phone B-roll (if exact source is playable)
+        shell: bash
+        run: |
+          curl --fail --location --silent --show-error \
+            --retry 2 "https://assets.mixkit.co/videos/41173/41173-720.mp4" -o sourced/phone_vertical.mp4 || true
+          if [ -f sourced/phone_vertical.mp4 ] && ffprobe -v error sourced/phone_vertical.mp4; then
+            echo "Verified the actual stock video decoding metadata"
+          else
+            rm -f sourced/phone_vertical.mp4
+          fi
+      - name: Render three actual MP4 with real voiced source, animations and graphics
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u apps/worker/tools/render_editorial_v9.py \
+            --input sourced --output results \
+            --stock sourced/phone_vertical.mp4
+          test -s results/QA.json
+          for a in results/*.mp4; do
+            ffmpeg -v error -xerror -i "$a" -f null - 
+          done
+      - name: Keep MP4 exports and actual frame contacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: EditPlus_V9_Three_Video_Exports_And_QA
+          path: results/
+          retention-days: 7
+          compression-level: 0
