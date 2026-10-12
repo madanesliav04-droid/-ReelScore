@@ -119,6 +119,7 @@ export async function analyzeVideo({
     recommended_cta:String(semantic.recommended_cta||''),
     timeline,
     editorial_director:semantic?.editorial_director||null,
+    premium_storyboards:Array.isArray(semantic?.premium_storyboards)?semantic.premium_storyboards.slice(0,8):[],
     action_items:Array.isArray(semantic.action_items)
       ?semantic.action_items.slice(0,8)
       :[],
@@ -515,6 +516,7 @@ Schéma:
     }
   ],
   "editorial_director":{"decisions":[{"start_sec":0,"end_sec":2,"action":"hold","spoken_anchor":"","visual_evidence":"","visual_confidence":0,"audio_confidence":0,"subject_centered":false,"safe_area":"none","protected_regions":[{"type":"face","x":0.4,"y":0.3,"w":0.2,"h":0.25}]}]},
+  ${process.env.ENABLE_PREMIUM_STORYBOARDS==='true'?'"premium_storyboards":[{"type":"statement","start_ms":0,"duration_ms":1800,"spoken_anchor":"","text":"","left":"","right":"","items":[]}],':''}
   "action_items":["","",""],
   "fix_plan":[
     {
@@ -551,6 +553,7 @@ Règles:
 - si un élément est absent ou impossible à lire, écris INDETECTABLE;
 - pour les hooks proposés, conserve le sens réel du contenu mais rends-les plus spécifiques;
 - broll_query doit être vide si aucun B-roll n'est utile.
+${process.env.ENABLE_PREMIUM_STORYBOARDS==='true' ? '- STORYBOARDS PREMIUM: Propose 0 à 4 mécanismes, de types statement/comparison/questions uniquement. Tous les textes (spoken_anchor, text, left, right, items) doivent être des extraits MOT POUR MOT de la transcription réellement prononcée et dans le bon ordre; ne crée aucune comparaison chiffrée ou question inventée. start_ms en millisecondes de la vidéo originale. Recommande zéro si le sens ou le timing est douteux. Ce sont des suggestions, non des décisions de rendu: le serveur vérifiera indépendamment la précision et les zones sûres.' : ''}
 - EDITORIAL DIRECTOR: Observe les visages, mains, tableaux, objets et gestes en contexte avec la parole. Propose 0 à 6 interventions parmi hold, graphic et soft_punch; zéro est acceptable. Pour chaque intervention, spoken_anchor est une CITATION MOT POUR MOT de la vidéo, start_sec/end_sec correspondant aux paroles prononcées. visual_evidence doit nommer ce qui est visiblement présent à ce moment, et protected_regions contient les rectangles NORMALISÉS x/y/w/h des éléments essentiels visibles (face, hands, board, product, text). safe_area doit être top, left, right ou none. visual_confidence et audio_confidence sont des nombres de 0 à 1; > 0.83 seulement si la preuve est très forte. Ne mets aucun effet si placement douteux. subject_centered ne peut être true que si les gestes et objets sont entièrement dans la zone centrale. Ne propose AUCUN B-roll, recadrage ou fait inventé.
 - SAFE ZONE: évalue la composition pour une vidéo verticale short-form. Vérifie visage/sujet, hook texte, captions et CTA par rapport aux bords et aux zones d'interface usuelles Reels/TikTok/Shorts.
 - safe_zone est un diagnostic Universal Safe, pas une garantie pixel-perfect propre à une plateforme.
