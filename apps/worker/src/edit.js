@@ -1,5 +1,6 @@
 import {buildOrganicCues} from './organic-director.js';
 import {buildVisualEditorialDecisions} from './multimodal-director.js';
+import {assessCutCandidates} from './premium-quality-v3.js';
 const FILLERS=new Set(['euh','heu','uh','um','erm','hmm','hum']);
 
 export const MODEL_CONTRACT_VERSION='editplus-focus-five-v4';
@@ -202,8 +203,10 @@ export function buildEditTimeline({
       :[])
   ];
 
+  // V3 fail-safe: acoustic silence or an LLM word timestamp alone cannot remove footage.
+  const cutReview=assessCutCandidates({candidates:removals,analysis,durationMs});
   const mergedRemovals=mergeRanges(
-    removals,
+    cutReview.accepted,
     canonicalStyle==='impact'?45:80,
     durationMs
   );
@@ -281,6 +284,7 @@ export function buildEditTimeline({
     sourceDurationMs:durationMs,
     outputDurationMs,
     keepRanges,
+    cutReview,
     removedRanges:mergedRemovals,
     captions,
     punchIns,
