@@ -11,6 +11,7 @@ import {analyzeVideo} from './viral.js';
 import {buildEditTimeline} from './edit.js';
 import {planContextualBroll} from './broll.js';
 import {validateTimedTranscript,validateEditTimeline,filterLicensedBroll,verifyExport} from './release-gates.js';
+import {arbitrateEditorialEffects,inspectPremiumQuality} from './premium-quality-v3.js';
 import {
   preprocessVideo,
   renderNativeEdit,
@@ -470,6 +471,18 @@ async function runEdit(job,media,sourcePath,dir){
 
   const mediaRights=filterLicensedBroll(timeline.brollCues);
   timeline.brollCues=mediaRights.accepted;
+  // V3 quality director: one justified visual intervention at a time.
+  const effectReview=arbitrateEditorialEffects({
+    punchIns:timeline.punchIns,graphicCues:timeline.graphicCues,
+    brollCues:timeline.brollCues,durationMs:timeline.outputDurationMs
+  });
+  timeline.punchIns=effectReview.punchIns;
+  timeline.graphicCues=effectReview.graphicCues;
+  timeline.brollCues=effectReview.brollCues;
+  timeline.creativeAudit=inspectPremiumQuality({
+    timeline,analysis,cutReview:timeline.cutReview,effectReview
+  });
+  timeline.effectDecisions={policy:effectReview.policy,rejected:effectReview.rejected};
   const timelineAudit=validateEditTimeline(timeline);
   timeline.releaseGate={policy:'editplus-beta-gates-v1',transcript:transcriptAudit,timeline:timelineAudit,brollRejected:mediaRights.rejected};
   const {error:timelineError}=await supabase
@@ -603,6 +616,9 @@ async function runEdit(job,media,sourcePath,dir){
         broll_count:timeline.brollCues?.length||0,
         qa_report:qualityReport,
         qa_policy:qualityReport.policy,
+        creative_audit:timeline.creativeAudit,
+        cut_decisions:{accepted:timeline.cutReview?.accepted?.length||0,held:timeline.cutReview?.held?.length||0},
+        rejected_dominant_effects:timeline.effectDecisions?.rejected?.length||0,
         experimental_director:timeline.director?{origin:timeline.director.origin,accepted_graphics:timeline.director.cues.length,accepted_punches:timeline.director.punchIns.length,rejections:timeline.director.rejected.length,limitations:timeline.director.limitations}:null,
         broll_rejected:mediaRights.rejected.length,
         broll_sources:(timeline.brollCues||[]).map(x=>({
