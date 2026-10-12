@@ -1,0 +1,57 @@
+name: Build portrait-first B-roll
+on:
+  push:
+    branches: [v8-acquire-licensed-broll-20261012]
+    paths: ['.github/workflows/v8-vertical-broll.yml']
+  workflow_dispatch:
+jobs:
+  portrait:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg >/dev/null
+      - name: Acquire 9:16 MP4 source scenes with verification
+        run: |
+          python3 - <<'PY'
+          import re,html,urllib.request,subprocess,json,hashlib,os
+          os.makedirs('portrait/clips',exist_ok=True)
+          clips=[
+            ('41173','man-texting-on-whatsapp'),
+            ('43270','woman-typing-on-her-cell-phone'),
+            ('42136','woman-exploring-an-online-sales-page-on-her-cell-phone'),
+            ('42133','a-mans-hand-scrolling-on-a-sales-page'),
+            ('41174','happy-man-texting-on-his-smartphone'),
+            ('41183','working-on-a-macbook-pro'),
+            ('4939','hands-of-a-woman-typing-on-a-laptop'),
+            ('43269','a-woman-working-remotely-in-a-choffe-shop'),
+            ('49939','portrait-of-a-woman-chatting-on-her-cell-phone'),
+          ]
+          manifest=[]
+          for id,slug in clips:
+            src='https://mixkit.co/free-stock-video/'+slug+'-'+id+'/'
+            body=html.unescape(urllib.request.urlopen(urllib.request.Request(src,headers={'User-Agent':'Mozilla/5.0'}),timeout=35).read().decode('utf8','replace')).replace('\\/','/')
+            urls=list(dict.fromkeys(re.findall(r'https://assets\.mixkit\.co/videos/\d+/\d+-(?:1080|720)\.mp4',body)))
+            urls.sort(key=lambda x:0 if x.endswith('-1080.mp4') else 1)
+            for url in urls:
+              try:
+                data=urllib.request.urlopen(urllib.request.Request(url,headers={'User-Agent':'Mozilla/5.0','Referer':src}),timeout=50).read()
+                if len(data)<100000 or data[4:8]!=b'ftyp':continue
+                path=f'portrait/clips/MX-{id}.mp4';open(path,'wb').write(data)
+                p=subprocess.run(['ffprobe','-v','error','-show_entries','stream=codec_type,width,height:format=duration','-of','json',path],capture_output=True,text=True)
+                if p.returncode:raise RuntimeError('bad mp4')
+                obj=json.loads(p.stdout);v=next((x for x in obj['streams'] if x['codec_type']=='video'),None)
+                if not v or v['height']<=v['width']:raise RuntimeError('not portrait video')
+                manifest.append(dict(id='MX-'+id,title=slug.replace('-',' '),source_url=src,status='asset_ready',asset_path='clips/MX-'+id+'.mp4',duration_sec=float(obj['format']['duration']),width=v['width'],height=v['height'],sha256=hashlib.sha256(data).hexdigest(),license_note='Mixkit Stock Video Free License'))
+                print('PORTRAIT_READY',id,v['width'],v['height'],len(data))
+                break
+              except Exception as e:print('PORTRAIT_FAILED',id,str(e)[:140])
+          open('portrait/manifest.json','w').write(json.dumps(manifest,indent=2))
+          print('PORTRAIT_FINAL',len(manifest),'of',len(clips))
+          if len(manifest)<3:raise RuntimeError('Not enough vertical files')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: editplus-broll-portrait
+          path: portrait/
+          retention-days: 14
+          compression-level: 0
