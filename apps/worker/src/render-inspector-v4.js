@@ -4,10 +4,16 @@ import {spawn} from 'node:child_process';
 export function parseRenderSignals(log,durationSec,hasAudio=true){
  const black=[...String(log).matchAll(/black_start:([\d.]+)\s+black_end:([\d.]+)\s+black_duration:([\d.]+)/g)]
    .map(m=>({start:Number(m[1]),end:Number(m[2]),duration:Number(m[3])}));
- const freezes=[...String(log).matchAll(/freeze_start:\s*([\d.]+)(?:[\s\S]{0,400}?freeze_end:\s*([\d.]+)\s*\|\s*freeze_duration:\s*([\d.]+))?/g)]
-   .filter(m=>m[2]).map(m=>({start:Number(m[1]),end:Number(m[2]),duration:Number(m[3])}));
- const silence=[...String(log).matchAll(/silence_start:\s*([\d.]+)(?:[\s\S]{0,500}?silence_end:\s*([\d.]+)\s*\|\s*silence_duration:\s*([\d.]+))?/g)]
-   .filter(m=>m[2]).map(m=>({start:Number(m[1]),end:Number(m[2]),duration:Number(m[3])}));
+ const paired=(startPattern,endPattern)=>{
+   const begins=[...String(log).matchAll(startPattern)].map(m=>Number(m[1]));
+   const ends=[...String(log).matchAll(endPattern)].map(m=>Number(m[1]));
+   return begins.map((start,i)=>{
+     const end=Number.isFinite(ends[i])&&ends[i]>=start?ends[i]:Number(durationSec);
+     return {start,end,duration:Math.max(0,end-start),trailing:!Number.isFinite(ends[i])};
+   });
+ };
+ const freezes=paired(/freeze_start:\s*([\d.]+)/g,/freeze_end:\s*([\d.]+)/g);
+ const silence=paired(/silence_start:\s*([\d.]+)/g,/silence_end:\s*([\d.]+)/g);
  const peaks=[...String(log).matchAll(/max_volume:\s*(-?[\d.]+)\s*dB/g)].map(m=>Number(m[1]));
  const maxVolumeDb=peaks.length?peaks.at(-1):null,review=[];
  for(const b of black.filter(x=>x.duration>=1.1))
