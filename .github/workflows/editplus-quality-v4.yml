@@ -1,0 +1,27 @@
+name: Edit+ quality V4 observed media QA
+on:
+  push:
+    branches: [editplus-quality-v4-20261012]
+  workflow_dispatch:
+jobs:
+  validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/worker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check complete worker syntax
+        run: |
+          node --check src/index.js
+          node --check src/edit.js
+          node --check src/viral.js
+          node --check src/render.js
+          node --check src/premium-quality-v3.js
+          node --check src/render-inspector-v4.js
+      - name: Run regression suite with FFmpeg
+        run: node --test tests/*.test.mjs
