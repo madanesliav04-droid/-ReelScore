@@ -1,0 +1,23 @@
+name: Build Edit+ B-roll catalog
+on:
+  push:
+    branches: [v8-acquire-licensed-broll-20261012]
+    paths:
+      - '.github/workflows/v8-library-catalog.yml'
+      - 'apps/worker/tools/build-broll-library.py'
+  workflow_dispatch:
+jobs:
+  index-and-download:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg >/dev/null
+      - run: python3 apps/worker/tools/build-broll-library.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: editplus-broll-library-verified
+          path: broll_library/
+          retention-days: 14
+          compression-level: 0
