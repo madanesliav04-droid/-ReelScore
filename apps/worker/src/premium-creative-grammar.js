@@ -33,14 +33,18 @@ export function planPremiumStoryboards({suggestions=[],words=[],durationMs=0,ali
   if(band===null){rejected.push({i,reason:'UNVERIFIED_DYNAMIC_SUBJECT_SAFETY'});continue}
   const cue={mode:'premium_storyboard',type,startMs,endMs,safeTopNormalized:band,evidence:'verbatim_speech_plus_independent_frames'};
   if(type==='statement'){
-   if(!match(s.text,words)){rejected.push({i,reason:'UNSPOKEN_TEXT'});continue}
+   const where=match(s.text,words);
+   if(!where||where.startMs<startMs-500||where.startMs>endMs){rejected.push({i,reason:'UNSPOKEN_OR_REMOTE_TEXT'});continue}
    cue.text=String(s.text).trim();
   }else if(type==='comparison'){
-   if(band<.19||!match(s.left,words)||!match(s.right,words)){rejected.push({i,reason:'UNSAFE_OR_UNSPOKEN_COMPARISON'});continue}
+   const leftWord=match(s.left,words),rightWord=match(s.right,words);
+   if(band<.19||!leftWord||!rightWord||[leftWord,rightWord].some(v=>v.startMs<startMs-800||v.startMs>endMs+500)){
+     rejected.push({i,reason:'UNSAFE_OR_UNSPOKEN_COMPARISON'});continue;
+   }
    cue.left=String(s.left).trim();cue.right=String(s.right).trim();cue.text=cue.left+' | '+cue.right;
   }else{
    const items=(Array.isArray(s.items)?s.items:[]).slice(0,3),occurrences=items.map(v=>match(v,words));
-   if(band<.16||items.length<2||occurrences.some(x=>!x)||occurrences.some((x,j)=>j>0&&x.startMs<occurrences[j-1].startMs)){rejected.push({i,reason:'UNSAFE_OR_UNSPOKEN_SEQUENCE'});continue}
+   if(band<.16||items.length<2||occurrences.some(x=>!x)||occurrences.some((x,j)=>j>0&&x.startMs<occurrences[j-1].startMs)||occurrences.some(x=>x&& (x.startMs<startMs-350||x.startMs>endMs+300))){rejected.push({i,reason:'UNSAFE_OR_UNSPOKEN_SEQUENCE'});continue}
    cue.items=items;cue.itemStarts=occurrences.map(x=>x.startMs);cue.text=items.join(' / ');
   }
   if(accepted.some(x=>x.startMs<endMs+1500&&x.endMs>startMs-1500)){rejected.push({i,reason:'DOMINANT_EFFECT_CONFLICT'});continue}
