@@ -1,0 +1,26 @@
+name: Edit+ creative grammar
+on:
+  push:
+    branches: [editplus-creative-grammar-20261012]
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/worker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check worker syntax
+        run: |
+          node --check src/index.js
+          node --check src/edit.js
+          node --check src/viral.js
+          node --check src/render.js
+          node --check src/premium-creative-grammar.js
+      - name: Run entire worker regression suite
+        run: node --test tests/*.test.mjs
