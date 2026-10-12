@@ -1,0 +1,58 @@
+name: Acquire V8 licensed stock footage
+on:
+  push:
+    branches: [v8-acquire-licensed-broll-20261012]
+  workflow_dispatch:
+jobs:
+  acquire:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Fetch two official Mixkit MP4 videos and verify
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p stock
+          python3 - <<'PY'
+          import html,os,re,urllib.request,urllib.parse,subprocess
+          jobs=[
+            ("4908","person-working-while-scrolling-on-social-networks"),
+            ("41165","man-answering-a-whatsapp")
+          ]
+          for id,slug in jobs:
+            page='https://mixkit.co/free-stock-video/'+slug+'-'+id+'/'
+            req=urllib.request.Request(page,headers={'User-Agent':'Mozilla/5.0'})
+            body=urllib.request.urlopen(req,timeout=40).read().decode('utf-8','replace')
+            body=html.unescape(body).replace('\\/','/')
+            print('page',id,len(body))
+            direct='https://assets.mixkit.co/videos/preview/mixkit-'+slug+'-'+id+'-large.mp4'
+            options=[direct]
+            options+=re.findall(r'https?[^"\'<>\s]{0,300}\.mp4(?:\?[^"\'<>\s]*)?',body)
+            options+=['https://assets.mixkit.co/videos/preview/mixkit-'+slug+'-'+id+'-small.mp4']
+            for u in dict.fromkeys(options):
+              try:
+                req=urllib.request.Request(u,headers={'User-Agent':'Mozilla/5.0','Referer':page})
+                with urllib.request.urlopen(req,timeout=45) as res:
+                  content_type=res.headers.get('Content-Type','')
+                  part=res.read()
+                if len(part)<200000 or part[4:8]!=b'ftyp':
+                  print('not-valid',id,u[:130],len(part),content_type);continue
+                name='stock/mixkit-'+slug+'-'+id+'.mp4'
+                open(name,'wb').write(part)
+                pr=subprocess.run(['ffprobe','-v','error','-show_entries','format=duration,size','-of','default=noprint_wrappers=1',name],capture_output=True,text=True)
+                if pr.returncode:raise RuntimeError('ffprobe rejected '+name)
+                print('DOWNLOADED',name,len(part),'source:',u,'probe:',pr.stdout.strip())
+                break
+              except Exception as e:print('candidate_error',id,str(e)[:160])
+            else:raise RuntimeError('No verified MP4 for Mixkit ID '+id)
+          with open('stock/SOURCES_LICENSE.txt','w') as f:
+            f.write('4908 https://mixkit.co/free-stock-video/person-working-while-scrolling-on-social-networks-4908/\n')
+            f.write('41165 https://mixkit.co/free-stock-video/man-answering-a-whatsapp-41165/\n')
+            f.write('Both pages list Mixkit Stock Video Free License, usable in commercial video edits.\n')
+          PY
+      - name: Keep private workflow artifact for editorial incorporation
+        uses: actions/upload-artifact@v4
+        with:
+          name: licensed-mixkit-v8-source
+          path: stock/
+          retention-days: 7
