@@ -1,6 +1,7 @@
 import {buildOrganicCues} from './organic-director.js';
 import {buildVisualEditorialDecisions} from './multimodal-director.js';
 import {assessCutCandidates} from './premium-quality-v3.js';
+import {planPremiumStoryboards} from './premium-creative-grammar.js';
 const FILLERS=new Set(['euh','heu','uh','um','erm','hmm','hum']);
 
 export const MODEL_CONTRACT_VERSION='editplus-focus-five-v4';
@@ -248,12 +249,22 @@ export function buildEditTimeline({
   const organicCues=process.env.ENABLE_ORGANIC_EDITORIAL==='true'
     ?buildOrganicCues({captions,words:mappedWords,durationMs:outputDurationMs,maxPer30s:2})
     :[];
-  const graphicCues=multimodalMode?multimodal.cues:organicCues.length?organicCues:buildGraphicCues({
+  const storyMode=process.env.ENABLE_PREMIUM_STORYBOARDS==='true';
+  const storyboardReview=storyMode?planPremiumStoryboards({
+    suggestions:analysis?.premium_storyboards||[],
+    words:mappedWords,
+    durationMs:outputDurationMs,
+    alignment:analysis?.transcript?.alignment||null,
+    visualProof:analysis?.composition_proof||null
+  }):null;
+  const defaultGraphicCues=multimodalMode?multimodal.cues:organicCues.length?organicCues:buildGraphicCues({
     style:canonicalStyle,
     captions,
     outputDurationMs,
     styleCfg
   });
+  // Do not silently revert to generic decorative effects if premium visual evidence is absent.
+  const graphicCues=storyMode?storyboardReview.accepted:defaultGraphicCues;
 
   const sourceW=
     Number(sourceWidth)||
@@ -290,6 +301,7 @@ export function buildEditTimeline({
     punchIns,
     graphicCues,
     director:multimodalMode?multimodal:null,
+    storyboardReview:storyMode?storyboardReview:null,
     brollCues:[],
     audio:{
       hasAudio:Boolean(analysis?.measurable?.audioCodec),
