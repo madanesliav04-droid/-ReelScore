@@ -7,7 +7,7 @@
 export const CREATIVE_GATE_VERSION='editplus-creative-gate-v1';
 
 const normalized=s=>String(s??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
-  .toLowerCase().replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+  .toLowerCase().replace(/œ/g,'oe').replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
 const tokens=s=>normalized(s).split(' ').filter(Boolean);
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const genericStock=/\b(business meeting|corporate office|professional office|person working|people working|happy business|smiling business|keyboard typing|typing laptop|laptop typing|man at computer|office desk|stock trading screens)\b/i;
