@@ -55,13 +55,13 @@ function textEvidence(p,words){
   const matches=items.map(item=>uniqueAnchors(item,words));
   if(matches.some(x=>!x)||matches.some((x,i)=>i>0&&x.startMs<matches[i-1].startMs))return null;
   if(matches.some(x=>x.startMs<anchor.startMs-600||x.endMs>anchor.endMs+2500))return null;
-  return {anchor,text:items.join(' / ').slice(0,100),items:items.map(x=>String(x).trim())};
+  return {anchor,text:items.join(' / ').slice(0,100),items:items.map(x=>String(x).trim()),itemStarts:matches.map(x=>x.startMs)};
  }
  if(p.type==='comparison'){
   const left=String(p.left||'').trim(),right=String(p.right||'').trim();
   const a=uniqueAnchors(left,words),b=uniqueAnchors(right,words);
   if(!a||!b||a.startMs>b.startMs||a.startMs<anchor.startMs-450||b.endMs>anchor.endMs+1900)return null;
-  return {anchor,text:left+' ≠ '+right,left,right};
+  return {anchor,text:left+' ≠ '+right,left,right,rightStartMs:b.startMs};
  }
  if(p.type==='chart'){
   const series=Array.isArray(p.series)?p.series:[];
@@ -86,6 +86,7 @@ export function planHormoziOmniStoryboard({analysis,words,durationMs,enabled=fal
  const proposals=Array.isArray(analysis?.hormozi_storyboards)?analysis.hormozi_storyboards:[];
  for(const [i,p] of proposals.slice(0,16).entries()){
   if(!HORMOZI_VISUAL_BEHAVIORS[p.type]){held.push({i,reason:'UNSUPPORTED_GRAPHIC_TYPE'});continue}
+  if(p.type==='chart'){held.push({i,reason:'CHART_RENDERER_PENDING_INDEPENDENT_PIXEL_QA'});continue}
   const evidence=textEvidence(p,words);
   if(!evidence){held.push({i,reason:'UNSPOKEN_OR_UNVERIFIED_VISUAL'});continue}
   const start=evidence.anchor.startMs,end=Math.min(durationMs,Math.max(evidence.anchor.endMs+600,start+1250));
@@ -96,7 +97,8 @@ export function planHormoziOmniStoryboard({analysis,words,durationMs,enabled=fal
    textFamily:'Futura reference; geometric sans fallback',
    palette:'omni_chrome_cyan_violet',editorialPurpose:HORMOZI_VISUAL_BEHAVIORS[p.type].purpose,
    ...(evidence.items?{items:evidence.items}:{}),
-   ...(evidence.left?{left:evidence.left,right:evidence.right}:{}),
+   ...(evidence.itemStarts?{itemStarts:evidence.itemStarts}:{}),
+   ...(evidence.left?{left:evidence.left,right:evidence.right,rightStartMs:evidence.rightStartMs}:{}),
    ...(evidence.series?{series:evidence.series,sourceId:evidence.sourceId}:{}),
    renderingApproval:'requires_human_review'};
   cues.push(cue);
