@@ -14,26 +14,26 @@ export function renderHormoziOmniAss(timeline,width,height){
  'Style: Step,URW Gothic,'+size+','+ice+','+ice+','+dark+',&HFF000000,-1,0,0,0,100,100,0,0,1,2,0,5,12,12,10,1',
  '','[Events]','Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text'];
  const cues=(timeline?.graphicCues||[]).filter(c=>c.mode==='hormozi_omni');
- function say(st,ed,text,style='Step',x=width/2,sy=y){
+ function say(st,ed,text,style='Step',x=width/2,sy=y,easeMs=185){
   if(!(ed-st>200)||!esc(text))return;
-  const enter=slash+'an5'+slash+'move('+[Math.round(x),sy+6,Math.round(x),sy,0,190].join(',')+')'+slash+'fad(85,120)';
+  const enter=slash+'an5'+slash+'move('+[Math.round(x),sy+6,Math.round(x),sy,0,Math.round(easeMs)].join(',')+')'+slash+'fad(85,120)';
   h.push('Dialogue: 3,'+assTime(st)+','+assTime(ed)+','+style+',,0,0,0,,{'+enter+'}'+esc(text));
  }
  for(const c of cues){
   const st=Number(c.startMs),ed=Number(c.endMs);
   if(!Number.isFinite(st)||!Number.isFinite(ed)||ed<=st||st<0)continue;
   if(c.type==='metric'){
-   say(st,ed,c.text,'Metric');
+   say(st,ed,c.text,'Metric',width/2,y,c.motionBeats?.[0]?.easeMs??185);
   }else if(c.type==='sequence'&&Array.isArray(c.items)&&Array.isArray(c.itemStarts)&&c.items.length===c.itemStarts.length){
    for(let i=0;i<c.items.length;i++){
-    const a=Math.max(st,Number(c.itemStarts[i]));
-    const next=Number(c.itemStarts[i+1]);
+    const a=Math.max(st,Number(c.motionBeats?.[i]?.atMs??c.itemStarts[i]));
+    const next=Number(c.motionBeats?.[i+1]?.atMs??c.itemStarts[i+1]);
     const e=i===c.items.length-1?ed:Math.min(ed,next-55);
-    say(a,e,String(i+1).padStart(2,'0')+'  '+String(c.items[i]).slice(0,35),'Step');
+    say(a,e,String(i+1).padStart(2,'0')+'  '+String(c.items[i]).slice(0,35),'Step',width/2,y,c.motionBeats?.[i]?.easeMs??185);
    }
   }else if(c.type==='comparison'){
-   say(st,Math.min(ed,c.rightStartMs||ed),c.left,'Step');
-   if(Number.isFinite(Number(c.rightStartMs)))say(c.rightStartMs,ed,c.right,'Metric');
+   say(st,Math.min(ed,c.rightStartMs||ed),c.left,'Step',width/2,y,c.motionBeats?.[0]?.easeMs??185);
+   if(Number.isFinite(Number(c.rightStartMs)))say(c.motionBeats?.[1]?.atMs??c.rightStartMs,ed,c.right,'Metric',width/2,y,c.motionBeats?.[1]?.easeMs??185);
   }
   // Chart deliberately remains absent until the renderer has measured pixel
   // safety and its data source has been independently verified.
