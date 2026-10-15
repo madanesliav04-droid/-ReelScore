@@ -9,7 +9,7 @@ const norm=s=>String(s??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').repl
 const finite=n=>Number.isFinite(Number(n));
 const styleBudgets={codie:2,impact:3,clean:1,authority:1,explainer:3,data:2,ugc_native:1,cinematic_story:1};
 const patterns=[
- {kind:'absence',pattern:/\b(?:parti|commence|demarre|reparti)\s+(?:de|a)\s+zero\b/,marks:['0'],meaning:'starting_from_zero',sound:'none'},
+ {kind:'absence',pattern:/\b(?:parti|commence|demarre|reparti|rester|reste)\s+(?:de|a)\s+zero\b/,marks:['0'],meaning:'starting_from_zero',sound:'none'},
  {kind:'solution',pattern:/\b(?:resoudre|regler)\s+(?:ce|le|un|des|les|mon|nos)?\s*(?:probleme|blocage)\b|\b(?:probleme|blocage)\s+(?:et|vers|puis|avec)\s+(?:la|une)?\s*solution\b/,marks:['?','✓'],meaning:'problem_to_solution',sound:'resolution'},
  {kind:'progress',pattern:/\b(?:je|tu|nous|on|ils|elles)\s+(?:ai|as|avons|a|ont)?\s*(?:commence\s+a\s+)?(?:progresse|progressons|avance|evolue)\b/,marks:['↗'],meaning:'direction_not_numeric_result',sound:'none'},
  {kind:'choice',pattern:/\b(?:deux|2)\s+(?:choix|possibilites|options)\b|\bchoisir\s+entre\s+.{2,22}\s+et\s+.{2,22}\b/,marks:['A','B'],meaning:'two_options_no_invented_labels',sound:'none'},
