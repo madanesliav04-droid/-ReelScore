@@ -6,7 +6,7 @@ export const OMNI_TYPE_STYLES=Object.freeze({
  codie:{reference:'Avenir',preview:'Inter Display',weight:650,size:66,maxWords:4,stroke:2,position:'middle_low',intent:'natural premium business'},
  impact:{reference:'Futura',preview:'URW Gothic',weight:850,size:77,maxWords:3,stroke:3,position:'middle_low',intent:'short geometric energetic'},
  clean:{reference:'Optima',preview:'Lato',weight:600,size:61,maxWords:5,stroke:2,position:'lower_third',intent:'open understated humanist'},
- authority:{reference:'Baskerville',preview:'GFS Baskerville',weight:600,size:64,maxWords:5,stroke:2,position:'lower_third',intent:'serif editorial expert'},
+ authority:{reference:'Baskerville',preview:'Bitstream Charter',weight:600,size:64,maxWords:5,stroke:2,position:'lower_third',intent:'serif editorial expert'},
  explainer:{reference:'Century Gothic',preview:'URW Gothic',weight:650,size:66,maxWords:4,stroke:2,position:'middle_low',intent:'legible instructional'},
  data:{reference:'Lubalin',preview:'Roboto Slab',weight:750,size:66,maxWords:4,stroke:2,position:'lower_middle',intent:'slab structured evidence'},
  ugc_native:{reference:'Museo',preview:'Cabin',weight:650,size:66,maxWords:4,stroke:2,position:'middle_low',intent:'personal and native'},
