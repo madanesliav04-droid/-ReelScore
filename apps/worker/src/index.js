@@ -10,6 +10,7 @@ import {createClient} from '@supabase/supabase-js';
 import {analyzeVideo} from './viral.js';
 import {buildEditTimeline} from './edit.js';
 import {reviewCreativeTimeline} from './creative-quality-gate.js';
+import {auditOmniCodieModel} from './omni-codie-quality-contract.js';
 import {planContextualBroll} from './broll.js';
 import {validateTimedTranscript,validateEditTimeline,filterLicensedBroll,verifyExport} from './release-gates.js';
 import {arbitrateEditorialEffects,inspectPremiumQuality} from './premium-quality-v3.js';
@@ -498,6 +499,7 @@ async function runEdit(job,media,sourcePath,dir){
     timeline,analysis,cutReview:timeline.cutReview,effectReview
   });
   timeline.effectDecisions={policy:effectReview.policy,rejected:effectReview.rejected};
+  timeline.omniModelAudit=auditOmniCodieModel({timeline,analysis});
   const timelineAudit=validateEditTimeline(timeline);
   timeline.releaseGate={policy:'editplus-beta-gates-v1',transcript:transcriptAudit,timeline:timelineAudit,brollRejected:mediaRights.rejected};
   const {error:timelineError}=await supabase
