@@ -61,6 +61,11 @@ export function projectedGraphicArea(cue,width,height){
   const font=['organic','multimodal_organic','premium_storyboard'].includes(mode)
     ?Math.round(Math.min(w,h)*.061):mode==='editorial_breakdown'
     ?Math.round(73*Math.min(1,h/1920)):(fonts[mode]||58);
+  if(mode==='omni_bubbles'){
+    // Two small, measured circular marks; never a zero-area assertion.
+    const r=Math.min(w,h)*.060;
+    return Math.min(1,2*Math.PI*r*r/(w*h));
+  }
   const content=String(cue?.text||cue?.symbol||'').trim();
   if(!content)return 0;
   const longest=Math.max(...content.split(/\n/).map(line=>line.length),1);
@@ -196,6 +201,20 @@ export function reviewCreativeTimeline({timeline,brollCues,graphicCues,style}={}
        ?Number(cue.screenAreaRatio):0
    )>profile.maxGraphicArea)reason='OVERSIZED_UI_COVERS_SCENE';
    else if(graphics.length>=capG)reason='GRAPHIC_BUDGET_REACHED';
+   else if(cue.mode==='omni_bubbles'){
+      const expected={zero:['spark','zero'],solution:['question','check'],
+        heart:['heart_outline','heart_solid']};
+      const words=normalized(speech);
+      const ok={zero:/\\b(zero|aucun|rien)\\b/,
+        solution:/\\b(resoudre|resolution)\\b/,
+        heart:/\\b(coeurs?|toucher)\\b/};
+      const k=String(cue.kind||'');
+      if(!expected[k]||JSON.stringify(cue.icons)!==JSON.stringify(expected[k])||
+         !hasEditorialEvidence(cue)||!ok[k].test(words)||
+         !Array.isArray(cue.icons)||cue.icons.length!==2||
+         cue.layout!=='lateral_symmetric')
+        reason='UNVERIFIED_OMNI_BUBBLE';
+   }
    else if(cue.mode==='organic'||cue.mode==='multimodal_organic'||cue.mode==='premium_storyboard'){
       const iconName=String(cue.kind||cue.symbol||cue.icon||'').trim().toLowerCase();
       const groundedSymbol=symbolEvidence.some(x=>x.names.includes(iconName)&&x.spoken.test(normalized(speech)));
