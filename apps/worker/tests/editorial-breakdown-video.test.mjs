@@ -4,7 +4,7 @@ import {execFileSync} from 'node:child_process';
 import {mkdtempSync,writeFileSync,rmSync,statSync} from 'node:fs';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
-import {buildEditorialGraphicsAss} from '../src/render.js';
+import {buildEditorialGraphicsAss,escapeFilterPath} from '../src/render.js';
 
 function run(command,args){
   return execFileSync(command,args,{encoding:'utf8',timeout:90000,stdio:['ignore','pipe','pipe']});
@@ -24,7 +24,7 @@ test('Editorial Breakdown exports a decodable video with timed numbers and grid'
     assert.doesNotMatch(subs,/500€/);
     assert.ok(subs.split('\n').filter(l=>l.startsWith('Dialogue: ')).length>=5);
     writeFileSync(ass,subs,'utf8');
-    run('ffmpeg',['-hide_banner','-loglevel','error','-y','-f','lavfi','-i','color=c=0x202025:s=360x640:r=20:d=4','-vf','ass='+ass,'-c:v','libx264','-preset','ultrafast','-pix_fmt','yuv420p','-movflags','+faststart','-t','4',mp4]);
+    run('ffmpeg',['-hide_banner','-loglevel','error','-y','-f','lavfi','-i','color=c=0x202025:s=360x640:r=20:d=4','-vf','ass='+escapeFilterPath(ass),'-c:v','libx264','-preset','ultrafast','-pix_fmt','yuv420p','-movflags','+faststart','-t','4',mp4]);
     const probe=JSON.parse(run('ffprobe',['-v','error','-of','json','-show_streams','-show_format',mp4]));
     assert.equal(probe.streams[0].codec_name,'h264');
     assert.equal(probe.streams[0].width,360);

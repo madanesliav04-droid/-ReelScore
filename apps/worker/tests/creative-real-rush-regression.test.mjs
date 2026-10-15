@@ -51,8 +51,10 @@ test('IMG_0533: rejects MAITRISE card and permits tiny meaningful symbol only',(
   {startMs:29500,endMs:30800,kind:'heart',symbol:'♥',mode:'organic',screenAreaRatio:.04}
  ];
  const out=reviewCreativeTimeline({timeline,graphicCues});
- assert.equal(out.graphicCues.length,3);
- assert.deepEqual(out.graphicCues.map(x=>x.kind),['zero','why','heart']);
+ // The question follows zero by only 850 ms: it is grounded but too dense.
+ assert.equal(out.graphicCues.length,2);
+ assert.deepEqual(out.graphicCues.map(x=>x.kind),['zero','heart']);
+ assert.ok(out.rejected.some(x=>x.reason==='GRAPHICS_TOO_DENSE'));
  assert.ok(out.rejected.some(x=>x.reason==='OVERSIZED_UI_COVERS_SCENE'));
 });
 

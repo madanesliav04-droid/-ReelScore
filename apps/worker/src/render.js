@@ -1444,11 +1444,11 @@ function assOverrideColor(hex){
   return `&H${m[3].toUpperCase()}${m[2].toUpperCase()}${m[1].toUpperCase()}&`;
 }
 
-function escapeFilterPath(value){
-  return String(value)
+export function escapeFilterPath(value){
+  return "'"+String(value)
     .replace(/\\/g,'/')
     .replace(/:/g,'\\:')
-    .replace(/'/g,"\\'");
+    .replace(/'/g,"'\\''")+"'";
 }
 
 function escapeConcatPath(value){
