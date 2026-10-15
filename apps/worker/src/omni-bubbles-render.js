@@ -5,7 +5,7 @@ const glyphs=new Set(['0','?','✓','↗','A','B','♥','◷']);
 const t=ms=>{const c=Math.round(Math.max(0,ms)/10),s=Math.floor(c/100);return Math.floor(s/3600)+':'+String(Math.floor(s/60)%60).padStart(2,'0')+':'+String(s%60).padStart(2,'0')+'.'+String(c%100).padStart(2,'0')};
 const esc=s=>String(s||'').replace(/[{},\\]/g,'').trim();
 function disk(r){const pts=Array.from({length:44},(_,i)=>{const a=i*Math.PI/22;return [Math.round(r+r*Math.cos(a)),Math.round(r+r*Math.sin(a))]});return 'm '+pts.map(p=>p.join(' ')).join(' l ')}
-function validMark(mark){return glyphs.has(mark)||/^\\d{1,5} €$/.test(String(mark))}
+function validMark(mark){return glyphs.has(mark)||/^\d{1,5} €$/.test(String(mark))}
 export function buildOmniBubblesAss(timeline,width,height){
  if(!Number.isFinite(width)||!Number.isFinite(height)||width<240||height<240)throw Error('invalid canvas');
  const r=Math.max(20,Math.min(40,Math.round(Math.min(width,height)*.059))),y=Math.round(height*.48);
