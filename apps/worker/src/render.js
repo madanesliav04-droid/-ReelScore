@@ -1195,14 +1195,12 @@ function buildAss(
     middle_low:380
   }[cfg.position]||280;
 
-  const marginV=
-    Math.max(
-      70,
-      Math.round(
-        baseMargin*
-        sizeScale
-      )
-    );
+  // OMNI Codie: captions anchored at the bottom centre of the actual
+  // output canvas. Portrait uses the social-app safe zone; landscape stays
+  // above the frame edge. No overlap with lateral bubble positions.
+  const marginV=cfg.safeCaptionPlacement==='omni_bottom_center_adaptive'
+    ?Math.round(height*(height>width?.155:.083))
+    :Math.max(70,Math.round(baseMargin*sizeScale));
 
   const activeColor=
     assOverrideColor(
