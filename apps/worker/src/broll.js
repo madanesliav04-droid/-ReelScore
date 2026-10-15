@@ -1,5 +1,6 @@
 import {EDIT_STYLES} from './edit.js';
 import {brollDirectionPrompt} from './broll-art-direction.js';
+import {preflightBrollProposal} from './creative-quality-gate.js';
 
 export async function planContextualBroll({
   timeline,
@@ -177,6 +178,15 @@ ${transcript}`;
     const used=new Set();
 
     for(const cue of cleaned){
+      // Refuse a weak creative decision BEFORE searching/downloading stock.
+      // A visually relevant query is still subject to later image/rights QA.
+      if(process.env.ENABLE_EDITPLUS_CREATIVE_GATE==='true'){
+        const preflight=preflightBrollProposal({cue,captions});
+        if(!preflight.eligible){
+          console.log(JSON.stringify({event:'editplus_preflight_rejected',reason:preflight.reason,query:cue.query,startMs:cue.startMs}));
+          continue;
+        }
+      }
       let asset=null;
       const attempts=Array.isArray(cue.searchQueries)&&cue.searchQueries.length
         ?cue.searchQueries
