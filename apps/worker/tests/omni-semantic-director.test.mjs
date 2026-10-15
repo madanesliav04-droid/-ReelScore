@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {proposeOmniSemanticCues,verifyOmniCue} from '../src/omni-semantic-director.js';
 import {buildOmniBubblesAss} from '../src/omni-bubbles-render.js';
+import {arbitrateEditorialEffects} from '../src/premium-quality-v3.js';
 import {reviewCreativeTimeline} from '../src/creative-quality-gate.js';
 const proof={lateralSafe:true,basis:'independent_frame_tracking',framesChecked:12,confidence:.97};
 const examples=[
@@ -75,4 +76,14 @@ test('SFX only eligible for the actual problem-solution transition',()=>{
   const cue=plan(phrase).cues[0];
   assert.equal(cue.sfxIntent,kind==='solution'?'optional_subtle_resolution':'silence');
  }
+});
+
+test('real downstream effect arbitration keeps verified OMNI vector graphics but rejects blank decoration',()=>{
+ const cue=plan('Je veux résoudre ce problème').cues[0];
+ const result=arbitrateEditorialEffects({graphicCues:[cue],durationMs:9000});
+ assert.equal(result.graphicCues.length,1);
+ const bad={...cue,compositionProof:null};
+ const rejected=arbitrateEditorialEffects({graphicCues:[bad],durationMs:9000});
+ assert.equal(rejected.graphicCues.length,0);
+ assert.equal(rejected.rejected[0].reason,'EMPTY_GRAPHIC');
 });
