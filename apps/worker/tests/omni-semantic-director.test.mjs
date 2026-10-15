@@ -7,10 +7,11 @@ import {reviewCreativeTimeline} from '../src/creative-quality-gate.js';
 const proof={lateralSafe:true,basis:'independent_frame_tracking',framesChecked:12,confidence:.97};
 const examples=[
  ['absence','Je suis parti de zéro', ['0']],
- ['solution','Je veux résoudre ce problème', ['?','✓']],
+ ['solution','Je veux résoudre ce problème', ['✓']],
  ['progress','Je progresse chaque jour', ['↗']],
  ['choice','Tu as deux choix possibles', ['A','B']],
  ['value','Ça coûte 100 euros', ['100 €']],
+ ['sales','Je veux être un bon vendeur', ['€']],
  ['emotion','Je veux toucher les cœurs', ['♥']],
  ['time','Tu perds 3 heures', ['◷']]
 ];
@@ -63,7 +64,7 @@ test('one meaningful symbol draws one bubble; relations draw two',()=>{
  const count=cue=>buildOmniBubblesAss({graphicCues:[cue]},910,512)
    .split('\n').filter(x=>x.startsWith('Dialogue:')).length;
  assert.equal(count(value),2);
- assert.equal(count(problem),4);
+ assert.equal(count(problem),2);
  const text=buildOmniBubblesAss({graphicCues:[value]},910,512);
  assert.ok(text.includes('100 €'));
  assert.ok(text.includes('\\move(')&&text.includes('\\p1'));
@@ -86,4 +87,26 @@ test('real downstream effect arbitration keeps verified OMNI vector graphics but
  const rejected=arbitrateEditorialEffects({graphicCues:[bad],durationMs:9000});
  assert.equal(rejected.graphicCues.length,0);
  assert.equal(rejected.rejected[0].reason,'EMPTY_GRAPHIC');
+});
+
+test('strong sales and emotional speech outrank early decorative zero',()=>{
+ const segments=[
+  ['Je suis parti de zéro.',1200],
+  ['Je veux résoudre ce problème.',10500],
+  ['Je veux être un bon vendeur.',19900],
+  ['Je dois toucher les cœurs.',26600]
+ ];
+ const timed=segments.flatMap(([phrase,start])=>words(phrase,start));
+ const r=proposeOmniSemanticCues({
+  words:timed,durationMs:34500,style:'codie',compositionProof:proof,enabled:true
+ });
+ assert.deepEqual(r.cues.map(x=>x.kind),['solution','sales','emotion']);
+ assert.ok(r.cues.every(x=>x.icons.length===1));
+ assert.ok(!r.cues.some(x=>x.kind==='absence'));
+});
+test('there is no invented money icon without an actual sales or earnings phrase',()=>{
+ for(const phrase of ['Je pense souvent aux clients','Je vais aider les gens','Je cherche une solution']){
+  const r=plan(phrase);
+  assert.ok(!r.cues.some(x=>x.kind==='sales'));
+ }
 });
