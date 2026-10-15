@@ -66,6 +66,22 @@ const symbolEvidence=[
  {names:['clock','time','temps'],spoken:/\b(temps|heures?|minutes?|secondes?|time)\b/},
  {names:['help','aide'],spoken:/\b(aider|aide|besoin|help)\b/}
 ];
+/** Pre-search editorial check; avoids downloading visually irrelevant stock. */
+export function preflightBrollProposal({cue,captions=[]}={}){
+ const startMs=Number(cue?.startMs),endMs=Number(cue?.endMs);
+ if(!isNum(startMs)||!isNum(endMs)||endMs<=startMs)
+  return {eligible:false,reason:'INVALID_BROLL_TIMING'};
+ const speech=spokenWindow(captions,startMs,endMs);
+ const desc=[cue?.query,cue?.visualAnchor].filter(Boolean).join(' ');
+ if(!speech.trim())return {eligible:false,reason:'NO_SPOKEN_ANCHOR'};
+ if(isGenericBroll(cue))return {eligible:false,reason:'GENERIC_STOCK'};
+ if(fakeProof.test(normalized(desc))&&!/\b\\d+/.test(speech))
+  return {eligible:false,reason:'POTENTIAL_FAKE_PROOF'};
+ if(!matchesVisualEvidence(speech,desc))
+  return {eligible:false,reason:'NO_NARRATIVE_VISUAL_MATCH'};
+ return {eligible:true,reason:'SPOKEN_GROUNDED_VISUAL'};
+}
+
 function hasGraphicAnchor(graphic,speech){
  const speechNorm=normalized(speech);
  const name=String(graphic.kind||graphic.symbol||graphic.icon||'').trim().toLowerCase();
