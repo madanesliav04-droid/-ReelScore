@@ -35,22 +35,18 @@ test('portrait or lack of independent face-safe approval means no automatic bubb
  assert.equal(proposeOmniBubblePairs({words,durationMs:34500,sourceAspect:.56,enabled:true}).length,0);
  assert.equal(proposeOmniBubblePairs({words,durationMs:34500,sourceAspect:1.8,enabled:false}).length,0);
 });
-test('vector ASS draws two paired bubbles and two icons per cue',()=>{
+test('legacy word-trigger pairs are blocked from the commercial renderer',()=>{
  const cues=proposeOmniBubblePairs({words,durationMs:34500,sourceAspect:910/512,enabled:true});
+ // Legacy fixtures have no independent spatial tracking proof.
  const ass=buildOmniBubblesAss({graphicCues:cues},910,512);
- assert.equal(ass.split('\n').filter(s=>s.startsWith('Dialogue:')).length,12);
- assert.ok(ass.includes('\\p1')&&ass.includes('\\move('));
- assert.equal(buildOmniBubblesAss({graphicCues:cues},512,910),'');
+ assert.equal(ass.split('\n').filter(s=>s.startsWith('Dialogue:')).length,0);
 });
-test('creative gate refuses invented icon pairs and accepts grounded placements',()=>{
+test('legacy emoticon pairs are rejected by the new semantic quality gate',()=>{
  const cues=proposeOmniBubblePairs({words,durationMs:34500,sourceAspect:910/512,enabled:true});
  const timeline={outputDurationMs:34500,width:910,height:512,
   captions:words.map(w=>({...w,text:w.text}))};
  const result=reviewCreativeTimeline({timeline,style:'codie',graphicCues:cues});
- assert.equal(result.graphicCues.length,3,JSON.stringify(result.rejected));
- assert.ok(projectedGraphicArea(cues[0],910,512)>0);
- const bad={...cues[0],icons:['spark','heart_solid']};
- const rejected=reviewCreativeTimeline({timeline,style:'codie',graphicCues:[bad]});
- assert.equal(rejected.graphicCues.length,0);
- assert.equal(rejected.rejected[0].reason,'UNVERIFIED_OMNI_BUBBLE');
+ assert.equal(result.graphicCues.length,0);
+ assert.ok(result.rejected.length>0);
+ assert.ok(result.rejected.every(x=>x.reason==='UNVERIFIED_OMNI_SEMANTICS_OR_TRACKING'));
 });
