@@ -24,18 +24,18 @@ export function resolveOmniTypography(style,current={}){
 }
 // Silence beats decoration. Emit a pair only for an unambiguous spoken concept.
 const accents=[
- {kind:'zero',pattern:/\\b(?:z[eé]ro|aucun|rien)\\b/i,icons:['spark','zero']},
- {kind:'solution',pattern:/\\b(?:r[eé]soudr[ea]|r[eé]solution)\\b/i,icons:['question','check']},
- {kind:'heart',pattern:/\\b(?:c[œo]eurs?|toucher les c[œo]eurs?)\\b/i,icons:['heart_outline','heart_solid']}
+ {kind:'zero',pattern:/\b(?:zero|aucun|rien)\b/i,icons:['spark','zero']},
+ {kind:'solution',pattern:/\b(?:resoudre|resolution|resout)\b/i,icons:['question','check']},
+ {kind:'heart',pattern:/\b(?:coeur|coeurs)\b/i,icons:['heart_outline','heart_solid']}
 ];
-const normalized=s=>String(s||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').replace(/œ/g,'oe').toLowerCase();
+const normalized=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/œ/g,'oe').toLowerCase();
 export function proposeOmniBubblePairs({words=[],durationMs=0,sourceAspect=1,enabled=false,maxPer30s=2.5}={}){
  if(!enabled||!(Number(durationMs)>=3000)||!(Number(sourceAspect)>=1.25)||!Array.isArray(words)||!words.length)return [];
  // A centred facecam in portrait does not guarantee clear lateral space. Hold.
  const available=Math.min(3,Math.floor(durationMs/30000*maxPer30s)+1),out=[],seen=new Set();
  const sorted=[...words].filter(w=>Number.isFinite(Number(w.startMs))&&Number.isFinite(Number(w.endMs))&&Number(w.endMs)>Number(w.startMs)).sort((a,b)=>Number(a.startMs)-Number(b.startMs));
  for(let i=0;i<sorted.length;i++){
-  const phrase=normalized(sorted.slice(i,Math.min(i+7,sorted.length)).map(w=>w.text).join(' '));
+  const phrase=normalized(sorted[i].text);
   const entry=accents.find(a=>a.pattern.test(phrase)&&!seen.has(a.kind));
   if(!entry)continue;
   const at=Number(sorted[i].startMs);
