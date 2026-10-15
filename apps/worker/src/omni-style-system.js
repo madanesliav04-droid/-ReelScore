@@ -20,7 +20,8 @@ export function resolveOmniTypography(style,current={}){
   maxWordsPerLine:selected.maxWords,stroke:selected.stroke,position:selected.position,
   background:false,referenceTypeface:selected.reference,renderedTypeface:selected.preview,
   typefaceVerification:'preview_substitute_not_exact_reference',
-  typographyPolicy:OMNI_STYLE_TYPOGRAPHY_VERSION};
+  typographyPolicy:OMNI_STYLE_TYPOGRAPHY_VERSION,
+  safeCaptionPlacement:name==='codie'?'omni_bottom_center_adaptive':null};
 }
 // Silence beats decoration. Emit a pair only for an unambiguous spoken concept.
 const accents=[
