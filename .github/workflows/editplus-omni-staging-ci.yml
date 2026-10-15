@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Install worker dependencies
         run: npm install --no-audit --no-fund
+      - name: Install FFmpeg for export integration fixtures
+        run: sudo apt-get update -qq && sudo apt-get install -y ffmpeg fonts-noto-core
       - name: Test all worker code and eight model typefaces
         run: npm run check
       - name: Keep staging out of production
