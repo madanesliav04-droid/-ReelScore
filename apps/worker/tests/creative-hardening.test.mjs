@@ -59,3 +59,29 @@ test('portrait and landscape yield different projected text footprints',()=>{
  assert.ok(Number.isFinite(portrait)&&Number.isFinite(landscape));
  assert.notEqual(portrait,landscape);
 });
+
+test('grounded organic wording survives without a fabricated AI visual label',()=>{
+ const t={...base,captions:[{startMs:1000,endMs:5000,text:'Je t explique pourquoi il faut changer'}]};
+ const cue={startMs:1200,endMs:3000,mode:'organic',kind:'question',text:'pourquoi',evidence:'timed_transcript'};
+ const r=reviewCreativeTimeline({timeline:t,graphicCues:[cue],style:'impact'});
+ assert.equal(r.graphicCues.length,1);
+ assert.equal(r.graphicCues[0].text,'pourquoi');
+});
+
+test('a spoken symbol cannot certify invented adjacent text',()=>{
+ const t={...base,captions:[{startMs:1000,endMs:5000,text:'Je t explique pourquoi'}]};
+ const r=reviewCreativeTimeline({timeline:t,graphicCues:[
+  {startMs:1200,endMs:2900,mode:'organic',kind:'why',text:'RESULTAT GARANTI',evidence:'timed_transcript'}
+ ],style:'impact'});
+ assert.equal(r.graphicCues.length,0);
+ assert.equal(r.rejected[0].reason,'UNSPOKEN_GRAPHIC_CLAIM');
+});
+
+test('isolated spoken words cannot be reassembled in a different order as a claim',()=>{
+ const t={...base,captions:[{startMs:1000,endMs:5500,text:'Cette formation rapporte de l argent'}]};
+ const r=reviewCreativeTimeline({timeline:t,graphicCues:[
+  {startMs:1200,endMs:3000,mode:'impact',text:'argent formation'}
+ ],style:'impact'});
+ assert.equal(r.graphicCues.length,0);
+ assert.equal(r.rejected[0].reason,'DECORATIVE_OR_UNSPOKEN_GRAPHIC');
+});
