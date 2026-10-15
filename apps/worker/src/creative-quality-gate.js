@@ -185,13 +185,11 @@ export function reviewCreativeTimeline({timeline,brollCues,graphicCues,style}={}
    let reason=null;
    const speech=spokenWindow(captions,start,end);
    if(!isNum(start)||!isNum(end)||start<0||end<=start||end>duration+250)reason='INVALID_GRAPHIC_TIMING';
-   else {
-     const projected=projectedGraphicArea(cue,Number(width)||1080,Number(height)||1920);
-     const declared=Number(cue.screenAreaRatio);
-     // Declared metadata can raise the footprint, but cannot override a larger prediction.
-     const occupied=Math.max(projected??1,Number.isFinite(declared)&&declared>=0?declared:0);
-     if(occupied>profile.maxGraphicArea)reason='OVERSIZED_UI_COVERS_SCENE';
-   }
+   else if(Math.max(
+     projectedGraphicArea(cue,Number(width)||1080,Number(height)||1920)??1,
+     Number.isFinite(Number(cue.screenAreaRatio))&&Number(cue.screenAreaRatio)>=0
+       ?Number(cue.screenAreaRatio):0
+   )>profile.maxGraphicArea)reason='OVERSIZED_UI_COVERS_SCENE';
    else if(graphics.length>=capG)reason='GRAPHIC_BUDGET_REACHED';
    else if(cue.mode==='organic'||cue.mode==='multimodal_organic'||cue.mode==='premium_storyboard'){
       const iconName=String(cue.kind||cue.symbol||cue.icon||'').trim().toLowerCase();
