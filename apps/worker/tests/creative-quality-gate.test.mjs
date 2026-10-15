@@ -118,3 +118,37 @@ test('vertical format leaves more room for substantive B-roll than horizontal',(
  const v=reviewCreativeTimeline({timeline:timeline({aspect:9/16,captions:c}),brollCues:shots,style:'impact'});
  assert.ok(v.brollCues.length>h.brollCues.length);
 });
+
+
+test('small symbolic cues are allowed only when their meaning is actually spoken',()=>{
+ const m=timeline({captions:[
+  {startMs:4000,endMs:6000,text:'je t explique pourquoi'},
+  {startMs:11500,endMs:14000,text:'gagner du temps'},
+  {startMs:22000,endMs:24200,text:'gagner de l argent'}
+ ]});
+ const res=reviewCreativeTimeline({timeline:m,graphicCues:[
+  {startMs:4100,endMs:5200,kind:'why',symbol:'?',screenAreaRatio:.02,mode:'organic'},
+  {startMs:11900,endMs:13100,kind:'clock',screenAreaRatio:.02,mode:'organic'},
+  {startMs:22500,endMs:23800,kind:'money',symbol:'€',screenAreaRatio:.02,mode:'organic'}
+ ]});
+ assert.equal(res.graphicCues.length,3);
+});
+
+test('big interface is rejected even when its word is spoken',()=>{
+ const m=timeline({captions:[{startMs:7000,endMs:9200,text:'pourquoi'}]});
+ const res=reviewCreativeTimeline({timeline:m,graphicCues:[
+  {startMs:7100,endMs:8500,kind:'why',symbol:'?',screenAreaRatio:.31,mode:'organic'}
+ ]});
+ assert.equal(res.graphicCues.length,0);
+ assert.equal(res.rejected[0].reason,'OVERSIZED_UI_COVERS_SCENE');
+});
+
+test('35-second horizontal may use 2 justified B-roll but does not invent them',()=>{
+ const m=timeline({captions:[
+  {startMs:10500,endMs:12100,text:'je me forme encore en formation'},
+  {startMs:21700,endMs:24900,text:'j aide les personnes et je montre comment les aider'}
+ ]});
+ const shots=[cue(10500,12000,'online training course lesson'),cue(22100,24100,'mentor helping a learner')];
+ const r=reviewCreativeTimeline({timeline:m,brollCues:shots,style:'v15_b'});
+ assert.equal(r.brollCues.length,2);
+});
