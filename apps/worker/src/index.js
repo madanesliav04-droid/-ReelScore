@@ -9,6 +9,7 @@ import {randomUUID,createHash} from 'node:crypto';
 import {createClient} from '@supabase/supabase-js';
 import {analyzeVideo} from './viral.js';
 import {buildEditTimeline} from './edit.js';
+import {reviewCreativeTimeline} from './creative-quality-gate.js';
 import {planContextualBroll} from './broll.js';
 import {validateTimedTranscript,validateEditTimeline,filterLicensedBroll,verifyExport} from './release-gates.js';
 import {arbitrateEditorialEffects,inspectPremiumQuality} from './premium-quality-v3.js';
@@ -472,6 +473,19 @@ async function runEdit(job,media,sourcePath,dir){
 
   const mediaRights=filterLicensedBroll(timeline.brollCues);
   timeline.brollCues=mediaRights.accepted;
+  // Staging-only, evidence-first gate. Reject decorative media, never fill a preset quota.
+  // Leave OFF until tested on unrelated rushes and visually approved.
+  if(process.env.ENABLE_EDITPLUS_CREATIVE_GATE==='true'){
+    const creativeGate=reviewCreativeTimeline({
+      timeline,
+      brollCues:timeline.brollCues,
+      graphicCues:timeline.graphicCues,
+      style:selectedStyle
+    });
+    timeline.brollCues=creativeGate.brollCues;
+    timeline.graphicCues=creativeGate.graphicCues;
+    timeline.creativeGate={policy:creativeGate.policy,audit:creativeGate.audit,rejected:creativeGate.rejected};
+  }
   // V3 quality director: one justified visual intervention at a time.
   const effectReview=arbitrateEditorialEffects({
     punchIns:timeline.punchIns,graphicCues:timeline.graphicCues,
