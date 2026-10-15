@@ -1,7 +1,8 @@
 import {buildOrganicCues} from './organic-director.js';
 import {buildVisualEditorialDecisions} from './multimodal-director.js';
 import {assessCutCandidates} from './premium-quality-v3.js';
-import {resolveOmniTypography,proposeOmniBubblePairs} from './omni-style-system.js';
+import {resolveOmniTypography} from './omni-style-system.js';
+import {proposeOmniSemanticCues} from './omni-semantic-director.js';
 import {planPremiumStoryboards} from './premium-creative-grammar.js';
 const FILLERS=new Set(['euh','heu','uh','um','erm','hmm','hum']);
 
@@ -265,15 +266,15 @@ export function buildEditTimeline({
     styleCfg
   });
   // Do not silently revert to generic decorative effects if premium visual evidence is absent.
-  // Deliberately held unless the experiment is enabled AND visual analysis
-  // independently confirms both lateral lanes are face-safe.
-  const omniBubbles=proposeOmniBubblePairs({
-    words:mappedWords,durationMs:outputDurationMs,
-    sourceAspect:(Number(sourceWidth)||Number(analysis?.measurable?.width)||1080)/
-      (Number(sourceHeight)||Number(analysis?.measurable?.height)||1920),
-    enabled:process.env.ENABLE_OMNI_BUBBLES==='true'&&
-      analysis?.composition_proof?.lateralSafe===true&&canonicalStyle==='codie'
+  // OMNI framework: seven ideas, no keyword-triggered decorative badges.
+  // Hold the entire treatment unless independent frame tracking explicitly clears
+  // both lateral placements across the spoken interval.
+  const omniPlan=proposeOmniSemanticCues({
+    words:mappedWords,durationMs:outputDurationMs,style:canonicalStyle,
+    compositionProof:analysis?.composition_proof||null,
+    enabled:process.env.ENABLE_OMNI_BUBBLES==='true'
   });
+  const omniBubbles=omniPlan.cues;
   const graphicCues=storyMode?storyboardReview.accepted:
     omniBubbles.length?omniBubbles:defaultGraphicCues;
 
@@ -304,7 +305,7 @@ export function buildEditTimeline({
     captionPreset:preset,
     captionConfig:captionCfg,
     typographyStatus:captionCfg.typefaceVerification||'legacy',
-    omniBubbleAudit:{proposed:omniBubbles.length,faceSafetyRequired:true},
+    omniBubbleAudit:{policy:omniPlan.policy,proposed:omniBubbles.length,held:omniPlan.held,faceSafetyRequired:true},
     sourceDurationMs:durationMs,
     outputDurationMs,
     keepRanges,
