@@ -95,7 +95,8 @@ function hasGraphicAnchor(graphic,speech){
    const numbers=numeric(visible);
    if(!numbers.length||!numbers.every(n=>numeric(spoken).includes(n)))return false;
  }
- return words.length>0 && words.every(w=>spoken.includes(w));
+ const spokenTokens=new Set(tokens(spoken));
+ return words.length>0 && words.every(w=>spokenTokens.has(w));
 }
 function hasEditorialEvidence(graphic){
  return ['timestamped_transcript','gemini_visual_observation_plus_verbatim_timed_words','analysis_timeline'].includes(graphic.evidence);
@@ -108,7 +109,9 @@ function hasEditorialEvidence(graphic){
 export function reviewCreativeTimeline({timeline,brollCues,graphicCues,style}={}){
  const duration=Math.max(0,Number(timeline?.outputDurationMs)||0);
  const captions=Array.isArray(timeline?.captions)?timeline.captions:[];
- const aspect=Number(timeline?.sourceAspect)||1;
+ const width=Number(timeline?.width),height=Number(timeline?.height);
+ const aspect=isNum(width)&&width>0&&isNum(height)&&height>0
+   ?width/height:Number(timeline?.sourceAspect)||1;
  const horizontal=aspect>=1.2;
  const model=String(style||timeline?.style||'clean').toLowerCase();
  const cfg=profiles[model]||profiles.clean;
@@ -153,8 +156,9 @@ export function reviewCreativeTimeline({timeline,brollCues,graphicCues,style}={}
       if(!hasEditorialEvidence(cue)&&!cue.spoken_anchor&&!groundedSymbol)reason='UNVERIFIED_GRAPHIC_ANCHOR';
       else if(!hasGraphicAnchor(cue,speech))reason='UNSPOKEN_GRAPHIC_CLAIM';
    }else if(!hasGraphicAnchor(cue,speech))reason='DECORATIVE_OR_UNSPOKEN_GRAPHIC';
-   else if(graphics.some(prev=>start<prev.endMs+profile.minGraphicGapMs))reason='GRAPHICS_TOO_DENSE';
-   else if(broll.some(shot=>overlap(shot,{startMs:start,endMs:end})))reason='COMPETES_WITH_BROLL';
+   // These constraints apply to every mode, including grounded organic graphics.
+   if(!reason&&graphics.some(prev=>start<prev.endMs+profile.minGraphicGapMs))reason='GRAPHICS_TOO_DENSE';
+   if(!reason&&broll.some(shot=>overlap(shot,{startMs:start,endMs:end})))reason='COMPETES_WITH_BROLL';
    if(reason)rejected.push({kind:'graphic',reason,startMs:start,text:String(cue.text||'').slice(0,80)});
    else graphics.push({...cue,creativeEvidence:'spoken_caption_anchor',creativeGateVersion:CREATIVE_GATE_VERSION});
  }
