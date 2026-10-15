@@ -122,8 +122,10 @@ function hasGraphicAnchor(graphic,speech){
  const speechNorm=normalized(speech);
  const name=String(graphic.kind||graphic.symbol||graphic.icon||'').trim().toLowerCase();
  const match=symbolEvidence.find(x=>x.names.includes(name));
- if(match&&match.spoken.test(speechNorm))return true;
  const visible=normalized(graphic.text||graphic.spoken_anchor||'');
+ // A spoken question cannot license an unrelated made-up claim just because kind=why.
+ if(match&&match.spoken.test(speechNorm)&&
+    (!visible||visible===normalized(organicSymbols[name]||'')))return true;
  if(!visible)return false;
  const spoken=normalized(speech);
  const words=tokens(visible).filter(w=>w.length>2);
@@ -131,11 +133,14 @@ function hasGraphicAnchor(graphic,speech){
    const numbers=numeric(visible);
    if(!numbers.length||!numbers.every(n=>numeric(spoken).includes(n)))return false;
  }
- const spokenTokens=new Set(tokens(spoken));
- return words.length>0 && words.every(w=>spokenTokens.has(w));
+ const spokenTokens=tokens(spoken).filter(w=>w.length>2);
+ // Evidence must preserve spoken order. A collage of isolated words is not verbatim.
+ return words.length>0&&spokenTokens.some((_,i)=>
+   words.every((word,j)=>spokenTokens[i+j]===word));
 }
 function hasEditorialEvidence(graphic){
- return ['timestamped_transcript','gemini_visual_observation_plus_verbatim_timed_words','analysis_timeline'].includes(graphic.evidence);
+ return ['timestamped_transcript','timed_transcript','verbatim_speech_plus_independent_frames',
+   'gemini_visual_observation_plus_verbatim_timed_words','analysis_timeline'].includes(graphic.evidence);
 }
 
 /**
