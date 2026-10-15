@@ -53,7 +53,7 @@ test('a small transcript-grounded organic icon becomes a renderable cue',()=>{
 });
 
 test('portrait and landscape yield different projected text footprints',()=>{
- const graphic={text:'CETTE FORMATION',mode:'impact'};
+ const graphic={text:'CETTE FORMATION EST IMPORTANTE',mode:'impact'};
  const portrait=projectedGraphicArea(graphic,1080,1920);
  const landscape=projectedGraphicArea(graphic,1920,1080);
  assert.ok(Number.isFinite(portrait)&&Number.isFinite(landscape));
