@@ -1,0 +1,26 @@
+name: Edit+ Editorial Hardening (staging only)
+on:
+  push:
+    branches: [editplus-editorial-hardening-20261015]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  worker-quality:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/worker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install worker dependencies
+        run: npm install --no-audit --no-fund
+      - name: Install FFmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y ffmpeg fonts-noto-core
+      - name: Check worker and execute full test suite
+        run: npm run check
+      - name: Report that synthetic tests are not real A/B/C QA
+        run: echo "Synthetic tests only; no A/B/C E2E, perceptual or listening certification."
