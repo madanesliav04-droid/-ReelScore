@@ -4,6 +4,7 @@
  * No fixed animation cadence. Failing to find a valid visual = keep the facecam.
  * Existing caption QA + pixel verification remain independently mandatory.
  */
+import {verifyOmniCue} from './omni-semantic-director.js';
 export const CREATIVE_GATE_VERSION='editplus-creative-gate-v1';
 
 const normalized=s=>String(s??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
@@ -64,7 +65,8 @@ export function projectedGraphicArea(cue,width,height){
   if(mode==='omni_bubbles'){
     // Two small, measured circular marks; never a zero-area assertion.
     const r=Math.min(w,h)*.060;
-    return Math.min(1,2*Math.PI*r*r/(w*h));
+    const count=Array.isArray(cue?.icons)?cue.icons.length:2;
+    return Math.min(1,count*Math.PI*r*r/(w*h));
   }
   const content=String(cue?.text||cue?.symbol||'').trim();
   if(!content)return 0;
@@ -202,18 +204,7 @@ export function reviewCreativeTimeline({timeline,brollCues,graphicCues,style}={}
    )>profile.maxGraphicArea)reason='OVERSIZED_UI_COVERS_SCENE';
    else if(graphics.length>=capG)reason='GRAPHIC_BUDGET_REACHED';
    else if(cue.mode==='omni_bubbles'){
-      const expected={zero:['spark','zero'],solution:['question','check'],
-        heart:['heart_outline','heart_solid']};
-      const words=normalized(speech);
-      const ok={zero:/\b(zero|aucun|rien)\b/,
-        solution:/\b(resoudre|resolution)\b/,
-        heart:/\b(coeurs?|toucher)\b/};
-      const k=String(cue.kind||'');
-      if(!expected[k]||JSON.stringify(cue.icons)!==JSON.stringify(expected[k])||
-         !hasEditorialEvidence(cue)||!ok[k].test(words)||
-         !Array.isArray(cue.icons)||cue.icons.length!==2||
-         cue.layout!=='lateral_symmetric')
-        reason='UNVERIFIED_OMNI_BUBBLE';
+      if(!verifyOmniCue(cue,speech))reason='UNVERIFIED_OMNI_SEMANTICS_OR_TRACKING';
    }
    else if(cue.mode==='organic'||cue.mode==='multimodal_organic'||cue.mode==='premium_storyboard'){
       const iconName=String(cue.kind||cue.symbol||cue.icon||'').trim().toLowerCase();
