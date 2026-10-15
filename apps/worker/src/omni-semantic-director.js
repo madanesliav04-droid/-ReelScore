@@ -10,10 +10,11 @@ const finite=n=>Number.isFinite(Number(n));
 const styleBudgets={codie:2,impact:3,clean:1,authority:1,explainer:3,data:2,ugc_native:1,cinematic_story:1};
 const patterns=[
  {kind:'absence',pattern:/\b(?:parti|commence|demarre|reparti|rester|reste)\s+(?:de|a)\s+zero\b/,marks:['0'],meaning:'starting_from_zero',sound:'none'},
- {kind:'solution',pattern:/\b(?:resoudre|regler)\s+(?:ce|le|un|des|les|mon|nos)?\s*(?:probleme|blocage)\b|\b(?:probleme|blocage)\s+(?:et|vers|puis|avec)\s+(?:la|une)?\s*solution\b/,marks:['?','✓'],meaning:'problem_to_solution',sound:'resolution'},
+ {kind:'solution',pattern:/\b(?:resoudre|regler)\s+(?:ce|le|un|des|les|mon|nos)?\s*(?:probleme|blocage)\b|\b(?:probleme|blocage)\s+(?:et|vers|puis|avec)\s+(?:la|une)?\s*solution\b/,marks:['✓'],meaning:'solve_a_problem_without_visual_confusion',sound:'resolution'},
  {kind:'progress',pattern:/\b(?:je|tu|nous|on|ils|elles)\s+(?:ai|as|avons|a|ont)?\s*(?:commence\s+a\s+)?(?:progresse|progressons|avance|evolue)\b/,marks:['↗'],meaning:'direction_not_numeric_result',sound:'none'},
  {kind:'choice',pattern:/\b(?:deux|2)\s+(?:choix|possibilites|options)\b|\bchoisir\s+entre\s+.{2,22}\s+et\s+.{2,22}\b/,marks:['A','B'],meaning:'two_options_no_invented_labels',sound:'none'},
  {kind:'value',pattern:/\b(\d{1,5})\s*(euros?|€)\b/,marks:null,meaning:'verbatim_spoken_amount',sound:'none'},
+ {kind:'sales',pattern:/\b(?:etre\s+un\s+bon\s+vendeur|gagner\s+de\s+l\s+argent|generer\s+des?\s+revenus)\b/,marks:['€'],meaning:'spoken_sales_or_earning_context_not_proof_of_income',sound:'none'},
  {kind:'emotion',pattern:/\b(?:toucher|atteindre|parler\s+aux)\s+(?:les|des|leurs|nos)?\s*(?:coeurs?|personnes)\b/,marks:['♥'],meaning:'emotional_connection',sound:'none'},
  {kind:'time',pattern:/\b(?:perds?|perdre|gagne|gagner|economise|economiser)\s+(?:(?:presque|environ|plus\s+de)\s+)?(\d+)\s*(minutes?|heures?|jours?)\b/,marks:['◷'],meaning:'spoken_time_cost',sound:'none'}
 ];
@@ -47,7 +48,7 @@ function visualProofOk(p){
 export function proposeOmniSemanticCues({
  words=[],durationMs=0,style='codie',compositionProof=null,enabled=false
 }={}){
- const held=[],cues=[],budget=styleBudgets[style]??0,duration=Number(durationMs);
+ const held=[],cues=[],candidates=[],budget=styleBudgets[style]??0,duration=Number(durationMs);
  const rejection=reason=>({policy:OMNI_SEMANTIC_POLICY,cues:[],held:[{reason}]});
  if(!enabled)return rejection('FEATURE_OFF');
  if(!Number.isFinite(duration)||duration<3500)return rejection('INVALID_DURATION');
@@ -61,7 +62,6 @@ export function proposeOmniSemanticCues({
    const timed=wordRange(segment,match[0]);
    if(!timed||timed.startMs<600||timed.endMs>duration+200){held.push({kind:p.kind,reason:'UNALIGNED_SPEECH'});continue}
    const start=Math.max(0,timed.startMs-80),end=Math.min(duration,Math.max(timed.endMs+650,start+1100));
-   if(cues.some(c=>start<c.endMs+3800)){held.push({kind:p.kind,reason:'VISUAL_BREATHING_ROOM'});continue}
    const marks=p.kind==='value'?[match[1]+' €']:p.marks;
    if(marks.some(x=>!x||x.length>9)){held.push({kind:p.kind,reason:'ICON_CONTENT_INVALID'});continue}
    const pair=marks.length===2;
@@ -73,11 +73,22 @@ export function proposeOmniSemanticCues({
      },
      sfxIntent:p.sound==='resolution'?'optional_subtle_resolution':'silence',
      audioBaseline:'preserve_original_voice',creativeReviewRequired:true};
-   cues.push(cue);
-   if(cues.length>=max)break;
+   const priorities={sales:100,value:95,emotion:90,solution:85,choice:70,time:65,progress:50,absence:20};
+   candidates.push({cue,priority:priorities[p.kind]??0});
   }
-  if(cues.length>=max)break;
  }
+ // Pick the strongest editorial meaning across the whole video, not the first
+ // easy keyword. This prevents an early "zero" from stealing the money/CTA moment.
+ candidates.sort((a,b)=>b.priority-a.priority||a.cue.startMs-b.cue.startMs);
+ for(const item of candidates){
+   const c=item.cue;
+   if(cues.some(other=>c.startMs<other.endMs+1300&&c.endMs>other.startMs-1300)){
+     held.push({kind:c.kind,reason:'VISUAL_BREATHING_ROOM'});continue;
+   }
+   cues.push(c);
+   if(cues.length>=max)break;
+ }
+ cues.sort((a,b)=>a.startMs-b.startMs);
  return {policy:OMNI_SEMANTIC_POLICY,cues,held,limits:{max,nonActionIsValid:true}};
 }
 export function verifyOmniCue(cue,spokenWindow){
