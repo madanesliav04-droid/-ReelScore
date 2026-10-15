@@ -132,7 +132,9 @@ export function reviewCreativeTimeline({timeline,brollCues,graphicCues,style}={}
    else if(Number(cue.screenAreaRatio||0)>.15)reason='OVERSIZED_UI_COVERS_SCENE';
    else if(graphics.length>=capG)reason='GRAPHIC_BUDGET_REACHED';
    else if(cue.mode==='organic'||cue.mode==='multimodal_organic'||cue.mode==='premium_storyboard'){
-      if(!hasEditorialEvidence(cue)&&!cue.spoken_anchor)reason='UNVERIFIED_GRAPHIC_ANCHOR';
+      const iconName=String(cue.kind||cue.symbol||cue.icon||'').trim().toLowerCase();
+      const groundedSymbol=symbolEvidence.some(x=>x.names.includes(iconName)&&x.spoken.test(normalized(speech)));
+      if(!hasEditorialEvidence(cue)&&!cue.spoken_anchor&&!groundedSymbol)reason='UNVERIFIED_GRAPHIC_ANCHOR';
       else if(!hasGraphicAnchor(cue,speech))reason='UNSPOKEN_GRAPHIC_CLAIM';
    }else if(!hasGraphicAnchor(cue,speech))reason='DECORATIVE_OR_UNSPOKEN_GRAPHIC';
    else if(graphics.some(prev=>start<prev.endMs+profile.minGraphicGapMs))reason='GRAPHICS_TOO_DENSE';
