@@ -4,10 +4,16 @@
  * This is a visual grammar, not a claim of a fully autonomous editor.
  */
 import {makeHormoziMotionBeats} from './hormozi-beat-timing.js';
+import {OMNI_BRAND_TOKENS,OMNI_LOGO_REFERENCE_VERSION} from './omni-brand-tokens.js';
 export const HORMOZI_OMNI_VERSION='hormozi-omni-explainer-v1';
 export const HORMOZI_OMNI_PALETTE=Object.freeze({
-  graphite:'#10151E',ink:'#0B0F17',white:'#F8FAFE',chrome:'#CBD5E3',
-  cyan:'#76D7FF',violet:'#A58BFF'
+  graphite:OMNI_BRAND_TOKENS.slateNavy,
+  ink:OMNI_BRAND_TOKENS.slateNavy,
+  white:OMNI_BRAND_TOKENS.pearlWhite,
+  chrome:OMNI_BRAND_TOKENS.chromeLight,
+  cyan:OMNI_BRAND_TOKENS.iridescentBlue,
+  violet:OMNI_BRAND_TOKENS.iridescentGlow,
+  reference:OMNI_LOGO_REFERENCE_VERSION
 });
 export const HORMOZI_VISUAL_BEHAVIORS=Object.freeze({
   metric:{purpose:'spoken quantity made prominent',motion:'fast-reveal',sfx:'soft_low_hit'},
@@ -96,7 +102,7 @@ export function planHormoziOmniStoryboard({analysis,words,durationMs,enabled=fal
   const cue={mode:'hormozi_omni',type:p.type,startMs:start,endMs:end,
    text:evidence.text,spoken_anchor:String(p.spoken_anchor),evidence:'verbatim_speech_plus_independent_frames',
    textFamily:'Futura reference; geometric sans fallback',
-   palette:'omni_chrome_cyan_violet',editorialPurpose:HORMOZI_VISUAL_BEHAVIORS[p.type].purpose,
+   palette:OMNI_LOGO_REFERENCE_VERSION,editorialPurpose:HORMOZI_VISUAL_BEHAVIORS[p.type].purpose,
    ...(evidence.items?{items:evidence.items}:{}),
    ...(evidence.itemStarts?{itemStarts:evidence.itemStarts}:{}),
    ...(evidence.left?{left:evidence.left,right:evidence.right,rightStartMs:evidence.rightStartMs}:{}),
