@@ -30,15 +30,51 @@ const concrete=[
   {spoken:/\b(ordinateur|clavier|laptop|pc)\b/,
    visual:/\b(laptop|computer|keyboard|pc)\b/,label:'computer'}
 ];
-const profiles={
-  v15_b:{maxBrollPer30s:1.5,maxGraphicsPer30s:3,minGraphicGapMs:1850,minBrollGapMs:3500},
-  codie:{maxBrollPer30s:1.5,maxGraphicsPer30s:3,minGraphicGapMs:1850,minBrollGapMs:3500},
-  ugc_native:{maxBrollPer30s:2,maxGraphicsPer30s:2,minGraphicGapMs:2300,minBrollGapMs:2600},
-  impact:{maxBrollPer30s:4,maxGraphicsPer30s:4,minGraphicGapMs:1000,minBrollGapMs:1900},
-  alex:{maxBrollPer30s:3,maxGraphicsPer30s:4,minGraphicGapMs:1200,minBrollGapMs:2200},
-  clean:{maxBrollPer30s:2,maxGraphicsPer30s:2,minGraphicGapMs:2400,minBrollGapMs:3500}
-};
+// Each of the eight customer-facing models now has an independent editorial budget.
+// These are upper limits, never quotas for mandatory insertions.
+export const CREATIVE_STYLE_PROFILES=Object.freeze({
+  codie:{maxBrollPer30s:1.5,maxGraphicsPer30s:2,minGraphicGapMs:2100,minBrollGapMs:4200,maxGraphicArea:.10},
+  impact:{maxBrollPer30s:4,maxGraphicsPer30s:4,minGraphicGapMs:1100,minBrollGapMs:1900,maxGraphicArea:.10},
+  clean:{maxBrollPer30s:1,maxGraphicsPer30s:1,minGraphicGapMs:2700,minBrollGapMs:4400,maxGraphicArea:.075},
+  authority:{maxBrollPer30s:1,maxGraphicsPer30s:1,minGraphicGapMs:4300,minBrollGapMs:6400,maxGraphicArea:.085},
+  explainer:{maxBrollPer30s:4,maxGraphicsPer30s:3,minGraphicGapMs:1750,minBrollGapMs:2600,maxGraphicArea:.10},
+  data:{maxBrollPer30s:3,maxGraphicsPer30s:3,minGraphicGapMs:1950,minBrollGapMs:2900,maxGraphicArea:.12},
+  ugc_native:{maxBrollPer30s:1,maxGraphicsPer30s:1,minGraphicGapMs:3300,minBrollGapMs:7100,maxGraphicArea:.075},
+  cinematic_story:{maxBrollPer30s:2,maxGraphicsPer30s:1,minGraphicGapMs:5600,minBrollGapMs:5800,maxGraphicArea:.09},
+  editorial_breakdown:{maxBrollPer30s:0,maxGraphicsPer30s:3,minGraphicGapMs:2100,minBrollGapMs:999999,maxGraphicArea:.12},
+  // Internal compatibility profiles, not marketed as additional templates.
+  v15_b:{maxBrollPer30s:1.5,maxGraphicsPer30s:3,minGraphicGapMs:1850,minBrollGapMs:3500,maxGraphicArea:.10},
+  alex:{maxBrollPer30s:3,maxGraphicsPer30s:4,minGraphicGapMs:1200,minBrollGapMs:2200,maxGraphicArea:.10}
+});
+const styleAliases={creator_clean:'clean',business_viral:'impact',podcast_authority:'authority'};
 const isNum=x=>typeof x==='number'&&Number.isFinite(x);
+/**
+ * Conservative footprint prediction from the text and ASS renderer's font sizes.
+ * Not a frame measurement. Never allow a supplied candidate ratio to decrease it.
+ * Pixel inspection of a rendered export remains a separate release gate.
+ */
+export function projectedGraphicArea(cue,width,height){
+  const w=Number(width),h=Number(height);
+  if(!Number.isFinite(w)||!Number.isFinite(h)||w<240||h<240)return null;
+  const mode=String(cue?.mode||'clean').toLowerCase();
+  const fonts={impact:72,explainer:54,data:82,ugc_native:58,authority:48,cinematic_story:52};
+  const font=['organic','multimodal_organic','premium_storyboard'].includes(mode)
+    ?Math.round(Math.min(w,h)*.061):mode==='editorial_breakdown'
+    ?Math.round(73*Math.min(1,h/1920)):(fonts[mode]||58);
+  const content=String(cue?.text||cue?.symbol||'').trim();
+  if(!content)return 0;
+  const longest=Math.max(...content.split(/\n/).map(line=>line.length),1);
+  const estimatedWidth=Math.min(w*.86,Math.max(font*1.1,longest*font*.68));
+  const rows=Math.max(1,Math.ceil(longest*font*.68/(w*.86)));
+  const panel=['impact','explainer','data','ugc_native','authority','cinematic_story','editorial_breakdown'].includes(mode);
+  const estimatedHeight=Math.min(h*.4,rows*font*1.42+(panel?font*.42:0));
+  const measured=Math.max(0,Math.min(1,(estimatedWidth+(panel?font*.4:0))*estimatedHeight/(w*h)));
+  // The comparison panel has an explicit 80% x 11.4% canvas footprint.
+  if(mode==='editorial_breakdown'&&Array.isArray(cue?.figures)&&cue.figures.length>1)
+    return Math.max(measured,.8*.114);
+  return measured;
+}
+const organicSymbols={why:'?',question:'?',zero:'0',heart:'♥',money:'€',euro:'€',clock:'⏱',time:'⏱',help:'+'};
 const overlap=(a,b)=>a.startMs<b.endMs&&a.endMs>b.startMs;
 const numeric=s=>normalized(s).match(/\b\d+(?:\s\d+)*\b/g)||[];
 
@@ -86,8 +122,10 @@ function hasGraphicAnchor(graphic,speech){
  const speechNorm=normalized(speech);
  const name=String(graphic.kind||graphic.symbol||graphic.icon||'').trim().toLowerCase();
  const match=symbolEvidence.find(x=>x.names.includes(name));
- if(match&&match.spoken.test(speechNorm))return true;
  const visible=normalized(graphic.text||graphic.spoken_anchor||'');
+ // A spoken question cannot license an unrelated made-up claim just because kind=why.
+ if(match&&match.spoken.test(speechNorm)&&
+    (!visible||visible===normalized(organicSymbols[name]||'')))return true;
  if(!visible)return false;
  const spoken=normalized(speech);
  const words=tokens(visible).filter(w=>w.length>2);
@@ -95,11 +133,14 @@ function hasGraphicAnchor(graphic,speech){
    const numbers=numeric(visible);
    if(!numbers.length||!numbers.every(n=>numeric(spoken).includes(n)))return false;
  }
- const spokenTokens=new Set(tokens(spoken));
- return words.length>0 && words.every(w=>spokenTokens.has(w));
+ const spokenTokens=tokens(spoken).filter(w=>w.length>2);
+ // Evidence must preserve spoken order. A collage of isolated words is not verbatim.
+ return words.length>0&&spokenTokens.some((_,i)=>
+   words.every((word,j)=>spokenTokens[i+j]===word));
 }
 function hasEditorialEvidence(graphic){
- return ['timestamped_transcript','gemini_visual_observation_plus_verbatim_timed_words','analysis_timeline'].includes(graphic.evidence);
+ return ['timestamped_transcript','timed_transcript','verbatim_speech_plus_independent_frames',
+   'gemini_visual_observation_plus_verbatim_timed_words','analysis_timeline'].includes(graphic.evidence);
 }
 
 /**
@@ -114,7 +155,8 @@ export function reviewCreativeTimeline({timeline,brollCues,graphicCues,style}={}
    ?width/height:Number(timeline?.sourceAspect)||1;
  const horizontal=aspect>=1.2;
  const model=String(style||timeline?.style||'clean').toLowerCase();
- const cfg=profiles[model]||profiles.clean;
+ const canonicalModel=styleAliases[model]||model;
+ const cfg=CREATIVE_STYLE_PROFILES[canonicalModel]||CREATIVE_STYLE_PROFILES.clean;
  const profile={...cfg};
  // Horizontal native has room for small contextual UI; B-roll is rare, never mandatory.
  if(horizontal){
@@ -148,7 +190,11 @@ export function reviewCreativeTimeline({timeline,brollCues,graphicCues,style}={}
    let reason=null;
    const speech=spokenWindow(captions,start,end);
    if(!isNum(start)||!isNum(end)||start<0||end<=start||end>duration+250)reason='INVALID_GRAPHIC_TIMING';
-   else if(Number(cue.screenAreaRatio||0)>.15)reason='OVERSIZED_UI_COVERS_SCENE';
+   else if(Math.max(
+     projectedGraphicArea(cue,Number(width)||1080,Number(height)||1920)??1,
+     Number.isFinite(Number(cue.screenAreaRatio))&&Number(cue.screenAreaRatio)>=0
+       ?Number(cue.screenAreaRatio):0
+   )>profile.maxGraphicArea)reason='OVERSIZED_UI_COVERS_SCENE';
    else if(graphics.length>=capG)reason='GRAPHIC_BUDGET_REACHED';
    else if(cue.mode==='organic'||cue.mode==='multimodal_organic'||cue.mode==='premium_storyboard'){
       const iconName=String(cue.kind||cue.symbol||cue.icon||'').trim().toLowerCase();
@@ -160,12 +206,25 @@ export function reviewCreativeTimeline({timeline,brollCues,graphicCues,style}={}
    if(!reason&&graphics.some(prev=>start<prev.endMs+profile.minGraphicGapMs))reason='GRAPHICS_TOO_DENSE';
    if(!reason&&broll.some(shot=>overlap(shot,{startMs:start,endMs:end})))reason='COMPETES_WITH_BROLL';
    if(reason)rejected.push({kind:'graphic',reason,startMs:start,text:String(cue.text||'').slice(0,80)});
-   else graphics.push({...cue,creativeEvidence:'spoken_caption_anchor',creativeGateVersion:CREATIVE_GATE_VERSION});
+   else {
+     const kind=String(cue.kind||'').toLowerCase();
+     const spokenSymbol=symbolEvidence.some(x=>x.names.includes(kind)&&x.spoken.test(normalized(speech)));
+     // An organic symbol without text previously passed the gate but rendered no pixels.
+     const text=String(cue.text||'').trim()||((cue.mode==='organic'&&spokenSymbol)?organicSymbols[kind]||String(cue.symbol||''):'' );
+     const graphic={...cue,creativeEvidence:'spoken_caption_anchor',creativeGateVersion:CREATIVE_GATE_VERSION};
+     if(cue.mode==='organic'&&spokenSymbol&&text){
+       graphic.text=text;
+       if(!graphic.evidence)graphic.evidence='timed_transcript';
+     }
+     graphics.push(graphic);
+   }
  }
  return {policy:CREATIVE_GATE_VERSION,brollCues:broll,graphicCues:graphics,rejected,
   audit:{format:horizontal?'horizontal':'vertical',model,durationMs:duration,
     brollCandidates:(brollCues||[]).length,brollAccepted:broll.length,
     graphicCandidates:(graphicCues||[]).length,graphicAccepted:graphics.length,
     nonActionIsValid:true,
-    limitations:'Transcript/metadata gates only. Visual pixel QA and subjective editorial review are separate.'}};
+    maxGraphicArea:profile.maxGraphicArea,
+    geometryPolicy:'conservative ASS layout estimate plus candidate footprint; not measured pixels',
+    limitations:'Transcript/metadata gates and predicted overlay geometry only. Pixel QA and subjective editorial review are separate.'}};
 }
