@@ -7,6 +7,7 @@ import {
 } from 'node:fs/promises';
 import {spawn} from 'node:child_process';
 import {buildOrganicAss} from './organic-render.js';
+import {buildOmniBubblesAss} from './omni-bubbles-render.js';
 import {renderPremiumStoryboardsAss} from './premium-creative-grammar.js';
 import {applyAutomaticTextContrast} from './visual-contrast.js';
 
@@ -1025,6 +1026,7 @@ export async function finalEncode({
 
 
 function buildGraphicsAss(timeline,width,height){
+  if((timeline?.graphicCues||[]).some(c=>c.mode==='omni_bubbles'))return buildOmniBubblesAss(timeline,width,height);
   if((timeline?.graphicCues||[]).some(c=>c.mode==='premium_storyboard'))return renderPremiumStoryboardsAss(timeline,width,height);
   if((timeline?.graphicCues||[]).some(c=>c.mode==='organic'||c.mode==='multimodal_organic'))return buildOrganicAss(timeline,width,height);
   if(String(timeline?.modelId||timeline?.style)==='editorial_breakdown')return buildEditorialGraphicsAss(timeline,width,height);
@@ -1193,14 +1195,12 @@ function buildAss(
     middle_low:380
   }[cfg.position]||280;
 
-  const marginV=
-    Math.max(
-      70,
-      Math.round(
-        baseMargin*
-        sizeScale
-      )
-    );
+  // OMNI Codie: captions anchored at the bottom centre of the actual
+  // output canvas. Portrait uses the social-app safe zone; landscape stays
+  // above the frame edge. No overlap with lateral bubble positions.
+  const marginV=cfg.safeCaptionPlacement==='omni_bottom_center_adaptive'
+    ?Math.round(height*(height>width?.155:.083))
+    :Math.max(70,Math.round(baseMargin*sizeScale));
 
   const activeColor=
     assOverrideColor(

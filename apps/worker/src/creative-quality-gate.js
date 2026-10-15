@@ -4,10 +4,11 @@
  * No fixed animation cadence. Failing to find a valid visual = keep the facecam.
  * Existing caption QA + pixel verification remain independently mandatory.
  */
+import {verifyOmniCue} from './omni-semantic-director.js';
 export const CREATIVE_GATE_VERSION='editplus-creative-gate-v1';
 
 const normalized=s=>String(s??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
-  .toLowerCase().replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+  .toLowerCase().replace(/œ/g,'oe').replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
 const tokens=s=>normalized(s).split(' ').filter(Boolean);
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const genericStock=/\b(business meeting|corporate office|professional office|person working|people working|happy business|smiling business|keyboard typing|typing laptop|laptop typing|man at computer|office desk|stock trading screens)\b/i;
@@ -33,7 +34,7 @@ const concrete=[
 // Each of the eight customer-facing models now has an independent editorial budget.
 // These are upper limits, never quotas for mandatory insertions.
 export const CREATIVE_STYLE_PROFILES=Object.freeze({
-  codie:{maxBrollPer30s:1.5,maxGraphicsPer30s:2,minGraphicGapMs:2100,minBrollGapMs:4200,maxGraphicArea:.10},
+  codie:{maxBrollPer30s:1.5,maxGraphicsPer30s:3,minGraphicGapMs:1350,minBrollGapMs:4200,maxGraphicArea:.10},
   impact:{maxBrollPer30s:4,maxGraphicsPer30s:4,minGraphicGapMs:1100,minBrollGapMs:1900,maxGraphicArea:.10},
   clean:{maxBrollPer30s:1,maxGraphicsPer30s:1,minGraphicGapMs:2700,minBrollGapMs:4400,maxGraphicArea:.075},
   authority:{maxBrollPer30s:1,maxGraphicsPer30s:1,minGraphicGapMs:4300,minBrollGapMs:6400,maxGraphicArea:.085},
@@ -61,6 +62,12 @@ export function projectedGraphicArea(cue,width,height){
   const font=['organic','multimodal_organic','premium_storyboard'].includes(mode)
     ?Math.round(Math.min(w,h)*.061):mode==='editorial_breakdown'
     ?Math.round(73*Math.min(1,h/1920)):(fonts[mode]||58);
+  if(mode==='omni_bubbles'){
+    // Two small, measured circular marks; never a zero-area assertion.
+    const r=Math.min(w,h)*.060;
+    const count=Array.isArray(cue?.icons)?cue.icons.length:2;
+    return Math.min(1,count*Math.PI*r*r/(w*h));
+  }
   const content=String(cue?.text||cue?.symbol||'').trim();
   if(!content)return 0;
   const longest=Math.max(...content.split(/\n/).map(line=>line.length),1);
@@ -169,7 +176,7 @@ export function reviewCreativeTimeline({timeline,brollCues,graphicCues,style}={}
     audit:{format:horizontal?'horizontal':'vertical',status:'held_no_transcript'}};
  }
  const capB=Math.max(0,Math.ceil(duration/30000*profile.maxBrollPer30s));
- const capG=Math.max(0,Math.floor(duration/30000*profile.maxGraphicsPer30s));
+ const capG=Math.max(0,Math.ceil(duration/30000*profile.maxGraphicsPer30s));
  for(const cue of [...(brollCues||[])].sort((a,b)=>a.startMs-b.startMs)){
    const start=Number(cue.startMs),end=Number(cue.endMs);
    let reason=null;
@@ -196,6 +203,9 @@ export function reviewCreativeTimeline({timeline,brollCues,graphicCues,style}={}
        ?Number(cue.screenAreaRatio):0
    )>profile.maxGraphicArea)reason='OVERSIZED_UI_COVERS_SCENE';
    else if(graphics.length>=capG)reason='GRAPHIC_BUDGET_REACHED';
+   else if(cue.mode==='omni_bubbles'){
+      if(!verifyOmniCue(cue,speech))reason='UNVERIFIED_OMNI_SEMANTICS_OR_TRACKING';
+   }
    else if(cue.mode==='organic'||cue.mode==='multimodal_organic'||cue.mode==='premium_storyboard'){
       const iconName=String(cue.kind||cue.symbol||cue.icon||'').trim().toLowerCase();
       const groundedSymbol=symbolEvidence.some(x=>x.names.includes(iconName)&&x.spoken.test(normalized(speech)));

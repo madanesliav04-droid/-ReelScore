@@ -1,6 +1,8 @@
 import {buildOrganicCues} from './organic-director.js';
 import {buildVisualEditorialDecisions} from './multimodal-director.js';
 import {assessCutCandidates} from './premium-quality-v3.js';
+import {resolveOmniTypography} from './omni-style-system.js';
+import {proposeOmniSemanticCues} from './omni-semantic-director.js';
 import {planPremiumStoryboards} from './premium-creative-grammar.js';
 const FILLERS=new Set(['euh','heu','uh','um','erm','hmm','hum']);
 
@@ -180,7 +182,7 @@ export function buildEditTimeline({
   const canonicalStyle={creator_clean:'clean',business_viral:'impact',podcast_authority:'authority'}[style]||style;
   const styleCfg=EDIT_STYLES[canonicalStyle]||EDIT_STYLES.clean;
   const preset=styleCfg.captions;
-  const captionCfg=CAPTION_PRESETS[preset]||CAPTION_PRESETS.modern_bold;
+  const captionCfg=resolveOmniTypography(canonicalStyle,CAPTION_PRESETS[preset]||CAPTION_PRESETS.modern_bold);
 
   const durationMs=Math.max(
     1,
@@ -264,7 +266,17 @@ export function buildEditTimeline({
     styleCfg
   });
   // Do not silently revert to generic decorative effects if premium visual evidence is absent.
-  const graphicCues=storyMode?storyboardReview.accepted:defaultGraphicCues;
+  // OMNI framework: seven ideas, no keyword-triggered decorative badges.
+  // Hold the entire treatment unless independent frame tracking explicitly clears
+  // both lateral placements across the spoken interval.
+  const omniPlan=proposeOmniSemanticCues({
+    words:mappedWords,durationMs:outputDurationMs,style:canonicalStyle,
+    compositionProof:analysis?.composition_proof||null,
+    enabled:process.env.ENABLE_OMNI_BUBBLES==='true'
+  });
+  const omniBubbles=omniPlan.cues;
+  const graphicCues=storyMode?storyboardReview.accepted:
+    omniBubbles.length?omniBubbles:defaultGraphicCues;
 
   const sourceW=
     Number(sourceWidth)||
@@ -292,6 +304,8 @@ export function buildEditTimeline({
     styleConfig:styleCfg,
     captionPreset:preset,
     captionConfig:captionCfg,
+    typographyStatus:captionCfg.typefaceVerification||'legacy',
+    omniBubbleAudit:{policy:omniPlan.policy,proposed:omniBubbles.length,held:omniPlan.held,faceSafetyRequired:true},
     sourceDurationMs:durationMs,
     outputDurationMs,
     keepRanges,

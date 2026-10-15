@@ -3,6 +3,7 @@
  * Editorial candidates are not automatically proven-safe operations.
  * Gemini timed words are not independent phonetic alignment.
  */
+import {verifyOmniCue} from './omni-semantic-director.js';
 const finite=x=>x!==null&&x!==undefined&&x!==''&&Number.isFinite(Number(x));
 const overlaps=(a,b,tolerance=0)=>Math.min(a.endMs,b.endMs)-Math.max(a.startMs,b.startMs)>tolerance;
 const inside=(x,lo,hi)=>finite(x)&&Number(x)>=lo&&Number(x)<=hi;
@@ -54,7 +55,8 @@ export function arbitrateEditorialEffects({punchIns=[],graphicCues=[],brollCues=
   if(!inside(c.startMs,0,durationMs)||!inside(c.endMs,0,durationMs+150)||Number(c.endMs)<=Number(c.startMs)){
    rejected.push({kind:item.kind,index:item.index,reason:'INVALID_EFFECT_INTERVAL'});continue;
   }
-  if(item.kind==='graphic'&&!String(c.text||'').trim()){
+  if(item.kind==='graphic'&&!String(c.text||'').trim()&&
+   !(c.mode==='omni_bubbles'&&verifyOmniCue(c,c.spoken_anchor))){
    rejected.push({kind:item.kind,index:item.index,reason:'EMPTY_GRAPHIC'});continue;
   }
   items.push({...item,startMs:Number(c.startMs),endMs:Number(c.endMs)});

@@ -1,0 +1,26 @@
+name: Edit+ OMNI typography and bubble staging QA
+on:
+  push:
+    branches: [editplus-omni-typography-bubbles-20261015]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  style-quality:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/worker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install worker dependencies
+        run: npm install --no-audit --no-fund
+      - name: Install FFmpeg for export integration fixtures
+        run: sudo apt-get update -qq && sudo apt-get install -y ffmpeg fonts-noto-core
+      - name: Test all worker code and eight model typefaces
+        run: npm run check
+      - name: Keep staging out of production
+        run: echo "Synthetic CI only. Exact font licensing, real A/B/C E2E, visual and audio QA remain mandatory."
