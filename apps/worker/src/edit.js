@@ -1,6 +1,7 @@
 import {buildOrganicCues} from './organic-director.js';
 import {buildVisualEditorialDecisions} from './multimodal-director.js';
 import {assessCutCandidates} from './premium-quality-v3.js';
+import {resolveOmniTypography,proposeOmniBubblePairs} from './omni-style-system.js';
 import {planPremiumStoryboards} from './premium-creative-grammar.js';
 const FILLERS=new Set(['euh','heu','uh','um','erm','hmm','hum']);
 
@@ -180,7 +181,7 @@ export function buildEditTimeline({
   const canonicalStyle={creator_clean:'clean',business_viral:'impact',podcast_authority:'authority'}[style]||style;
   const styleCfg=EDIT_STYLES[canonicalStyle]||EDIT_STYLES.clean;
   const preset=styleCfg.captions;
-  const captionCfg=CAPTION_PRESETS[preset]||CAPTION_PRESETS.modern_bold;
+  const captionCfg=resolveOmniTypography(canonicalStyle,CAPTION_PRESETS[preset]||CAPTION_PRESETS.modern_bold);
 
   const durationMs=Math.max(
     1,
@@ -264,7 +265,17 @@ export function buildEditTimeline({
     styleCfg
   });
   // Do not silently revert to generic decorative effects if premium visual evidence is absent.
-  const graphicCues=storyMode?storyboardReview.accepted:defaultGraphicCues;
+  // Deliberately held unless the experiment is enabled AND visual analysis
+  // independently confirms both lateral lanes are face-safe.
+  const omniBubbles=proposeOmniBubblePairs({
+    words:mappedWords,durationMs:outputDurationMs,
+    sourceAspect:(Number(sourceWidth)||Number(analysis?.measurable?.width)||1080)/
+      (Number(sourceHeight)||Number(analysis?.measurable?.height)||1920),
+    enabled:process.env.ENABLE_OMNI_BUBBLES==='true'&&
+      analysis?.composition_proof?.lateralSafe===true&&canonicalStyle==='codie'
+  });
+  const graphicCues=storyMode?storyboardReview.accepted:
+    omniBubbles.length?omniBubbles:defaultGraphicCues;
 
   const sourceW=
     Number(sourceWidth)||
@@ -292,6 +303,8 @@ export function buildEditTimeline({
     styleConfig:styleCfg,
     captionPreset:preset,
     captionConfig:captionCfg,
+    typographyStatus:captionCfg.typefaceVerification||'legacy',
+    omniBubbleAudit:{proposed:omniBubbles.length,faceSafetyRequired:true},
     sourceDurationMs:durationMs,
     outputDurationMs,
     keepRanges,
