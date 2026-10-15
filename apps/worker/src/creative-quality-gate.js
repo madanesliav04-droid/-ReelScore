@@ -176,7 +176,7 @@ export function reviewCreativeTimeline({timeline,brollCues,graphicCues,style}={}
     audit:{format:horizontal?'horizontal':'vertical',status:'held_no_transcript'}};
  }
  const capB=Math.max(0,Math.ceil(duration/30000*profile.maxBrollPer30s));
- const capG=Math.max(0,Math.floor(duration/30000*profile.maxGraphicsPer30s));
+ const capG=Math.max(0,Math.ceil(duration/30000*profile.maxGraphicsPer30s));
  for(const cue of [...(brollCues||[])].sort((a,b)=>a.startMs-b.startMs)){
    const start=Number(cue.startMs),end=Number(cue.endMs);
    let reason=null;
