@@ -1,5 +1,6 @@
 // OMNI explanatory motion typography. Not a copy of Alex Hormozi's graphics.
 // Safe top-band text only; no unverified revenue chart or fake evidence shot.
+import {omniBrandScene} from './omni-brand-tokens.js';
 const esc=s=>String(s||'').replace(/[{}\\\r\n]/g,' ').slice(0,90).trim();
 const slash=String.fromCharCode(92);
 const assTime=ms=>{const c=Math.max(0,Math.round(ms/10)),s=Math.floor(c/100);return Math.floor(s/3600)+':'+String(Math.floor(s/60)%60).padStart(2,'0')+':'+String(s%60).padStart(2,'0')+'.'+String(c%100).padStart(2,'0')};
@@ -7,11 +8,13 @@ const xColor=hex=>'&H00'+hex.slice(5,7)+hex.slice(3,5)+hex.slice(1,3);
 export function renderHormoziOmniAss(timeline,width,height){
  if(!Number.isFinite(width)||!Number.isFinite(height)||width<240||height<240)throw Error('invalid canvas');
  const size=Math.max(19,Math.round(Math.min(width,height)*.048)),y=Math.round(height*.12);
- const lineWidth=Math.round(width*.83),dark=xColor('#10151E'),ice=xColor('#F8FAFE'),cyan=xColor('#76D7FF');
+ const brand=omniBrandScene({lightBackground:false});
+ const dark=xColor(brand.surface),ice=xColor(brand.text),cyan=xColor(brand.accent);
+ const chrome=xColor(brand.secondary);
  const h=['[Script Info]','ScriptType: v4.00+','PlayResX: '+width,'PlayResY: '+height,'WrapStyle: 2','ScaledBorderAndShadow: yes','',
  '[V4+ Styles]','Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding',
  'Style: Metric,URW Gothic,'+Math.round(size*1.28)+','+cyan+','+cyan+','+dark+',&HFF000000,-1,0,0,0,100,100,0,0,1,2,0,5,12,12,10,1',
- 'Style: Step,URW Gothic,'+size+','+ice+','+ice+','+dark+',&HFF000000,-1,0,0,0,100,100,0,0,1,2,0,5,12,12,10,1',
+ 'Style: Step,URW Gothic,'+size+','+ice+','+chrome+','+dark+',&HFF000000,-1,0,0,0,100,100,0,0,1,2,0,5,12,12,10,1',
  '','[Events]','Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text'];
  const cues=(timeline?.graphicCues||[]).filter(c=>c.mode==='hormozi_omni');
  function say(st,ed,text,style='Step',x=width/2,sy=y,easeMs=185){
