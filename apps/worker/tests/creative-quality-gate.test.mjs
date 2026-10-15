@@ -18,6 +18,42 @@ function timeline({
 
 const cue=(startMs,endMs,query,visualAnchor=query)=>({startMs,endMs,query,visualAnchor,sourcePage:'https://example.com/rights',license:'cc0'});
 
+test('graphic words must match whole spoken tokens, not substrings',()=>{
+ const m=timeline({captions:[{startMs:4000,endMs:6000,text:'demain'}]});
+ const r=reviewCreativeTimeline({timeline:m,graphicCues:[{startMs:4100,endMs:5500,text:'main'}]});
+ assert.equal(r.graphicCues.length,0);
+ assert.equal(r.rejected[0].reason,'DECORATIVE_OR_UNSPOKEN_GRAPHIC');
+});
+
+test('format policy follows actual export dimensions over source aspect',()=>{
+ const portrait=reviewCreativeTimeline({timeline:{...timeline(),width:1080,height:1920}});
+ const landscape=reviewCreativeTimeline({timeline:{...timeline({aspect:9/16}),width:1920,height:1080}});
+ assert.equal(portrait.audit.format,'vertical');
+ assert.equal(landscape.audit.format,'horizontal');
+});
+
+for(const mode of ['organic','multimodal_organic','premium_storyboard']){
+ test(`${mode}: grounded graphics still obey spacing`,()=>{
+  const m=timeline({captions:[{startMs:4000,endMs:9000,text:'pourquoi pourquoi'}]});
+  const r=reviewCreativeTimeline({timeline:m,graphicCues:[
+   {startMs:4100,endMs:6000,kind:'why',mode},
+   {startMs:6100,endMs:7500,kind:'why',mode}
+  ]});
+  assert.equal(r.graphicCues.length,1);
+  assert.equal(r.rejected[0].reason,'GRAPHICS_TOO_DENSE');
+ });
+ test(`${mode}: grounded graphics cannot compete with B-roll`,()=>{
+  const m=timeline({captions:[{startMs:10000,endMs:12500,text:'pourquoi cette formation'}]});
+  const r=reviewCreativeTimeline({timeline:m,
+   brollCues:[cue(10100,12100,'training lesson')],
+   graphicCues:[{startMs:10300,endMs:11500,kind:'why',mode}]
+  });
+  assert.equal(r.brollCues.length,1);
+  assert.equal(r.graphicCues.length,0);
+  assert.equal(r.rejected[0].reason,'COMPETES_WITH_BROLL');
+ });
+}
+
 test('abstract expertise never licenses a stock office cutaway',()=>{
  const res=reviewCreativeTimeline({timeline:timeline(),brollCues:[cue(1800,3000,'business meeting expertise')]});
  assert.equal(res.brollCues.length,0);
