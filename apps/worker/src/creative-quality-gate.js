@@ -58,7 +58,19 @@ function isGenericBroll(cue){
  return genericStock.test(normalized(q))||
         /^(business|success|expertise|motivation|team|office|laptop|computer|working)$/i.test(q.trim());
 }
+const symbolEvidence=[
+ {names:['why','question','?'],spoken:/\\b(pourquoi|question|raison|why)\\b/},
+ {names:['money','euro','€'],spoken:/\\b(argent|euros?|prix|payer|vente|revenu|money)\\b/},
+ {names:['zero','0'],spoken:/\\b(zero|aucun|rien|0)\\b/},
+ {names:['heart','coeur','cœur','♥'],spoken:/\\b(coeurs?|toucher|emotions?|aider|love|heart)\\b/},
+ {names:['clock','time','temps'],spoken:/\\b(temps|heures?|minutes?|secondes?|time)\\b/},
+ {names:['help','aide'],spoken:/\\b(aider|aide|besoin|help)\\b/}
+];
 function hasGraphicAnchor(graphic,speech){
+ const speechNorm=normalized(speech);
+ const name=String(graphic.kind||graphic.symbol||graphic.icon||'').trim().toLowerCase();
+ const match=symbolEvidence.find(x=>x.names.includes(name));
+ if(match&&match.spoken.test(speechNorm))return true;
  const visible=normalized(graphic.text||graphic.spoken_anchor||'');
  if(!visible)return false;
  const spoken=normalized(speech);
@@ -95,7 +107,7 @@ export function reviewCreativeTimeline({timeline,brollCues,graphicCues,style}={}
    return {policy:CREATIVE_GATE_VERSION,brollCues:[],graphicCues:[],rejected:[{kind:'all',reason:'NO_TIMED_TRANSCRIPT'}],
     audit:{format:horizontal?'horizontal':'vertical',status:'held_no_transcript'}};
  }
- const capB=Math.max(0,Math.floor(duration/30000*profile.maxBrollPer30s));
+ const capB=Math.max(0,Math.ceil(duration/30000*profile.maxBrollPer30s));
  const capG=Math.max(0,Math.floor(duration/30000*profile.maxGraphicsPer30s));
  for(const cue of [...(brollCues||[])].sort((a,b)=>a.startMs-b.startMs)){
    const start=Number(cue.startMs),end=Number(cue.endMs);
@@ -117,6 +129,7 @@ export function reviewCreativeTimeline({timeline,brollCues,graphicCues,style}={}
    let reason=null;
    const speech=spokenWindow(captions,start,end);
    if(!isNum(start)||!isNum(end)||start<0||end<=start||end>duration+250)reason='INVALID_GRAPHIC_TIMING';
+   else if(Number(cue.screenAreaRatio||0)>.15)reason='OVERSIZED_UI_COVERS_SCENE';
    else if(graphics.length>=capG)reason='GRAPHIC_BUDGET_REACHED';
    else if(cue.mode==='organic'||cue.mode==='multimodal_organic'||cue.mode==='premium_storyboard'){
       if(!hasEditorialEvidence(cue)&&!cue.spoken_anchor)reason='UNVERIFIED_GRAPHIC_ANCHOR';
