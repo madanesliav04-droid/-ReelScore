@@ -75,7 +75,7 @@ export function preflightBrollProposal({cue,captions=[]}={}){
  const desc=[cue?.query,cue?.visualAnchor].filter(Boolean).join(' ');
  if(!speech.trim())return {eligible:false,reason:'NO_SPOKEN_ANCHOR'};
  if(isGenericBroll(cue))return {eligible:false,reason:'GENERIC_STOCK'};
- if(fakeProof.test(normalized(desc))&&!/\b\\d+/.test(speech))
+ if(fakeProof.test(normalized(desc)))
   return {eligible:false,reason:'POTENTIAL_FAKE_PROOF'};
  if(!matchesVisualEvidence(speech,desc))
   return {eligible:false,reason:'NO_NARRATIVE_VISUAL_MATCH'};
@@ -133,7 +133,7 @@ export function reviewCreativeTimeline({timeline,brollCues,graphicCues,style}={}
    if(!isNum(start)||!isNum(end)||end-start<1000||start<0||end>duration+250)reason='INVALID_BROLL_TIMING';
    else if(broll.length>=capB)reason='BROLL_BUDGET_REACHED';
    else if(isGenericBroll(cue))reason='GENERIC_STOCK';
-   else if(fakeProof.test(normalized(desc))&&!/\b\d+/.test(speech))reason='POTENTIAL_FAKE_PROOF';
+   else if(fakeProof.test(normalized(desc)))reason='POTENTIAL_FAKE_PROOF';
    else if(!matchesVisualEvidence(speech,desc))reason='NO_NARRATIVE_VISUAL_MATCH';
    else if(broll.some(prev=>start<prev.endMs+profile.minBrollGapMs))reason='BROLL_TOO_CLOSE';
    if(reason)rejected.push({kind:'broll',reason,startMs:start,query:String(cue.query||'').slice(0,100)});
