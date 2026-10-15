@@ -68,6 +68,9 @@ test('one meaningful symbol draws one bubble; relations draw two',()=>{
  const text=buildOmniBubblesAss({graphicCues:[value]},910,512);
  assert.ok(text.includes('100 €'));
  assert.ok(text.includes('\\move(')&&text.includes('\\p1'));
+ assert.ok(text.includes('\\fscx45')&&text.includes('\\t(0,155,'));
+ assert.ok(text.includes('\\an5')&&text.includes('\\an7'));
+ assert.ok(!text.includes('Dialogue: 2,0:00:00.'));
  // No false assumptions about lateral space in vertical formats.
  assert.equal(count({...value}),2);
  assert.equal(buildOmniBubblesAss({graphicCues:[value]},512,910).split('\n').filter(x=>x.startsWith('Dialogue:')).length,0);
