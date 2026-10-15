@@ -3,6 +3,7 @@
  * Staging-only: explicit verified speech + independently sampled frame safety.
  * This is a visual grammar, not a claim of a fully autonomous editor.
  */
+import {makeHormoziMotionBeats} from './hormozi-beat-timing.js';
 export const HORMOZI_OMNI_VERSION='hormozi-omni-explainer-v1';
 export const HORMOZI_OMNI_PALETTE=Object.freeze({
   graphite:'#10151E',ink:'#0B0F17',white:'#F8FAFE',chrome:'#CBD5E3',
@@ -101,6 +102,10 @@ export function planHormoziOmniStoryboard({analysis,words,durationMs,enabled=fal
    ...(evidence.left?{left:evidence.left,right:evidence.right,rightStartMs:evidence.rightStartMs}:{}),
    ...(evidence.series?{series:evidence.series,sourceId:evidence.sourceId}:{}),
    renderingApproval:'requires_human_review'};
+  const timing=makeHormoziMotionBeats(cue);
+  if(timing.held){held.push({i,reason:timing.held});continue}
+  cue.motionBeats=timing.beats;
+  cue.motionTimingPolicy=timing.policy;
   cues.push(cue);
   const sound=HORMOZI_VISUAL_BEHAVIORS[p.type].sfx;
   if(sound!=='none')soundIntents.push({atMs:start,kind:sound,permission:'preview_only_not_mixed'});
