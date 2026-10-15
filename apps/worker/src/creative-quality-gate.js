@@ -59,12 +59,12 @@ function isGenericBroll(cue){
         /^(business|success|expertise|motivation|team|office|laptop|computer|working)$/i.test(q.trim());
 }
 const symbolEvidence=[
- {names:['why','question','?'],spoken:/\\b(pourquoi|question|raison|why)\\b/},
- {names:['money','euro','€'],spoken:/\\b(argent|euros?|prix|payer|vente|revenu|money)\\b/},
- {names:['zero','0'],spoken:/\\b(zero|aucun|rien|0)\\b/},
- {names:['heart','coeur','cœur','♥'],spoken:/\\b(coeurs?|toucher|emotions?|aider|love|heart)\\b/},
- {names:['clock','time','temps'],spoken:/\\b(temps|heures?|minutes?|secondes?|time)\\b/},
- {names:['help','aide'],spoken:/\\b(aider|aide|besoin|help)\\b/}
+ {names:['why','question','?'],spoken:/\b(pourquoi|question|raison|why)\b/},
+ {names:['money','euro','€'],spoken:/\b(argent|euros?|prix|payer|vente|revenu|money)\b/},
+ {names:['zero','0'],spoken:/\b(zero|aucun|rien|0)\b/},
+ {names:['heart','coeur','cœur','♥'],spoken:/\b(coeurs?|toucher|emotions?|aider|love|heart)\b/},
+ {names:['clock','time','temps'],spoken:/\b(temps|heures?|minutes?|secondes?|time)\b/},
+ {names:['help','aide'],spoken:/\b(aider|aide|besoin|help)\b/}
 ];
 function hasGraphicAnchor(graphic,speech){
  const speechNorm=normalized(speech);
