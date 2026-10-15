@@ -1,7 +1,7 @@
 // Event-driven timing: source-verified word starts beat arbitrary percentage delays.
 // Speech anchors must be derived from verified alignment upstream, not guessed here.
 export const BEAT_TIMING_VERSION='hormozi-beat-timing-v1';
-const finite=n=>Number.isFinite(Number(n));
+const finite=n=>n!==null&&n!==undefined&&n!==''&&Number.isFinite(Number(n));
 export function makeHormoziMotionBeats(cue,{fps=30}={}){
  if(!Number.isInteger(fps)||fps<24||fps>60)return {beats:[],held:'INVALID_FPS'};
  const start=Number(cue?.startMs),end=Number(cue?.endMs);
