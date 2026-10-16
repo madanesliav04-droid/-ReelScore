@@ -555,10 +555,10 @@ Règles:
 - chaque score doit être justifié par une preuve observable dans la vidéo;
 - 80+ exige une exécution réellement excellente;
 - le CTA est diagnostiqué séparément mais ne pèse PAS dans le Viral Score;
-- la timeline doit contenir 5 à 8 observations couvrant début, milieu et fin;
+- la timeline doit décrire uniquement les passages observés utiles, sans inventer des moments faibles pour remplir;
 - chaque correction doit être directement exécutable;
-- fix_plan doit contenir 3 à 7 corrections classées par priorité, sans conseil générique;
-- chaque fix_plan doit dire exactement: OÙ intervenir, QUOI changer, COMMENT le faire, et donner un EXEMPLE concret adapté à cette vidéo;
+- fix_plan doit contenir 0 à 5 corrections justifiées, classées par priorité ; zéro est préférable à une fausse amélioration;
+- chaque fix_plan doit dire exactement: OÙ intervenir, QUOI changer, COMMENT le faire, et donner un EXEMPLE concret issu de cette vidéo;
 - start_sec/end_sec doivent pointer vers le passage réel quand la correction est temporelle; sinon utilise 0;
 - exact_change doit être formulé comme une instruction de montage ou réécriture immédiatement exécutable;
 - expected_effect décrit le problème éditorial corrigé, pas une promesse de vues;
