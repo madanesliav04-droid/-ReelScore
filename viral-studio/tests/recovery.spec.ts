@@ -31,7 +31,7 @@ test('another account job is never restored',async({page})=>{
   await setup(page,other);let requests=0;
   await page.route('**/api/**',r=>{requests++;return r.fulfill({json:{}})});
   await page.goto('/dashboard');
-  await expect(page.getByRole('heading',{name:'What are we creating today?'})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'Montage intelligent.'})).toBeVisible();
   expect(requests).toBe(0);
 });
 test('completed export retrieval failure retains recovery pointer until export is retrieved',async({page})=>{
@@ -43,7 +43,7 @@ test('completed export retrieval failure retains recovery pointer until export i
   await page.goto('/dashboard');
   await expect(page.getByText(/Connexion interrompue/)).toBeVisible();
   expect(await page.evaluate(k=>localStorage.getItem(k),key)).not.toBeNull();
-  await expect(page.getByRole('link',{name:'Open MP4 ↗'})).toBeVisible({timeout:12000});
+  await expect(page.getByRole('link',{name:'Ouvrir le MP4 ↗'})).toBeVisible({timeout:12000});
   expect(await page.evaluate(k=>localStorage.getItem(k),key)).toBeNull();
 });
 test('missing job releases interface instead of retrying forever',async({page})=>{
@@ -67,9 +67,9 @@ test('expired session returns to sign-in and preserves job',async({page})=>{
   await page.route('**/api/viral-edit-jobs/jobs/job-qa',r=>{requests++;return r.fulfill({status:401,json:{error:'AUTH_REQUIRED'}})});
   await page.goto('/dashboard');
   await expect.poll(()=>requests).toBe(1);
-  await expect(page.getByRole('heading',{name:'Welcome back.'})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'Bon retour.'})).toBeVisible();
   expect(await page.evaluate(k=>localStorage.getItem(k),key)).not.toBeNull();
-  await expect(page.getByRole('button',{name:'Sign in',exact:true})).toBeEnabled();
+  await expect(page.getByRole('button',{name:'Se connecter',exact:true})).toBeEnabled();
   expect(requests).toBe(1);
 });
 test('resumed upload registers original storage object and locks concurrent uploads',async({page})=>{
@@ -90,7 +90,7 @@ test('resumed upload registers original storage object and locks concurrent uplo
     return r.fulfill({status:201,json:{media:{id:'media-qa',storage_path:registered}}});
   });
   await page.goto('/dashboard');
-  await expect(page.getByRole('heading',{name:'What are we creating today?'})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'Montage intelligent.'})).toBeVisible();
   await page.locator('input[type=file]').first().evaluate((element,{owner,original})=>{
     const file=new File(['12345678'],'source.mov',{type:'video/quicktime',lastModified:123});
     const fingerprint=JSON.stringify(['viral-studio-v2',owner,file.name,file.size,file.lastModified]);
@@ -100,22 +100,19 @@ test('resumed upload registers original storage object and locks concurrent uplo
   await expect.poll(()=>Boolean(patchResolve)).toBe(true);
   await expect(page.locator('input[type=file]').first()).toBeDisabled();
   patchResolve!();
-  await expect(page.getByRole('button',{name:'Analyze video',exact:true})).toBeEnabled();
+  await expect(page.getByRole('button',{name:'Créer mon montage · Codie',exact:true})).toBeEnabled();
   expect(registered).toBe(original);
 });
 
-test('Clip+ reveals ready outputs during rendering without fabricated percent',async({page})=>{
-  await setup(page,owner,'clip');
-  await page.route('**/api/clip-jobs/jobs/job-qa',route=>route.fulfill({json:{
-    job:{id:'job-qa',kind:'clip_generate',status:'rendering',progress:31,stage:'Rendu du clip 2/5',clip_project_id:'project-qa'}
-  }}));
-  await page.route('**/api/clip-jobs/projects/project-qa',route=>route.fulfill({json:{
-    project:{id:'project-qa',status:'rendering',requested_clip_count:5},
-    clips:[{id:'clip-ready-1',rank:1,title:'Premier clip',status:'ready',viral_score:81}]
-  }}));
-  await page.goto('/dashboard');
-  await expect(page.getByRole('heading',{name:/1 clip disponible/i})).toBeVisible({timeout:12000});
-  await expect(page.getByRole('button',{name:'Télécharger MP4 ↓'})).toBeVisible();
-  await expect(page.getByText('Étape en cours').first()).toBeVisible();
-  await expect(page.getByText('31%')).toHaveCount(0);
+test('Social+ exposes exactly Edit+ and Viral+ and no Clip+ workflow',async({page})=>{
+  await setup(page,other);
+  await page.goto('/dashboard?tool=edit');
+  await expect(page.getByRole('heading',{name:'Montage intelligent.'})).toBeVisible();
+  const chooser=page.getByRole('group',{name:'Choisir un outil'});
+  await expect(chooser.getByRole('button')).toHaveCount(2);
+  await expect(chooser.getByRole('button',{name:/Edit\+/})).toHaveAttribute('aria-pressed','true');
+  await expect(page.getByRole('button',{name:/Clip\+/})).toHaveCount(0);
+  await chooser.getByRole('button',{name:/Viral\+/}).click();
+  await expect(page.getByRole('heading',{name:'Analyse éditoriale.'})).toBeVisible();
+  await expect(page).toHaveURL(/tool=viral/);
 });
