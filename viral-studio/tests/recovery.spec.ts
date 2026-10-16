@@ -116,3 +116,22 @@ test('Social+ exposes exactly Edit+ and Viral+ and no Clip+ workflow',async({pag
   await expect(page.getByRole('heading',{name:'Analyse éditoriale.'})).toBeVisible();
   await expect(page).toHaveURL(/tool=viral/);
 });
+
+
+test('Edit+ only shows selected references and does not let pending models render as legacy presets',async({page})=>{
+  await setup(page,other);
+  await page.goto('/dashboard?tool=edit');
+  const cards=page.locator('.social-approved-model');
+  await expect(cards).toHaveCount(4);
+  await expect(cards.nth(0)).toContainText('Codie');
+  await expect(cards.nth(1)).toContainText('Leila');
+  await expect(cards.nth(2)).toContainText('Alex Hormozi');
+  await expect(cards.nth(3)).toContainText('Social Kinetic');
+  for(const id of ['leila','alex_hormozi','social_kinetic'])
+    await expect(page.locator(`[data-model="${id}"]`)).toBeDisabled();
+  await expect(page.locator('[data-model="codie"]')).toBeEnabled();
+  await expect(page.locator('.social-approved-model-grid')).not.toContainText('Impact');
+  await expect(page.locator('.social-approved-model-grid')).not.toContainText('Explainer');
+  await expect(page.locator('.social-approved-model-grid')).not.toContainText('UGC Native');
+  await expect(page.getByText(/ancienne version du moteur/)).toBeVisible();
+});
