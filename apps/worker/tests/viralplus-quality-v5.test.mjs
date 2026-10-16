@@ -49,7 +49,7 @@ test('0-10 scale is only normalized when every criterion has that scale',()=>{
   mixed.scores.hook=7;
   assert.equal(validateSemanticAnalysis(mixed).scores.hook,7);
 });
-test('missing score, missing evidence or generic fixes block publication',()=>{
+test('missing score or evidence blocks publication; zero advice is legitimate',()=>{
   const scoreMissing=fixture();
   delete scoreMissing.scores.originality;
   assert.throws(()=>validateSemanticAnalysis(scoreMissing),/VIRAL_SCORE_INVALID/);
@@ -59,10 +59,10 @@ test('missing score, missing evidence or generic fixes block publication',()=>{
   const missingFix=fixture();
   for(const key of keys) missingFix.scores[key]=45;
   missingFix.fix_plan=[{problem:'très vague',exact_change:'plus dynamique'}];
-  assert.throws(()=>validateSemanticAnalysis(missingFix),/VIRAL_FIX_PLAN_INSUFFICIENT/);
+  assert.equal(validateSemanticAnalysis(missingFix).validation.concrete_fixes,0);
   const missingTimeline=fixture();
   missingTimeline.timeline=[];
-  assert.throws(()=>validateSemanticAnalysis(missingTimeline),/VIRAL_TIMELINE_INSUFFICIENT/);
+  assert.equal(validateSemanticAnalysis(missingTimeline).validation.grounded_moments,0);
 });
 test('priority ranks weighted opportunity, not the smallest raw score',()=>{
   const f=fixture();
