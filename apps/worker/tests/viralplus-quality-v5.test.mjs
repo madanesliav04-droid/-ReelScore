@@ -21,7 +21,7 @@ const fixture=()=>({
   ]
 });
 test('score v5 stable and weights sum to exactly 100 excluding CTA',()=>{
-  assert.equal(SCORE_VERSION,'vp-score-5-evidence-priority');
+  assert.equal(SCORE_VERSION,'vp-score-5-grounded-test-hypotheses');
   assert.equal(Object.values(SCORE_WEIGHTS).reduce((a,b)=>a+b,0),100);
   assert.equal(SCORE_WEIGHTS.cta,0);
   const s=fixture().scores;
@@ -57,6 +57,7 @@ test('missing score, missing evidence or generic fixes block publication',()=>{
   missingEvidence.score_evidence=Object.fromEntries(keys.map(k=>[k,'']));
   assert.throws(()=>validateSemanticAnalysis(missingEvidence),/VIRAL_EVIDENCE_INSUFFICIENT/);
   const missingFix=fixture();
+  for(const key of keys) missingFix.scores[key]=45;
   missingFix.fix_plan=[{problem:'très vague',exact_change:'plus dynamique'}];
   assert.throws(()=>validateSemanticAnalysis(missingFix),/VIRAL_FIX_PLAN_INSUFFICIENT/);
   const missingTimeline=fixture();
@@ -76,6 +77,13 @@ test('priority ranks weighted opportunity, not the smallest raw score',()=>{
   assert.equal(ranked[0].start_sec,0);
   assert.equal(ranked.find(x=>x.key==='audio').impact_points,5);
   assert.equal(ranked.some(x=>x.key==='cta'),false);
+});
+test('strong video may legitimately require zero artificial fixes',()=>{
+  const f=fixture();
+  for(const key of keys)f.scores[key]=92;
+  f.fix_plan=[];
+  const value=validateSemanticAnalysis(f);
+  assert.equal(value.validation.concrete_fixes,0);
 });
 test('timeline does not claim measured audience retention',()=>{
   const f=fixture();
