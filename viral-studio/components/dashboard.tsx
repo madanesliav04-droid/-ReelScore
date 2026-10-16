@@ -10,7 +10,7 @@ import {MAX_VIDEO_UPLOAD_MIB,uploadParts,videoUploadPreflight,videoUploadErrorMe
 type Module="viral"|"edit"|"clip";
 type Job={id:string;kind?:string;status:string;progress?:number;stage?:string;result?:any;error?:any;error_code?:string;clip_project_id?:string|null};
 type Media={id:string;storage_path:string;mime_type:string;size_bytes:number;original_name?:string};
-type EditModel={id:string;name:string;category:string;preview:string;meta:string;goal:string;actions:string[];never:string};
+type EditModel={id:string;name:string;category:string;preview:string;meta:string;goal:string;actions:string[];never:string;available:boolean;state:string};
 
 const VIRAL_METRICS=[
   ["hook","Hook"],
@@ -34,35 +34,69 @@ function scoreTone(value:any){
 // Five focused models. Historical exports from retired models remain accessible.
 const EDIT_MODELS:EditModel[]=[
   {
-    id:"codie",name:"Codie",category:"Business storytelling",preview:"FACE CAM",meta:"Narrative · restrained B-roll",
-    goal:"Faire ressortir une histoire business forte, facecam dominante.",
-    actions:["IDENTITÉ VERROUILLÉE : Noto Sans 850, taille 66 px en 1080×1920, blanc #FFFFFF, accent orange #FF9B45; 4 mots maximum, position middle-low, apparition douce.","NARRATION : facecam principale, maximum 3 cadrages (normal / crop / close-up); zoom uniquement sur passage fort, pas de bruitage ou transition gratuit.","Supprimer les silences de 780 ms ou plus, en préservant les respirations courtes.","Déclencher un zoom narratif seulement sur une rupture importante : au plus 3 par 30 s.","Ajouter jusqu’à 2 B-rolls de 1,9 à 3,4 s lorsqu’un élément concret est cité et illustrable.","Afficher des sous-titres blancs premium, sans surlignage mot-à-mot systématique.","Appliquer un traitement voix premium discret."],
-    never:"Pas de zoom automatique, de carte citation décorative ou de B-roll abstrait."
+    "id": "codie",
+    "name": "Codie",
+    "category": "Storytelling business",
+    "preview": "CODIE",
+    "meta": "Référence Codie V60 · moteur actuel : ancien Codie bêta",
+    "goal": "Facecam dominante, cuts fluides, 2–3 B-rolls utiles, voix originale.",
+    "actions": [
+      "Codie V60 est la référence visuelle retenue, mais ce moteur n'est pas encore déployé.",
+      "Cuts narratifs, recadrages utiles, sous-titres fidèles aux paroles.",
+      "Visage préservé, B-rolls rares, bulles synchronisées, son discret."
+    ],
+    "never": "Pas de fausses preuves ni de zoom automatique.",
+    "available": true,
+    "state": "ANCIEN MOTEUR BÊTA"
   },
   {
-    id:"impact",name:"Impact",category:"High-energy business",preview:"IMPACT",meta:"Fast · punchy · visual",
-    goal:"Créer une vidéo énergique qui accélère la compréhension et la rétention.",
-    actions:["IDENTITÉ VERROUILLÉE : DejaVu Sans 900, taille 80 px en 1080×1920, blanc #FFFFFF, accent cyan #37E6FF; 3 mots maximum, mot actif et pop rapide.","RYTHME : hard cuts éditoriaux, 8 punch-ins maximum par 30 s, éléments de langage percutants; refuser glitch et flash non motivés.","Couper les silences dès 420 ms et les hésitations transcrites.","Accentuer visuellement le hook avec un punch-in court.","Jusqu’à 8 punch-ins narratifs et 5 B-rolls concrets par 30 s.","Afficher un mot-clé ou une phrase de 4 mots maximum en grand lors de moments forts.","Sous-titres dynamiques et finition audio plus incisive."],
-    never:"Pas d’inserts sans rapport avec le discours, ni de cuts qui amputent le sens."
+    "id": "leila",
+    "name": "Leila",
+    "category": "Montage narratif",
+    "preview": "LEILA",
+    "meta": "Référence retenue · non raccordée au serveur",
+    "goal": "Un montage de référence Leila, adaptable au discours et au décor.",
+    "actions": [
+      "Montage rythmé en fonction du sens, sans effet gratuit.",
+      "Sous-titres conformes aux paroles et voix d'origine préservée.",
+      "Preuves visuelles réelles, pas de B-roll générique."
+    ],
+    "never": "Ne pas substituer un preset historique au modèle Leila.",
+    "available": false,
+    "state": "INTÉGRATION EN COURS"
   },
   {
-    id:"clean",name:"Clean",category:"Modern creator",preview:"CLEAN",meta:"Simple · polished · minimal",
-    goal:"Améliorer la fluidité d’une facecam sans attirer l’attention sur le montage.",
-    actions:["IDENTITÉ VERROUILLÉE : Noto Sans 750, taille 60 px en 1080×1920, blanc #FFFFFF, sans couleur secondaire; 5 mots maximum en bas de cadre, apparition douce.","SOBRIÉTÉ : cadrage stable, montage invisible, aucune carte graphique, aucun karaoké ou transition décorative.","Couper les silences de plus de 620 ms et les hésitations détectées.","Ajouter au maximum 3 recadrages légers par 30 s, seulement si la narration le justifie.","Limiter à 1 B-roll explicatif par 30 s.","Afficher des sous-titres blancs lisibles et stables.","Équilibrer voix et image sans effet d’habillage superflu."],
-    never:"Pas de cartouche graphique automatique, d’animation ou de zoom décoratif."
+    "id": "alex_hormozi",
+    "name": "Alex Hormozi",
+    "category": "Explication visuelle",
+    "preview": "HORMOZI",
+    "meta": "V11 préférée · V16 corrigée · non raccordé",
+    "goal": "Montage didactique plein écran, en conservant toujours le format source.",
+    "actions": [
+      "Respecter la référence V11 / V16 et le 16:9 natif.",
+      "Aucune insertion latérale ni bande ajoutée.",
+      "Cuts intentionnels, démonstrations utiles, voix et sous-titres exacts."
+    ],
+    "never": "Pas de recadrage horizontal, doublage ou superposition.",
+    "available": false,
+    "state": "INTÉGRATION EN COURS"
   },
   {
-    id:"explainer",name:"Explainer",category:"Tutorial & SaaS",preview:"EXPLAIN",meta:"Show · label · clarify",
-    goal:"Transformer une démonstration en étapes faciles à comprendre.",
-    actions:["IDENTITÉ VERROUILLÉE : DejaVu Sans 800, taille 68 px en 1080×1920, blanc #FFFFFF, accent cyan clair #7CE8FF; 4 mots maximum, mot actif et apparition douce.","PÉDAGOGIE : images uniquement lorsque les outils et étapes sont réellement cités; aucun écran fictif; retour rapide vers la facecam.","Supprimer les silences dès 560 ms et les hésitations détectées.","Afficher des cartes d’étapes uniquement si une étape est réellement annoncée.","Jusqu’à 5 recadrages et 5 B-rolls d’outils, objets ou interfaces cités par 30 s.","Faire correspondre la durée des illustrations aux phrases et actions expliquées.","Utiliser des sous-titres didactiques et un son discret."],
-    never:"Pas de capture de logiciel fictive, d’étape créée de toutes pièces ou d’image générique."
-  },
-  {
-    id:"ugc_native",name:"UGC Native",category:"Native social",preview:"UGC",meta:"Human · phone-native · direct",
-    goal:"Conserver un rendu smartphone naturel, spontané et convaincant.",
-    actions:["IDENTITÉ VERROUILLÉE : DejaVu Sans 850, taille 68 px en 1080×1920, blanc #FFFFFF, accent rose #FF3FBF; 4 mots maximum, mot actif et pop léger.","NATIVITÉ : gestuelle et produit visibles, cuts smartphone, très peu de B-rolls, aucun effet publicitaire ou preuve inventée.","Préserver les respirations courtes, les gestes et les imperfections humaines utiles.","Ne couper que les silences de 740 ms ou plus.","Limiter à 3 zooms subtils et 1 insert produit pertinent par 30 s.","Utiliser des sous-titres modernes aux couleurs du modèle sans cartouche publicitaire forcé.","Nettoyer légèrement l’image et la voix sans dénaturer la captation."],
-    never:"Pas de badges commerciaux, de cartes graphiques automatiques, ni de montage trop publicitaire."
-  },
+    "id": "social_kinetic",
+    "name": "Social Kinetic",
+    "category": "Motion éditorial",
+    "preview": "KINETIC",
+    "meta": "Troisième référence vidéo · moteur expérimental",
+    "goal": "Facecam, mots animés intégrés au décor, bulles bleues et chiffres vérifiés.",
+    "actions": [
+      "Suivre la référence vidéo reçue le 16 octobre.",
+      "N'afficher un chiffre que s'il est réellement prononcé.",
+      "Animer uniquement dans une zone visuelle libre, sans cacher le visage."
+    ],
+    "never": "Pas d'animation décorative ou de statistique inventée.",
+    "available": false,
+    "state": "INTÉGRATION EN COURS"
+  }
 ];
 
 async function freshSession(){
@@ -406,7 +440,8 @@ export function Dashboard(){
 
   async function startEdit(autoFix=false){
     if(busy||uploadLocked.current)return;if(!media)return setError("Importe d’abord une vidéo.");
-    const modelToUse=autoFix?pickAutoFixModel(analysis):editModel;
+    const modelToUse=autoFix?"codie":editModel;
+    if(modelToUse!=="codie")return setError("Ce modèle n’est pas encore raccordé au moteur. Aucun preset de remplacement ne sera lancé.");
 
     if(autoFix){
       const before=Number(score);
@@ -536,7 +571,7 @@ export function Dashboard(){
         <div className="workspace-grid">
           <section className="panel">
             <small className="eyebrow">EDIT+ / MONTER</small><h3>Un montage construit autour de tes paroles.</h3><p className="social-panel-explainer">Importe un rush, sélectionne un style puis génère un export. L'original reste intact.</p>
-            <label className="upload-zone"><input type="file" disabled={busy||uploading} accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" onChange={e=>{const f=e.currentTarget.files?.[0];e.currentTarget.value="";if(f)void uploadVideo(f)}}/><div><Upload size={30}/><b>{file?file.name:media?"Vidéo importée, prête à monter":"Choisir une vidéo à monter"}</b><span>MP4 · MOV · WebM · max {MAX_VIDEO_UPLOAD_MIB} Mo · 5 modèles ciblés</span></div></label>
+            <label className="upload-zone"><input type="file" disabled={busy||uploading} accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" onChange={e=>{const f=e.currentTarget.files?.[0];e.currentTarget.value="";if(f)void uploadVideo(f)}}/><div><Upload size={30}/><b>{file?file.name:media?"Vidéo importée, prête à monter":"Choisir une vidéo à monter"}</b><span>MP4 · MOV · WebM · max {MAX_VIDEO_UPLOAD_MIB} Mo · Codie bêta disponible</span></div></label>
             {file&&<div className="social-upload-status" role="status" aria-live="polite"><span>{uploading?"Import en cours":media?"Import terminé":"Préparation du fichier"}</span><strong>{uploadPct}%</strong><div className="progress"><i style={{width:`${uploadPct}%`}}/></div></div>}
             {error&&<div role="alert" className="job-card error">{error}</div>}
             <div className="status-row"><span>Fichier vidéo</span><span className="status-pill">{media?"Prêt":file?`${uploadPct}%`:"En attente"}</span></div>
@@ -545,19 +580,21 @@ export function Dashboard(){
         </div>
 
         <section className="model-library">
-          <div className="section-heading"><small>5 MODÈLES CIBLÉS</small><h2>Choisis ton langage de montage.</h2><p>Codie, Impact, Clean, Explainer et UGC Native. Les autres styles sont retirés temporairement pour concentrer le travail sur la qualité réelle des exports.</p></div>
-          <div className="model-grid">{EDIT_MODELS.map(model=><button key={model.id} className={`model-card ${editModel===model.id?"selected":""}`} data-model={model.id} onClick={()=>setEditModel(model.id)}>
-            <div className={`model-preview ${model.id==="editorial_breakdown"?"editorial-preview":""}`}><div className="preview-face"/><div className="preview-caption">{model.preview}</div><div className="preview-cut"/><span className="preview-badge">{model.name}</span></div>
-            <div className="model-copy"><div><strong>{model.name}</strong><span>{model.category}</span></div>{editModel===model.id&&<Check size={18}/>}<p>{model.meta}</p></div>
-          </button>)}</div>
+          <div className="section-heading"><small>4 RÉFÉRENCES RETENUES</small><h2>Les montages que nous avons choisis.</h2><p>Codie, Leila, Alex Hormozi et Social Kinetic. Le moteur actuellement utilisable est un ancien Codie bêta, pas encore la V60 certifiée. Les autres sont en cours d’intégration.</p></div>
+          <div className="model-grid social-approved-model-grid">{EDIT_MODELS.map(model=><button type="button" key={model.id} disabled={!model.available||busy||uploading} aria-label={`${model.name} — ${model.state}`} className={`model-card social-approved-model ${editModel===model.id?"selected":""} ${model.available?"is-available":"is-pending"}`} data-model={model.id} onClick={()=>{if(model.available)setEditModel(model.id)}}>
+              <div className="social-model-identity"><span>EDIT+ / {model.preview}</span><small className={`social-model-state ${model.available?"beta":"pending"}`}>{model.state}</small><strong>{model.name}</strong><p>{model.goal}</p></div>
+              <div className="model-copy"><div><strong>{model.name}</strong><span>{model.category}</span></div>{editModel===model.id&&<Check size={18}/>}<p>{model.meta}</p></div>
+            </button>)}</div>
+          <p className="social-model-truth" role="note">Aucune vignette factice : seuls les aperçus vidéo réellement validés seront montrés. Les modèles non raccordés ne peuvent pas déclencher un ancien preset par erreur.</p>
           <section className="model-action-contract" data-testid="edit-model-action-contract" aria-live="polite">
             <div className="contract-head"><span>CONTRAT DE MONTAGE · {selectedModel.name.toUpperCase()}</span><h3>{selectedModel.goal}</h3></div>
-            <p className="contract-notice">Identité visuelle verrouillée par modèle. Les quantités sont des plafonds, pas des effets obligatoires : un montage utile prime sur le remplissage.</p>
+            <p className="contract-notice">Le contrat décrit la référence de montage souhaitée. Le moteur historique disponible ne garantit pas encore la fidélité à la V60.</p>
             <ol>{selectedModel.actions.map((action,i)=><li key={i}><span>{String(i+1).padStart(2,"0")}</span><p>{action}</p></li>)}</ol>
             <div className="contract-avoid"><strong>À éviter</strong><p>{selectedModel.never}</p></div>
           </section>
           <label className="format-picker">Format de sortie <select className="field" value={format} onChange={e=>setFormat(e.target.value)} disabled={busy}><option value="native">Natif — conserver le format source</option><option value="portrait">Portrait — 1080 × 1920</option><option value="landscape">Paysage — 1920 × 1080</option></select></label>
-          <button className="btn primary create-edit" onClick={()=>void startEdit(false)} disabled={!media||busy||uploading}><Clapperboard size={17}/> {busy&&job?.kind==="edit_render"?"Montage en cours…":`Créer mon montage · ${selectedModel.name}`}</button>
+          <button className="btn primary create-edit" onClick={()=>void startEdit(false)} disabled={!media||busy||uploading||!selectedModel.available}><Clapperboard size={17}/> {busy&&job?.kind==="edit_render"?"Montage en cours…":`Créer mon montage · ${selectedModel.name}`}</button>
+          <p className="social-model-truth" role="note">Essai Codie bêta : ancienne version du moteur. V60, Leila, Hormozi et Social Kinetic attendent leur validation de rendu réelle.</p>
           <InlineJobState job={job?.kind==="edit_render"?job:null}/>
         </section>
       </>}
