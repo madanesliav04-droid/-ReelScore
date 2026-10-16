@@ -612,6 +612,8 @@ export function Dashboard(){
           <div className="viral-calibration-intro"><strong>Ce que ce score mesure réellement</strong><p>Qualité éditoriale estimée sur la vidéo : accroche, clarté, progression, structure et réalisation. Ce n'est ni une probabilité de viralité ni une prévision des vues.</p></div>
           <div className="viral-calibration-tags"><span>Critères pondérés publiquement</span><span>Signaux techniques contextualisés</span><span>Comparaison valable entre analyses de même version</span></div>
           {analysis.score_audit.caveats?.length>0&&<details><summary>Vérifications de contexte</summary><div>{analysis.score_audit.caveats.map((item:string,i:number)=><p key={i}>{item}</p>)}</div></details>}
+          {analysis.score_audit.independent_video_review?.disputed_criteria?.length>0&&<p className="viral-calibration-disputed"><strong>Vérification complémentaire recommandée :</strong> divergence entre les analyses IA sur {analysis.score_audit.independent_video_review.disputed_criteria.map((key:string)=>key.replaceAll("_"," ")).join(", ")}. Ces notes restent des estimations à examiner, pas une vérité.</p>}
+          {analysis.score_audit.independent_video_review?.status==="unavailable"&&<p className="viral-calibration-disputed">Contrôle contradictoire du score indisponible : résultat provisoire à considérer avec prudence.</p>}
           <small>Ce score n'est pas encore étalonné statistiquement sur de véritables performances Instagram ou TikTok. Seules des données de publication pourraient valider son pouvoir prédictif.</small>
         </section>}
         {analysis.top_priority&&<section className="viral-v5-priority" aria-label="Priorité éditoriale du Viral Score">
