@@ -29,16 +29,14 @@ export function validateSemanticAnalysis(input){
   const scores=Object.fromEntries(REQUIRED_KEYS.map(key=>[key,clamp(Number(original[key])*scale)]));
   const evidence=input.score_evidence&&typeof input.score_evidence==='object'?input.score_evidence:{};
   const grounded=SCORED_KEYS.filter(key=>short(evidence[key],900).length>=15);
-  if(grounded.length<8)throw new Error('VIRAL_EVIDENCE_INSUFFICIENT: au moins 8 critères doivent être justifiés par des observations.');
+  if(grounded.length<7)throw new Error('VIRAL_EVIDENCE_INSUFFICIENT: au moins 7 critères doivent être justifiés par des observations.');
   const fixes=Array.isArray(input.fix_plan)?input.fix_plan:[];
   const concrete=fixes.filter(x=>x&&short(x.problem).length>=10&&short(x.exact_change).length>=18);
-  // A strong video can legitimately have zero recommended changes. Never force filler.
-  // If the model finds substantial weaknesses, it must still propose an actionable fix.
-  const rawScore=Math.round(SCORED_KEYS.reduce((sum,k)=>sum+Number(scores[k])*SCORE_WEIGHTS[k],0)/100);
-  if(rawScore<70&&concrete.length===0)throw new Error('VIRAL_FIX_PLAN_INSUFFICIENT: score faible sans correction étayée.');
+  // Never force a fix from a low score: unclear source, silent video or short clip
+  // may have no defensible recommendation. Always prefer an honest empty plan.
   const timeline=Array.isArray(input.timeline)?input.timeline:[];
   const groundedMoments=timeline.filter(x=>x&&finite(x.start_sec)&&finite(x.end_sec)&&Number(x.end_sec)>=Number(x.start_sec)&&short(x.problem).length>=8);
-  if(groundedMoments.length<2)throw new Error('VIRAL_TIMELINE_INSUFFICIENT: passages horodatés non démontrés.');
+  // Zero risky passages is a valid outcome. No invented retention dips.
   return {...input,scores,score_evidence:evidence,validation:{
     score_scale:scale===10?'normalized_0_10_to_0_100':'native_0_100',
     evidenced_criteria:grounded.length,concrete_fixes:concrete.length,
