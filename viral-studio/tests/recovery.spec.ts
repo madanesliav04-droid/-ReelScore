@@ -127,11 +127,16 @@ test('Edit+ only shows selected references and does not let pending models rende
   await expect(cards.nth(1)).toContainText('Leila');
   await expect(cards.nth(2)).toContainText('Alex Hormozi');
   await expect(cards.nth(3)).toContainText('Social Kinetic');
-  for(const id of ['leila','alex_hormozi','social_kinetic'])
-    await expect(page.locator(`[data-model="${id}"]`)).toBeDisabled();
-  await expect(page.locator('[data-model="codie"]')).toBeEnabled();
+  await expect(page.locator('[data-model="leila"]')).toBeDisabled();
+  for(const id of ['codie','hormozi_omni','social_kinetic'])
+    await expect(page.locator(`[data-model="${id}"]`)).toBeEnabled();
+  await page.locator('[data-model="hormozi_omni"]').click();
+  await expect(page.getByRole('button',{name:/Créer mon montage · Alex Hormozi/})).toBeDisabled();
+  await expect(page.getByText(/Format natif obligatoire/)).toBeVisible();
+  await page.locator('[data-model="social_kinetic"]').click();
+  await expect(page.getByText(/les animations n’apparaissent que si/)).toBeVisible();
   await expect(page.locator('.social-approved-model-grid')).not.toContainText('Impact');
   await expect(page.locator('.social-approved-model-grid')).not.toContainText('Explainer');
   await expect(page.locator('.social-approved-model-grid')).not.toContainText('UGC Native');
-  await expect(page.getByText(/ancienne version du moteur/)).toBeVisible();
+  await expect(page.getByText(/trois moteurs activés produisent un rendu bêta/)).toBeVisible();
 });
