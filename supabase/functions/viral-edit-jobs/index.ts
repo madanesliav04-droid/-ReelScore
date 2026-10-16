@@ -54,9 +54,17 @@ function admin(){
   });
 }
 
+function asUser(req:Request){
+  const auth=req.headers.get("Authorization")||"";
+  return createClient(SUPABASE_URL,SERVICE_KEY,{
+    global:{headers:{Authorization:auth}},
+    auth:{persistSession:false,autoRefreshToken:false}
+  });
+}
+
 async function ownMedia(db:ReturnType<typeof admin>,userId:string,id:string){
   const {data,error}=await db.from("media_assets")
-    .select("id,user_id,storage_bucket,storage_path,mime_type,size_bytes,status")
+    .select("id,user_id,storage_bucket,storage_path,mime_type,size_bytes,sha256,status")
     .eq("id",id)
     .eq("user_id",userId)
     .is("deleted_at",null)
@@ -82,6 +90,43 @@ async function registerMedia(db:ReturnType<typeof admin>,userId:string,body:any)
   const exists=(list||[]).some(x=>x.name===name);
   if(!exists)throw new Error("STORAGE_OBJECT_NOT_FOUND");
 
+  // A 500 MiB source is stored as <=40 MiB user-owned objects. Validate every
+  // part against the actual Storage metadata before accepting any manifest.
+  const submitted=body?.metadata?.multipart;
+  let trustedMetadata=body?.metadata&&typeof body.metadata==="object"?body.metadata:{};
+  if(submitted){
+    const pieces=Array.isArray(submitted.parts)?submitted.parts:[];
+    if(submitted.version!==1||pieces.length<2||pieces.length>13)throw new Error("INVALID_MULTIPART_MANIFEST");
+    const firstName=path.split("/").at(-1)||"";
+    if(!firstName.endsWith("-part000"))throw new Error("INVALID_MULTIPART_PREFIX");
+    const stem=firstName.slice(0,-8);
+    let verifiedTotal=0;
+    for(let i=0;i<pieces.length;i++){
+      const part=pieces[i];
+      const expectedPath=userId+"/"+stem+"-part"+String(i).padStart(3,"0");
+      const currentPath=safePath(part?.path);
+      const reportedSize=Number(part?.size);
+      if(currentPath!==expectedPath||!Number.isSafeInteger(reportedSize)||reportedSize<1||reportedSize>40*1024*1024){
+        throw new Error("INVALID_MULTIPART_PART");
+      }
+      if(i<pieces.length-1&&reportedSize!==40*1024*1024)throw new Error("INVALID_MULTIPART_PART_SIZE");
+      const {data:objects,error:objectsError}=await db.storage.from(VIDEO_BUCKET).list(userId,{search:expectedPath.split("/").at(-1),limit:10});
+      if(objectsError)throw objectsError;
+      const actual=(objects||[]).find((item:any)=>item.name===expectedPath.split("/").at(-1));
+      if(!actual)throw new Error("MULTIPART_OBJECT_MISSING");
+      const actualSize=Number((actual as any)?.metadata?.size||0);
+      if(actualSize!==reportedSize)throw new Error("MULTIPART_OBJECT_SIZE_MISMATCH");
+      verifiedTotal+=actualSize;
+    }
+    if(verifiedTotal!==size)throw new Error("INVALID_MULTIPART_TOTAL");
+    trustedMetadata={multipart:{
+      version:1,
+      parts:pieces.map((piece:any)=>({path:String(piece.path),size:Number(piece.size)}))
+    }};
+  }else if(size>50*1024*1024){
+    throw new Error("MULTIPART_REQUIRED");
+  }
+
   const row={
     user_id:userId,
     module:"viralplus",
@@ -96,7 +141,7 @@ async function registerMedia(db:ReturnType<typeof admin>,userId:string,body:any)
     height:Number.isFinite(Number(body?.height))?Math.max(1,Math.round(Number(body.height))):null,
     sha256:sha(body?.sha256),
     status:"uploaded",
-    metadata:body?.metadata&&typeof body.metadata==="object"?body.metadata:{}
+    metadata:trustedMetadata
   };
 
   const {data,error}=await db.from("media_assets")
@@ -107,51 +152,23 @@ async function registerMedia(db:ReturnType<typeof admin>,userId:string,body:any)
   return data;
 }
 
-async function createJob(db:ReturnType<typeof admin>,userId:string,kind:"viral_analysis"|"edit_render",videoId:string,payload:any,idempotencyKey:string){
-  const existing=await db.from("processing_jobs")
-    .select("*")
-    .eq("user_id",userId)
-    .eq("idempotency_key",idempotencyKey)
-    .maybeSingle();
-  if(existing.error)throw existing.error;
-  if(existing.data)return existing.data;
-
-  const {data,error}=await db.from("processing_jobs")
-    .insert({
-      user_id:userId,
-      kind,
-      video_id:videoId,
-      status:"queued",
-      progress:0,
-      stage:"queued",
-      idempotency_key:idempotencyKey,
-      payload
-    })
-    .select("*")
-    .single();
-  if(error){
-    if(String(error.code)==="23505"){
-      const again=await db.from("processing_jobs")
-        .select("*")
-        .eq("user_id",userId)
-        .eq("idempotency_key",idempotencyKey)
-        .single();
-      if(again.error)throw again.error;
-      return again.data;
-    }
-    throw error;
-  }
-
-  await db.from("job_events").insert({
-    job_id:data.id,
-    user_id:userId,
-    status:"queued",
-    progress:0,
-    message:"Job queued",
-    details:{kind}
+async function createJob(
+  userDb:ReturnType<typeof asUser>,
+  kind:"viral_analysis"|"edit_render",
+  videoId:string,
+  payload:any,
+  idempotencyKey:string
+){
+  const {data,error}=await userDb.rpc("create_processing_job",{
+    p_kind:kind,
+    p_video_id:videoId,
+    p_payload:payload||{},
+    p_idempotency_key:idempotencyKey
   });
-
-  return data;
+  if(error)throw error;
+  const job=Array.isArray(data)?data[0]:data;
+  if(!job?.id)throw new Error("JOB_CREATE_FAILED");
+  return job;
 }
 
 async function route(req:Request){
@@ -167,6 +184,22 @@ async function route(req:Request){
   const fnIndex=parts.lastIndexOf("viral-edit-jobs");
   const tail=fnIndex>=0?parts.slice(fnIndex+1):parts;
   const db=admin();
+  const userDb=asUser(req);
+
+  if(req.method==="GET"&&tail[0]==="quota"){
+    const {data:profile,error}=await db.from("viralplus_profiles")
+      .select("analyses_used,analysis_limit,period_start")
+      .eq("user_id",user.id)
+      .maybeSingle();
+    if(error)return out({error:"QUOTA_READ_FAILED"},500);
+    const now=new Date();
+    const currentMonth=Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),1);
+    const period=profile?.period_start?new Date(profile.period_start).getTime():currentMonth;
+    const used=period<currentMonth?0:Math.max(0,Number(profile?.analyses_used||0));
+    const limit=Math.max(1,Number(profile?.analysis_limit||20));
+    const resetAt=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth()+1,1)).toISOString();
+    return out({quota:{used,limit,remaining:Math.max(0,limit-used),reset_at:resetAt}});
+  }
 
   if(req.method==="POST"&&tail[0]==="media"){
     const body=await req.json().catch(()=>null);
@@ -195,13 +228,13 @@ async function route(req:Request){
     }
     if(!media)return out({error:"MEDIA_NOT_FOUND"},404);
 
-    const digest=sha(body?.sha256)||String(media.id);
+    const digest=sha(media.sha256)||String(media.id);
     const baseline=isUuid(body?.baseline_analysis_id)?String(body.baseline_analysis_id):null;
     const mode=baseline?"reanalysis":"analysis";
     const key=`viral:${mode}:${digest}:${baseline||"base"}`;
 
     try{
-      const job=await createJob(db,user.id,"viral_analysis",media.id,{
+      const job=await createJob(userDb,"viral_analysis",media.id,{
         is_reanalysis:Boolean(baseline),
         baseline_analysis_id:baseline,
         requested_at:new Date().toISOString()
@@ -218,36 +251,55 @@ async function route(req:Request){
     const media=await ownMedia(db,user.id,String(body.video_id));
     if(!media)return out({error:"MEDIA_NOT_FOUND"},404);
 
-    const supportedStyles=new Set(["creator_clean","codie","business_viral","podcast_authority","hormozi_omni","social_kinetic"]);
-    const style=String(body.style||"");
-    // Unknown styles must not silently render an unrelated template.
-    if(!supportedStyles.has(style))return out({error:"EDIT_STYLE_UNAVAILABLE",requested_style:style},400);
-    const caption=["modern_bold","minimal","creator","karaoke","authority","ugc"].includes(String(body.caption_preset))
-      ? String(body.caption_preset)
-      : "modern_bold";
+    // A focused public beta: exactly five available models for new jobs.
+    // Historical exports and projects remain readable and untouched.
+    const allowedStyles=["codie","impact","clean","explainer","ugc_native","creator_clean","business_viral","hormozi_omni","social_kinetic"];
+    const requestedStyle=String(body.style||"clean");
+    if(!allowedStyles.includes(requestedStyle))return out({error:"EDIT_MODEL_NOT_AVAILABLE",available_models:["codie","impact","clean","explainer","ugc_native","hormozi_omni","social_kinetic"]},422);
+    const canonicalStyle={creator_clean:"clean",business_viral:"impact"}[requestedStyle]||requestedStyle;
+    const captionByModel={
+      codie:"codie",
+      impact:"impact",
+      clean:"clean",
+      authority:"authority",
+      explainer:"explainer",
+      data:"data",
+      ugc_native:"ugc",
+      cinematic_story:"cinematic",
+      editorial_breakdown:"editorial",
+       hormozi_omni:"impact",
+       social_kinetic:"social_kinetic"
+    };
+    const caption=captionByModel[canonicalStyle]||"clean";
     const sourceAnalysisId=isUuid(body.analysis_id)?String(body.analysis_id):null;
     const requestId=crypto.randomUUID();
+    const format=["native","portrait","landscape"].includes(body.settings?.format)?body.settings.format:"native";
 
     const {data:project,error:projectError}=await db.from("edit_projects")
       .insert({
         user_id:user.id,
         source_video_id:media.id,
         source_analysis_id:sourceAnalysisId,
-        style,
+        style:canonicalStyle,
         caption_preset:caption,
         status:"planning",
-        settings:body.settings&&typeof body.settings==="object"?body.settings:{}
+        settings:{
+          ...(body.settings&&typeof body.settings==="object"?body.settings:{}),
+          format,
+          model_contract_version:"editplus-focus-five-v4"
+        }
       })
       .select("*")
       .single();
     if(projectError)return out({error:projectError.message},500);
 
     try{
-      const job=await createJob(db,user.id,"edit_render",media.id,{
+      const job=await createJob(userDb,"edit_render",media.id,{
         edit_project_id:project.id,
         source_analysis_id:sourceAnalysisId,
-        style,
+        style:canonicalStyle,
         caption_preset:caption,
+        settings:{format,model_contract_version:"editplus-focus-five-v4"},
         requested_at:new Date().toISOString()
       },`edit:${project.id}:${requestId}`);
       return out({project,job},202);
@@ -267,6 +319,66 @@ async function route(req:Request){
     if(error)return out({error:error.message},500);
     if(!data)return out({error:"JOB_NOT_FOUND"},404);
     return out({job:data});
+  }
+
+  if(req.method==="GET"&&tail[0]==="media"&&isUuid(tail[1])&&tail[2]==="url"){
+    const media=await ownMedia(db,user.id,String(tail[1]));
+    if(!media)return out({error:"MEDIA_NOT_FOUND"},404);
+
+    const {data,error}=await db.storage
+      .from(media.storage_bucket)
+      .createSignedUrl(media.storage_path,600);
+
+    if(error||!data?.signedUrl){
+      return out({error:error?.message||"SIGNED_URL_FAILED"},500);
+    }
+
+    return out({
+      media:{
+        id:media.id,
+        mime_type:media.mime_type,
+        size_bytes:media.size_bytes,
+        status:media.status
+      },
+      signed_url:data.signedUrl,
+      expires_in:600
+    });
+  }
+
+  if(req.method==="GET"&&tail[0]==="exports"&&isUuid(tail[1])&&tail[2]==="url"){
+    const exportId=String(tail[1]);
+    const {data:exportRow,error:exportError}=await db
+      .from("edit_exports")
+      .select("id,project_id,job_id,user_id,output_video_id,preset,status")
+      .eq("id",exportId)
+      .eq("user_id",user.id)
+      .maybeSingle();
+
+    if(exportError)return out({error:exportError.message},500);
+    if(!exportRow)return out({error:"EXPORT_NOT_FOUND"},404);
+
+    const media=await ownMedia(db,user.id,String(exportRow.output_video_id));
+    if(!media)return out({error:"OUTPUT_MEDIA_NOT_FOUND"},404);
+
+    const {data,error}=await db.storage
+      .from(media.storage_bucket)
+      .createSignedUrl(media.storage_path,600);
+
+    if(error||!data?.signedUrl){
+      return out({error:error?.message||"SIGNED_URL_FAILED"},500);
+    }
+
+    return out({
+      export:exportRow,
+      media:{
+        id:media.id,
+        mime_type:media.mime_type,
+        size_bytes:media.size_bytes,
+        status:media.status
+      },
+      signed_url:data.signedUrl,
+      expires_in:600
+    });
   }
 
   if(req.method==="POST"&&tail[0]==="jobs"&&isUuid(tail[1])&&tail[2]==="retry"){
