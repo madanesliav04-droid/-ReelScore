@@ -480,9 +480,16 @@ async function generateSemanticAnalysis({
   transcript,
   onReviewProgress=async()=>{}
 }){
+  const sourceLandscape=Number(measurable?.aspectRatio||0)>=1;
+  const formatPolicy=sourceLandscape
+    ?'SOURCE HORIZONTALE NATIVE (16:9 OU SIMILAIRE) : évalue exclusivement le cadrage dans son format original. N’attends PAS du 9:16. Ne baisse JAMAIS hook, scroll_stop, visual, rhythm ou retention au seul motif que la vidéo n’est pas adaptée à un feed vertical. Les overlays Reels/TikTok ne s’appliquent pas à ce diagnostic. Dans safe_zone, décris uniquement la composition native et indique que la compatibilité 9:16 n’est pas évaluée.'
+    :'SOURCE VERTICALE OU CARRÉE : évalue le cadrage natif et le risque de recouvrement par les interfaces short-form quand cela s’applique. Distingue ce risque de la qualité créative intrinsèque.';
   const prompt=`Tu es Viral+, moteur d'analyse éditoriale de vidéos courtes.
 
 Analyse UNIQUEMENT la vidéo réelle fournie, sa transcription horodatée et les signaux techniques mesurés. Tu ne connais pas les poids privés des algorithmes Instagram/TikTok/YouTube et tu ne dois jamais promettre la viralité.
+
+POLITIQUE DE FORMAT (OBLIGATOIRE) :
+${formatPolicy}
 
 SIGNAUX MESURÉS:
 ${JSON.stringify(measurable)}
@@ -613,10 +620,10 @@ Règles:
 - si la vidéo ne fournit pas assez de preuve d'un problème, évite de le signaler. Une vidéo réussie n'a pas besoin de 3 corrections artificielles;
 - ces hooks sont des hypothèses à comparer à partir des performances réelles après publication;
 - broll_query doit être vide si aucun B-roll n'est utile.
-- SAFE ZONE: évalue la composition pour une vidéo verticale short-form. Vérifie visage/sujet, hook texte, captions et CTA par rapport aux bords et aux zones d'interface usuelles Reels/TikTok/Shorts.
-- safe_zone est un diagnostic Universal Safe, pas une garantie pixel-perfect propre à une plateforme.
+- SAFE ZONE : ${sourceLandscape?'SOURCE HORIZONTALE : évalue la composition native 16:9 seulement, sans overlays 9:16 ni pénalité pour l’horizontal.':'SOURCE VERTICALE : vérifie visage, hook, texte, sous-titres et CTA par rapport aux zones d’interface short-form habituelles.'}
+- safe_zone est un diagnostic de composition estimé, pas une garantie pixel-perfect propre à une plateforme.
 - x et y sont des coordonnées normalisées 0..1 du centre de l'élément observé.
-- pénalise fortement tout visage, hook, caption ou CTA critique collé aux bords, tout texte très bas, toute information importante dans la colonne droite, et tout ratio non adapté au short-form.
+- signale uniquement les problèmes de lisibilité vérifiables dans le format source ; ne pénalise pas un ratio par défaut.
 - si aucun texte/caption n'est visible, ne prétends pas en voir: indique-le clairement dans issues.`;
 
   let lastError;
