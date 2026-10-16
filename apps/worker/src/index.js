@@ -460,7 +460,7 @@ async function runEdit(job,media,sourcePath,dir){
   );
 
   timeline.brollCues=
-    selectedStyle==='editorial_breakdown'?[]:await planContextualBroll({
+    ['editorial_breakdown','social_kinetic','hormozi_omni'].includes(selectedStyle)?[]:await planContextualBroll({
       timeline,
       style:selectedStyle,
       geminiKey:process.env.GEMINI_API_KEY,
