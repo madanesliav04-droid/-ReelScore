@@ -76,12 +76,12 @@ export function reviewHookSuggestions(rawCandidates,transcript,context={}){
 // A cut, still frame or silence is not evidence that an extra image is useful.
 export function brollEvidenceCheck(fix,transcript={}){
   const proposed=canonical([fix?.exact_change,fix?.example].join(' '));
-  if(!/\b(b roll|plans? d illustration|insertions? visuelles?|images? d illustration)\b/.test(proposed))return {needed:false,valid:true,reasons:[]};
+  if(!/\b(b rolls?|plans? d illustration|insertions? visuelles?|images? d illustration)\b/.test(proposed))return {needed:false,valid:true,reasons:[]};
   const observed=canonical(fix?.observable_evidence);
   const problem=canonical(fix?.problem);
   const quote=canonical(fix?.source_quote);
   const reasons=[];
-  if(/\b(pas de b roll|pas assez de b roll|manque de b roll|0 (?:cut|cuts)|aucune coupe|plan fixe|manque de dynamisme|trop statique|monotone)\b/.test(problem+' '+observed)&&!/(exemple|demonstration|preuve|objet|action|message|document|comparaison|capture|capture d ecran)/.test(observed)){
+  if(/\b(pas de b rolls?|pas assez de b rolls?|manque de b rolls?|0 (?:cut|cuts)|aucune coupe|plan fixe|manque de dynamisme|trop statique|monotone)\b/.test(problem+' '+observed)&&!/(exemple|demonstration|preuve|objet|action|message|document|comparaison|capture|capture d ecran)/.test(observed)){
     reasons.push('BROLL_JUSTIFIE_SEULEMENT_PAR_ABSENCE_DE_CUT');
   }
   // Require a concrete object/idea from the source, not just "show some b-roll".
@@ -89,7 +89,7 @@ export function brollEvidenceCheck(fix,transcript={}){
   const proposedConcepts=new Set(meaningful([fix?.exact_change,fix?.example].join(' ')));
   const overlap=[...proposedConcepts].filter(word=>concepts.has(word));
   if(overlap.length<2)reasons.push('BROLL_SANS_LIEN_VERIFIABLE_AU_CONTENU');
-  if(/\b(b roll|images?|visuels?|illustrations?) (plus|supplementaires?|pertinents?|dynamiques?|generiques?)\b/.test(proposed)
+  if(/\b(b rolls?|images?|visuels?|illustrations?) (plus|supplementaires?|pertinents?|dynamiques?|generiques?)\b/.test(proposed)
     &&!/(montr|affich|filmer|insere|capture|plan sur|gros plan|precis|document|ecran)/.test(proposed)){
     reasons.push('BROLL_NON_SPECIFIQUE');
   }
