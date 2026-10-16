@@ -31,3 +31,41 @@ jobs:
           test -f viralplus-product-config.js
           test -f supabase/migrations/20261006090000_shared_viral_edit_core.sql
           test -f docs/ARCHITECTURE.md
+
+  hyperframes-install-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PUPPETEER_SKIP_DOWNLOAD: '1'
+      HYPERFRAMES_BROWSER_PATH: /usr/bin/chromium
+      PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium
+      CHROME_PATH: /usr/bin/chromium
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install system renderer dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq chromium ffmpeg fonts-noto-core
+      - name: Install pinned HyperFrames 0.8.164
+        working-directory: apps/worker
+        run: |
+          npm install --no-audit --no-fund
+          node -e 'const p=require("./node_modules/hyperframes/package.json");if(p.version!=="0.8.164")process.exit(2)'
+          ./node_modules/.bin/hyperframes info
+      - name: Lint and render MP4
+        working-directory: apps/worker/hyperframes/smoke
+        run: |
+          ../../node_modules/.bin/hyperframes lint .
+          ../../node_modules/.bin/hyperframes render -o "$RUNNER_TEMP/editplus-hyperframes-smoke.mp4"
+          test -s "$RUNNER_TEMP/editplus-hyperframes-smoke.mp4"
+          ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,width,height -of default=noprint_wrappers=1 "$RUNNER_TEMP/editplus-hyperframes-smoke.mp4"
+          ffmpeg -hide_banner -loglevel error -xerror -i "$RUNNER_TEMP/editplus-hyperframes-smoke.mp4" -f null -
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: editplus-hyperframes-smoke
+          path: ${{ runner.temp }}/editplus-hyperframes-smoke.mp4
+          retention-days: 7
