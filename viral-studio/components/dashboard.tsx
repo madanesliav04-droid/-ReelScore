@@ -141,6 +141,7 @@ export function Dashboard(){
   const [editExportUrl,setEditExportUrl]=useState("");
   const [editOutputMediaId,setEditOutputMediaId]=useState("");
   const [preFixScore,setPreFixScore]=useState<number|null>(null);
+  const [preFixVersion,setPreFixVersion]=useState<string|null>(null);
   const [busy,setBusy]=useState(false);
   const pollRef=useRef<ReturnType<typeof setTimeout>|null>(null);
   const pollGeneration=useRef(0);
@@ -243,7 +244,7 @@ export function Dashboard(){
       if(isClip){setClipFile(selected);setClipMedia(null);setClipUploadPct(0);setClipProject(null)}
       else{
         setSourceUrl(URL.createObjectURL(selected));setFile(selected);setMedia(null);
-        setAnalysis(null);setUploadPct(0);setEditExportUrl("");setEditOutputMediaId("");setPreFixScore(null);
+        setAnalysis(null);setUploadPct(0);setEditExportUrl("");setEditOutputMediaId("");setPreFixScore(null);setPreFixVersion(null);
       }
       setJob(null);
       const sendPart=async(partIndex:number):Promise<void>=>{
@@ -408,6 +409,7 @@ export function Dashboard(){
     if(autoFix){
       const before=Number(score);
       setPreFixScore(Number.isFinite(before)?before:null);
+      setPreFixVersion(String(analysis?.score_version||""));
       setEditModel(modelToUse);
       setActive("edit");
       history.replaceState(null,"","/dashboard?tool=edit");
@@ -581,7 +583,7 @@ export function Dashboard(){
 
       {active==="viral"&&analysis&&<>
         <section className="result-panel viral-hero-result">
-          <div><small>VIRAL SCORE</small><div className="score-big">{score??"—"}<span>/100</span></div><div className="score-version">{preFixScore!==null&&score!==null?`Before ${preFixScore} → Now ${score}`:"Creative potential · pre-publish"}</div></div>
+          <div><small>VIRAL SCORE</small><div className="score-big">{score??"—"}<span>/100</span></div><div className="score-version">{preFixScore!==null&&score!==null?(preFixVersion&&preFixVersion===analysis.score_version?`Avant ${preFixScore} → Après ${score}`:"Scores non comparables : méthodologies différentes"):"Potentiel créatif estimé · avant publication"}</div></div>
           <div className="result-copy"><small>VERDICT</small><h2>{analysis.main_problem||"Diagnostic completed"}</h2><p>{analysis.verdict||analysis.why}</p><div className="result-why">{analysis.why}</div><button className="btn primary" onClick={()=>void startEdit(true)} disabled={busy}>FIX WITH AI →</button></div>
         </section>
 
