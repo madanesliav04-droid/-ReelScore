@@ -1,4 +1,5 @@
 import {buildOrganicCues} from './organic-director.js';
+import {buildSocialKineticCues} from './social-kinetic-v1.js';
 import {buildVisualEditorialDecisions} from './multimodal-director.js';
 import {assessCutCandidates} from './premium-quality-v3.js';
 import {planPremiumStoryboards} from './premium-creative-grammar.js';
@@ -25,6 +26,7 @@ export const EDIT_STYLES={
     brollDirective:'Aucun B-roll automatique: les chiffres et tableaux contextualisés restent sur la facecam.',
     soundDesign:'minimal',visualSignature:{mode:'editorial_breakdown',contrast:1.035,saturation:.87,accent:'#f5eee2',cadenceMs:0}
   },
+  social_kinetic:{label:'Social Kinetic',promise:'Facecam immersive + mots cinétiques + citations bleues réellement prononcées',pace:'natural',silenceThresholdMs:760,removeFillers:false,maxPunchInsPer30s:2,punchScale:1.065,punchSeverities:['red'],captions:'social_kinetic',broll:{maxPer30s:0,minDurationMs:0,maxDurationMs:0,minGapMs:999999},brollDirective:'Pas de B-roll automatique: l’information est apportée par une typographie intégrée au décor.',soundDesign:'light',visualSignature:{mode:'social_kinetic',contrast:1.04,saturation:1.02,accent:'#52E2C9',cadenceMs:0}},
   creator_clean:null,business_viral:null,podcast_authority:null
 };
 EDIT_STYLES.creator_clean=EDIT_STYLES.clean;
@@ -40,6 +42,7 @@ const GRAPHIC_TRIGGERS={
   data:'numbers: only a number actually present in the transcript',
   ugc_native:'none: preserve natural phone-native video',
   cinematic_story:'none: rely on shots and timing, not auto-generated quote cards',
+  social_kinetic:'verbatim-speech-only typography, exact spoken numbers, blue quote bubbles; independent safe-zone proof mandatory',
   editorial_breakdown:'editorial serif metrics, equations and comparison only when directly supported by spoken numbers; no fake data or decorative stock imagery'
 };
 
@@ -131,6 +134,21 @@ export const PREMIUM_MODEL_CONTRACTS=Object.freeze({
     color:'Bleu cyan #7CE8FF pour guider le regard, contrastes utiles',
     forbidden:['interface fictive','étapes inventées','photos de laptop génériques','schémas illisibles']
   },
+  social_kinetic:{
+    name:'Social Kinetic',
+    intent:'Motion design intégré à un décor filmé, comme la référence utilisateur du 16/10',
+    viewerEffect:'Le propos gagne en clarté sans panneau latéral, pseudo-statistique ni superposition',
+    hook:'Texte cinétique direct sur le décor et non sur un grand encart',
+    typography:{font:'Noto Sans',weight:740,sizePx1080x1920:54,primary:'#FFFFFF',accent:'#52E2C9',position:'upper_safe_zone',maxWords:5,wordHighlight:false,entrance:'soft-pop'},
+    framing:'Facecam dominante, pas de zoom mécanique, conserver la géométrie native',
+    edits:'Conserver respiration et intonation; cuts uniquement sur silences confirmés',
+    broll:'Aucun B-roll obligatoire; priorité à la preuve visuelle réelle',
+    graphics:'Bulles bleues limitées à des citations réellement prononcées; chiffres identiques aux paroles; jamais de faux échanges présentés comme vrais',
+    transitions:'Déplacements discrets 150-260 ms sans flashes, aucune double exposition',
+    sound:'Voix originale avant tout; SFX optionnels, adaptés aux vrais apparitions',
+    color:'Contraste vérifié sur les pixels du décor; turquoise et bleu comme accents de référence seulement si lisibles',
+    forbidden:['fausses conversations','chiffres inventés','chevauchement textes/sous-titres','effets sans transcription vérifiée']
+  },
   ugc_native:{
     name:'UGC Native',
     intent:'Témoignage ou démonstration produit authentique filmée au téléphone',
@@ -163,6 +181,7 @@ export const CAPTION_PRESETS={
   data:{fontFamily:'Noto Sans',fontWeight:900,fontSize:70,lineHeight:.98,maxWordsPerLine:4,maxChars:27,maxDurationMs:1750,position:'lower_middle',activeWord:true,textColor:'#ffffff',activeColor:'#ffd166',stroke:5,shadow:true,background:false},
   ugc:{fontFamily:'DejaVu Sans',fontWeight:850,fontSize:68,lineHeight:1,maxWordsPerLine:4,maxChars:29,maxDurationMs:1900,position:'middle_low',activeWord:true,textColor:'#ffffff',activeColor:'#ff3fbf',stroke:4,shadow:true,background:true,entrance:'subtle-pop'},
   cinematic:{fontFamily:'Noto Serif',fontWeight:700,fontSize:56,lineHeight:1.08,maxWordsPerLine:6,maxChars:42,maxDurationMs:2800,position:'lower_third',activeWord:false,textColor:'#ffffff',activeColor:'#ffffff',stroke:2,shadow:true,background:false},
+  social_kinetic:{fontFamily:'Noto Sans',fontWeight:740,fontSize:54,lineHeight:1.08,maxWordsPerLine:5,maxChars:39,maxDurationMs:2100,position:'lower_third',activeWord:false,textColor:'#ffffff',activeColor:'#ffffff',stroke:3,shadow:true,background:false,entrance:'soft-fade'},
   modern_bold:{fontFamily:'DejaVu Sans',fontWeight:900,fontSize:78,lineHeight:.98,maxWordsPerLine:4,maxChars:28,maxDurationMs:1750,position:'lower_middle',activeWord:true,textColor:'#ffffff',activeColor:'#ff6a00',stroke:6,shadow:true,background:false},
   minimal:{fontFamily:'Noto Sans',fontWeight:700,fontSize:60,lineHeight:1.04,maxWordsPerLine:5,maxChars:34,maxDurationMs:2200,position:'lower_third',activeWord:false,textColor:'#ffffff',activeColor:'#ffffff',stroke:3,shadow:true,background:false},
   creator:{fontFamily:'DejaVu Sans',fontWeight:900,fontSize:74,lineHeight:.98,maxWordsPerLine:4,maxChars:27,maxDurationMs:1750,position:'middle_low',activeWord:true,textColor:'#ffffff',activeColor:'#37e6ff',stroke:5,shadow:true,background:false},
@@ -264,7 +283,9 @@ export function buildEditTimeline({
     styleCfg
   });
   // Do not silently revert to generic decorative effects if premium visual evidence is absent.
-  const graphicCues=storyMode?storyboardReview.accepted:defaultGraphicCues;
+  const graphicCues=canonicalStyle==='social_kinetic'
+    ?buildSocialKineticCues({words:mappedWords,durationMs:outputDurationMs,alignment:analysis?.transcript?.alignment,visualProof:analysis?.composition_proof})
+    :storyMode?storyboardReview.accepted:defaultGraphicCues;
 
   const sourceW=
     Number(sourceWidth)||
