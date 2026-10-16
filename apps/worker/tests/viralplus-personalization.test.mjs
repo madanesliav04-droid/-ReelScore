@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {reviewHookSuggestions,reviewEditorialFixes,reviewSupplementalCopy,reviewedTimelineMoments} from '../src/viral-personalization.js';
+import {reviewHookSuggestions,reviewEditorialFixes,reviewSupplementalCopy,reviewedTimelineMoments,brollEvidenceCheck} from '../src/viral-personalization.js';
 
 const ugc={text:"Pour ma première collaboration UGC avec le restaurant, j'ai filmé une vidéo de la carte puis j'ai envoyé un message personnalisé. Je vous montre le message et comment j'ai proposé cette vidéo."};
 const valid=()=>({
@@ -97,4 +97,55 @@ test('regression: never suggest fake 99 percent market failure from actual spoke
   const reviewed=reviewHookSuggestions([candidate],spoken);
   assert.equal(reviewed.candidates.length,0);
   assert.ok(reviewed.rejected_reasons[0].reasons.includes('CHIFFRE_NON_PRESENT_DANS_LA_VIDEO'));
+});
+
+test('reject automatic B-roll suggestion based only on a static shot',()=>{
+ const suggestion={
+  area:'visual',start_sec:2,end_sec:6,
+  problem:'Il manque des B-rolls : la vidéo reste en plan fixe.',
+  exact_change:'Ajouter des B-rolls dynamiques pour rendre la vidéo plus engageante.',
+  example:'Mettre des B-rolls plus dynamiques pendant les longues phrases.',
+  evidence_type:'visual',source_quote:'',
+  observable_evidence:'La vidéo reste en plan fixe sans variations visuelles.'
+ };
+ assert.equal(reviewEditorialFixes([suggestion],ugc,20).fixes.length,0);
+ assert.equal(brollEvidenceCheck(suggestion,ugc).valid,false);
+});
+test('retain contextual B-roll justified by specific spoken example',()=>{
+ const evidence={
+  area:'visual',start_sec:2,end_sec:5,
+  problem:'Le message personnalisé envoyé au restaurant est décrit sans être montré.',
+  exact_change:'Insérer un B-roll bref du message de prospection envoyé au restaurant au moment précis où tu en parles.',
+  example:'Afficher une capture du message de prospection au restaurant avec les données privées masquées.',
+  evidence_type:'visual',source_quote:'',
+  observable_evidence:'Le message personnalisé envoyé au restaurant est expliqué oralement mais pas montré.'
+ };
+ const actual=reviewEditorialFixes([evidence],ugc,20);
+ assert.equal(actual.fixes.length,1);
+});
+test('reject correct quote placed at wrong timestamp despite full-transcript match',()=>{
+ const spoken={
+  text:'Pour ma première collaboration UGC avec le restaurant je filme la carte puis je montre le message personnalisé envoyé.',
+  words:[
+   {text:'Pour',startMs:0,endMs:150},{text:'ma',startMs:180,endMs:270},{text:'première',startMs:300,endMs:660},
+   {text:'collaboration',startMs:700,endMs:1000},{text:'UGC',startMs:1040,endMs:1210},
+   {text:'avec',startMs:1260,endMs:1390},{text:'le',startMs:1400,endMs:1520},{text:'restaurant',startMs:1530,endMs:2000},
+   {text:'je',startMs:5000,endMs:5150},{text:'filme',startMs:5200,endMs:5500},
+   {text:'la',startMs:5520,endMs:5590},{text:'carte',startMs:5600,endMs:5900},
+   {text:'puis',startMs:9100,endMs:9400},{text:'je',startMs:9420,endMs:9600},
+   {text:'montre',startMs:9650,endMs:10000},{text:'le',startMs:10010,endMs:10200},
+   {text:'message',startMs:10220,endMs:10500},{text:'personnalisé',startMs:10520,endMs:11000},
+   {text:'envoyé',startMs:11020,endMs:11400}
+  ]
+ };
+ const fix={area:'hook',start_sec:8.8,end_sec:11.5,
+  problem:'La collaboration arrive trop tard dans cette démonstration.',
+  exact_change:'Commencer cette séquence par l’annonce de la collaboration UGC et du restaurant.',
+  example:'Afficher la phrase sur la collaboration UGC au début de la scène.',
+  evidence_type:'transcript',
+  source_quote:'Pour ma première collaboration UGC avec le restaurant',
+  observable_evidence:'La collaboration UGC avec le restaurant est annoncée clairement dans l’ouverture.'
+ };
+ assert.equal(reviewEditorialFixes([fix],spoken,15).fixes.length,0);
+ assert.equal(reviewEditorialFixes([{...fix,start_sec:0,end_sec:2.2}],spoken,15).fixes.length,1);
 });
