@@ -171,3 +171,20 @@
 .dashboard-shell .viral-v5-priority,.dashboard-shell .viral-v5-risk{padding:16px}
 }
 @media(max-width:370px){.dashboard-shell .viral-score-grid{grid-template-columns:1fr}.dashboard-shell .model-grid{grid-template-columns:1fr}.social-workspace-tabs button{padding:11px 9px;gap:7px}.social-workspace-tabs button svg{width:16px}.social-workspace-tabs button small{font-size:9px}}
+
+
+/* Social+ approved reference library. Do not imply unavailable models render. */
+.dashboard-shell .social-approved-model-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+.dashboard-shell .social-approved-model{min-height:320px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;border-color:rgba(166,212,197,.16);transition:border-color .16s}
+.dashboard-shell .social-approved-model.is-pending{cursor:default;opacity:.83}
+.dashboard-shell .social-approved-model:disabled{opacity:.78}
+.dashboard-shell .social-approved-model.is-pending:hover{transform:none;border-color:rgba(166,212,197,.16)}
+.dashboard-shell .social-model-identity{display:flex;flex-direction:column;gap:13px;padding:23px;min-height:225px;background:radial-gradient(ellipse at 83% 16%,rgba(119,176,159,.10),transparent 45%),linear-gradient(140deg,#18222b,#0c1117);position:relative}
+.dashboard-shell .social-model-identity>span{font-size:10px;letter-spacing:.15em;font-weight:800;color:#98b5ad}
+.dashboard-shell .social-model-identity strong{font-size:clamp(25px,3vw,42px);letter-spacing:-.065em;color:#eff9f6;margin-top:12px;line-height:1.05}
+.dashboard-shell .social-model-identity p{font-size:12px;line-height:1.55;color:#a5b3c1;max-width:400px;margin:0}
+.dashboard-shell .social-model-state{position:absolute;top:19px;right:14px;display:inline-flex;align-items:center;border:1px solid rgba(190,211,225,.18);background:rgba(5,12,17,.4);color:#a5afbc;padding:6px 7px;border-radius:8px;font-size:9px;font-weight:800;letter-spacing:.04em}
+.dashboard-shell .social-model-state.beta{border-color:rgba(153,230,190,.3);color:#b3e5cf}
+.dashboard-shell .social-model-truth{color:#aab7c3;font-size:12px;line-height:1.6;margin:13px 0;max-width:850px}
+.dashboard-shell .social-approved-model .model-copy{border-top:1px solid rgba(255,255,255,.065)}
+@media(max-width:700px){.dashboard-shell .social-approved-model-grid{grid-template-columns:1fr;gap:11px}.dashboard-shell .social-approved-model{min-height:0}.dashboard-shell .social-model-identity{min-height:180px;padding:20px}.dashboard-shell .social-model-identity strong{font-size:29px}.dashboard-shell .social-model-identity p{font-size:11px}.dashboard-shell .social-model-state{top:15px;right:12px;font-size:8px}.dashboard-shell .social-approved-model .model-copy{padding:12px 15px}}
