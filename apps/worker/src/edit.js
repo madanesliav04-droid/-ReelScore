@@ -1,4 +1,6 @@
 import {buildOrganicCues} from './organic-director.js';
+import {buildSocialKineticCues} from './social-kinetic-v1.js';
+
 import {buildVisualEditorialDecisions} from './multimodal-director.js';
 import {assessCutCandidates} from './premium-quality-v3.js';
 import {resolveOmniTypography} from './omni-style-system.js';
@@ -18,6 +20,7 @@ export const EDIT_STYLES={
   data:{label:'Data',promise:'Numbers & evidence · proof on screen',pace:'fast',silenceThresholdMs:500,removeFillers:true,maxPunchInsPer30s:5,punchScale:1.09,punchSeverities:['red','orange'],captions:'data',broll:{maxPer30s:4,minDurationMs:1800,maxDurationMs:3100,minGapMs:2800},brollDirective:'Priorité aux preuves visuelles: documents modernes, tableaux, dashboards, produits comparés, lieux ou éléments cités. Pas d’archives décoratives.',soundDesign:'light',visualSignature:{mode:'data',contrast:1.07,saturation:.96,accent:'#ffd166',cadenceMs:4700}},
   ugc_native:{label:'UGC Native',promise:'Native social · human and unpolished',pace:'natural',silenceThresholdMs:740,removeFillers:false,maxPunchInsPer30s:3,punchScale:1.05,punchSeverities:['red'],captions:'ugc',broll:{maxPer30s:1,minDurationMs:1500,maxDurationMs:2600,minGapMs:7000},brollDirective:'Très peu de B-roll. Favorise produit, geste, détail ou usage réel. Le rendu doit rester natif téléphone.',soundDesign:'light',visualSignature:{mode:'ugc_native',contrast:1.03,saturation:1.12,accent:'#ff3fbf',cadenceMs:7000}},
   cinematic_story:{label:'Cinematic Story',promise:'Personal story · emotion and breathing room',pace:'story',silenceThresholdMs:1100,removeFillers:false,maxPunchInsPer30s:2,punchScale:1.04,punchSeverities:['red'],captions:'cinematic',broll:{maxPer30s:3,minDurationMs:3200,maxDurationMs:6200,minGapMs:5600},brollDirective:'B-roll narratif et émotionnel, plus long. Cherche des lieux, objets, actions ou atmosphères directement reliés à l’histoire.',soundDesign:'cinematic',visualSignature:{mode:'cinematic_story',contrast:1.08,saturation:.72,accent:'#ffffff',cadenceMs:0}},
+  social_kinetic:{label:'Social Kinetic',promise:'Facecam immersive + mots cinétiques + citations bleues réellement prononcées',pace:'natural',silenceThresholdMs:760,removeFillers:false,maxPunchInsPer30s:2,punchScale:1.065,punchSeverities:['red'],captions:'social_kinetic',broll:{maxPer30s:0,minDurationMs:0,maxDurationMs:0,minGapMs:999999},brollDirective:'Pas de B-roll automatique: l’information est apportée par une typographie intégrée au décor.',soundDesign:'light',visualSignature:{mode:'social_kinetic',contrast:1.04,saturation:1.02,accent:'#52E2C9',cadenceMs:0}},
   hormozi_omni:{label:'Alex Hormozi · OMNI',promise:'Evidence-led business explanation with visible reasoning',pace:'logic_fast',silenceThresholdMs:590,removeFillers:true,maxPunchInsPer30s:4,punchScale:1.075,punchSeverities:['red'],captions:'impact',broll:{maxPer30s:3,minDurationMs:1450,maxDurationMs:3000,minGapMs:3600},brollDirective:'Priorité aux véritables preuves, captures et démonstrations autorisées. Aucun bureau générique, aucun compteur inventé.',soundDesign:'minimal',visualSignature:{mode:'authority',contrast:1.06,saturation:.95,accent:'#7D91DD',cadenceMs:0}},
   // Editorial Breakdown: inspired by restrained business-math storytelling,
   // not a generic Data preset. Figures and comparisons are transcript-grounded.
@@ -44,6 +47,7 @@ const GRAPHIC_TRIGGERS={
   data:'numbers: only a number actually present in the transcript',
   ugc_native:'none: preserve natural phone-native video',
   cinematic_story:'none: rely on shots and timing, not auto-generated quote cards',
+  social_kinetic:'verbatim-speech-only typography, exact spoken numbers, blue quote bubbles; independent safe-zone proof mandatory',
   hormozi_omni:'evidence: real timed numbers, verified steps, sourced charts and comparisons; no invented graph or unsupported proof',
   editorial_breakdown:'editorial serif metrics, equations and comparison only when directly supported by spoken numbers; no fake data or decorative stock imagery'
 };
@@ -151,6 +155,22 @@ export const PREMIUM_MODEL_CONTRACTS=Object.freeze({
     color:'Couleur smartphone crédible, saturation légère, pas d’étalonnage cinématique',
     forbidden:['fausses démonstrations','surproduction','publicité artificielle','B-roll décoratif']
   }
+,
+  social_kinetic:{
+    name:'Social Kinetic',
+    intent:'Motion design intégré à un décor filmé, comme la référence utilisateur du 16/10',
+    viewerEffect:'Le propos gagne en clarté sans panneau latéral, pseudo-statistique ni superposition',
+    hook:'Texte cinétique direct sur le décor et non sur un grand encart',
+    typography:{font:'Noto Sans',weight:740,sizePx1080x1920:54,primary:'#FFFFFF',accent:'#52E2C9',position:'upper_safe_zone',maxWords:5,wordHighlight:false,entrance:'soft-pop'},
+    framing:'Facecam dominante, pas de zoom mécanique, conserver la géométrie native',
+    edits:'Conserver respiration et intonation; cuts uniquement sur silences confirmés',
+    broll:'Aucun B-roll obligatoire; priorité à la preuve visuelle réelle',
+    graphics:'Bulles bleues limitées à des citations réellement prononcées; chiffres identiques aux paroles; jamais de faux échanges présentés comme vrais',
+    transitions:'Déplacements discrets 150-260 ms sans flashes, aucune double exposition',
+    sound:'Voix originale avant tout; SFX optionnels, adaptés aux vrais apparitions',
+    color:'Contraste vérifié sur les pixels du décor; turquoise et bleu comme accents de référence seulement si lisibles',
+    forbidden:['fausses conversations','chiffres inventés','chevauchement textes/sous-titres','effets sans transcription vérifiée']
+  },
 });
 
 export function premiumModelContract(style){
@@ -168,6 +188,7 @@ export const CAPTION_PRESETS={
   data:{fontFamily:'Noto Sans',fontWeight:900,fontSize:70,lineHeight:.98,maxWordsPerLine:4,maxChars:27,maxDurationMs:1750,position:'lower_middle',activeWord:true,textColor:'#ffffff',activeColor:'#ffd166',stroke:5,shadow:true,background:false},
   ugc:{fontFamily:'DejaVu Sans',fontWeight:850,fontSize:68,lineHeight:1,maxWordsPerLine:4,maxChars:29,maxDurationMs:1900,position:'middle_low',activeWord:true,textColor:'#ffffff',activeColor:'#ff3fbf',stroke:4,shadow:true,background:true,entrance:'subtle-pop'},
   cinematic:{fontFamily:'Noto Serif',fontWeight:700,fontSize:56,lineHeight:1.08,maxWordsPerLine:6,maxChars:42,maxDurationMs:2800,position:'lower_third',activeWord:false,textColor:'#ffffff',activeColor:'#ffffff',stroke:2,shadow:true,background:false},
+  social_kinetic:{fontFamily:'Noto Sans',fontWeight:740,fontSize:54,lineHeight:1.08,maxWordsPerLine:5,maxChars:39,maxDurationMs:2100,position:'lower_third',activeWord:false,textColor:'#ffffff',activeColor:'#ffffff',stroke:3,shadow:true,background:false,entrance:'soft-fade'},
   modern_bold:{fontFamily:'DejaVu Sans',fontWeight:900,fontSize:78,lineHeight:.98,maxWordsPerLine:4,maxChars:28,maxDurationMs:1750,position:'lower_middle',activeWord:true,textColor:'#ffffff',activeColor:'#ff6a00',stroke:6,shadow:true,background:false},
   minimal:{fontFamily:'Noto Sans',fontWeight:700,fontSize:60,lineHeight:1.04,maxWordsPerLine:5,maxChars:34,maxDurationMs:2200,position:'lower_third',activeWord:false,textColor:'#ffffff',activeColor:'#ffffff',stroke:3,shadow:true,background:false},
   creator:{fontFamily:'DejaVu Sans',fontWeight:900,fontSize:74,lineHeight:.98,maxWordsPerLine:4,maxChars:27,maxDurationMs:1750,position:'middle_low',activeWord:true,textColor:'#ffffff',activeColor:'#37e6ff',stroke:5,shadow:true,background:false},
@@ -285,7 +306,9 @@ export function buildEditTimeline({
     enabled:process.env.ENABLE_OMNI_BUBBLES==='true'
   });
   const omniBubbles=omniPlan.cues;
-  const graphicCues=canonicalStyle==='hormozi_omni'
+  const graphicCues=canonicalStyle==='social_kinetic'
+    ?buildSocialKineticCues({words:mappedWords,durationMs:outputDurationMs,alignment:analysis?.transcript?.alignment,visualProof:analysis?.composition_proof})
+    :canonicalStyle==='hormozi_omni'
     ?hormoziPlan.cues
     :storyMode?storyboardReview.accepted:
       omniBubbles.length?omniBubbles:defaultGraphicCues;
