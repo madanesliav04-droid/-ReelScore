@@ -610,14 +610,25 @@ export function Dashboard(){
         <section className="viral-fix-grid">
           <article className="viral-fix-card priority-card">
             <small>TOP 3 FIXES</small><h3>Change these before posting.</h3>
-            <div className="fix-plan-list">{(analysis.fix_plan?.length?analysis.fix_plan:(analysis.action_items||[]).map((item:any,i:number)=>({priority:i+1,area:"editing",problem:item,exact_change:item}))).slice(0,3).map((item:any,i:number)=><div className="fix-plan-item" key={i}><div className="fix-priority">P{item.priority||i+1}</div><div><div className="fix-meta"><strong>{String(item.area||"editing").toUpperCase()}</strong>{Number(item.end_sec||0)>Number(item.start_sec||0)&&<span>{Number(item.start_sec||0).toFixed(1)}s → {Number(item.end_sec||0).toFixed(1)}s</span>}</div>{item.problem&&<p><b>Problem:</b> {item.problem}</p>}{item.why_it_matters&&<p><b>Why:</b> {item.why_it_matters}</p>}<div className="exact-change"><b>DO THIS →</b> {item.exact_change||item.problem}</div>{item.example&&<div className="fix-example"><b>Example:</b> {item.example}</div>}{item.expected_effect&&<small>{item.expected_effect}</small>}</div></div>)}</div>
+            <div className="fix-plan-list">{(analysis.fix_plan?.length?analysis.fix_plan:(analysis.action_items||[]).map((item:any,i:number)=>({priority:i+1,area:"editing",problem:item,exact_change:item}))).slice(0,3).map((item:any,i:number)=><div className="fix-plan-item" key={i}><div className="fix-priority">P{item.priority||i+1}</div><div><div className="fix-meta"><strong>{String(item.area||"editing").toUpperCase()}</strong>{Number(item.end_sec||0)>Number(item.start_sec||0)&&<span>{Number(item.start_sec||0).toFixed(1)}s → {Number(item.end_sec||0).toFixed(1)}s</span>}</div>{item.problem&&<p><b>Problem:</b> {item.problem}</p>}{item.why_it_matters&&<p><b>Why:</b> {item.why_it_matters}</p>}<div className="exact-change"><b>DO THIS →</b> {item.exact_change||item.problem}</div>{item.example&&<div className="fix-example"><b>Example:</b> {item.example}</div>}{item.evidence_status&&<small className="viral-fix-evidence">{item.evidence_status==="transcript_excerpt_verified"?"Extrait présent dans la transcription":"Observation IA à vérifier dans la vidéo"}</small>}{item.source_quote&&<p className="viral-quote"><b>Extrait :</b> « {item.source_quote} »</p>}{item.observable_evidence&&<p className="viral-quote"><b>Observation :</b> {item.observable_evidence}</p>}{item.expected_effect&&<small>{item.expected_effect}</small>}</div></div>)}</div>
           </article>
           <article className="viral-fix-card rewrite-card">
             <small>REWRITE</small><h3>Use stronger packaging.</h3>
-            {analysis.recommended_hook&&<div className="rewrite-row"><span>Hook</span><strong>{analysis.recommended_hook}</strong></div>}
-            {analysis.recommended_title&&<div className="rewrite-row"><span>Title</span><strong>{analysis.recommended_title}</strong></div>}
-            {analysis.recommended_cta&&<div className="rewrite-row"><span>CTA</span><strong>{analysis.recommended_cta}</strong></div>}
-            {analysis.alternative_hooks?.length>0&&<div className="alt-hooks">{analysis.alternative_hooks.map((h:any,i:number)=><p key={i}>{i+1}. {h}</p>)}</div>}
+            {analysis.hook_experiments?.candidates?.length>0?<>
+              <div className="viral-hook-test-flag">HYPOTHÈSES PERSONNALISÉES · PAS DE GAIN GARANTI</div>
+              {analysis.hook_experiments.candidates.map((suggestion:any,i:number)=><div key={i} className="viral-hook-experiment">
+                <small>PROPOSITION {i+1} · {suggestion.variable_changed}</small>
+                <div className="viral-hook-comparison">
+                  <div><span>A · Extrait du discours réel</span><p>{suggestion.source_quote}</p></div>
+                  <div><span>B · Nouvelle ouverture à tester</span><strong>{suggestion.proposed_hook}</strong></div>
+                </div>
+                <p className="viral-hook-reason"><b>Pourquoi la tester :</b> {suggestion.why_test}</p>
+                <p className="viral-hook-reason"><b>Hypothèse :</b> {suggestion.test_hypothesis}</p>
+              </div>)}
+              <p className="viral-hook-warning">Aucune variante ne peut être déclarée meilleure avant comparaison des performances réelles.</p>
+            </>:<div className="viral-hook-empty"><strong>Aucune nouvelle accroche suffisamment justifiée</strong><p>{analysis.hook_experiments?.status==="insufficient_verified_context"?"Les suggestions non étayées par la vidéo ont été écartées. Nous préférons ne rien proposer plutôt qu'inventer un hook générique.":"Cette analyse ne dispose pas encore d’une recommandation de hook vérifiée."}</p></div>}
+            {analysis.recommended_title&&<div className="rewrite-row"><span>Titre à tester</span><strong>{analysis.recommended_title}</strong></div>}
+            {analysis.recommended_cta&&<div className="rewrite-row"><span>CTA à tester</span><strong>{analysis.recommended_cta}</strong></div>}
           </article>
         </section>
 
