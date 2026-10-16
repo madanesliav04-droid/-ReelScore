@@ -21,7 +21,7 @@ const fixture=()=>({
   ]
 });
 test('score v5 stable and weights sum to exactly 100 excluding CTA',()=>{
-  assert.equal(SCORE_VERSION,'vp-score-5-grounded-test-hypotheses');
+  assert.equal(SCORE_VERSION,'vp-score-8-native-format-rubric');
   assert.equal(Object.values(SCORE_WEIGHTS).reduce((a,b)=>a+b,0),100);
   assert.equal(SCORE_WEIGHTS.cta,0);
   const s=fixture().scores;
@@ -67,12 +67,12 @@ test('missing score or evidence blocks publication; zero advice is legitimate',(
 test('priority ranks weighted opportunity, not the smallest raw score',()=>{
   const f=fixture();
   for(const key of keys)f.scores[key]=100;
-  f.scores.hook=50; // 10 recoverable score points
+  f.scores.hook=50; // 7.5 recoverable score points
   f.scores.audio=0; // 5 recoverable score points
   f.scores.cta=0; // 0 weighted points
   const ranked=priorityDiagnostics(f.scores,f.score_evidence,f.fix_plan,f.timeline,20);
   assert.equal(ranked[0].key,'hook');
-  assert.equal(ranked[0].impact_points,10);
+  assert.equal(ranked[0].impact_points,7.5);
   assert.equal(ranked[0].exact_change,'Remplacer la première phrase par la conséquence concrète.');
   assert.equal(ranked[0].start_sec,0);
   assert.equal(ranked.find(x=>x.key==='audio').impact_points,5);

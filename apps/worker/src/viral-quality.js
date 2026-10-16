@@ -1,8 +1,8 @@
 // Viral+ V5 editorial quality contracts. No private social-platform ranking weights.
-export const SCORE_VERSION='vp-score-5-grounded-test-hypotheses';
+export const SCORE_VERSION='vp-score-8-native-format-rubric';
 export const SCORE_WEIGHTS=Object.freeze({
-  hook:20,scroll_stop:10,clarity:10,rhythm:5,retention:20,
-  structure:10,text_captions:5,visual:5,audio:5,cta:0,originality:10
+  hook:15,scroll_stop:5,clarity:15,rhythm:10,retention:15,
+  structure:10,text_captions:5,visual:10,audio:5,cta:0,originality:10
 });
 const REQUIRED_KEYS=Object.keys(SCORE_WEIGHTS);
 const SCORED_KEYS=REQUIRED_KEYS.filter(key=>SCORE_WEIGHTS[key]>0);
@@ -92,4 +92,81 @@ export function editorialRiskMap(timeline=[],durationSec=null){
         disclaimer:'Risque éditorial estimé : aucune donnée de rétention Instagram n’a été mesurée.'
       };
     }).sort((a,b)=>a.start_sec-b.start_sec);
+}
+
+
+/**
+ * The score is a weighted editorial review, not a probability of virality.
+ * Numeric signals are evidence for the reviewer, NEVER a blind grading formula.
+ * Examples of wrong shortcuts: "0 cuts => -15 points", "225 WPM => 82/100",
+ * "horizontal => a weak video", or "audio exists => 78/100".
+ */
+export const SCORE_RUBRIC=Object.freeze({
+  0:'Incompréhensible ou défaut majeur observable',
+  20:'Plusieurs obstacles éditoriaux importants, étayés par le contenu',
+  40:'Intention perceptible mais exécution inégale',
+  60:'Correct et compréhensible ; axes de progression précis',
+  75:'Solide, cohérent et bien exécuté sur le critère',
+  90:'Excellent, avec des éléments positifs exceptionnels observés',
+  100:'Quasi irréprochable sur ce seul critère, preuve très forte requise'
+});
+export const SCORE_CRITERION_BASIS=Object.freeze({
+  hook:'L’ouverture exprime une promesse réelle, précise et crédible dans le sujet de la vidéo.',
+  scroll_stop:'Les éléments réellement présents dans les premières secondes donnent une raison perceptible de regarder. Ce n’est pas un taux de scroll-stop mesuré.',
+  clarity:'Le message peut être compris sans effort excessif ; exemples et vocabulaire appropriés.',
+  rhythm:'Le débit, le silence, les coupes et les mouvements sont intentionnels ; un plan fixe ou une pause ne sont pas des défauts automatiques.',
+  retention:'La progression narrative, les exemples, les transitions et la conclusion soutiennent potentiellement l’attention ; pas une courbe de rétention réelle.',
+  structure:'La démonstration suit une logique cohérente et apporte l’information annoncée.',
+  text_captions:'Les éléments de texte présents sont lisibles et fidèles aux paroles. Ne pénalise pas automatiquement une vidéo sans sous-titres si le contexte ne le requiert pas.',
+  visual:'Cadre et images servent le message. Le format horizontal natif n’est pas une faiblesse éditoriale intrinsèque.',
+  audio:'Intelligibilité, niveaux et pertinence du son réel. Une vidéo silencieuse volontaire peut être excellente.',
+  originality:'Angle, exemple, preuve ou perspective propre à CETTE vidéo, sans imposer du sensationnalisme.',
+  cta:'La prochaine action est pertinente ou son absence est justifiée ; ce critère ne pèse pas dans le score.'
+});
+export function editorialScoreAudit(semantic,measurable){
+  const sourceScores=semantic?.scores||{};
+  // Scores have already been strictly checked by validateSemanticAnalysis().
+  const scores=Object.fromEntries(REQUIRED_KEYS.map(key=>[key,clamp(Number(sourceScores[key]))]));
+  const flags=[];
+  const cuts=Number(measurable?.sceneCutsPer10Sec);
+  const silent=Number(measurable?.silenceRatio);
+  if(Number.isFinite(cuts)&&cuts===0)flags.push('Détecteur automatique : aucun changement de scène net. Cela ne prouve pas que l’image est statique ou que le montage est mauvais.');
+  if(Number.isFinite(silent)&&silent>.2)flags.push('Silences détectés en audio : leur intention éditoriale doit être jugée dans le contexte, pas pénalisée automatiquement.');
+  if(Number(measurable?.aspectRatio)>1)flags.push('Format horizontal : ne pas assimiler le cadrage natif à une faute de montage.');
+  return {
+    scores,
+    audit:{
+      methodology:'editorial_observed_quality_v1',
+      version:SCORE_VERSION,
+      not_a_virality_prediction:true,
+      empirically_calibrated_against_platform_outcomes:false,
+      machine_signals_used_as_context_not_auto_penalties:true,
+      independent_criteria:true,
+      score_basis:'Évaluation éditoriale argumentée, pondérée et versionnée ; sans métriques sociales externes',
+      caveats:flags,
+      criterion_anchors:SCORE_RUBRIC
+    }
+  };
+}
+
+
+/**
+ * Catch invalid platform assumptions, not legitimate criticisms of framing.
+ * A horizontal native video can still have a bad crop, but the container's
+ * aspect ratio ALONE does not prove poor craft or a weak hook.
+ */
+export function detectUnsupportedFormatPenalty({evidence={},measurable={},review={}}={}){
+  if(Number(measurable.aspectRatio||0)<1)return [];
+  const contested=new Set(Array.isArray(review?.disputed_keys)?review.disputed_keys:[]);
+  const results=[];
+  for(const key of ['visual','scroll_stop','retention','rhythm']){
+    const rationale=String(evidence[key]||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    const aspect=/\b(16\s*[:/]\s*9|format horizontal|cadrage horizontal|horizontal natif|format paysage|mode paysage)\b/.test(rationale);
+    const negative=/(limite|penalis|moins adapt|faible|defavor|frein|impact reduit|manque de|reste brut|visuellement brut|moins fort)/.test(rationale);
+    const assumesVertical=/(flux mobile vertical|flux vertical|fil vertical|format vertical|reels vertical|tiktok vertical|shorts vertical)/.test(rationale);
+    if(aspect&&negative&&(assumesVertical||contested.has(key))){
+      results.push({criterion:key,issue:'native_horizontal_treated_as_vertical_failure',evidence:String(evidence[key]||'').slice(0,360)});
+    }
+  }
+  return results;
 }
