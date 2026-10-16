@@ -21,7 +21,6 @@ const excerptInSource=(needle,source)=>{
   }
   return best>=.85;
 };
-const distinct=new Set();
 const suspicious=/\b(garanti|garantie de resultats?|viral assure|100 ?% de vues|devenir riche|exploser a coup sur|sans aucun effort|gain certain)\b/i;
 const vague=/(^|\b)(tu veux savoir|le secret|personne ne (te|vous) dit|regarde jusqu a la fin|incroyable astuce|c est fou|deviens viral|change ta vie|voici pourquoi)(\b|$)/i;
 const numericClaims=v=>[...new Set((canonical(v).match(/\b\d+(?:[.,]\d+)?\b/g)||[]))];
@@ -101,4 +100,16 @@ export function reviewEditorialFixes(fixes,transcript,durationSec){
     });
   }
   return {fixes:approved,rejected,review_status:approved.length?'grounded_diagnostics':'not_enough_evidence'};
+}
+
+export function reviewSupplementalCopy(raw,transcript,kind='title'){
+  const proposed=text(raw);
+  const source=text(transcript?.text)||text((transcript?.words||[]).map(x=>x.text).join(' '));
+  if(!source||!proposed||proposed.length>240)return {text:'',status:'not_verified'};
+  const keywordOverlap=new Set(meaningful(proposed).filter(word=>meaningful(source).includes(word)));
+  const inventedNumbers=numericClaims(proposed).filter(number=>!numericClaims(source).includes(number));
+  const valid=keywordOverlap.size>=2&&inventedNumbers.length===0
+    &&!suspicious.test(canonical(proposed))&&!vague.test(canonical(proposed));
+  return {text:valid?proposed:'',status:valid?'hypothesis_related_to_video':'not_verified',
+    kind,note:'Texte proposé à tester ; cohérence sémantique à contrôler avant publication.'};
 }
