@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {SCORE_WEIGHTS,SCORE_RUBRIC,SCORE_CRITERION_BASIS,editorialScoreAudit,calculateScore} from '../src/viral-quality.js';
+import {SCORE_WEIGHTS,SCORE_RUBRIC,SCORE_CRITERION_BASIS,editorialScoreAudit,calculateScore,detectUnsupportedFormatPenalty} from '../src/viral-quality.js';
 
 const videoScore={
  hook:70,scroll_stop:65,clarity:83,rhythm:75,retention:70,
@@ -39,4 +39,24 @@ test('a static plan can score 95 on visual craft when justified by observed cont
  const scores=editorialScoreAudit({scores:{...videoScore,visual:95}},staticLandscape).scores;
  assert.equal(scores.visual,95);
  assert.equal(scores.rhythm,75);
+});
+
+test('real Oct 16 16:9 score explanation is detected as an invalid vertical-flow assumption',()=>{
+ const evidence={
+  scroll_stop:"Le premier plan est un facecam cadré en contre-plongée légère dans un format horizontal 16:9, ce qui limite l'impact visuel initial dans un flux mobile vertical.",
+  visual:"Les diapositives graphiques sont épurées et professionnelles, mais le cadrage facecam reste brut (webcam fixe, format horizontal natif)."
+ };
+ const disputed_keys=['scroll_stop','visual'];
+ const biases=detectUnsupportedFormatPenalty({evidence,measurable:staticLandscape,review:{disputed_keys}});
+ assert.deepEqual(biases.map(x=>x.criterion),['visual','scroll_stop']);
+});
+test('a legitimately weak crop can be criticized without falsely declaring landscape a failure',()=>{
+ const evidence={visual:'Le sujet est coupé sur le bord droit et sa bouche sort du cadre, malgré le format 16:9.'};
+ const biases=detectUnsupportedFormatPenalty({evidence,measurable:staticLandscape,review:{disputed_keys:['visual']}});
+ assert.equal(biases.length,0);
+});
+test('vertical videos are allowed to be evaluated for vertical feed compatibility',()=>{
+ const evidence={scroll_stop:'Le 16:9 dans un flux mobile vertical limite la visibilité du visage.'};
+ const biases=detectUnsupportedFormatPenalty({evidence,measurable:briskPortrait});
+ assert.equal(biases.length,0);
 });
