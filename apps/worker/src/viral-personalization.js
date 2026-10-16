@@ -73,6 +73,36 @@ export function reviewHookSuggestions(rawCandidates,transcript,context={}){
     caution:'Aucune accroche ne peut être déclarée meilleure sans résultat de test réel.'
   };
 }
+// A cut, still frame or silence is not evidence that an extra image is useful.
+export function brollEvidenceCheck(fix,transcript={}){
+  const proposed=canonical([fix?.exact_change,fix?.example].join(' '));
+  if(!/\b(b roll|plans? d illustration|insertions? visuelles?|images? d illustration)\b/.test(proposed))return {needed:false,valid:true,reasons:[]};
+  const observed=canonical(fix?.observable_evidence);
+  const problem=canonical(fix?.problem);
+  const quote=canonical(fix?.source_quote);
+  const reasons=[];
+  if(/\b(pas de b roll|pas assez de b roll|manque de b roll|0 (?:cut|cuts)|aucune coupe|plan fixe|manque de dynamisme|trop statique|monotone)\b/.test(problem+' '+observed)&&!/(exemple|demonstration|preuve|objet|action|message|document|comparaison|capture|capture d ecran)/.test(observed)){
+    reasons.push('BROLL_JUSTIFIE_SEULEMENT_PAR_ABSENCE_DE_CUT');
+  }
+  // Require a concrete object/idea from the source, not just "show some b-roll".
+  const concepts=new Set(meaningful([fix?.observable_evidence,fix?.source_quote,transcript?.text].join(' ')));
+  const proposedConcepts=new Set(meaningful([fix?.exact_change,fix?.example].join(' ')));
+  const overlap=[...proposedConcepts].filter(word=>concepts.has(word));
+  if(overlap.length<2)reasons.push('BROLL_SANS_LIEN_VERIFIABLE_AU_CONTENU');
+  if(/\b(b roll|images?|visuels?|illustrations?) (plus|supplementaires?|pertinents?|dynamiques?|generiques?)\b/.test(proposed)
+    &&!/(montr|affich|filmer|insere|capture|plan sur|gros plan|precis|document|ecran)/.test(proposed)){
+    reasons.push('BROLL_NON_SPECIFIQUE');
+  }
+  return {needed:true,valid:reasons.length===0,reasons};
+}
+function quoteMatchesTime(quote,words,start,end){
+  if(!Array.isArray(words)||words.length<3)return true; // no alignment: other gates apply.
+  const valid=words.filter(x=>Number.isFinite(Number(x?.startMs))&&Number.isFinite(Number(x?.endMs)));
+  if(valid.length<3)return true;
+  const wordsNearby=valid.filter(w=>Number(w.endMs)>=start*1000-1200&&Number(w.startMs)<=end*1000+1200);
+  if(!wordsNearby.length)return false;
+  return excerptInSource(quote,wordsNearby.map(w=>w.text).join(' '));
+}
 export function reviewEditorialFixes(fixes,transcript,durationSec){
   const source=text(transcript?.text)||text((transcript?.words||[]).map(x=>x.text).join(' '));
   const max=Number.isFinite(Number(durationSec))&&Number(durationSec)>0?Number(durationSec):null;
@@ -92,6 +122,11 @@ export function reviewEditorialFixes(fixes,transcript,durationSec){
     if(gratuitous.test(canonical(action+' '+example)))errors.push('EFFETS_NON_MOTIVES');
     if(example.length<16)errors.push('EXEMPLE_NON_PERSONNALISE');
     if(type==='transcript'&&!excerptInSource(quote,source))errors.push('CITATION_INTROUVABLE');
+    if(type==='transcript'&&excerptInSource(quote,source)
+       &&!quoteMatchesTime(quote,transcript?.words,start,end))errors.push('CITATION_HORS_PASSAGE');
+    if(type!=='technical'&&start===end)errors.push('PASSAGE_NON_LOCALISE');
+    const broll=brollEvidenceCheck(x,transcript);
+    if(!broll.valid)errors.push(...broll.reasons);
     if(errors.length){rejected.push({index:i+1,reasons:errors});continue;}
     approved.push({
       ...x,
