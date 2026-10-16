@@ -21,7 +21,7 @@ const fixture=()=>({
   ]
 });
 test('score v5 stable and weights sum to exactly 100 excluding CTA',()=>{
-  assert.equal(SCORE_VERSION,'vp-score-7-editorial-format-verified');
+  assert.equal(SCORE_VERSION,'vp-score-8-native-format-rubric');
   assert.equal(Object.values(SCORE_WEIGHTS).reduce((a,b)=>a+b,0),100);
   assert.equal(SCORE_WEIGHTS.cta,0);
   const s=fixture().scores;
