@@ -8,6 +8,7 @@ import {pipeline} from 'node:stream/promises';
 import {randomUUID,createHash} from 'node:crypto';
 import {createClient} from '@supabase/supabase-js';
 import {analyzeVideo,SCORE_VERSION} from './viral.js';
+import {decodedSourceFingerprint,probeFingerprintSource} from './viral-fingerprint.js';
 import {buildEditTimeline} from './edit.js';
 import {reviewCreativeTimeline} from './creative-quality-gate.js';
 import {auditOmniCodieModel} from './omni-codie-quality-contract.js';
@@ -260,10 +261,31 @@ async function runViral(job,media,filePath){
   const hash=createHash('sha256');
   for await(const chunk of createReadStream(filePath))hash.update(chunk);
   const digest=hash.digest('hex');
-  const {data:cached,error:cacheError}=await supabase.from('viralplus_analyses')
+  const {data:exactCache,error:cacheError}=await supabase.from('viralplus_analyses')
     .select('result_json').eq('user_id',job.user_id).eq('video_sha256',digest)
     .eq('score_version',SCORE_VERSION).order('created_at',{ascending:false}).limit(1).maybeSingle();
   if(cacheError)throw cacheError;
+
+  // Same decoded frames/sound may arrive inside different MOV/MP4 containers.
+  // Keep SHA256 for strict identity, and a separate decoded-content key for the
+  // user-facing "same video, same score" contract.
+  let sourceFingerprint=null;
+  try{
+    const source=await probeFingerprintSource(filePath);
+    sourceFingerprint=await decodedSourceFingerprint({filePath,...source});
+  }catch(error){
+    // Analysis remains possible for unusual codecs. Strict SHA cache still works.
+    console.warn('VIRAL_FINGERPRINT_FALLBACK',String(error?.message||error).slice(0,230));
+  }
+  let cached=exactCache;
+  if(!cached&&sourceFingerprint){
+    const {data,error}=await supabase.from('viralplus_analyses')
+      .select('result_json').eq('user_id',job.user_id)
+      .eq('score_version',SCORE_VERSION).eq('source_fingerprint',sourceFingerprint)
+      .order('created_at',{ascending:false}).limit(1).maybeSingle();
+    if(error)throw error;
+    cached=data;
+  }
   const result=cached?.result_json||await analyzeVideo({
     filePath,
     mimeType:media.mime_type,
@@ -307,6 +329,7 @@ async function runViral(job,media,filePath){
     job_id:job.id,
     video_name:media.original_name||'video',
     video_sha256:digest,
+    source_fingerprint:sourceFingerprint,
     is_reanalysis:Boolean(payload.reanalysis||payload.is_reanalysis),
     baseline_analysis_id:baselineAnalysisId,
     final_score:result.final_score,
