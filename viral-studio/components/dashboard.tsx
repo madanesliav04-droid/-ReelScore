@@ -614,17 +614,20 @@ export function Dashboard(){
           </article>
           <article className="viral-fix-card rewrite-card">
             <small>REWRITE</small><h3>Use stronger packaging.</h3>
-            {analysis.hook_experiments?.candidates?.length>0?<>
+            {analysis.recommendation_video_review&&<p className="viral-hook-warning">{analysis.recommendation_video_review.status==="video_review_completed"?"Double contrôle : propositions réexaminées à partir du rush original.":"Second contrôle indisponible : suggestions non vérifiées écartées."}</p>}
+                        {analysis.hook_experiments?.candidates?.length>0?<>
               <div className="viral-hook-test-flag">HYPOTHÈSES PERSONNALISÉES · PAS DE GAIN GARANTI</div>
               {analysis.hook_experiments.candidates.map((suggestion:any,i:number)=><div key={i} className="viral-hook-experiment">
                 <small>PROPOSITION {i+1} · {suggestion.variable_changed}</small>
                 <div className="viral-hook-comparison">
-                  <div><span>A · Extrait du discours réel</span><p>{suggestion.source_quote}</p></div>
+                  <div><span>{analysis.detected_spoken_hook&&analysis.detected_spoken_hook!=="INDETECTABLE"?"A · Accroche actuelle":"A · Extrait réel vérifiable"}</span><p>{analysis.detected_spoken_hook&&analysis.detected_spoken_hook!=="INDETECTABLE"?analysis.detected_spoken_hook:suggestion.source_quote}</p></div>
                   <div><span>B · Nouvelle ouverture à tester</span><strong>{suggestion.proposed_hook}</strong></div>
                 </div>
+                <p className="viral-hook-reason"><b>Phrase source retrouvée :</b> « {suggestion.source_quote} »</p>
                 <p className="viral-hook-reason"><b>Pourquoi la tester :</b> {suggestion.why_test}</p>
                 <p className="viral-hook-reason"><b>Hypothèse :</b> {suggestion.test_hypothesis}</p>
               </div>)}
+              <p className="viral-hook-warning">Test A/B conseillé : modifier uniquement l'ouverture, garder le sujet et le reste du montage comparables, puis examiner la rétention et les autres données réelles disponibles. L'algorithme et l'audience peuvent varier.</p>
               <p className="viral-hook-warning">Aucune variante ne peut être déclarée meilleure avant comparaison des performances réelles.</p>
             </>:<div className="viral-hook-empty"><strong>Aucune nouvelle accroche suffisamment justifiée</strong><p>{analysis.hook_experiments?.status==="insufficient_verified_context"?"Les suggestions non étayées par la vidéo ont été écartées. Nous préférons ne rien proposer plutôt qu'inventer un hook générique.":"Cette analyse ne dispose pas encore d’une recommandation de hook vérifiée."}</p></div>}
             {analysis.recommended_title&&<div className="rewrite-row"><span>Titre à tester</span><strong>{analysis.recommended_title}</strong></div>}
