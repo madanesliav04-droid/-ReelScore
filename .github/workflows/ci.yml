@@ -69,3 +69,37 @@ jobs:
           name: editplus-hyperframes-smoke
           path: ${{ runner.temp }}/editplus-hyperframes-smoke.mp4
           retention-days: 7
+
+
+  apple-hyperframes-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      PUPPETEER_SKIP_DOWNLOAD: '1'
+      HYPERFRAMES_BROWSER_PATH: /usr/bin/chromium
+      PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium
+      CHROME_PATH: /usr/bin/chromium
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install browser and encoder
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq chromium ffmpeg fonts-noto-core
+      - name: Install HyperFrames
+        working-directory: apps/worker
+        run: npm install --no-audit --no-fund
+      - name: Lint and render transparent motion layer
+        working-directory: apps/worker/hyperframes/apple-preview
+        run: |
+          ../../node_modules/.bin/hyperframes lint .
+          ../../node_modules/.bin/hyperframes render --format webm --quality draft --workers 2 --fps 30 --output "$RUNNER_TEMP/apple-premium-hyperframes-overlay.webm"
+          test -s "$RUNNER_TEMP/apple-premium-hyperframes-overlay.webm"
+          ffprobe -v error -show_entries format=duration:stream=codec_name,width,height -of json "$RUNNER_TEMP/apple-premium-hyperframes-overlay.webm"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: editplus-apple-hyperframes-overlay-17s
+          path: ${{ runner.temp }}/apple-premium-hyperframes-overlay.webm
+          retention-days: 7
