@@ -1,0 +1,50 @@
+name: HyperFrames Edit+ Canary
+
+on:
+  push:
+    branches: [socialplus-hyperframes-install-20261016]
+    paths:
+      - 'apps/worker/**'
+      - '.github/workflows/hyperframes-canary.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  install-and-render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: apps/worker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install rendering dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg fonts-noto-core libnss3 libgbm1 libasound2
+      - name: Install pinned HyperFrames in worker
+        run: npm install --no-audit --no-fund
+      - name: Ensure browser
+        run: ./node_modules/.bin/hyperframes browser ensure
+      - name: Lint and render a real short MP4
+        run: |
+          ./node_modules/.bin/hyperframes lint tests/fixtures/hyperframes-smoke
+          ./node_modules/.bin/hyperframes render tests/fixtures/hyperframes-smoke --output /tmp/social-hyperframes-smoke.mp4 --fps 12 --quality draft
+          ffprobe -v error -show_entries format=duration,size -of default=noprint_wrappers=1 /tmp/social-hyperframes-smoke.mp4
+          test "$(stat -c%s /tmp/social-hyperframes-smoke.mp4)" -gt 1000
+      - name: Worker regression checks
+        run: npm run check
+      - name: Production Docker image can build
+        run: docker build -t socialplus-hyperframes-canary .
+      - name: Keep MP4 proof
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: HyperFrames-EditPlus-Canary-MP4
+          path: /tmp/social-hyperframes-smoke.mp4
+          retention-days: 7
