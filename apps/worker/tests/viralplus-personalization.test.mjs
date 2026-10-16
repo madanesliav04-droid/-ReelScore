@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {reviewHookSuggestions,reviewEditorialFixes} from '../src/viral-personalization.js';
+import {reviewHookSuggestions,reviewEditorialFixes,reviewSupplementalCopy} from '../src/viral-personalization.js';
 
 const ugc={text:"Pour ma première collaboration UGC avec le restaurant, j'ai filmé une vidéo de la carte puis j'ai envoyé un message personnalisé. Je vous montre le message et comment j'ai proposé cette vidéo."};
 const valid=()=>({
@@ -65,4 +65,11 @@ test('visual opinions are visibly qualified and not independently proven',()=>{
  const x={area:'visual',start_sec:1,end_sec:3,priority:1,problem:'Visage coupé pendant la phrase.',exact_change:'Décaler le cadrage vers le centre en conservant les mains dans le champ.',example:'Recentrer le visage pendant la présentation de la carte.',evidence_type:'visual',source_quote:'',observable_evidence:'Le visage est placé très près du bord gauche du cadre.'};
  const a=reviewEditorialFixes([x],ugc,20);
  assert.equal(a.fixes[0].evidence_status,'model_observation_to_verify');
+});
+
+test('headline and CTA cannot claim unsupported results or become template advice',()=>{
+  assert.equal(reviewSupplementalCopy('Les secrets de la réussite',ugc,'title').text,'');
+  assert.equal(reviewSupplementalCopy('9000 euros gagnés en UGC restaurant',ugc,'title').text,'');
+  assert.equal(reviewSupplementalCopy('Regarde jusqu à la fin',ugc,'cta').text,'');
+  assert.equal(reviewSupplementalCopy('Comment écrire un message personnalisé pour une collaboration UGC restaurant',ugc,'title').status,'hypothesis_related_to_video');
 });
