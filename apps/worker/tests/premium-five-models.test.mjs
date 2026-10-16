@@ -28,7 +28,8 @@ const sourceAnalysis={
 };
 
 test('five locked model contracts match actual font, color, cut and B-roll engine configuration',()=>{
-  assert.deepEqual(Object.keys(PREMIUM_MODEL_CONTRACTS),ids);
+  assert.deepEqual(Object.keys(PREMIUM_MODEL_CONTRACTS).filter(id=>ids.includes(id)),ids);
+  assert.ok(premiumModelContract('social_kinetic'),'integrated social kinetic contract');
   assert.match(PREMIUM_MODEL_CONTRACT_VERSION,/v4/);
   for(const id of ids){
     const spec=premiumModelContract(id);
