@@ -1,7 +1,7 @@
 import {createReadStream} from 'node:fs';
 import {stat} from 'node:fs/promises';
 import {spawn} from 'node:child_process';
-import {reviewHookSuggestions,reviewEditorialFixes} from './viral-personalization.js';
+import {reviewHookSuggestions,reviewEditorialFixes,reviewSupplementalCopy} from './viral-personalization.js';
 import {
   SCORE_VERSION,SCORE_WEIGHTS,validateSemanticAnalysis,
   priorityDiagnostics,editorialRiskMap,calculateScore
@@ -99,6 +99,9 @@ export async function analyzeVideo({
   const priorities=priorityDiagnostics(
     normalized,semantic.score_evidence||{},fixPlan,timeline,measurable.durationSec
   );
+  const supportedPriorities=priorities.filter(x=>x.exact_change&&x.evidence);
+  const titleReview=reviewSupplementalCopy(semantic.recommended_title,transcript,'title');
+  const ctaReview=reviewSupplementalCopy(semantic.recommended_cta,transcript,'cta');
 
   return {
     final_score:finalScore,
@@ -124,13 +127,14 @@ export async function analyzeVideo({
       rejected_fixes:editorialReview.rejected.length,
       note:'Une suggestion absente vaut mieux qu’une recommandation sans preuve.'
     },
-    recommended_title:String(semantic.recommended_title||''),
-    recommended_cta:String(semantic.recommended_cta||''),
+    recommended_title:titleReview.text,
+    recommended_cta:ctaReview.text,
+    supplemental_copy_review:{title:titleReview.status,cta:ctaReview.status},
     timeline,
     action_items:fixPlan.map(x=>x.exact_change).filter(Boolean),
     fix_plan:fixPlan,
     priority_diagnostics:priorities.slice(0,5),
-    top_priority:priorities[0]||null,
+    top_priority:supportedPriorities[0]||null,
     editorial_risk_map:editorialRiskMap(timeline,measurable.durationSec),
     analysis_validation:semantic.validation||null,
     score_breakdown:buildScoreBreakdown(normalized),
