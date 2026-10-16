@@ -188,3 +188,18 @@
 .dashboard-shell .social-model-truth{color:#aab7c3;font-size:12px;line-height:1.6;margin:13px 0;max-width:850px}
 .dashboard-shell .social-approved-model .model-copy{border-top:1px solid rgba(255,255,255,.065)}
 @media(max-width:700px){.dashboard-shell .social-approved-model-grid{grid-template-columns:1fr;gap:11px}.dashboard-shell .social-approved-model{min-height:0}.dashboard-shell .social-model-identity{min-height:180px;padding:20px}.dashboard-shell .social-model-identity strong{font-size:29px}.dashboard-shell .social-model-identity p{font-size:11px}.dashboard-shell .social-model-state{top:15px;right:12px;font-size:8px}.dashboard-shell .social-approved-model .model-copy{padding:12px 15px}}
+
+
+/* Viral+ editorial calibration disclosure */
+.dashboard-shell .viral-calibration-truth{padding:20px 22px;border-radius:17px;border:1px solid rgba(170,215,190,.22);background:linear-gradient(150deg,rgba(27,44,40,.65),rgba(12,20,23,.9));margin:15px 0 24px;color:#cdd8d6;min-width:0}
+.viral-calibration-intro{display:grid;gap:7px}
+.viral-calibration-intro strong{font-size:16px;letter-spacing:-.025em;color:#edf8f2}
+.viral-calibration-intro p{margin:0;font-size:13px;line-height:1.58;color:#b7c9c1}
+.viral-calibration-tags{display:flex;flex-wrap:wrap;gap:7px;margin:14px 0}
+.viral-calibration-tags span{padding:7px 9px;border:1px solid rgba(150,205,178,.14);border-radius:9px;font-size:11px;background:rgba(89,153,125,.05);line-height:1.4}
+.viral-calibration-truth details{margin-top:12px;border-top:1px solid rgba(180,225,211,.12);padding-top:13px}
+.viral-calibration-truth summary{cursor:pointer;font-size:12px;font-weight:760;color:#b9e8d7;min-height:30px}
+.viral-calibration-truth details p{font-size:12px;line-height:1.5;margin:9px 0;color:#b7c5c3}
+.viral-calibration-truth>small{display:block;margin-top:12px;font-size:11px;color:#94aaa5;line-height:1.65}
+.safe-scope-note{font-size:11px;color:#accbbf;line-height:1.6}
+@media(max-width:700px){.dashboard-shell .viral-calibration-truth{padding:17px;margin:10px 0 20px}.viral-calibration-intro strong{font-size:14px}.viral-calibration-intro p{font-size:12px}}
