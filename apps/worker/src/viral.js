@@ -1,22 +1,15 @@
 import {createReadStream} from 'node:fs';
 import {stat} from 'node:fs/promises';
 import {spawn} from 'node:child_process';
+import {reviewHookSuggestions,reviewEditorialFixes,reviewSupplementalCopy,reviewedTimelineMoments} from './viral-personalization.js';
+import {verifyWithVideo,applyVideoReview} from './viral-verifier.js';
+import {
+  SCORE_VERSION,SCORE_WEIGHTS,validateSemanticAnalysis,
+  priorityDiagnostics,editorialRiskMap,calculateScore
+} from './viral-quality.js';
+export {SCORE_VERSION,SCORE_WEIGHTS} from './viral-quality.js';
 
 const GOOGLE_BASE='https://generativelanguage.googleapis.com';
-
-export const SCORE_WEIGHTS={
-  hook:20,
-  scroll_stop:10,
-  clarity:10,
-  rhythm:5,
-  retention:20,
-  structure:10,
-  text_captions:5,
-  visual:5,
-  audio:5,
-  cta:0,
-  originality:10
-};
 
 const clamp=n=>Math.max(0,Math.min(100,Math.round(Number(n)||0)));
 const avg=(...xs)=>xs.reduce((a,b)=>a+b,0)/Math.max(1,xs.length);
@@ -96,34 +89,60 @@ export async function analyzeVideo({
   const normalized=normalizeScores(semantic,measurable);
   const finalScore=scoreFinal(normalized);
   const timeline=normalizeTimeline(semantic.timeline,measurable.durationSec);
+  const hookExperiments=reviewHookSuggestions(
+    semantic.hook_candidates,transcript,semantic.video_context||{}
+  );
+  const editorialReview=reviewEditorialFixes(
+    normalizeFixPlan(semantic.fix_plan,timeline),transcript,measurable.durationSec
+  );
+  // Rejected suggestions are omitted, not replaced with generic claims.
+  const fixPlan=editorialReview.fixes;
+  const verifiedTimeline=reviewedTimelineMoments(timeline,fixPlan);
+  const priorities=priorityDiagnostics(
+    normalized,semantic.score_evidence||{},fixPlan,verifiedTimeline,measurable.durationSec
+  );
+  const supportedPriorities=priorities.filter(x=>x.exact_change&&x.evidence);
+  const titleReview=reviewSupplementalCopy(semantic.recommended_title,transcript,'title');
+  const ctaReview=reviewSupplementalCopy(semantic.recommended_cta,transcript,'cta');
 
   return {
     final_score:finalScore,
-    score_version:'vp-score-4-scale-safe',
+    score_version:SCORE_VERSION,
     score_weights:SCORE_WEIGHTS,
     scores:normalized,
     measurable,
     transcript,
-    verdict:String(semantic.verdict||''),
-    main_problem:String(semantic.main_problem||''),
-    why:String(semantic.why||''),
+    verdict:fixPlan.length?String(semantic.verdict||'Diagnostic éditorial estimé'):'Analyse terminée : aucune correction vérifiée à recommander automatiquement.',
+    main_problem:fixPlan[0]?.problem||'Aucune faiblesse précise suffisamment étayée pour proposer une correction.',
+    why:fixPlan.length?String(fixPlan[0]?.why_it_matters||semantic.why||'Hypothèse à vérifier sur le passage indiqué.'):'Les scores restent des estimations éditoriales. L’absence de correction fiable ne signifie pas que la vidéo sera virale.',
+    video_context:semantic.video_context||{},
     detected_spoken_hook:String(semantic.detected_spoken_hook||'INDETECTABLE'),
     detected_visual_hook:String(semantic.detected_visual_hook||'INDETECTABLE'),
     detected_title_text:String(semantic.detected_title_text||'INDETECTABLE'),
     detected_cta:String(semantic.detected_cta||'INDETECTABLE'),
-    recommended_hook:String(semantic.recommended_hook||''),
-    alternative_hooks:Array.isArray(semantic.alternative_hooks)
-      ?semantic.alternative_hooks.slice(0,3)
-      :[],
-    recommended_title:String(semantic.recommended_title||''),
-    recommended_cta:String(semantic.recommended_cta||''),
-    timeline,
+    recommended_hook:hookExperiments.candidates[0]?.proposed_hook||'',
+    alternative_hooks:hookExperiments.candidates.slice(1).map(x=>x.proposed_hook),
+    hook_experiments:hookExperiments,
+    recommendation_video_review:semantic.recommendation_video_review||null,
+    editorial_review:{
+      review_status:editorialReview.review_status,
+      reviewed_fixes:fixPlan.length,
+      rejected_fixes:editorialReview.rejected.length,
+      note:'Une suggestion absente vaut mieux qu’une recommandation sans preuve.'
+    },
+    recommended_title:titleReview.text,
+    recommended_cta:ctaReview.text,
+    supplemental_copy_review:{title:titleReview.status,cta:ctaReview.status},
     editorial_director:semantic?.editorial_director||null,
     premium_storyboards:Array.isArray(semantic?.premium_storyboards)?semantic.premium_storyboards.slice(0,8):[],
-    action_items:Array.isArray(semantic.action_items)
-      ?semantic.action_items.slice(0,8)
-      :[],
-    fix_plan:normalizeFixPlan(semantic.fix_plan,timeline),
+    timeline:verifiedTimeline,
+    rejected_timeline_moments:timeline.length-verifiedTimeline.length,
+    action_items:fixPlan.map(x=>x.exact_change).filter(Boolean),
+    fix_plan:fixPlan,
+    priority_diagnostics:priorities.slice(0,5),
+    top_priority:supportedPriorities[0]||null,
+    editorial_risk_map:editorialRiskMap(verifiedTimeline,measurable.durationSec),
+    analysis_validation:semantic.validation||null,
     score_breakdown:buildScoreBreakdown(normalized),
     score_evidence:semantic.score_evidence||{},
     confidence:semantic.confidence||{},
@@ -504,6 +523,10 @@ Schéma:
   "alternative_hooks":["","",""],
   "recommended_title":"",
   "recommended_cta":"",
+  "video_context":{"topic":"","audience_hypothesis":"","central_claim":"","observable_proof":"","primary_intent":""},
+  "hook_candidates":[
+    {"proposed_hook":"","source_quote":"","why_test":"","test_hypothesis":"","variable_changed":""}
+  ],
   "timeline":[
     {
       "start_sec":0,
@@ -515,8 +538,6 @@ Schéma:
       "broll_query":""
     }
   ],
-  "editorial_director":{"decisions":[{"start_sec":0,"end_sec":2,"action":"hold","spoken_anchor":"","visual_evidence":"","visual_confidence":0,"audio_confidence":0,"subject_centered":false,"safe_area":"none","protected_regions":[{"type":"face","x":0.4,"y":0.3,"w":0.2,"h":0.25}]}]},
-  ${process.env.ENABLE_PREMIUM_STORYBOARDS==='true'?'"premium_storyboards":[{"type":"statement","start_ms":0,"duration_ms":1800,"spoken_anchor":"","text":"","left":"","right":"","items":[]}],':''}
   "action_items":["","",""],
   "fix_plan":[
     {
@@ -528,7 +549,10 @@ Schéma:
       "why_it_matters":"",
       "exact_change":"",
       "example":"",
-      "expected_effect":""
+      "expected_effect":"",
+      "evidence_type":"transcript",
+      "source_quote":"",
+      "observable_evidence":""
     }
   ],
   "confidence":{"audio":0,"visual":0,"text":0},
@@ -541,20 +565,28 @@ Règles:
 - chaque score doit être justifié par une preuve observable dans la vidéo;
 - 80+ exige une exécution réellement excellente;
 - le CTA est diagnostiqué séparément mais ne pèse PAS dans le Viral Score;
-- la timeline doit contenir 5 à 8 observations couvrant début, milieu et fin;
+- la timeline doit décrire uniquement les passages observés utiles, sans inventer des moments faibles pour remplir;
 - chaque correction doit être directement exécutable;
-- fix_plan doit contenir 3 à 7 corrections classées par priorité, sans conseil générique;
-- chaque fix_plan doit dire exactement: OÙ intervenir, QUOI changer, COMMENT le faire, et donner un EXEMPLE concret adapté à cette vidéo;
+- fix_plan doit contenir 0 à 5 corrections justifiées, classées par priorité ; zéro est préférable à une fausse amélioration;
+- chaque fix_plan doit dire exactement: OÙ intervenir, QUOI changer, COMMENT le faire, et donner un EXEMPLE concret issu de cette vidéo;
 - start_sec/end_sec doivent pointer vers le passage réel quand la correction est temporelle; sinon utilise 0;
 - exact_change doit être formulé comme une instruction de montage ou réécriture immédiatement exécutable;
 - expected_effect décrit le problème éditorial corrigé, pas une promesse de vues;
 - n'utilise AUCUNE statistique externe, aucun pourcentage de comportement utilisateur et aucun fait non mesuré dans la vidéo; explique uniquement le mécanisme éditorial observable;
 - distingue ce qui est réellement visible/audible de ce qui est une estimation;
 - si un élément est absent ou impossible à lire, écris INDETECTABLE;
-- pour les hooks proposés, conserve le sens réel du contenu mais rends-les plus spécifiques;
+- PERSONNALISATION OBLIGATOIRE : commence par identifier le sujet précis, ce que la vidéo promet réellement, et l'intention de ce créateur. N'invente ni audience certaine ni statistiques;
+- hook_candidates : propose entre 0 et 3 accroches uniquement si tu disposes d'éléments spécifiques de CETTE vidéo. Zéro est autorisé et préférable à une suggestion vide ou générique;
+- pour chaque hook candidat, source_quote doit citer EXACTEMENT une phrase vraiment prononcée et présente dans la transcription (orthographe ASR conservée), permettant de vérifier l'ancrage;
+- proposed_hook doit rester fidèle au contenu, citer le thème concret et NE PAS ajouter de chiffres, de résultats, de témoignages, d'exagérations, de revenus ou de promesses qui n'existent pas dans le discours;
+- why_test doit décrire le problème de l'accroche actuelle avec une raison OBSERVABLE, pas "plus engageant" ou "plus viral" sans explication;
+- test_hypothesis doit formuler un mécanisme précis à tester (ex. faire apparaître l'enjeu concret dès 0–2 s), sans garantir un résultat;
+- variable_changed doit nommer UNE variable distincte (spécificité / ordre de l'information / contraste), évite de tout modifier à la fois;
+- ne répète jamais une formule passe-partout telle que "Tu veux savoir...", "Le secret de...", "Personne ne te dit...", ou une accroche réutilisable hors contexte;
+- chaque fix_plan doit inclure evidence_type parmi transcript/visual/audio/technical, observable_evidence spécifique et source_quote exacte si transcript; timestamp valable dans la durée vidéo;
+- si la vidéo ne fournit pas assez de preuve d'un problème, évite de le signaler. Une vidéo réussie n'a pas besoin de 3 corrections artificielles;
+- ces hooks sont des hypothèses à comparer à partir des performances réelles après publication;
 - broll_query doit être vide si aucun B-roll n'est utile.
-${process.env.ENABLE_PREMIUM_STORYBOARDS==='true' ? '- STORYBOARDS PREMIUM: Propose 0 à 4 mécanismes, de types statement/comparison/questions uniquement. Tous les textes (spoken_anchor, text, left, right, items) doivent être des extraits MOT POUR MOT de la transcription réellement prononcée et dans le bon ordre; ne crée aucune comparaison chiffrée ou question inventée. start_ms en millisecondes de la vidéo originale. Recommande zéro si le sens ou le timing est douteux. Ce sont des suggestions, non des décisions de rendu: le serveur vérifiera indépendamment la précision et les zones sûres.' : ''}
-- EDITORIAL DIRECTOR: Observe les visages, mains, tableaux, objets et gestes en contexte avec la parole. Propose 0 à 6 interventions parmi hold, graphic et soft_punch; zéro est acceptable. Pour chaque intervention, spoken_anchor est une CITATION MOT POUR MOT de la vidéo, start_sec/end_sec correspondant aux paroles prononcées. visual_evidence doit nommer ce qui est visiblement présent à ce moment, et protected_regions contient les rectangles NORMALISÉS x/y/w/h des éléments essentiels visibles (face, hands, board, product, text). safe_area doit être top, left, right ou none. visual_confidence et audio_confidence sont des nombres de 0 à 1; > 0.83 seulement si la preuve est très forte. Ne mets aucun effet si placement douteux. subject_centered ne peut être true que si les gestes et objets sont entièrement dans la zone centrale. Ne propose AUCUN B-roll, recadrage ou fait inventé.
 - SAFE ZONE: évalue la composition pour une vidéo verticale short-form. Vérifie visage/sujet, hook texte, captions et CTA par rapport aux bords et aux zones d'interface usuelles Reels/TikTok/Shorts.
 - safe_zone est un diagnostic Universal Safe, pas une garantie pixel-perfect propre à une plateforme.
 - x et y sont des coordonnées normalisées 0..1 du centre de l'élément observé.
@@ -607,9 +639,15 @@ ${process.env.ENABLE_PREMIUM_STORYBOARDS==='true' ? '- STORYBOARDS PREMIUM: Prop
         .join('')
         .trim();
 
-      const parsed=parseJson(text);
-      parsed.model_used=model;
-      return parsed;
+      const parsed=validateSemanticAnalysis(parseJson(text));
+      const challenged=await verifyWithVideo({
+        fileUri,mimeType,apiKey:geminiKey,
+        primaryModel:model,fallbackModel:models.find(x=>x!==model),
+        semantic:parsed,transcript,measurable
+      });
+      const verified=applyVideoReview(parsed,challenged);
+      verified.model_used=model;
+      return verified;
     }catch(error){
       lastError=error;
     }
@@ -620,12 +658,8 @@ ${process.env.ENABLE_PREMIUM_STORYBOARDS==='true' ? '- STORYBOARDS PREMIUM: Prop
 
 function normalizeScores(semantic,m){
   const s=semantic?.scores||{};
-  const rawScoreValues=[
-    s.hook,s.scroll_stop,s.clarity,s.rhythm,s.retention,s.structure,
-    s.text_captions,s.visual,s.audio,s.cta,s.originality
-  ].map(Number).filter(Number.isFinite);
-  const semanticScale=rawScoreValues.length&&Math.max(...rawScoreValues)<=10?10:1;
-  const semanticScore=value=>clamp(Number(value)*semanticScale);
+  // Semantic scores have already passed the V5 completeness / scale validation.
+  const semanticScore=value=>clamp(Number(value));
 
   const hook=semanticScore(s.hook);
   const visual=semanticScore(s.visual);
@@ -716,7 +750,7 @@ function normalizeSafeZone(raw,m){
   const framing=clamp(z.framing??60),textSafety=clamp(z.text_safety??65),captionSafety=clamp(z.caption_safety??65);
   const platformFit=clamp(avg(z.platform_fit??technicalFit,technicalFit));
   const score=clamp(avg(framing,textSafety,captionSafety,platformFit));
-  const issues=(Array.isArray(z.issues)?z.issues:[]).slice(0,8).map(x=>({severity:['green','orange','red'].includes(x?.severity)?x.severity:'orange',element:String(x?.element||'frame').slice(0,40),problem:String(x?.problem||'').slice(0,240),correction:String(x?.correction||'').slice(0,240),x:Math.max(0,Math.min(1,Number(x?.x)||0.5)),y:Math.max(0,Math.min(1,Number(x?.y)||0.5))}));
+  const issues=(Array.isArray(z.issues)?z.issues:[]).slice(0,8).map(x=>({severity:['green','orange','red'].includes(x?.severity)?x.severity:'orange',element:String(x?.element||'frame').slice(0,40),problem:String(x?.problem||'').slice(0,240),correction:String(x?.correction||'').slice(0,240),x:Math.max(0,Math.min(1,Number(x?.x??0.5))),y:Math.max(0,Math.min(1,Number(x?.y??0.5)))}));
   return {score,framing,text_safety:textSafety,caption_safety:captionSafety,platform_fit:platformFit,summary:String(z.summary||'').slice(0,500),issues,mode:'universal_safe',basis:'multimodal_composition_plus_aspect_ratio'};
 }
 
@@ -732,7 +766,10 @@ function normalizeFixPlan(items,timeline){
     why_it_matters:String(x?.why_it_matters||'').slice(0,500),
     exact_change:String(x?.exact_change||'').slice(0,700),
     example:String(x?.example||'').slice(0,700),
-    expected_effect:String(x?.expected_effect||'').slice(0,500)
+    expected_effect:String(x?.expected_effect||'').slice(0,500),
+    evidence_type:String(x?.evidence_type||'').slice(0,40),
+    source_quote:String(x?.source_quote||'').slice(0,400),
+    observable_evidence:String(x?.observable_evidence||'').slice(0,600)
   })).filter(x=>x.problem||x.exact_change||x.example);
 
   if(clean.length)return clean.sort((a,b)=>a.priority-b.priority);
@@ -763,11 +800,7 @@ function buildScoreBreakdown(scores){
 }
 
 function scoreFinal(scores){
-  const total=Object.entries(SCORE_WEIGHTS)
-    .reduce((sum,[key,weight])=>{
-      return sum+clamp(scores[key])*weight;
-    },0);
-  return Math.round(total/100);
+  return calculateScore(scores);
 }
 
 function normalizeTimeline(items,durationSec){
