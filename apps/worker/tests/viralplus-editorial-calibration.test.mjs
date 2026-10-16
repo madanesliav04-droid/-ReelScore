@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {SCORE_WEIGHTS,SCORE_RUBRIC,SCORE_CRITERION_BASIS,editorialScoreAudit,calculateScore,detectUnsupportedFormatPenalty} from '../src/viral-quality.js';
 
 const videoScore={
@@ -59,4 +60,12 @@ test('vertical videos are allowed to be evaluated for vertical feed compatibilit
  const evidence={scroll_stop:'Le 16:9 dans un flux mobile vertical limite la visibilité du visage.'};
  const biases=detectUnsupportedFormatPenalty({evidence,measurable:briskPortrait});
  assert.equal(biases.length,0);
+});
+
+test('editorial prompt never imposes vertical safe-zone defects on native landscape uploads',()=>{
+  const prompt=readFileSync(new URL('../src/viral.js',import.meta.url),'utf8');
+  assert.match(prompt,/const sourceLandscape=/);
+  assert.match(prompt,/POLITIQUE DE FORMAT \(OBLIGATOIRE\)/);
+  assert.doesNotMatch(prompt,/tout ratio non adapté au short-form/);
+  assert.match(prompt,/SOURCE HORIZONTALE NATIVE/);
 });
