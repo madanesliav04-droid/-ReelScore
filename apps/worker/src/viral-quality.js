@@ -1,5 +1,5 @@
 // Viral+ V5 editorial quality contracts. No private social-platform ranking weights.
-export const SCORE_VERSION='vp-score-7-editorial-format-verified';
+export const SCORE_VERSION='vp-score-8-native-format-rubric';
 export const SCORE_WEIGHTS=Object.freeze({
   hook:15,scroll_stop:5,clarity:15,rhythm:10,retention:15,
   structure:10,text_captions:5,visual:10,audio:5,cta:0,originality:10
