@@ -31,7 +31,7 @@ jobs:
         run: |
           npm install --no-audit --no-fund
           node -e 'const p=require("./node_modules/hyperframes/package.json");if(p.version!=="0.8.164")process.exit(2);console.log("HyperFrames installed:",p.version)'
-          ./node_modules/.bin/hyperframes info
+          ./node_modules/.bin/hyperframes --version
       - name: Lint HTML composition
         working-directory: apps/worker/hyperframes/smoke
         run: ../../node_modules/.bin/hyperframes lint .
