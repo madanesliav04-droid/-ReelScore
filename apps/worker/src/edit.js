@@ -298,7 +298,11 @@ export function buildEditTimeline({
     Number(sourceHeight)||
     Number(analysis?.measurable?.height)||
     1920;
-  const target=targetDimensions(format,sourceW,sourceH);
+  // Hormozi × OMNI model contract: the user's source aspect ratio ALWAYS wins
+  // over an inherited output preset. A 16:9 raw rush is not padded to 9:16.
+  // This guarantees no automatic centre-square crop or synthetic bands.
+  const preservedSourceFormat=canonicalStyle==='hormozi_omni';
+  const target=targetDimensions(preservedSourceFormat?'native':format,sourceW,sourceH);
 
   return {
     version:3,
@@ -308,6 +312,7 @@ export function buildEditTimeline({
     height:target.height,
     format:target.format,
     sourceAspect:sourceW/sourceH,
+    sourceFramePreservation:preservedSourceFormat?{enabled:true,requestedFormat:format,appliedFormat:'native',cropAllowed:false,paddingAllowed:false}:null,
     style:canonicalStyle,
     modelId:canonicalStyle,
     modelContractVersion:MODEL_CONTRACT_VERSION,
