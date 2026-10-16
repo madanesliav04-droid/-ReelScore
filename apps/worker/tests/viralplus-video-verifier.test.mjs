@@ -48,3 +48,20 @@ test('invalid reviewer schema cannot approve advice',async()=>{
   const reviewed=await verifyWithVideo({...opts,fetcher:mock});
   assert.equal(reviewed.status,'verification_unavailable');
 });
+
+test('independent reviewer flags implausible score rationale without fabricating a corrected score',async()=>{
+ const scored={...opts,semantic:{...semantic,
+  scores:{hook:90,visual:20,rhythm:30,retention:45},
+  score_evidence:{visual:'A native 16:9 frame was penalized for not being portrait.'}
+ }};
+ const mock=async()=>({ok:true,json:async()=>({candidates:[{content:{parts:[{text:JSON.stringify({
+  approved_hook_indices:[],approved_fix_indices:[],approve_title:false,approve_cta:false,
+  score_review:{disputed_keys:['visual','rhythm','unknown'],brief_reason:'Le plan fixe est intentionnel et le critère visuel est injustifié.'}
+ })}]}}]})});
+ const review=await verifyWithVideo({...scored,fetcher:mock});
+ assert.equal(review.score_review.status,'completed');
+ assert.deepEqual(review.score_review.disputed_keys,['visual','rhythm']);
+ const applied=applyVideoReview(scored.semantic,review);
+ assert.equal(applied.score_review.disputed_keys.length,2);
+ assert.equal(applied.scores.visual,20); // disagreement is disclosed, never silently overwritten
+});
