@@ -1,0 +1,30 @@
+name: Viral+ V5 scoring gate
+
+on:
+  push:
+    branches: [viralplus-v5-quality-20261016]
+  pull_request:
+    branches: [viral-edit-worker-v1]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/worker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify worker syntax
+        run: |
+          node --check src/index.js
+          node --check src/viral.js
+          node --check src/viral-quality.js
+      - name: Run V5 scoring and diagnostic tests
+        run: node --test tests/viralplus-quality-v5.test.mjs
