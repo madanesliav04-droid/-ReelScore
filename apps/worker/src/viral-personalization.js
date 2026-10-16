@@ -113,3 +113,15 @@ export function reviewSupplementalCopy(raw,transcript,kind='title'){
   return {text:valid?proposed:'',status:valid?'hypothesis_related_to_video':'not_verified',
     kind,note:'Texte proposé à tester ; cohérence sémantique à contrôler avant publication.'};
 }
+
+export function reviewedTimelineMoments(timeline,verifiedFixes){
+  const fixes=(Array.isArray(verifiedFixes)?verifiedFixes:[])
+    .filter(f=>Number.isFinite(Number(f.start_sec))&&Number.isFinite(Number(f.end_sec))&&Number(f.end_sec)>Number(f.start_sec));
+  return (Array.isArray(timeline)?timeline:[])
+    .filter(moment=>fixes.some(fix=>{
+      const a=Number(moment.start_sec),b=Number(moment.end_sec);
+      if(!Number.isFinite(a)||!Number.isFinite(b)||b<a)return false;
+      // The same verified editorial issue must overlap the claimed passage.
+      return a<Number(fix.end_sec)+.25&&b>Number(fix.start_sec)-.25;
+    })).map(item=>({...item,evidence_status:'checked_against_approved_video_fix'}));
+}
