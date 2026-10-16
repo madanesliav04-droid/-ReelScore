@@ -1,7 +1,7 @@
 "use client";
 
 import {useEffect,useMemo,useRef,useState} from "react";
-import {BarChart3,Clapperboard,LogOut,Scissors,Upload,Zap,Check,Link2} from "lucide-react";
+import {BarChart3,Clapperboard,LogOut,Scissors,Upload,Zap,Check,Link2,ArrowRight,FileVideo,ShieldCheck} from "lucide-react";
 import * as tus from "tus-js-client";
 import {functionUrl,supabase,SUPABASE_PROJECT_REF,VIDEO_BUCKET} from "@/lib/supabase";
 import {authMessage} from "@/lib/auth-message";
@@ -10,7 +10,7 @@ import {MAX_VIDEO_UPLOAD_MIB,uploadParts,videoUploadPreflight,videoUploadErrorMe
 type Module="viral"|"edit"|"clip";
 type Job={id:string;kind?:string;status:string;progress?:number;stage?:string;result?:any;error?:any;error_code?:string;clip_project_id?:string|null};
 type Media={id:string;storage_path:string;mime_type:string;size_bytes:number;original_name?:string};
-type EditModel={id:string;name:string;category:string;preview:string;meta:string;goal:string;actions:string[];never:string};
+type EditModel={id:string;name:string;category:string;preview:string;meta:string;goal:string;actions:string[];never:string;available:boolean;state:string};
 
 const VIRAL_METRICS=[
   ["hook","Hook"],
@@ -34,37 +34,72 @@ function scoreTone(value:any){
 // Five focused models. Historical exports from retired models remain accessible.
 const EDIT_MODELS:EditModel[]=[
   {
-    id:"codie",name:"Codie",category:"Business storytelling",preview:"FACE CAM",meta:"Narrative · restrained B-roll",
-    goal:"Faire ressortir une histoire business forte, facecam dominante.",
-    actions:["IDENTITÉ VERROUILLÉE : Noto Sans 850, taille 66 px en 1080×1920, blanc #FFFFFF, accent orange #FF9B45; 4 mots maximum, position middle-low, apparition douce.","NARRATION : facecam principale, maximum 3 cadrages (normal / crop / close-up); zoom uniquement sur passage fort, pas de bruitage ou transition gratuit.","Supprimer les silences de 780 ms ou plus, en préservant les respirations courtes.","Déclencher un zoom narratif seulement sur une rupture importante : au plus 3 par 30 s.","Ajouter jusqu’à 2 B-rolls de 1,9 à 3,4 s lorsqu’un élément concret est cité et illustrable.","Afficher des sous-titres blancs premium, sans surlignage mot-à-mot systématique.","Appliquer un traitement voix premium discret."],
-    never:"Pas de zoom automatique, de carte citation décorative ou de B-roll abstrait."
+    "id": "codie",
+    "name": "Codie",
+    "category": "Storytelling business",
+    "preview": "CODIE",
+    "meta": "Référence Codie V60 · moteur actuel : ancien Codie bêta",
+    "goal": "Facecam dominante, cuts fluides, 2–3 B-rolls utiles, voix originale.",
+    "actions": [
+      "Codie V60 est la référence visuelle retenue, mais ce moteur n'est pas encore déployé.",
+      "Cuts narratifs, recadrages utiles, sous-titres fidèles aux paroles.",
+      "Visage préservé, B-rolls rares, bulles synchronisées, son discret."
+    ],
+    "never": "Pas de fausses preuves ni de zoom automatique.",
+    "available": true,
+    "state": "ANCIEN MOTEUR BÊTA"
   },
   {
-    id:"impact",name:"Impact",category:"High-energy business",preview:"IMPACT",meta:"Fast · punchy · visual",
-    goal:"Créer une vidéo énergique qui accélère la compréhension et la rétention.",
-    actions:["IDENTITÉ VERROUILLÉE : DejaVu Sans 900, taille 80 px en 1080×1920, blanc #FFFFFF, accent cyan #37E6FF; 3 mots maximum, mot actif et pop rapide.","RYTHME : hard cuts éditoriaux, 8 punch-ins maximum par 30 s, éléments de langage percutants; refuser glitch et flash non motivés.","Couper les silences dès 420 ms et les hésitations transcrites.","Accentuer visuellement le hook avec un punch-in court.","Jusqu’à 8 punch-ins narratifs et 5 B-rolls concrets par 30 s.","Afficher un mot-clé ou une phrase de 4 mots maximum en grand lors de moments forts.","Sous-titres dynamiques et finition audio plus incisive."],
-    never:"Pas d’inserts sans rapport avec le discours, ni de cuts qui amputent le sens."
+    "id": "leila",
+    "name": "Leila",
+    "category": "Montage narratif",
+    "preview": "LEILA",
+    "meta": "Référence retenue · non raccordée au serveur",
+    "goal": "Un montage de référence Leila, adaptable au discours et au décor.",
+    "actions": [
+      "Montage rythmé en fonction du sens, sans effet gratuit.",
+      "Sous-titres conformes aux paroles et voix d'origine préservée.",
+      "Preuves visuelles réelles, pas de B-roll générique."
+    ],
+    "never": "Ne pas substituer un preset historique au modèle Leila.",
+    "available": false,
+    "state": "INTÉGRATION EN COURS"
   },
   {
-    id:"clean",name:"Clean",category:"Modern creator",preview:"CLEAN",meta:"Simple · polished · minimal",
-    goal:"Améliorer la fluidité d’une facecam sans attirer l’attention sur le montage.",
-    actions:["IDENTITÉ VERROUILLÉE : Noto Sans 750, taille 60 px en 1080×1920, blanc #FFFFFF, sans couleur secondaire; 5 mots maximum en bas de cadre, apparition douce.","SOBRIÉTÉ : cadrage stable, montage invisible, aucune carte graphique, aucun karaoké ou transition décorative.","Couper les silences de plus de 620 ms et les hésitations détectées.","Ajouter au maximum 3 recadrages légers par 30 s, seulement si la narration le justifie.","Limiter à 1 B-roll explicatif par 30 s.","Afficher des sous-titres blancs lisibles et stables.","Équilibrer voix et image sans effet d’habillage superflu."],
-    never:"Pas de cartouche graphique automatique, d’animation ou de zoom décoratif."
+    "id": "hormozi_omni",
+    "name": "Alex Hormozi",
+    "category": "Explication visuelle",
+    "preview": "HORMOZI",
+    "meta": "Rendu natif 16:9/9:16, moteur Hormozi connecté · fidélité V11/V16 encore à auditer",
+    "goal": "Montage didactique plein écran, en conservant toujours le format source.",
+    "actions": [
+      "La chaîne de rendu Hormozi est raccordée. Le module pédagogique avancé reste conditionné à des preuves vidéo vérifiables.",
+      "Respecter la référence V11 / V16 et le 16:9 natif.",
+      "Aucune insertion latérale ni bande ajoutée.",
+      "Cuts intentionnels, démonstrations utiles, voix et sous-titres exacts."
+    ],
+    "never": "Pas de recadrage horizontal, doublage ou superposition.",
+    "available": true,
+    "state": "BÊTA · MOTEUR CONNECTÉ"
   },
   {
-    id:"explainer",name:"Explainer",category:"Tutorial & SaaS",preview:"EXPLAIN",meta:"Show · label · clarify",
-    goal:"Transformer une démonstration en étapes faciles à comprendre.",
-    actions:["IDENTITÉ VERROUILLÉE : DejaVu Sans 800, taille 68 px en 1080×1920, blanc #FFFFFF, accent cyan clair #7CE8FF; 4 mots maximum, mot actif et apparition douce.","PÉDAGOGIE : images uniquement lorsque les outils et étapes sont réellement cités; aucun écran fictif; retour rapide vers la facecam.","Supprimer les silences dès 560 ms et les hésitations détectées.","Afficher des cartes d’étapes uniquement si une étape est réellement annoncée.","Jusqu’à 5 recadrages et 5 B-rolls d’outils, objets ou interfaces cités par 30 s.","Faire correspondre la durée des illustrations aux phrases et actions expliquées.","Utiliser des sous-titres didactiques et un son discret."],
-    never:"Pas de capture de logiciel fictive, d’étape créée de toutes pièces ou d’image générique."
-  },
-  {
-    id:"ugc_native",name:"UGC Native",category:"Native social",preview:"UGC",meta:"Human · phone-native · direct",
-    goal:"Conserver un rendu smartphone naturel, spontané et convaincant.",
-    actions:["IDENTITÉ VERROUILLÉE : DejaVu Sans 850, taille 68 px en 1080×1920, blanc #FFFFFF, accent rose #FF3FBF; 4 mots maximum, mot actif et pop léger.","NATIVITÉ : gestuelle et produit visibles, cuts smartphone, très peu de B-rolls, aucun effet publicitaire ou preuve inventée.","Préserver les respirations courtes, les gestes et les imperfections humaines utiles.","Ne couper que les silences de 740 ms ou plus.","Limiter à 3 zooms subtils et 1 insert produit pertinent par 30 s.","Utiliser des sous-titres modernes aux couleurs du modèle sans cartouche publicitaire forcé.","Nettoyer légèrement l’image et la voix sans dénaturer la captation."],
-    never:"Pas de badges commerciaux, de cartes graphiques automatiques, ni de montage trop publicitaire."
-  },
+    "id": "social_kinetic",
+    "name": "Social Kinetic",
+    "category": "Motion éditorial",
+    "preview": "KINETIC",
+    "meta": "Moteur cinétique connecté · animations conditionnées aux preuves temporelles et visuelles",
+    "goal": "Facecam, mots animés intégrés au décor, bulles bleues et chiffres vérifiés.",
+    "actions": [
+      "Le moteur cinétique fonctionne. Sans alignement forcé et preuve de zone libre, il rend uniquement les sous-titres et les cuts vérifiés.",
+      "Suivre la référence vidéo reçue le 16 octobre.",
+      "N'afficher un chiffre que s'il est réellement prononcé.",
+      "Animer uniquement dans une zone visuelle libre, sans cacher le visage."
+    ],
+    "never": "Pas d'animation décorative ou de statistique inventée.",
+    "available": true,
+    "state": "BÊTA · MOTEUR CONNECTÉ"
+  }
 ];
-
 async function freshSession(){
   let {data,error}=await supabase.auth.getSession();
   if(error)throw error;
@@ -111,13 +146,14 @@ function safeName(name:string){return name.replace(/[^a-zA-Z0-9._-]+/g,"-").slic
 
 export function Dashboard(){
   const [session,setSession]=useState<any>(null);
+  const [authReady,setAuthReady]=useState(false);
   const [email,setEmail]=useState("");
   const [password,setPassword]=useState("");
   const [authMode,setAuthMode]=useState<"login"|"signup">("login");
   const [authError,setAuthError]=useState("");
   const [authPending,setAuthPending]=useState(false);
   const authLock=useRef(false);
-  const [active,setActive]=useState<Module>("viral");
+  const [active,setActive]=useState<Module>("edit");
   const [file,setFile]=useState<File|null>(null);
   const [media,setMedia]=useState<Media|null>(null);
   const [uploadPct,setUploadPct]=useState(0);
@@ -141,6 +177,7 @@ export function Dashboard(){
   const [editExportUrl,setEditExportUrl]=useState("");
   const [editOutputMediaId,setEditOutputMediaId]=useState("");
   const [preFixScore,setPreFixScore]=useState<number|null>(null);
+  const [preFixVersion,setPreFixVersion]=useState<string|null>(null);
   const [busy,setBusy]=useState(false);
   const pollRef=useRef<ReturnType<typeof setTimeout>|null>(null);
   const pollGeneration=useRef(0);
@@ -150,9 +187,10 @@ export function Dashboard(){
 
   useEffect(()=>{
     const requested=new URLSearchParams(window.location.search).get("tool");
-    if(requested==="viral"||requested==="edit"||requested==="clip")setActive(requested);
-    supabase.auth.getSession().then(({data})=>setSession(data.session));
-    const {data}=supabase.auth.onAuthStateChange((_event,next)=>setSession(next));
+    if(requested==="viral"||requested==="edit")setActive(requested);
+    else if(requested==="clip"){setActive("viral");history.replaceState(null,"","/dashboard?tool=viral");}
+    supabase.auth.getSession().then(({data})=>setSession(data.session)).catch(()=>setSession(null)).finally(()=>setAuthReady(true));
+    const {data}=supabase.auth.onAuthStateChange((_event,next)=>{setSession(next);setAuthReady(true)});
     return ()=>data.subscription.unsubscribe();
   },[]);
   useEffect(()=>{
@@ -170,7 +208,7 @@ export function Dashboard(){
         const saved=localStorage.getItem(`viral-studio-active-job:${owner}`);
         const parsed=saved?JSON.parse(saved):null;
         if(parsed?.id&&["core","clip"].includes(parsed.channel)){
-          setActive(parsed.module||"viral");setBusy(true);
+          setActive(parsed.module==="edit"?"edit":"viral");setBusy(true);
           void watchJob(parsed.id,parsed.channel);
         }
       }catch{}
@@ -192,7 +230,7 @@ export function Dashboard(){
   const safeZone=analysis?.safe_zone||null;
 
   function switchModule(next:Module){
-    if(busy||uploadLocked.current)return;
+    if(busy||uploadLocked.current||next==="clip")return;
     setActive(next);
     setError("");
     setJob(null);
@@ -243,7 +281,7 @@ export function Dashboard(){
       if(isClip){setClipFile(selected);setClipMedia(null);setClipUploadPct(0);setClipProject(null)}
       else{
         setSourceUrl(URL.createObjectURL(selected));setFile(selected);setMedia(null);
-        setAnalysis(null);setUploadPct(0);setEditExportUrl("");setEditOutputMediaId("");setPreFixScore(null);
+        setAnalysis(null);setUploadPct(0);setEditExportUrl("");setEditOutputMediaId("");setPreFixScore(null);setPreFixVersion(null);
       }
       setJob(null);
       const sendPart=async(partIndex:number):Promise<void>=>{
@@ -311,7 +349,7 @@ export function Dashboard(){
         const body=await api(url,token);
         if(!alive())return;
         setJob(body.job);
-        setActive(body.job.kind==="clip_generate"?"clip":body.job.kind==="edit_render"?"edit":"viral");
+        setActive(body.job.kind==="edit_render"?"edit":body.job.kind==="viral_analysis"?"viral":active);
         // Every ready output becomes accessible immediately, including after a browser restart.
         if(kind==="clip"&&body.job.clip_project_id){
           try{
@@ -403,11 +441,13 @@ export function Dashboard(){
 
   async function startEdit(autoFix=false){
     if(busy||uploadLocked.current)return;if(!media)return setError("Importe d’abord une vidéo.");
-    const modelToUse=autoFix?pickAutoFixModel(analysis):editModel;
+    const modelToUse=autoFix?"codie":editModel;
+    if(!["codie","hormozi_omni","social_kinetic"].includes(modelToUse))return setError("Ce modèle n’est pas encore raccordé au moteur. Aucun preset de remplacement ne sera lancé.");
 
     if(autoFix){
       const before=Number(score);
       setPreFixScore(Number.isFinite(before)?before:null);
+      setPreFixVersion(String(analysis?.score_version||""));
       setEditModel(modelToUse);
       setActive("edit");
       history.replaceState(null,"","/dashboard?tool=edit");
@@ -488,36 +528,40 @@ export function Dashboard(){
     }catch(e:any){setError(e.message)}
   }
 
+  if(!authReady)return <main className="social-loading" role="status" aria-live="polite"><div className="social-loading-icon">S+</div><p>Ouverture de Social+…</p></main>;
+
   if(!session)return <main className="auth-screen"><div className="auth-orb"/><section className="auth-box">
-    <div className="side-brand big">VIRAL <span>STUDIO</span></div>
-    <h1>{authMode==="login"?"Welcome back.":"Create your studio."}</h1><p>Clip. Edit. Analyze. Export.</p>
-    <form onSubmit={authenticate} aria-busy={authPending}><input className="field" type="email" autoComplete="email" disabled={authPending} value={email} onChange={e=>setEmail(e.target.value)} placeholder="Email" required/><input className="field" type="password" autoComplete={authMode==="login"?"current-password":"new-password"} disabled={authPending} value={password} onChange={e=>setPassword(e.target.value)} placeholder="Password" minLength={6} required/><button type="submit" disabled={authPending} className="btn primary auth-submit">{authPending?"Connexion…":authMode==="login"?"Sign in":"Create account"}</button></form>
+    <div className="side-brand big">SOCIAL <span>+</span></div>
+    <h1>{authMode==="login"?"Bon retour.":"Bienvenue sur Social+."}</h1><p>Montage intelligent avec Edit+. Analyse éditoriale avec Viral+.</p>
+    <form onSubmit={authenticate} aria-busy={authPending}><input className="field" type="email" autoComplete="email" disabled={authPending} value={email} onChange={e=>setEmail(e.target.value)} placeholder="Email" required/><input className="field" type="password" autoComplete={authMode==="login"?"current-password":"new-password"} disabled={authPending} value={password} onChange={e=>setPassword(e.target.value)} placeholder="Password" minLength={6} required/><button type="submit" disabled={authPending} className="btn primary auth-submit">{authPending?"Connexion…":authMode==="login"?"Se connecter":"Créer mon compte"}</button></form>
     {authError&&<div role="alert" className="error auth-error">{authError}</div>}{authNotice&&<p role="status">{authNotice}</p>}
-    <button className="auth-switch" disabled={authPending} onClick={()=>{setAuthError("");setAuthNotice("");setAuthMode(authMode==="login"?"signup":"login")}}>{authMode==="login"?"No account? Create one":"Already registered? Sign in"}</button>
+    <button className="auth-switch" disabled={authPending} onClick={()=>{setAuthError("");setAuthNotice("");setAuthMode(authMode==="login"?"signup":"login")}}>{authMode==="login"?"Créer un compte":"Déjà inscrit ? Se connecter"}</button>
   </section></main>;
 
   return <main className="dashboard-shell">
     <aside className="sidebar">
-      <div className="side-brand">VIRAL <span>STUDIO</span></div>
-      <div className="side-group"><small>CREATE</small>
-        <button className="side-link" onClick={()=>switchModule("viral")}><BarChart3 size={16}/> Viral+</button>
-        <button className="side-link" onClick={()=>switchModule("edit")}><Clapperboard size={16}/> Edit+</button>
-        <button className="side-link" onClick={()=>switchModule("clip")}><Scissors size={16}/> Clip+</button>
+      <div className="side-brand">SOCIAL<span>+</span></div>
+      <div className="side-group"><small>TES OUTILS</small>
+        <button type="button" className={`side-link ${active==="edit"?"active":""}`} disabled={busy||uploading} onClick={()=>switchModule("edit")}><Clapperboard size={17}/> Edit+</button>
+        <button type="button" className={`side-link ${active==="viral"?"active":""}`} disabled={busy||uploading} onClick={()=>switchModule("viral")}><BarChart3 size={17}/> Viral+</button>
       </div>
-      <div className="side-group"><small>ACCOUNT</small><button className="side-link" onClick={()=>supabase.auth.signOut()}><LogOut size={16}/> Sign out</button></div>
+      <div className="side-group social-account"><small>COMPTE</small><button type="button" className="side-link" onClick={()=>void supabase.auth.signOut()}><LogOut size={16}/> Se déconnecter</button></div>
     </aside>
 
     <section className="dash-main">
-      <header className="dash-top"><div><h1>What are we creating today?</h1><p>Three tools. One simple workflow.</p></div><div className="user-pill">{session.user.email}</div></header>
-      <div className="module-tabs"><button className={active==="viral"?"active":""} onClick={()=>switchModule("viral")}>Viral+</button><button className={active==="edit"?"active":""} onClick={()=>switchModule("edit")}>Edit+</button><button className={active==="clip"?"active":""} onClick={()=>switchModule("clip")}>Clip+</button></div>
+      <header className="dash-top social-dash-head"><div><div className="social-dash-kicker">SOCIAL+ / STUDIO VIDÉO</div><h1>{active==="edit"?"Montage intelligent.":"Analyse éditoriale."}</h1><p>{active==="edit"?"Un vrai montage adapté à ton contenu, pas des effets automatiques sans raison.":"Comprends ce qui peut être amélioré et pourquoi, avec des observations vérifiables."}</p></div><div className="social-user-actions"><span className="user-pill" title={session.user.email}>{session.user.email}</span><button type="button" className="social-signout" onClick={()=>void supabase.auth.signOut()} aria-label="Se déconnecter"><LogOut size={16}/><span>Quitter</span></button></div></header>
+      <div className="module-tabs social-workspace-tabs" role="group" aria-label="Choisir un outil">
+        <button type="button" aria-pressed={active==="edit"} disabled={busy||uploading} className={active==="edit"?"active":""} onClick={()=>switchModule("edit")}><Clapperboard size={18}/><span><strong>Edit+</strong><small>Monter une vidéo</small></span></button>
+        <button type="button" aria-pressed={active==="viral"} disabled={busy||uploading} className={active==="viral"?"active":""} onClick={()=>switchModule("viral")}><BarChart3 size={18}/><span><strong>Viral+</strong><small>Analyser une vidéo</small></span></button>
+      </div>
 
       {active==="viral"&&<div className="workspace-grid">
         <section className="panel">
-          <small className="eyebrow">VIRAL+ · ANALYZE</small><h3>Upload. Understand what blocks the video.</h3>
+          <small className="eyebrow">VIRAL+ / ANALYSER</small><h3>Comprends les forces et les faiblesses de ta vidéo.</h3><p className="social-panel-explainer">Ajoute ton rush. Viral+ examine le hook, la clarté, le rythme et les passages à revoir, sans inventer de données Instagram.</p>
           {viralQuota&&<p role="status" className="quota-status" data-testid="viral-monthly-quota">Analyses ce mois : <strong>{viralQuota.used}/{viralQuota.limit}</strong> · {viralQuota.remaining} disponibles · renouvellement le {new Date(viralQuota.reset_at).toLocaleDateString("fr-FR",{day:"numeric",month:"long"})}</p>}
-          <label className="upload-zone"><input type="file" disabled={busy||uploading} accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" onChange={e=>{const f=e.currentTarget.files?.[0];e.currentTarget.value="";if(f)void uploadVideo(f)}}/><div><Upload size={30}/><b>{file?file.name:media?"Clip importé — prêt à analyser":"Drop a Reel here"}</b><span>MP4 · MOV · WebM · max {MAX_VIDEO_UPLOAD_MIB} Mo</span></div></label>
-          {file&&<div className="progress"><i style={{width:`${uploadPct}%`}}/></div>}
-          <button className="btn primary full" onClick={startAnalysis} disabled={!media||busy||uploading}><Zap size={16}/> {busy&&job?.kind==="viral_analysis"?"Analyzing…":"Analyze video"}</button>
+          <label className="upload-zone"><input type="file" disabled={busy||uploading} accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" onChange={e=>{const f=e.currentTarget.files?.[0];e.currentTarget.value="";if(f)void uploadVideo(f)}}/><div><Upload size={30}/><b>{file?file.name:media?"Vidéo importée, prête à analyser":"Choisir une vidéo à analyser"}</b><span>MP4 · MOV · WebM · max {MAX_VIDEO_UPLOAD_MIB} Mo</span></div></label>
+          {file&&<div className="social-upload-status" role="status" aria-live="polite"><span>{uploading?"Import en cours":media?"Import terminé":"Préparation du fichier"}</span><strong>{uploadPct}%</strong><div className="progress"><i style={{width:`${uploadPct}%`}}/></div></div>}
+          <button className="btn primary full" onClick={startAnalysis} disabled={!media||busy||uploading}><Zap size={16}/> {busy&&job?.kind==="viral_analysis"?"Analyse en cours…":uploading?"Import en cours…":"Analyser ma vidéo"}</button>
           <InlineJobState job={job?.kind==="viral_analysis"?job:null}/>
           {error&&<div className="job-card error">{error}</div>}
         </section>
@@ -527,94 +571,112 @@ export function Dashboard(){
       {active==="edit"&&<>
         <div className="workspace-grid">
           <section className="panel">
-            <small className="eyebrow">EDIT+ · AI EDIT</small><h3>Upload once. Pick the look. Edit+ does the rest.</h3>
-            <label className="upload-zone"><input type="file" disabled={busy||uploading} accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" onChange={e=>{const f=e.currentTarget.files?.[0];e.currentTarget.value="";if(f)void uploadVideo(f)}}/><div><Upload size={30}/><b>{file?file.name:media?"Clip importé — prêt à monter":"Drop your video here"}</b><span>MP4 · MOV · WebM · max {MAX_VIDEO_UPLOAD_MIB} Mo · 5 modèles ciblés</span></div></label>
-            {file&&<div className="progress"><i style={{width:`${uploadPct}%`}}/></div>}
+            <small className="eyebrow">EDIT+ / MONTER</small><h3>Un montage construit autour de tes paroles.</h3><p className="social-panel-explainer">Importe un rush, sélectionne un style puis génère un export. L'original reste intact.</p>
+            <label className="upload-zone"><input type="file" disabled={busy||uploading} accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" onChange={e=>{const f=e.currentTarget.files?.[0];e.currentTarget.value="";if(f)void uploadVideo(f)}}/><div><Upload size={30}/><b>{file?file.name:media?"Vidéo importée, prête à monter":"Choisir une vidéo à monter"}</b><span>MP4 · MOV · WebM · max {MAX_VIDEO_UPLOAD_MIB} Mo · 3 moteurs bêta disponibles</span></div></label>
+            {file&&<div className="social-upload-status" role="status" aria-live="polite"><span>{uploading?"Import en cours":media?"Import terminé":"Préparation du fichier"}</span><strong>{uploadPct}%</strong><div className="progress"><i style={{width:`${uploadPct}%`}}/></div></div>}
             {error&&<div role="alert" className="job-card error">{error}</div>}
-            <div className="status-row"><span>Video</span><span className="status-pill">{media?"Ready":file?`${uploadPct}%`:"Waiting"}</span></div>
+            <div className="status-row"><span>Fichier vidéo</span><span className="status-pill">{media?"Prêt":file?`${uploadPct}%`:"En attente"}</span></div>
           </section>
           {sourceUrl?<video ref={sourceRef} className="source-preview" src={sourceUrl} controls playsInline/>:<BackendState media={media} job={job}/>}
         </div>
 
         <section className="model-library">
-          <div className="section-heading"><small>5 MODÈLES CIBLÉS</small><h2>Choisis ton langage de montage.</h2><p>Codie, Impact, Clean, Explainer et UGC Native. Les autres styles sont retirés temporairement pour concentrer le travail sur la qualité réelle des exports.</p></div>
-          <div className="model-grid">{EDIT_MODELS.map(model=><button key={model.id} className={`model-card ${editModel===model.id?"selected":""}`} data-model={model.id} onClick={()=>setEditModel(model.id)}>
-            <div className={`model-preview ${model.id==="editorial_breakdown"?"editorial-preview":""}`}><div className="preview-face"/><div className="preview-caption">{model.preview}</div><div className="preview-cut"/><span className="preview-badge">{model.name}</span></div>
-            <div className="model-copy"><div><strong>{model.name}</strong><span>{model.category}</span></div>{editModel===model.id&&<Check size={18}/>}<p>{model.meta}</p></div>
-          </button>)}</div>
+          <div className="section-heading"><small>4 RÉFÉRENCES RETENUES</small><h2>Choisis ton modèle de montage.</h2><p>Les moteurs Codie, Alex Hormozi et Social Kinetic sont raccordés en bêta. Leila n’est pas encore disponible. Les rendus complets restent à comparer aux références avant validation finale.</p></div>
+          <div className="model-grid social-approved-model-grid">{EDIT_MODELS.map(model=><button type="button" key={model.id} disabled={!model.available||busy||uploading} aria-label={`${model.name} — ${model.state}`} className={`model-card social-approved-model ${editModel===model.id?"selected":""} ${model.available?"is-available":"is-pending"}`} data-model={model.id} onClick={()=>{if(model.available){setEditModel(model.id);if(model.id==="hormozi_omni")setFormat("native")}}}>
+              <div className="social-model-identity"><span>EDIT+ / {model.preview}</span><small className={`social-model-state ${model.available?"beta":"pending"}`}>{model.state}</small><strong>{model.name}</strong><p>{model.goal}</p></div>
+              <div className="model-copy"><div><strong>{model.name}</strong><span>{model.category}</span></div>{editModel===model.id&&<Check size={18}/>}<p>{model.meta}</p></div>
+            </button>)}</div>
+          <p className="social-model-truth" role="note">Les trois moteurs activés produisent un rendu bêta, sans garantie de reproduction fidèle des vidéos de référence. Leila reste désactivé. Aucun modèle non reconnu n’est remplacé silencieusement.</p>
           <section className="model-action-contract" data-testid="edit-model-action-contract" aria-live="polite">
             <div className="contract-head"><span>CONTRAT DE MONTAGE · {selectedModel.name.toUpperCase()}</span><h3>{selectedModel.goal}</h3></div>
-            <p className="contract-notice">Identité visuelle verrouillée par modèle. Les quantités sont des plafonds, pas des effets obligatoires : un montage utile prime sur le remplissage.</p>
+            <p className="contract-notice">Le contrat décrit la référence de montage souhaitée. Le moteur historique disponible ne garantit pas encore la fidélité à la V60.</p>
             <ol>{selectedModel.actions.map((action,i)=><li key={i}><span>{String(i+1).padStart(2,"0")}</span><p>{action}</p></li>)}</ol>
             <div className="contract-avoid"><strong>À éviter</strong><p>{selectedModel.never}</p></div>
           </section>
-          <label className="format-picker">Format de sortie <select className="field" value={format} onChange={e=>setFormat(e.target.value)} disabled={busy}><option value="native">Natif — conserver le format source</option><option value="portrait">Portrait — 1080 × 1920</option><option value="landscape">Paysage — 1920 × 1080</option></select></label>
-          <button className="btn primary create-edit" onClick={()=>void startEdit(false)} disabled={!media||busy||uploading}><Clapperboard size={17}/> {busy&&job?.kind==="edit_render"?"Editing…":`Create with ${selectedModel.name}`}</button>
+          <label className="format-picker">Format de sortie {selectedModel.id==="hormozi_omni"&&<small>· Format natif obligatoire pour préserver le cadrage</small>} <select className="field" value={selectedModel.id==="hormozi_omni"?"native":format} onChange={e=>setFormat(e.target.value)} disabled={busy||selectedModel.id==="hormozi_omni"}><option value="native">Natif — conserver le format source</option><option value="portrait">Portrait — 1080 × 1920</option><option value="landscape">Paysage — 1920 × 1080</option></select></label>
+          <button className="btn primary create-edit" onClick={()=>void startEdit(false)} disabled={!media||busy||uploading||!selectedModel.available}><Clapperboard size={17}/> {busy&&job?.kind==="edit_render"?"Montage en cours…":`Créer mon montage · ${selectedModel.name}`}</button>
+          <p className="social-model-truth" role="note">{selectedModel.id==="hormozi_omni"?"Hormozi conserve obligatoirement le cadrage et le format de la source. Les animations fondées sur des preuves peuvent être absentes si l’analyse n’en fournit pas.":selectedModel.id==="social_kinetic"?"Social Kinetic : les animations n’apparaissent que si leurs mots, leurs timings et leur emplacement sont vérifiés.":"Codie bêta : le rendu V60 reste à comparer et à valider."}</p>
           <InlineJobState job={job?.kind==="edit_render"?job:null}/>
         </section>
       </>}
 
-      {active==="clip"&&<div className="workspace-grid">
-        <section className="panel clip-url-panel">
-          <small className="eyebrow">CLIP+ · YOUTUBE TO SHORTS</small><h3>Paste a long YouTube video. Get the best Shorts.</h3>
-          <p className="clip-promise">URL → analyse des moments forts → extraits de 10 à 15 secondes → 9:16 → captions → clips prêts à poster.</p>
-          <div className="url-box"><Link2 size={20}/><input value={clipUrl} onChange={e=>{setClipUrl(e.target.value);setClipMedia(null)}} placeholder="Paste YouTube URL"/></div>
-          <button type="button" className="clip-upload-toggle" onClick={()=>setClipFallback(v=>!v)}>{clipFallback?"Hide file import":"YouTube blocked? Import the video instead"}</button>
-          {clipFallback&&<div className="clip-upload-fallback">
-            <small>DIRECT FILE FALLBACK</small>
-            <p>MP4, MOV ou WebM. Le fichier rejoint ensuite le même moteur Clip+ : sélection des passages, 9:16 et captions.</p>
-            <label className="upload-zone compact"><input type="file" disabled={busy||uploading} accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" onChange={e=>{const f=e.currentTarget.files?.[0];e.currentTarget.value="";if(f)void uploadClipSource(f)}}/><div><Upload size={24}/><b>{clipFile?clipFile.name:"Import the source video"}</b><span>{clipMedia?"Ready for Clip+":clipFile?`${clipUploadPct}% uploaded`:`Max ${MAX_VIDEO_UPLOAD_MIB} Mo actuellement`}</span></div></label>
-            {clipFile&&<div className="progress"><i style={{width:`${clipUploadPct}%`}}/></div>}
-          </div>}
-          <div className="clip-count-label">Combien d’extraits courts de 10–15 s veux-tu ?</div>
-          <div className="clip-count-selector">{([5,10,20] as const).map(n=><button key={n} className={clipCount===n?"selected":""} onClick={()=>setClipCount(n)}><strong>{n}</strong><span>clips</span></button>)}</div>
-          <div className="quality-note"><Check size={14}/><span>Meilleurs moments uniquement : hook immédiat, idée autonome, chute naturelle. Clip+ peut en produire moins si la vidéo ne contient pas assez de passages forts.</span></div>
-          <label className="rights-check"><input type="checkbox" checked={clipRights} onChange={e=>setClipRights(e.target.checked)}/><span>Je confirme que je possède cette vidéo ou que j’ai l’autorisation de la traiter.</span></label>
-          <button className="btn primary full" onClick={startClip} disabled={(!clipMedia&&!clipUrl.trim())||!clipRights||busy||uploading}><Scissors size={16}/> {busy&&job?.kind==="clip_generate"?`Creating up to ${clipCount} clips…`:clipMedia?`Generate ${clipCount} clips from upload`:`Generate ${clipCount} clips`}</button>
-          <InlineJobState job={job?.kind==="clip_generate"?job:null}/>
-          {error&&<div className="job-card error">{error}</div>}
-        </section>
-        <BackendState media={null} job={job}/>
-      </div>}
-
-      {active==="edit"&&editExportUrl&&<section className="result-panel edit-result"><div className="result-copy"><small>EDIT+ · READY</small><h2>{selectedModel.name} render ready.</h2><p>The final video was rendered with the locked {selectedModel.name} model.</p><div className="result-actions"><a className="btn primary" href={editExportUrl} target="_blank" rel="noreferrer">Open MP4 ↗</a><button className="btn ghost" onClick={()=>void analyzeEditOutput()} disabled={busy||!editOutputMediaId}>Analyze improved version →</button></div></div><video className="result-video" src={editExportUrl} controls playsInline/></section>}
+      {active==="edit"&&editExportUrl&&<section className="result-panel edit-result"><div className="result-copy"><small>EDIT+ · EXPORT TERMINÉ</small><h2>Ton montage {selectedModel.name} est prêt.</h2><p>Regarde l’export puis télécharge-le pour le publier.</p><div className="result-actions"><a className="btn primary" href={editExportUrl} target="_blank" rel="noreferrer">Ouvrir le MP4 ↗</a><button className="btn ghost" onClick={()=>void analyzeEditOutput()} disabled={busy||!editOutputMediaId}>Analyser dans Viral+ <ArrowRight size={15}/></button></div></div><video className="result-video" src={editExportUrl} controls playsInline/></section>}
 
       {active==="viral"&&analysis&&<>
         <section className="result-panel viral-hero-result">
-          <div><small>VIRAL SCORE</small><div className="score-big">{score??"—"}<span>/100</span></div><div className="score-version">{preFixScore!==null&&score!==null?`Before ${preFixScore} → Now ${score}`:"Creative potential · pre-publish"}</div></div>
-          <div className="result-copy"><small>VERDICT</small><h2>{analysis.main_problem||"Diagnostic completed"}</h2><p>{analysis.verdict||analysis.why}</p><div className="result-why">{analysis.why}</div><button className="btn primary" onClick={()=>void startEdit(true)} disabled={busy}>FIX WITH AI →</button></div>
+          <div><small>VIRAL SCORE · QUALITÉ ÉDITORIALE ESTIMÉE</small><div className="score-big">{score??"—"}<span>/100</span></div><div className="score-version">{preFixScore!==null&&score!==null?(preFixVersion&&preFixVersion===analysis.score_version?`Score créatif estimé : avant ${preFixScore} → après ${score} (pas des performances Instagram)`:"Scores non comparables : méthodologies différentes"):"Potentiel créatif estimé · avant publication"}</div></div>
+          <div className="result-copy"><small>VERDICT</small><h2>{analysis.main_problem||"Diagnostic completed"}</h2><p>{analysis.verdict||analysis.why}</p><div className="result-why">{analysis.why}</div><button className="btn primary" onClick={()=>void startEdit(true)} disabled={busy}>Essayer avec Edit+ <ArrowRight size={15}/></button></div>
         </section>
 
+        {analysis.score_audit?.methodology&&<section className="viral-calibration-truth" aria-label="Méthodologie du score">
+          <div className="viral-calibration-intro"><strong>Ce que ce score mesure réellement</strong><p>Qualité éditoriale estimée sur la vidéo : accroche, clarté, progression, structure et réalisation. Ce n'est ni une probabilité de viralité ni une prévision des vues.</p></div>
+          <div className="viral-calibration-tags"><span>Critères pondérés publiquement</span><span>Signaux techniques contextualisés</span><span>Comparaison valable entre analyses de même version</span></div>
+          {analysis.score_audit.caveats?.length>0&&<details><summary>Vérifications de contexte</summary><div>{analysis.score_audit.caveats.map((item:string,i:number)=><p key={i}>{item}</p>)}</div></details>}
+          {analysis.score_audit.independent_video_review?.disputed_criteria?.length>0&&<p className="viral-calibration-disputed"><strong>Vérification complémentaire recommandée :</strong> divergence entre les analyses IA sur {analysis.score_audit.independent_video_review.disputed_criteria.map((key:string)=>key.replaceAll("_"," ")).join(", ")}. Ces notes restent des estimations à examiner, pas une vérité.</p>}
+          {analysis.score_audit.independent_video_review?.status==="unavailable"&&<p className="viral-calibration-disputed">Contrôle contradictoire du score indisponible : résultat provisoire à considérer avec prudence.</p>}
+          <small>Ce score n'est pas encore étalonné statistiquement sur de véritables performances Instagram ou TikTok. Seules des données de publication pourraient valider son pouvoir prédictif.</small>
+        </section>}
+        {analysis.top_priority&&<section className="viral-v5-priority" aria-label="Priorité éditoriale du Viral Score">
+          <div className="viral-v5-heading">
+            <small>PRIORITÉ N°1 · SCORE PONDÉRÉ</small>
+            <strong>{String(analysis.top_priority.key||"").replaceAll("_"," ")} · {analysis.top_priority.score}/100</strong>
+            <span>Impact théorique maximal : {Number(analysis.top_priority.impact_points||0).toFixed(1)} point(s) sur le Viral Score</span>
+          </div>
+          <div className="viral-v5-detail">
+            <p>{analysis.top_priority.evidence||"Preuve insuffisante : diagnostic à vérifier."}</p>
+            {analysis.top_priority.exact_change&&<div className="viral-v5-action"><b>Correction précise</b><span>{analysis.top_priority.exact_change}</span></div>}
+            {analysis.top_priority.start_sec!==null&&analysis.top_priority.start_sec!==undefined&&<button className="viral-v5-seek" onClick={()=>{if(sourceRef.current){sourceRef.current.currentTime=Number(analysis.top_priority.start_sec)||0;sourceRef.current.scrollIntoView({behavior:"smooth",block:"center"});}}}>Examiner le passage à {Number(analysis.top_priority.start_sec||0).toFixed(1)} s ▶</button>}
+          </div>
+        </section>}
+
         <section className="viral-detail-section">
-          <div className="section-heading"><small>DETAILED SCORING</small><h2>Exactly where the score comes from.</h2><p>Each criterion is scored independently, with the observable reason behind it.</p></div>
+          <div className="section-heading"><small>LE DÉTAIL DU SCORE</small><h2>Comprends chaque critère.</h2><p>Chaque note repose sur une évaluation éditoriale et ses observations. Pas sur des statistiques Instagram.</p></div>
           <div className="viral-score-grid">
-            {VIRAL_METRICS.map(([key,label])=>{const value=analysis.scores?.[key];const evidence=analysis.score_evidence?.[key];const breakdown=(analysis.score_breakdown||[]).find((x:any)=>x.key===key);return <article className={`viral-metric ${scoreTone(value)}`} key={key}><div className="metric-head"><span>{label}</span><strong>{value??"—"}<small>/100</small></strong></div><div className="metric-bar"><i style={{width:`${Math.max(0,Math.min(100,Number(value||0)))}%`}}/></div><p>{evidence||"No evidence returned."}</p>{breakdown&&<div className="score-weight"><span>Weight {breakdown.weight}%</span><b>+{breakdown.contribution} pts</b></div>}{key==="cta"&&<small className="metric-note">Diagnosed separately · 0% weight in Viral Score</small>}</article>})}
+            {VIRAL_METRICS.map(([key,label])=>{const value=analysis.scores?.[key];const evidence=analysis.score_evidence?.[key];const breakdown=(analysis.score_breakdown||[]).find((x:any)=>x.key===key);return <article className={`viral-metric ${scoreTone(value)}`} key={key}><div className="metric-head"><span>{label}</span><strong>{value??"—"}<small>/100</small></strong></div><div className="metric-bar"><i style={{width:`${Math.max(0,Math.min(100,Number(value||0)))}%`}}/></div><p>{evidence||"Aucune observation fournie."}</p>{breakdown&&<div className="score-weight"><span>Poids {breakdown.weight}%</span><b>+{breakdown.contribution} pts</b></div>}{key==="cta"&&<small className="metric-note">Diagnostiqué à part · 0 % dans le score</small>}</article>})}
           </div>
         </section>
 
         <section className="viral-fix-grid">
           <article className="viral-fix-card priority-card">
-            <small>TOP 3 FIXES</small><h3>Change these before posting.</h3>
-            <div className="fix-plan-list">{(analysis.fix_plan?.length?analysis.fix_plan:(analysis.action_items||[]).map((item:any,i:number)=>({priority:i+1,area:"editing",problem:item,exact_change:item}))).slice(0,3).map((item:any,i:number)=><div className="fix-plan-item" key={i}><div className="fix-priority">P{item.priority||i+1}</div><div><div className="fix-meta"><strong>{String(item.area||"editing").toUpperCase()}</strong>{Number(item.end_sec||0)>Number(item.start_sec||0)&&<span>{Number(item.start_sec||0).toFixed(1)}s → {Number(item.end_sec||0).toFixed(1)}s</span>}</div>{item.problem&&<p><b>Problem:</b> {item.problem}</p>}{item.why_it_matters&&<p><b>Why:</b> {item.why_it_matters}</p>}<div className="exact-change"><b>DO THIS →</b> {item.exact_change||item.problem}</div>{item.example&&<div className="fix-example"><b>Example:</b> {item.example}</div>}{item.expected_effect&&<small>{item.expected_effect}</small>}</div></div>)}</div>
+            <small>À CORRIGER, SI NÉCESSAIRE</small><h3>Des modifications concrètes.</h3>
+            <div className="fix-plan-list">{(analysis.fix_plan?.length?analysis.fix_plan:(analysis.action_items||[]).map((item:any,i:number)=>({priority:i+1,area:"editing",problem:item,exact_change:item}))).slice(0,3).map((item:any,i:number)=><div className="fix-plan-item" key={i}><div className="fix-priority">P{item.priority||i+1}</div><div><div className="fix-meta"><strong>{String(item.area||"editing").toUpperCase()}</strong>{Number(item.end_sec||0)>Number(item.start_sec||0)&&<span>{Number(item.start_sec||0).toFixed(1)}s → {Number(item.end_sec||0).toFixed(1)}s</span>}</div>{item.problem&&<p><b>Problème :</b> {item.problem}</p>}{item.why_it_matters&&<p><b>Pourquoi :</b> {item.why_it_matters}</p>}<div className="exact-change"><b>À FAIRE →</b> {item.exact_change||item.problem}</div>{item.example&&<div className="fix-example"><b>Exemple :</b> {item.example}</div>}{item.evidence_status&&<small className="viral-fix-evidence">{item.evidence_status==="transcript_excerpt_verified"?"Extrait présent dans la transcription":"Observation IA à vérifier dans la vidéo"}</small>}{item.source_quote&&<p className="viral-quote"><b>Extrait :</b> « {item.source_quote} »</p>}{item.observable_evidence&&<p className="viral-quote"><b>Observation :</b> {item.observable_evidence}</p>}{item.expected_effect&&<small>{item.expected_effect}</small>}</div></div>)}</div>
           </article>
           <article className="viral-fix-card rewrite-card">
-            <small>REWRITE</small><h3>Use stronger packaging.</h3>
-            {analysis.recommended_hook&&<div className="rewrite-row"><span>Hook</span><strong>{analysis.recommended_hook}</strong></div>}
-            {analysis.recommended_title&&<div className="rewrite-row"><span>Title</span><strong>{analysis.recommended_title}</strong></div>}
-            {analysis.recommended_cta&&<div className="rewrite-row"><span>CTA</span><strong>{analysis.recommended_cta}</strong></div>}
-            {analysis.alternative_hooks?.length>0&&<div className="alt-hooks">{analysis.alternative_hooks.map((h:any,i:number)=><p key={i}>{i+1}. {h}</p>)}</div>}
+            <small>TESTS POSSIBLES</small><h3>Une meilleure accroche ? Vérifions.</h3>
+            {analysis.recommendation_video_review&&<p className="viral-hook-warning">{analysis.recommendation_video_review.status==="video_review_completed"?"Double contrôle : propositions réexaminées à partir du rush original.":"Second contrôle indisponible : suggestions non vérifiées écartées."}</p>}
+                        {analysis.hook_experiments?.candidates?.length>0?<>
+              <div className="viral-hook-test-flag">HYPOTHÈSES PERSONNALISÉES · PAS DE GAIN GARANTI</div>
+              {analysis.hook_experiments.candidates.map((suggestion:any,i:number)=><div key={i} className="viral-hook-experiment">
+                <small>PROPOSITION {i+1} · {suggestion.variable_changed}</small>
+                <div className="viral-hook-comparison">
+                  <div><span>{analysis.detected_spoken_hook&&analysis.detected_spoken_hook!=="INDETECTABLE"?"A · Accroche actuelle":"A · Extrait réel vérifiable"}</span><p>{analysis.detected_spoken_hook&&analysis.detected_spoken_hook!=="INDETECTABLE"?analysis.detected_spoken_hook:suggestion.source_quote}</p></div>
+                  <div><span>B · Nouvelle ouverture à tester</span><strong>{suggestion.proposed_hook}</strong></div>
+                </div>
+                <p className="viral-hook-reason"><b>Phrase source retrouvée :</b> « {suggestion.source_quote} »</p>
+                <p className="viral-hook-reason"><b>Pourquoi la tester :</b> {suggestion.why_test}</p>
+                <p className="viral-hook-reason"><b>Hypothèse :</b> {suggestion.test_hypothesis}</p>
+              </div>)}
+              <p className="viral-hook-warning">Test A/B conseillé : modifier uniquement l'ouverture, garder le sujet et le reste du montage comparables, puis examiner la rétention et les autres données réelles disponibles. L'algorithme et l'audience peuvent varier.</p>
+              <p className="viral-hook-warning">Aucune variante ne peut être déclarée meilleure avant comparaison des performances réelles.</p>
+            </>:<div className="viral-hook-empty"><strong>Aucune nouvelle accroche suffisamment justifiée</strong><p>{analysis.hook_experiments?.status==="insufficient_verified_context"?"Les suggestions non étayées par la vidéo ont été écartées. Nous préférons ne rien proposer plutôt qu'inventer un hook générique.":"Cette analyse ne dispose pas encore d’une recommandation de hook vérifiée."}</p></div>}
+            {analysis.recommended_title&&<div className="rewrite-row"><span>Titre à tester</span><strong>{analysis.recommended_title}</strong></div>}
+            {analysis.recommended_cta&&<div className="rewrite-row"><span>CTA à tester</span><strong>{analysis.recommended_cta}</strong></div>}
           </article>
         </section>
 
+        {analysis.editorial_risk_map?.length>0&&<section className="viral-v5-risk" aria-label="Risques de décrochage éditoriaux estimés">
+          <div className="section-heading"><small>RISQUES ÉDITORIAUX · ESTIMATION IA</small><h2>Passages susceptibles de perdre l'attention.</h2><p>Ce ne sont pas des données de rétention Instagram : seuls les passages et les problèmes observés sont affichés.</p></div>
+          <div className="viral-v5-risk-rows">{analysis.editorial_risk_map.slice(0,8).map((risk:any,i:number)=><button type="button" key={i} className={`viral-v5-risk-row ${risk.severity==="red"?"risk-high":"risk-mid"}`} onClick={()=>{if(sourceRef.current){sourceRef.current.currentTime=Number(risk.start_sec)||0;sourceRef.current.scrollIntoView({behavior:"smooth",block:"center"});}}}><span className="risk-time">{Number(risk.start_sec||0).toFixed(1)}–{Number(risk.end_sec||0).toFixed(1)} s</span><span className="risk-meaning"><strong>{risk.observed_problem}</strong><small>{risk.suggested_correction}</small></span><span className="risk-play">▶</span></button>)}</div>
+        </section>}
+
         {analysis.timeline?.length>0&&<section className="viral-timeline-panel">
-          <div className="section-heading"><small>TIMELINE FIXES</small><h2>What to change, second by second.</h2></div>
+          <div className="section-heading"><small>CHRONOLOGIE</small><h2>Les passages à vérifier.</h2></div>
           <div className="viral-timeline">{analysis.timeline.map((x:any,i:number)=><article key={i} className={`timeline-fix ${x.severity||"orange"}`}><button className="timeline-time" onClick={()=>{if(sourceRef.current){sourceRef.current.currentTime=Number(x.start_sec)||0;sourceRef.current.scrollIntoView({behavior:"smooth",block:"center"});}}}>{Number(x.start_sec||0).toFixed(1)}s → {Number(x.end_sec||0).toFixed(1)}s ▶</button><div><strong>{x.label||"Moment to fix"}</strong><p>{x.problem}</p><small>{x.correction}</small>{x.broll_query&&<em>B-roll: {x.broll_query}</em>}</div></article>)}</div>
         </section>}
 
-        {safeZone&&<section className="safe-zone-panel"><div className="safe-phone"><div className="unsafe top"/><div className="safe-frame"><span>UNIVERSAL SAFE</span></div><div className="unsafe right"/><div className="unsafe bottom"/></div><div className="safe-copy"><small>SAFE ZONE</small><h2>{safeZone.score??"—"}<span>/100</span></h2><p>{safeZone.summary||"Framing, text and caption placement checked for short-form UI risk."}</p><div className="safe-metrics"><span>Framing <b>{safeZone.framing}</b></span><span>Text <b>{safeZone.text_safety}</b></span><span>Captions <b>{safeZone.caption_safety}</b></span><span>Platform fit <b>{safeZone.platform_fit}</b></span></div>{safeZone.issues?.length>0&&<div className="safe-issues">{safeZone.issues.slice(0,6).map((x:any,i:number)=><div className={`safe-issue ${x.severity}`} key={i}><strong>{x.element}</strong><span>{x.problem}</span><small>{x.correction}</small></div>)}</div>}</div></section>}
+        {safeZone&&<section className="safe-zone-panel"><div className="safe-phone"><div className="unsafe top"/><div className="safe-frame"><span>{safeZone.mode==="native_landscape_composition"?"NATIVE 16:9":"UNIVERSAL SAFE"}</span></div><div className="unsafe right"/><div className="unsafe bottom"/></div><div className="safe-copy"><small>ZONE DE VISIBILITÉ</small><h2>{safeZone.score??"—"}<span>/100</span></h2><p>{safeZone.summary||"Composition et lisibilité estimées sur la vidéo originale."}</p>{safeZone.caution&&<p className="safe-scope-note">{safeZone.caution}</p>}<div className="safe-metrics"><span>Cadrage <b>{safeZone.framing}</b></span><span>Texte <b>{safeZone.text_safety}</b></span><span>Sous-titres <b>{safeZone.caption_safety}</b></span><span>Format <b>{safeZone.platform_fit??"N/A"}</b></span></div>{safeZone.issues?.length>0&&<div className="safe-issues">{safeZone.issues.slice(0,6).map((x:any,i:number)=><div className={`safe-issue ${x.severity}`} key={i}><strong>{x.element}</strong><span>{x.problem}</span><small>{x.correction}</small></div>)}</div>}</div></section>}
       </>}
 
-      {active==="clip"&&clipProject?.clips?.length>0&&<section className="clips-section"><div className="section-heading"><small>CLIP+ · {job?.kind==="clip_generate"&&job.status!=="completed"?"EN COURS":"READY"}</small><h2>{clipProject.clips.length} clip{clipProject.clips.length>1?"s":""} disponible{clipProject.clips.length>1?"s":""}.</h2><p>{job?.kind==="clip_generate"&&!["completed","failed","cancelled"].includes(job.status)?`${clipProject.clips.length}/${clipProject.project?.requested_clip_count||clipCount} export(s) prêt(s). Les autres continuent en arrière-plan.`:clipProject.clips.length<clipCount?`Tu as demandé ${clipCount} clips : ${clipProject.clips.length} ont franchi le seuil qualité.`:"Les clips demandés sont disponibles."}</p></div><div className="clips-grid">{clipProject.clips.map((clip:any)=><article className="clip-card" key={clip.id}><div className="clip-rank">0{clip.rank}</div><strong>{clip.viral_score??"—"}</strong><small>{Number(clip.end_ms)>Number(clip.start_ms)?`${((clip.end_ms-clip.start_ms)/1000).toFixed(1)} s · `:""}Viral potential</small><h3>{clip.title||"Untitled clip"}</h3><p>{clip.hook||clip.rationale}</p><button className="btn primary clip-open" onClick={()=>openClip(clip.id)}>Voir le clip ↗</button><button className="btn ghost" onClick={()=>openClip(clip.id,true)}>Télécharger MP4 ↓</button><button className="btn ghost" onClick={()=>useClip(clip,"edit")}>Open in Edit+ →</button><button className="btn ghost" onClick={()=>useClip(clip,"viral")}>Analyze with Viral+ →</button></article>)}</div></section>}
     </section>
   </main>;
 }
@@ -628,13 +690,13 @@ function InlineJobState({job}:{job:Job|null}){
   if(!job)return null;
   const done=job.status==="completed";
   const label=job.status==="queued"
-    ?"Queued — waiting for worker"
+    ?"En attente de traitement"
     :job.status==="completed"
-      ?"Completed"
+      ?"Terminé"
       :job.status==="failed"
-        ?"Failed"
+        ?"Échec du traitement"
         :job.stage||job.status||"Processing";
-  return <div className="inline-job-state">
+  return <div className="inline-job-state" role="status" aria-live="polite">
     <div><span>{label}</span><b>{done?"100 %":"Étape en cours"}</b></div>
     {done&&<div className="progress"><i style={{width:"100%"}}/></div>}
   </div>;
