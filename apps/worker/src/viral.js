@@ -79,7 +79,8 @@ export async function analyzeVideo({
       geminiKey,
       models:[model,fallbackModel],
       measurable,
-      transcript
+      transcript,
+      onReviewProgress:()=>onProgress('analyzing',74,'Vérification des recommandations')
     });
   }finally{
     if(uploaded?.name)await deleteGeminiFile(uploaded.name,geminiKey).catch(()=>{});
@@ -467,7 +468,8 @@ async function generateSemanticAnalysis({
   geminiKey,
   models,
   measurable,
-  transcript
+  transcript,
+  onReviewProgress=async()=>{}
 }){
   const prompt=`Tu es Viral+, moteur d'analyse éditoriale de vidéos courtes.
 
@@ -640,6 +642,7 @@ Règles:
         .trim();
 
       const parsed=validateSemanticAnalysis(parseJson(text));
+      await onReviewProgress();
       const challenged=await verifyWithVideo({
         fileUri,mimeType,apiKey:geminiKey,
         primaryModel:model,fallbackModel:models.find(x=>x!==model),
