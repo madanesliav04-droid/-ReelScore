@@ -583,7 +583,7 @@ export function Dashboard(){
 
       {active==="viral"&&analysis&&<>
         <section className="result-panel viral-hero-result">
-          <div><small>VIRAL SCORE</small><div className="score-big">{score??"—"}<span>/100</span></div><div className="score-version">{preFixScore!==null&&score!==null?(preFixVersion&&preFixVersion===analysis.score_version?`Avant ${preFixScore} → Après ${score}`:"Scores non comparables : méthodologies différentes"):"Potentiel créatif estimé · avant publication"}</div></div>
+          <div><small>VIRAL SCORE</small><div className="score-big">{score??"—"}<span>/100</span></div><div className="score-version">{preFixScore!==null&&score!==null?(preFixVersion&&preFixVersion===analysis.score_version?`Score créatif estimé : avant ${preFixScore} → après ${score} (pas des performances Instagram)`:"Scores non comparables : méthodologies différentes"):"Potentiel créatif estimé · avant publication"}</div></div>
           <div className="result-copy"><small>VERDICT</small><h2>{analysis.main_problem||"Diagnostic completed"}</h2><p>{analysis.verdict||analysis.why}</p><div className="result-why">{analysis.why}</div><button className="btn primary" onClick={()=>void startEdit(true)} disabled={busy}>FIX WITH AI →</button></div>
         </section>
 
