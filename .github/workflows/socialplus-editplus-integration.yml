@@ -24,7 +24,8 @@ jobs:
         with:
           node-version: '22'
       - run: npm install --omit=dev --no-audit --no-fund
-      - run: ffmpeg -version | head -n 1
+      - name: Install FFmpeg tooling
+        run: sudo apt-get update -qq && sudo apt-get install -y ffmpeg
       - run: node --check src/index.js && node --check src/edit.js && node --check src/render.js && node --check src/social-kinetic-v1.js
       - run: node --test tests/*.test.mjs
   image:
