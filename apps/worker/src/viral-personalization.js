@@ -87,6 +87,9 @@ export function reviewEditorialFixes(fixes,transcript,durationSec){
     if(!Number.isFinite(start)||!Number.isFinite(end)||start<0||end<start||(max!==null&&end>max+1))errors.push('TIMESTAMP_INVALIDE');
     if(observed.length<22)errors.push('OBSERVATION_NON_SPECIFIQUE');
     if(action.length<28||!isConcrete(action)||vague.test(canonical(action)))errors.push('CORRECTION_GENERIQUE');
+    // Precise-looking but decorative changes are not evidence-based fixes.
+    const gratuitous=/\b(transitions? aleatoires?|b roll generiques?|explosions?|effets? gratuits?|images? au hasard|zooms? aleatoires?)\b/i;
+    if(gratuitous.test(canonical(action+' '+example)))errors.push('EFFETS_NON_MOTIVES');
     if(example.length<16)errors.push('EXEMPLE_NON_PERSONNALISE');
     if(type==='transcript'&&!excerptInSource(quote,source))errors.push('CITATION_INTROUVABLE');
     if(errors.length){rejected.push({index:i+1,reasons:errors});continue;}
