@@ -87,3 +87,14 @@ test('risk map only includes a moment overlapping an independently approved edit
  assert.equal(vetted[0].evidence_status,'checked_against_approved_video_fix');
  assert.equal(reviewedTimelineMoments(timeline,[]).length,0);
 });
+
+test('regression: never suggest fake 99 percent market failure from actual spoken video',()=>{
+  const spoken={text:"Tu fais pas d'argent et tu en feras probablement pas parce que tu te poses la mauvaise question dès le départ. Ce qui compte ce sont les questions qui permettent de comprendre le vrai problème."};
+  const candidate={proposed_hook:"Voici pourquoi 99% des débutants échouent à gagner leur premier euro en ligne.",source_quote:"tu te poses la mauvaise question dès le départ",
+    why_test:"On voudrait rendre l'ouverture plus forte avec une affirmation statistique.",
+    test_hypothesis:"La mention d'une statistique pourrait provoquer plus d'attention, mais elle n'existe pas dans les paroles.",
+    variable_changed:"statistique"};
+  const reviewed=reviewHookSuggestions([candidate],spoken);
+  assert.equal(reviewed.candidates.length,0);
+  assert.ok(reviewed.rejected_reasons[0].reasons.includes('CHIFFRE_NON_PRESENT_DANS_LA_VIDEO'));
+});
