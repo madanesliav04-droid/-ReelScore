@@ -1,22 +1,13 @@
 import {createReadStream} from 'node:fs';
 import {stat} from 'node:fs/promises';
 import {spawn} from 'node:child_process';
+import {
+  SCORE_VERSION,SCORE_WEIGHTS,validateSemanticAnalysis,
+  priorityDiagnostics,editorialRiskMap,calculateScore
+} from './viral-quality.js';
+export {SCORE_VERSION,SCORE_WEIGHTS} from './viral-quality.js';
 
 const GOOGLE_BASE='https://generativelanguage.googleapis.com';
-
-export const SCORE_WEIGHTS={
-  hook:20,
-  scroll_stop:10,
-  clarity:10,
-  rhythm:5,
-  retention:20,
-  structure:10,
-  text_captions:5,
-  visual:5,
-  audio:5,
-  cta:0,
-  originality:10
-};
 
 const clamp=n=>Math.max(0,Math.min(100,Math.round(Number(n)||0)));
 const avg=(...xs)=>xs.reduce((a,b)=>a+b,0)/Math.max(1,xs.length);
@@ -96,10 +87,14 @@ export async function analyzeVideo({
   const normalized=normalizeScores(semantic,measurable);
   const finalScore=scoreFinal(normalized);
   const timeline=normalizeTimeline(semantic.timeline,measurable.durationSec);
+  const fixPlan=normalizeFixPlan(semantic.fix_plan,timeline);
+  const priorities=priorityDiagnostics(
+    normalized,semantic.score_evidence||{},fixPlan,timeline,measurable.durationSec
+  );
 
   return {
     final_score:finalScore,
-    score_version:'vp-score-4-scale-safe',
+    score_version:SCORE_VERSION,
     score_weights:SCORE_WEIGHTS,
     scores:normalized,
     measurable,
@@ -121,7 +116,11 @@ export async function analyzeVideo({
     action_items:Array.isArray(semantic.action_items)
       ?semantic.action_items.slice(0,8)
       :[],
-    fix_plan:normalizeFixPlan(semantic.fix_plan,timeline),
+    fix_plan:fixPlan,
+    priority_diagnostics:priorities.slice(0,5),
+    top_priority:priorities[0]||null,
+    editorial_risk_map:editorialRiskMap(timeline,measurable.durationSec),
+    analysis_validation:semantic.validation||null,
     score_breakdown:buildScoreBreakdown(normalized),
     score_evidence:semantic.score_evidence||{},
     confidence:semantic.confidence||{},
@@ -601,7 +600,7 @@ Règles:
         .join('')
         .trim();
 
-      const parsed=parseJson(text);
+      const parsed=validateSemanticAnalysis(parseJson(text));
       parsed.model_used=model;
       return parsed;
     }catch(error){
@@ -614,12 +613,8 @@ Règles:
 
 function normalizeScores(semantic,m){
   const s=semantic?.scores||{};
-  const rawScoreValues=[
-    s.hook,s.scroll_stop,s.clarity,s.rhythm,s.retention,s.structure,
-    s.text_captions,s.visual,s.audio,s.cta,s.originality
-  ].map(Number).filter(Number.isFinite);
-  const semanticScale=rawScoreValues.length&&Math.max(...rawScoreValues)<=10?10:1;
-  const semanticScore=value=>clamp(Number(value)*semanticScale);
+  // Semantic scores have already passed the V5 completeness / scale validation.
+  const semanticScore=value=>clamp(Number(value));
 
   const hook=semanticScore(s.hook);
   const visual=semanticScore(s.visual);
@@ -757,11 +752,7 @@ function buildScoreBreakdown(scores){
 }
 
 function scoreFinal(scores){
-  const total=Object.entries(SCORE_WEIGHTS)
-    .reduce((sum,[key,weight])=>{
-      return sum+clamp(scores[key])*weight;
-    },0);
-  return Math.round(total/100);
+  return calculateScore(scores);
 }
 
 function normalizeTimeline(items,durationSec){
