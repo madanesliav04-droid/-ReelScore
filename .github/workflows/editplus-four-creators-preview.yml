@@ -1,0 +1,57 @@
+name: Edit+ HyperFrames four-creator render tests
+on:
+  push:
+    branches: [editplus-four-creator-render-tests-20261017]
+    paths:
+      - 'apps/worker/hyperframes/four-creators/**'
+      - '.github/workflows/editplus-four-creators-preview.yml'
+  pull_request:
+    paths:
+      - 'apps/worker/hyperframes/four-creators/**'
+      - '.github/workflows/editplus-four-creators-preview.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  render-four-styles:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PUPPETEER_SKIP_DOWNLOAD: '1'
+      HYPERFRAMES_BROWSER_PATH: /usr/bin/chromium
+      PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium
+      CHROME_PATH: /usr/bin/chromium
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: System browser/encoder
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq chromium ffmpeg fonts-liberation
+      - name: Install HyperFrames
+        working-directory: apps/worker
+        run: |
+          npm install --no-audit --no-fund
+          node -e 'const p=require("./node_modules/hyperframes/package.json");if(p.version!=="0.8.164")process.exit(2)'
+      - name: Lint and render 4 separate compositions
+        working-directory: apps/worker
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/four-creator-renders"
+          for model in CODIE_DOC ALEX_EXPLAIN LEILA_EDITORIAL GADZHI_CINEMATIC; do
+            echo "Rendering $model"
+            cd "$GITHUB_WORKSPACE/apps/worker/hyperframes/four-creators/examples/$model"
+            "$GITHUB_WORKSPACE/apps/worker/node_modules/.bin/hyperframes" lint .
+            "$GITHUB_WORKSPACE/apps/worker/node_modules/.bin/hyperframes" render --format webm --quality draft --workers 2 --fps 24 --output "$RUNNER_TEMP/four-creator-renders/$model.webm"
+            test -s "$RUNNER_TEMP/four-creator-renders/$model.webm"
+            ffprobe -v error -show_entries format=duration:stream=codec_name,width,height -of json "$RUNNER_TEMP/four-creator-renders/$model.webm"
+            ffmpeg -hide_banner -loglevel error -xerror -i "$RUNNER_TEMP/four-creator-renders/$model.webm" -f null -
+          done
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: editplus-four-creator-hyperframes-overlays
+          path: ${{ runner.temp }}/four-creator-renders/*.webm
+          retention-days: 7

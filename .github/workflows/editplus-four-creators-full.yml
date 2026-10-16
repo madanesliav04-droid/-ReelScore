@@ -1,0 +1,55 @@
+name: HyperFrames Edit+ full 44s four creator models
+on:
+  push:
+    branches: [editplus-four-creator-render-tests-20261017]
+    paths:
+      - 'apps/worker/hyperframes/four-creators/full/**'
+      - '.github/workflows/editplus-four-creators-full.yml'
+  pull_request:
+    paths:
+      - 'apps/worker/hyperframes/four-creators/full/**'
+      - '.github/workflows/editplus-four-creators-full.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  full-render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        model: [CODIE_DOC, ALEX_EXPLAIN, LEILA_EDITORIAL, GADZHI_CINEMATIC]
+    env:
+      PUPPETEER_SKIP_DOWNLOAD: '1'
+      HYPERFRAMES_BROWSER_PATH: /usr/bin/chromium
+      PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium
+      CHROME_PATH: /usr/bin/chromium
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Chromium FFmpeg fonts
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq chromium ffmpeg fonts-liberation
+      - name: Install HyperFrames pinned version
+        working-directory: apps/worker
+        run: |
+          npm install --no-audit --no-fund
+          node -e 'const p=require("./node_modules/hyperframes/package.json");if(p.version!=="0.8.164")process.exit(2)'
+      - name: Render full-length ${{ matrix.model }} visual track
+        working-directory: apps/worker/hyperframes/four-creators/full/${{ matrix.model }}
+        run: |
+          "$GITHUB_WORKSPACE/apps/worker/node_modules/.bin/hyperframes" lint .
+          "$GITHUB_WORKSPACE/apps/worker/node_modules/.bin/hyperframes" render --format webm --quality draft --workers 3 --fps 24 --output "$RUNNER_TEMP/${{ matrix.model }}_FULL_44s.webm"
+          test -s "$RUNNER_TEMP/${{ matrix.model }}_FULL_44s.webm"
+          ffprobe -v error -show_entries format=duration:stream=codec_name,width,height -of json "$RUNNER_TEMP/${{ matrix.model }}_FULL_44s.webm"
+          ffmpeg -hide_banner -loglevel error -xerror -i "$RUNNER_TEMP/${{ matrix.model }}_FULL_44s.webm" -f null -
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: editplus-full-${{ matrix.model }}-hyperframes
+          path: ${{ runner.temp }}/${{ matrix.model }}_FULL_44s.webm
+          retention-days: 7
