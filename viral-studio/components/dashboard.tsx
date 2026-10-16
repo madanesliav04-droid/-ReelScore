@@ -585,6 +585,19 @@ export function Dashboard(){
           <div className="result-copy"><small>VERDICT</small><h2>{analysis.main_problem||"Diagnostic completed"}</h2><p>{analysis.verdict||analysis.why}</p><div className="result-why">{analysis.why}</div><button className="btn primary" onClick={()=>void startEdit(true)} disabled={busy}>FIX WITH AI →</button></div>
         </section>
 
+        {analysis.top_priority&&<section className="viral-v5-priority" aria-label="Priorité éditoriale du Viral Score">
+          <div className="viral-v5-heading">
+            <small>PRIORITÉ N°1 · SCORE PONDÉRÉ</small>
+            <strong>{String(analysis.top_priority.key||"").replaceAll("_"," ")} · {analysis.top_priority.score}/100</strong>
+            <span>Impact théorique maximal : {Number(analysis.top_priority.impact_points||0).toFixed(1)} point(s) sur le Viral Score</span>
+          </div>
+          <div className="viral-v5-detail">
+            <p>{analysis.top_priority.evidence||"Preuve insuffisante : diagnostic à vérifier."}</p>
+            {analysis.top_priority.exact_change&&<div className="viral-v5-action"><b>Correction précise</b><span>{analysis.top_priority.exact_change}</span></div>}
+            {analysis.top_priority.start_sec!==null&&analysis.top_priority.start_sec!==undefined&&<button className="viral-v5-seek" onClick={()=>{if(sourceRef.current){sourceRef.current.currentTime=Number(analysis.top_priority.start_sec)||0;sourceRef.current.scrollIntoView({behavior:"smooth",block:"center"});}}}>Examiner le passage à {Number(analysis.top_priority.start_sec||0).toFixed(1)} s ▶</button>}
+          </div>
+        </section>}
+
         <section className="viral-detail-section">
           <div className="section-heading"><small>DETAILED SCORING</small><h2>Exactly where the score comes from.</h2><p>Each criterion is scored independently, with the observable reason behind it.</p></div>
           <div className="viral-score-grid">
@@ -605,6 +618,11 @@ export function Dashboard(){
             {analysis.alternative_hooks?.length>0&&<div className="alt-hooks">{analysis.alternative_hooks.map((h:any,i:number)=><p key={i}>{i+1}. {h}</p>)}</div>}
           </article>
         </section>
+
+        {analysis.editorial_risk_map?.length>0&&<section className="viral-v5-risk" aria-label="Risques de décrochage éditoriaux estimés">
+          <div className="section-heading"><small>RISQUES ÉDITORIAUX · ESTIMATION IA</small><h2>Passages susceptibles de perdre l'attention.</h2><p>Ce ne sont pas des données de rétention Instagram : seuls les passages et les problèmes observés sont affichés.</p></div>
+          <div className="viral-v5-risk-rows">{analysis.editorial_risk_map.slice(0,8).map((risk:any,i:number)=><button type="button" key={i} className={`viral-v5-risk-row ${risk.severity==="red"?"risk-high":"risk-mid"}`} onClick={()=>{if(sourceRef.current){sourceRef.current.currentTime=Number(risk.start_sec)||0;sourceRef.current.scrollIntoView({behavior:"smooth",block:"center"});}}}><span className="risk-time">{Number(risk.start_sec||0).toFixed(1)}–{Number(risk.end_sec||0).toFixed(1)} s</span><span className="risk-meaning"><strong>{risk.observed_problem}</strong><small>{risk.suggested_correction}</small></span><span className="risk-play">▶</span></button>)}</div>
+        </section>}
 
         {analysis.timeline?.length>0&&<section className="viral-timeline-panel">
           <div className="section-heading"><small>TIMELINE FIXES</small><h2>What to change, second by second.</h2></div>
