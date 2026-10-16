@@ -89,6 +89,11 @@ export async function analyzeVideo({
 
   await onProgress('generating_report',84,'Calcul du Viral Score');
   const editorialScoring=editorialScoreAudit(semantic,measurable);
+  editorialScoring.audit.independent_video_review={
+    status:semantic.score_review?.status||'unavailable',
+    disputed_criteria:semantic.score_review?.disputed_keys||[],
+    caveat:semantic.score_review?.reason||'Un désaccord entre deux IA ne prouve pas un défaut, mais exige une vérification humaine.'
+  };
   const normalized=editorialScoring.scores;
   const finalScore=scoreFinal(normalized);
   const timeline=normalizeTimeline(semantic.timeline,measurable.durationSec);
@@ -668,6 +673,12 @@ Règles:
         semantic:parsed,transcript,measurable
       });
       const verified=applyVideoReview(parsed,challenged);
+      const disputed=verified.score_review?.disputed_keys||[];
+      // A second pass is not ground truth. Escalate only widespread, material
+      // disagreement instead of silently averaging two equally subjective scores.
+      if(verified.score_review?.status==='completed'&&disputed.length>=6){
+        throw new Error('VIRAL_SCORE_REVIEW_CONFLICT: plusieurs critères non étayés, nouvelle analyse requise');
+      }
       verified.model_used=model;
       return verified;
     }catch(error){
