@@ -5,10 +5,11 @@
   "type": "module",
   "scripts": {
     "start": "node src/index.js",
-    "check": "node --check src/index.js && node --check src/viral.js && node --check src/edit.js && node --check src/render.js && node --test tests/*.test.mjs"
+    "check": "node --check src/index.js && node --check src/viral.js && node --check src/edit.js && node --check src/render.js && node --check src/hyperframes-renderer.js && node --test tests/*.test.mjs"
   },
   "dependencies": {
-    "@supabase/supabase-js": "2.57.4"
+    "@supabase/supabase-js": "2.57.4",
+    "hyperframes": "0.8.164"
   },
   "engines": {
     "node": ">=22"
