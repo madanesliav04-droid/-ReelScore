@@ -6,7 +6,7 @@ import {verifyWithVideo,applyVideoReview} from './viral-verifier.js';
 import {
   SCORE_VERSION,SCORE_WEIGHTS,validateSemanticAnalysis,
   priorityDiagnostics,editorialRiskMap,calculateScore,
-  editorialScoreAudit,SCORE_CRITERION_BASIS,SCORE_RUBRIC
+  editorialScoreAudit,SCORE_CRITERION_BASIS,SCORE_RUBRIC,detectUnsupportedFormatPenalty
 } from './viral-quality.js';
 export {SCORE_VERSION,SCORE_WEIGHTS} from './viral-quality.js';
 
@@ -674,8 +674,14 @@ Règles:
       });
       const verified=applyVideoReview(parsed,challenged);
       const disputed=verified.score_review?.disputed_keys||[];
-      // A second pass is not ground truth. Escalate only widespread, material
-      // disagreement instead of silently averaging two equally subjective scores.
+      const formatBias=detectUnsupportedFormatPenalty({
+        evidence:verified.score_evidence,measurable,review:verified.score_review
+      });
+      // Materially wrong criteria are a model failure, not an opportunity to
+      // add arbitrary compensating points. Retry with the alternate model.
+      if(formatBias.length){
+        throw new Error('VIRAL_SCORE_FORMAT_BIAS: '+formatBias.map(x=>x.criterion).join(','));
+      }
       if(verified.score_review?.status==='completed'&&disputed.length>=6){
         throw new Error('VIRAL_SCORE_REVIEW_CONFLICT: plusieurs critères non étayés, nouvelle analyse requise');
       }
