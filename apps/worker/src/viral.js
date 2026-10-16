@@ -681,13 +681,21 @@ Règles:
 function normalizeSafeZone(raw,m){
   const z=raw&&typeof raw==='object'?raw:{};
   const ratio=Number(m?.aspectRatio||0),target=9/16;
+  const landscape=ratio>=1;
   const ratioDistance=ratio>0?Math.abs(ratio-target)/target:1;
+  // A horizontal production is not a broken Reel. Do not silently treat native
+  // landscape as a failed 9:16 short-form video; platform overlay is N/A.
   const technicalFit=clamp(100-Math.min(70,ratioDistance*120));
   const framing=clamp(z.framing??60),textSafety=clamp(z.text_safety??65),captionSafety=clamp(z.caption_safety??65);
-  const platformFit=clamp(avg(z.platform_fit??technicalFit,technicalFit));
-  const score=clamp(avg(framing,textSafety,captionSafety,platformFit));
+  const platformFit=landscape?null:clamp(avg(z.platform_fit??technicalFit,technicalFit));
+  const score=landscape?clamp(avg(framing,textSafety,captionSafety)):clamp(avg(framing,textSafety,captionSafety,platformFit));
   const issues=(Array.isArray(z.issues)?z.issues:[]).slice(0,8).map(x=>({severity:['green','orange','red'].includes(x?.severity)?x.severity:'orange',element:String(x?.element||'frame').slice(0,40),problem:String(x?.problem||'').slice(0,240),correction:String(x?.correction||'').slice(0,240),x:Math.max(0,Math.min(1,Number(x?.x??0.5))),y:Math.max(0,Math.min(1,Number(x?.y??0.5)))}));
-  return {score,framing,text_safety:textSafety,caption_safety:captionSafety,platform_fit:platformFit,summary:String(z.summary||'').slice(0,500),issues,mode:'universal_safe',basis:'multimodal_composition_plus_aspect_ratio'};
+  return {score,framing,text_safety:textSafety,caption_safety:captionSafety,platform_fit:platformFit,
+    summary:String(z.summary||'').slice(0,500),issues,
+    mode:landscape?'native_landscape_composition':'universal_vertical_safe',
+    platform_overlay_applicable:!landscape,
+    caution:landscape?'Format natif horizontal. Aucun score de compatibilité aux overlays 9:16 n’est inféré.':'Risque de recouvrement estimé. Vérifier le rendu dans la plateforme cible.',
+    basis:'multimodal_composition_and_native_orientation'};
 }
 
 
