@@ -1,83 +1,85 @@
 "use client";
 
 import Link from "next/link";
-import { motion, useScroll, useTransform } from "motion/react";
-import { ArrowRight, BarChart3, Captions, Clapperboard, Scissors, Sparkles, WandSparkles } from "lucide-react";
+import {ArrowRight,BarChart3,Check,ChevronRight,Clapperboard,FileVideo,Menu,ShieldCheck,Sparkles,UploadCloud,X,Zap} from "lucide-react";
+import {useState} from "react";
 
-const modules = [
-  {name:"Clip+", kicker:"FIND", title:"One video. Multiple opportunities.", copy:"Turn long-form content into ranked short-form clips, ready for Edit+.", icon:Scissors},
-  {name:"Edit+", kicker:"BUILD", title:"Your editor, without the editing.", copy:"Cuts, captions, punch-ins, pacing and rendering from one workspace.", icon:Clapperboard},
-  {name:"Viral+", kicker:"LEARN", title:"Stop guessing why content stalls.", copy:"A measured + multimodal Viral Score with timeline-level diagnosis, Safe Zone checks and fixes.", icon:BarChart3},
-];
+const modules=[
+  {id:"edit",name:"Edit+",number:"01",eyebrow:"MONTAGE INTELLIGENT",headline:"Du rush au montage.",description:"Importe ta vidéo, choisis ton style et lance le rendu. Le format d'origine reste disponible, y compris l'horizontal.",points:["Montage selon le modèle choisi","Sous-titres et cuts adaptés","Vidéo exportable"],Icon:Clapperboard},
+  {id:"viral",name:"Viral+",number:"02",eyebrow:"ANALYSE ÉDITORIALE",headline:"Comprends avant de poster.",description:"Analyse ton hook, ton rythme et ta clarté. Reçois des pistes liées à ta vidéo, pas une liste de conseils copiés-collés.",points:["Score créatif estimé et détaillé","Problèmes horodatés et preuves","Hypothèses de hooks à tester"],Icon:BarChart3}
+] as const;
 
 export function StudioLanding(){
-  const {scrollYProgress}=useScroll();
-  const phoneY=useTransform(scrollYProgress,[0,.35],[0,150]);
-  const phoneRotate=useTransform(scrollYProgress,[0,.35],[-8,0]);
-  const glow=useTransform(scrollYProgress,[0,.3],[1,.45]);
-
-  return <main className="site-shell">
-    <nav className="nav-shell">
-      <Link href="/" className="brand">VIRAL <span>STUDIO</span></Link>
-      <div className="nav-links">
-        <a href="#product">Product</a><a href="#viral">Viral+</a><a href="#edit">Edit+</a><a href="#clip">Clip+</a>
+  const [menuOpen,setMenuOpen]=useState(false);
+  return <main className="social-site">
+    <nav className="social-nav" aria-label="Navigation principale">
+      <Link className="social-logo" href="/" aria-label="Social+ - accueil"><span className="social-logo-mark">S<span>+</span></span><span>SOCIAL<span>+</span></span></Link>
+      <div className={`social-nav-links ${menuOpen?"is-open":""}`}>
+        <a href="#modules" onClick={()=>setMenuOpen(false)}>Les outils</a>
+        <a href="#method" onClick={()=>setMenuOpen(false)}>Comment ça marche</a>
+        <Link href="/dashboard?tool=viral" onClick={()=>setMenuOpen(false)}>Viral+</Link>
+        <Link href="/dashboard?tool=edit" onClick={()=>setMenuOpen(false)}>Edit+</Link>
       </div>
-      <div className="nav-actions"><Link href="/dashboard" className="btn ghost">Sign in</Link><Link href="/dashboard" className="btn primary">Start free <ArrowRight size={16}/></Link></div>
+      <Link className="social-nav-cta" href="/dashboard?tool=viral">Ouvrir Social+ <ArrowRight size={16}/></Link>
+      <button className="social-menu-toggle" type="button" aria-label={menuOpen?"Fermer le menu":"Ouvrir le menu"} aria-expanded={menuOpen} onClick={()=>setMenuOpen(v=>!v)}>{menuOpen?<X size={22}/>:<Menu size={22}/>}</button>
     </nav>
 
-    <section className="hero">
-      <motion.div className="hero-glow" style={{opacity:glow}}/>
-      <div className="hero-copy">
-        <motion.div initial={{opacity:0,y:12}} animate={{opacity:1,y:0}} className="eyebrow"><Sparkles size={14}/> CREATOR OPERATING SYSTEM</motion.div>
-        <motion.h1 initial={{opacity:0,y:24}} animate={{opacity:1,y:0}} transition={{delay:.08}}>TURN ANY VIDEO<br/>INTO CONTENT<br/><span>THAT PERFORMS.</span></motion.h1>
-        <motion.p initial={{opacity:0,y:18}} animate={{opacity:1,y:0}} transition={{delay:.16}}>Clip it. Edit it. Analyze it. Export it.</motion.p>
-        <motion.div initial={{opacity:0,y:14}} animate={{opacity:1,y:0}} transition={{delay:.24}} className="hero-actions">
-          <Link href="/dashboard" className="btn primary xl">Start Creating <ArrowRight size={18}/></Link>
-          <a href="#product" className="btn ghost xl">See how it works</a>
-        </motion.div>
+    <section className="social-hero" aria-labelledby="social-hero-title">
+      <div className="social-hero-bg" aria-hidden="true"/>
+      <div className="social-hero-content">
+        <div className="social-overline"><span className="social-pulse"/> STUDIO VIDÉO POUR CRÉATEURS</div>
+        <h1 id="social-hero-title">Une meilleure vidéo.<br/><span>Un seul studio.</span></h1>
+        <p>Montage intelligent. Analyse éditoriale. Deux outils pensés pour améliorer ton contenu, du premier rush à la prochaine version.</p>
+        <div className="social-hero-buttons">
+          <Link className="social-button social-button-main" href="/dashboard?tool=edit">Commencer avec Edit+ <ArrowRight size={18}/></Link>
+          <Link className="social-button social-button-outline" href="/dashboard?tool=viral">Analyser une vidéo <BarChart3 size={17}/></Link>
+        </div>
+        <div className="social-hero-proof"><ShieldCheck size={16}/> Des diagnostics argumentés, jamais de viralité garantie.</div>
       </div>
-
-      <motion.div className="phone-stage" style={{y:phoneY,rotateZ:phoneRotate}}>
-        <div className="metric-chip chip-a"><span>Viral Score</span><b>LIVE</b></div>
-        <div className="metric-chip chip-b"><span>Safe Zone</span><b>CHECK</b></div>
-        <div className="metric-chip chip-c"><span>Hook</span><b>SCAN</b></div>
-        <div className="phone">
-          <div className="phone-top"/>
-          <div className="phone-screen">
-            <div className="reel-noise"/>
-            <div className="creator-line"><span className="avatar">V+</span><div><b>viralstudio</b><small>original audio</small></div></div>
-            <div className="center-mark">VIRAL<span>+</span></div>
-            <div className="social-stack"><span>♥</span><span>●</span><span>↗</span></div>
-            <div className="caption-live"><b>DON'T POST</b><br/>before you know what breaks retention.</div>
+      <div className="social-product-demo" aria-label="Aperçu illustratif de Social+">
+        <div className="social-demo-top"><span><i/> SOCIAL+ / WORKSPACE</span><span>APERÇU DE L’INTERFACE</span></div>
+        <div className="social-demo-main">
+          <div className="social-demo-video">
+            <div className="social-demo-portrait">
+              <div className="social-demo-lens"><FileVideo size={35} strokeWidth={1.3}/></div>
+              <span className="social-demo-caps">TA VIDÉO</span>
+              <div className="social-demo-timeline"><span/><span/><span/><span/></div>
+            </div>
+          </div>
+          <div className="social-demo-insights">
+            <div className="social-demo-tabs"><span>EDIT+</span><span>VIRAL+</span></div>
+            <small>ANALYSE LIÉE À TA VIDÉO</small>
+            <strong>Chaque suggestion doit avoir une raison.</strong>
+            <div className="social-insight-item"><span className="social-insight-dot"/> <div><b>Hook</b><p>Vérifier la promesse des premières secondes.</p></div></div>
+            <div className="social-insight-item"><span className="social-insight-dot"/> <div><b>Rythme</b><p>Pointer un passage précis, si nécessaire.</p></div></div>
+            <div className="social-demo-verified"><Check size={14}/> Pas de chiffres inventés</div>
           </div>
         </div>
-      </motion.div>
-    </section>
-
-    <section id="product" className="story">
-      <div className="section-label">THE FLOW</div>
-      <h2>CLIP <i>→</i> EDIT <i>→</i> ANALYZE <i>→</i> EXPORT</h2>
-      <p>One workspace. One media library. One continuous loop from raw footage to a stronger version.</p>
-      <div className="flow-line">
-        {["Long video","Best moments","Auto edit","Viral diagnosis","Ready to post"].map((x,i)=><motion.div key={x} initial={{opacity:0,y:20}} whileInView={{opacity:1,y:0}} viewport={{once:true}} transition={{delay:i*.08}} className="flow-node"><b>{String(i+1).padStart(2,"0")}</b><span>{x}</span></motion.div>)}
+        <div className="social-demo-bottom"><span><Zap size={13}/> Un espace, deux workflows</span><span>9:16 · 16:9</span></div>
       </div>
     </section>
 
-    <section className="module-stack">
-      {modules.map((m,i)=>{const Icon=m.icon; return <article key={m.name} id={m.name==="Clip+"?"clip":m.name==="Edit+"?"edit":"viral"} className="module-panel">
-        <div className="module-copy"><small>{m.kicker} · {m.name}</small><h3>{m.title}</h3><p>{m.copy}</p><Link href={`/dashboard?tool=${m.name==="Clip+"?"clip":m.name==="Edit+"?"edit":"viral"}`} className="text-link">Open {m.name} <ArrowRight size={16}/></Link></div>
-        <div className={"module-demo demo-"+i}>
-          <div className="demo-top"><span>{m.name}</span><Icon size={18}/></div>
-          {i===0 && <><div className="longbar"/><div className="clip-grid">{["BEST","STRONG","READY"].map((label,n)=><div key={label}><span>0{n+1}</span><b>{label}</b><small>selected moment</small></div>)}</div></>}
-          {i===1 && <><div className="editor-canvas"><WandSparkles/></div><div className="timeline-mini">{[22,36,18,42,24].map((w,n)=><i key={n} style={{width:w}}/> )}</div><div className="caption-pill"><Captions size={14}/> Modern Bold</div></>}
-          {i===2 && <><div className="score-ring"><strong>—</strong><span>/100</span></div><div className="analysis-bars">{["Hook","Retention","Clarity","Safe Zone"].map((x)=><div key={x}><span>{x}</span><i><b style={{width:"100%"}}/></i></div>)}</div></>}
-        </div>
-      </article>})}
+    <section id="modules" className="social-modules" aria-labelledby="social-modules-title">
+      <div className="social-section-intro"><div className="social-section-label">TON WORKSPACE</div><h2 id="social-modules-title">Deux outils.<br/>Une seule exigence : <em>la qualité.</em></h2><p>Choisis ce que tu veux faire maintenant. Chaque outil possède sa propre interface et son propre parcours.</p></div>
+      <div className="social-module-grid">
+        {modules.map(m=><article className={`social-module social-module-${m.id}`} key={m.id}>
+          <div className="social-module-top"><span>{m.number} / {m.eyebrow}</span><m.Icon size={24}/></div>
+          <div className="social-module-symbol" aria-hidden="true"><m.Icon strokeWidth={.75}/></div>
+          <div className="social-module-content"><h3>{m.name}</h3><h4>{m.headline}</h4><p>{m.description}</p><ul>{m.points.map(point=><li key={point}><Check size={14}/>{point}</li>)}</ul><Link href={`/dashboard?tool=${m.id}`} className="social-module-link">Ouvrir {m.name} <ArrowRight size={18}/></Link></div>
+        </article>)}
+      </div>
     </section>
 
-    <section className="final-band">
-      <div><small>VIRAL STUDIO</small><h2>Make the next version stronger.</h2></div>
-      <Link href="/dashboard" className="btn primary xl">Start free <ArrowRight size={18}/></Link>
+    <section className="social-method" id="method">
+      <div className="social-section-intro"><div className="social-section-label">LE PARCOURS</div><h2>Importe. Travaille.<br/><em>Décide sur des faits.</em></h2></div>
+      <div className="social-method-grid">
+        <div><span>01</span><UploadCloud size={25}/><h3>Importe ta vidéo</h3><p>Depuis ton téléphone ou ton ordinateur. MP4, MOV ou WebM, jusqu'à 500 Mo.</p></div>
+        <div><span>02</span><Sparkles size={25}/><h3>Choisis ton action</h3><p>Edit+ produit un montage. Viral+ analyse ce qui est observable dans ta vidéo.</p></div>
+        <div><span>03</span><ChevronRight size={25}/><h3>Récupère le résultat</h3><p>Télécharge ton montage ou examine des recommandations à vérifier et à tester.</p></div>
+      </div>
     </section>
-  </main>
+
+    <section className="social-end"><div className="social-end-glow"/><div><span>SOCIAL+</span><h2>La prochaine version<br/>commence ici.</h2><p>Un outil de montage. Un outil d'analyse. Rien de superflu.</p></div><Link className="social-button social-button-main" href="/dashboard?tool=edit">Accéder au studio <ArrowRight size={18}/></Link></section>
+    <footer className="social-footer"><Link className="social-logo" href="/"><span className="social-logo-mark">S<span>+</span></span><span>SOCIAL<span>+</span></span></Link><span>Montage & analyse vidéo</span><Link href="/dashboard?tool=viral">Ouvrir Viral+</Link></footer>
+  </main>;
 }
