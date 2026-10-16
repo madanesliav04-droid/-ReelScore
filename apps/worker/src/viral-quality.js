@@ -1,5 +1,5 @@
 // Viral+ V5 editorial quality contracts. No private social-platform ranking weights.
-export const SCORE_VERSION='vp-score-5-evidence-priority';
+export const SCORE_VERSION='vp-score-5-grounded-test-hypotheses';
 export const SCORE_WEIGHTS=Object.freeze({
   hook:20,scroll_stop:10,clarity:10,rhythm:5,retention:20,
   structure:10,text_captions:5,visual:5,audio:5,cta:0,originality:10
@@ -32,7 +32,10 @@ export function validateSemanticAnalysis(input){
   if(grounded.length<8)throw new Error('VIRAL_EVIDENCE_INSUFFICIENT: au moins 8 critères doivent être justifiés par des observations.');
   const fixes=Array.isArray(input.fix_plan)?input.fix_plan:[];
   const concrete=fixes.filter(x=>x&&short(x.problem).length>=10&&short(x.exact_change).length>=18);
-  if(concrete.length<2)throw new Error('VIRAL_FIX_PLAN_INSUFFICIENT: corrections exécutables manquantes.');
+  // A strong video can legitimately have zero recommended changes. Never force filler.
+  // If the model finds substantial weaknesses, it must still propose an actionable fix.
+  const rawScore=Math.round(SCORED_KEYS.reduce((sum,k)=>sum+Number(scores[k])*SCORE_WEIGHTS[k],0)/100);
+  if(rawScore<70&&concrete.length===0)throw new Error('VIRAL_FIX_PLAN_INSUFFICIENT: score faible sans correction étayée.');
   const timeline=Array.isArray(input.timeline)?input.timeline:[];
   const groundedMoments=timeline.filter(x=>x&&finite(x.start_sec)&&finite(x.end_sec)&&Number(x.end_sec)>=Number(x.start_sec)&&short(x.problem).length>=8);
   if(groundedMoments.length<2)throw new Error('VIRAL_TIMELINE_INSUFFICIENT: passages horodatés non démontrés.');
