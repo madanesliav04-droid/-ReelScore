@@ -5,7 +5,8 @@ import {reviewHookSuggestions,reviewEditorialFixes,reviewSupplementalCopy,review
 import {verifyWithVideo,applyVideoReview} from './viral-verifier.js';
 import {
   SCORE_VERSION,SCORE_WEIGHTS,validateSemanticAnalysis,
-  priorityDiagnostics,editorialRiskMap,calculateScore
+  priorityDiagnostics,editorialRiskMap,calculateScore,
+  editorialScoreAudit,SCORE_CRITERION_BASIS,SCORE_RUBRIC
 } from './viral-quality.js';
 export {SCORE_VERSION,SCORE_WEIGHTS} from './viral-quality.js';
 
@@ -87,7 +88,8 @@ export async function analyzeVideo({
   }
 
   await onProgress('generating_report',84,'Calcul du Viral Score');
-  const normalized=normalizeScores(semantic,measurable);
+  const editorialScoring=editorialScoreAudit(semantic,measurable);
+  const normalized=editorialScoring.scores;
   const finalScore=scoreFinal(normalized);
   const timeline=normalizeTimeline(semantic.timeline,measurable.durationSec);
   const hookExperiments=reviewHookSuggestions(
@@ -110,6 +112,8 @@ export async function analyzeVideo({
     final_score:finalScore,
     score_version:SCORE_VERSION,
     score_weights:SCORE_WEIGHTS,
+    score_audit:editorialScoring.audit,
+    criterion_basis:SCORE_CRITERION_BASIS,
     scores:normalized,
     measurable,
     transcript,
@@ -561,6 +565,21 @@ Schéma:
   "safe_zone":{"score":0,"framing":0,"text_safety":0,"caption_safety":0,"platform_fit":0,"summary":"","issues":[{"severity":"green","element":"face","problem":"","correction":"","x":0.5,"y":0.4}]}
 }
 
+CALIBRATION DU SCORE : TA RESPONSABILITÉ EST D'ÉVALUER LA QUALITÉ ÉDITORIALE VISIBLE, PAS DE PRÉDIRE LE NOMBRE DE VUES.
+ÉCHELLE FIXE pour chaque critère : 0-19 = défaillant/incompréhensible, 20-39 = obstacles majeurs observables, 40-59 = exécution inégale, 60-74 = correct avec limites concrètes, 75-89 = solide et convaincant, 90-100 = exceptionnel avec preuves claires.
+90+ ne se donne pas sur une simple impression. 40- ne se donne pas pour un style de montage inhabituel mais intentionnel.
+Pour chaque score, justifie TOUJOURS la fourchette par un fait OBSERVABLE propre à cette vidéo, et mentionne au moins un point positif quand tu réduis la note. L'absence de défaut constaté n'est pas une garantie de 100.
+Critères distincts sans double comptage :
+${JSON.stringify(SCORE_CRITERION_BASIS)}
+- HOOK : qualité de la promesse dans les premières secondes ; pas un décompte automatique de mots.
+- SCROLL_STOP : aspect/perception de l'entrée uniquement, distinct de la formulation du hook ; tu ne mesures pas de scroll-stop sur Instagram.
+- RETENTION : progression et curiosité éditoriales dans le MILIEU de la vidéo, pas la répétition du hook ou du scroll-stop ; tu ne mesures PAS la rétention.
+- RYTHME : observe l'intention derrière les pauses et les changements de plans. Un nombre de cuts faible, un seul plan, un débit rapide ou un silence n'est JAMAIS automatiquement mauvais ; n'affirme pas qu'il manque des cuts sans le voir.
+- AUDIO : ne présume pas qu'une piste audible vaut 78/100, ni qu'une vidéo sans piste est mauvaise si elle est clairement destinée à une lecture muette.
+- FORMAT : un 16:9 natif est parfaitement normal ; le contrôle de safe-zone verticale est distinct et ne doit PAS pénaliser le score créatif.
+- Si un défaut est mentionné, explique où il s'entend/se voit et le mécanisme éditorial précis ; sinon abstiens-toi d'inventer un défaut.
+- Ne corrèle pas une note à des résultats de plateforme absents. Ne cite pas les poids de l'algorithme Instagram : ils sont inconnus.
+
 Règles:
 - TOUS les scores doivent être des entiers sur 100, jamais sur 10;
 - utilise exclusivement l'échelle 0 à 100 : 7/10 doit être renvoyé 70, 8/10 doit être renvoyé 80;
@@ -657,92 +676,6 @@ Règles:
   }
 
   throw lastError||new Error('Aucun modèle Gemini disponible');
-}
-
-function normalizeScores(semantic,m){
-  const s=semantic?.scores||{};
-  // Semantic scores have already passed the V5 completeness / scale validation.
-  const semanticScore=value=>clamp(Number(value));
-
-  const hook=semanticScore(s.hook);
-  const visual=semanticScore(s.visual);
-  const structure=semanticScore(s.structure);
-  const clarity=semanticScore(s.clarity);
-  const originality=semanticScore(s.originality);
-  const cta=semanticScore(s.cta);
-  const text=semanticScore(s.text_captions);
-
-  const silencePenalty=Math.min(
-    28,
-    Math.max(0,(Number(m.silenceRatio||0)-0.08)*90)+
-    Math.max(0,(Number(m.longestSilenceSec||0)-0.7)*9)
-  );
-
-  const cutDensity=Number(m.sceneCutsPer10Sec||0);
-  const densityScore=cutDensity<0.4
-    ?42
-    :cutDensity<1
-      ?58
-      :cutDensity<=4.5
-        ?80
-        :cutDensity<=7
-          ?68
-          :54;
-
-  const wpm=Number(m.wordsPerMinute||0);
-  const paceScore=wpm===0
-    ?50
-    :wpm<80
-      ?38
-      :wpm<120
-        ?60
-        :wpm<=210
-          ?82
-          :wpm<=250
-            ?68
-            :50;
-
-  const rhythm=clamp(
-    avg(semanticScore(s.rhythm),densityScore,paceScore)-silencePenalty
-  );
-
-  const audioBase=m.audioCodec?78:20;
-  const loudnessPenalty=
-    m.meanVolumeDb!=null&&Number(m.meanVolumeDb)<-28?12:0;
-
-  const audio=clamp(
-    avg(semanticScore(s.audio),audioBase)-
-    silencePenalty*0.35-
-    loudnessPenalty
-  );
-
-  const scrollStop=clamp(
-    avg(semanticScore(s.scroll_stop),hook,visual)
-  );
-
-  const retention=clamp(
-    avg(
-      semanticScore(s.retention),
-      hook,
-      rhythm,
-      structure,
-      scrollStop
-    )-silencePenalty*0.25
-  );
-
-  return {
-    hook,
-    scroll_stop:scrollStop,
-    clarity,
-    rhythm,
-    retention,
-    structure,
-    text_captions:text,
-    visual,
-    audio,
-    cta,
-    originality
-  };
 }
 
 function normalizeSafeZone(raw,m){
