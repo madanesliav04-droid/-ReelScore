@@ -65,3 +65,48 @@ test('independent reviewer flags implausible score rationale without fabricating
  assert.equal(applied.score_review.disputed_keys.length,2);
  assert.equal(applied.scores.visual,20); // disagreement is disclosed, never silently overwritten
 });
+
+test('transient 429 is retried on independent reviewer and recovers without using primary',async()=>{
+ let calls=[];
+ const fetcher=async(url)=>{
+  calls.push(url);
+  if(calls.length===1)return {ok:false,status:429};
+  return {ok:true,json:async()=>({candidates:[{content:{parts:[{text:JSON.stringify({
+   approved_hook_indices:[0],approved_fix_indices:[0],approve_title:false,approve_cta:false,
+   score_review:{disputed_keys:[],brief_reason:'Evidence reviewed against source video.'}
+  })}]}}]})};
+ };
+ const report=await verifyWithVideo({...opts,fetcher});
+ assert.equal(report.status,'video_review_completed');
+ assert.equal(report.attempts,2);
+ assert.equal(calls.length,2);
+ assert.ok(calls.every(x=>x.includes('/models/reviewer:')));
+ assert.deepEqual(report.approved_fix_indices,[0]);
+});
+test('permanent invalid schema moves to next model without retrying defective model',async()=>{
+ let calls=[];
+ const fetcher=async(url)=>{
+  calls.push(url);
+  if(url.includes('/models/reviewer:'))return {ok:true,json:async()=>({candidates:[{content:{parts:[{text:'{}'}]}}]})};
+  return {ok:true,json:async()=>({candidates:[{content:{parts:[{text:JSON.stringify({
+   approved_hook_indices:[],approved_fix_indices:[],approve_title:false,approve_cta:false,
+   score_review:{disputed_keys:[],brief_reason:'None verified.'}
+  })}]}}]})};
+ };
+ const result=await verifyWithVideo({...opts,fetcher});
+ assert.equal(result.status,'video_review_completed');
+ assert.equal(result.attempts,2);
+ assert.equal(calls.filter(x=>x.includes('/models/reviewer:')).length,1);
+ assert.equal(calls.filter(x=>x.includes('/models/primary:')).length,1);
+});
+test('repeated server errors fail closed after bounded retries, recording provider errors',async()=>{
+ let attempts=0;
+ const always503=async()=>{attempts++;return {ok:false,status:503};};
+ const result=await verifyWithVideo({...opts,fetcher:always503});
+ assert.equal(result.status,'verification_unavailable');
+ assert.equal(result.attempts,4);
+ assert.equal(attempts,4);
+ assert.equal(result.failures.length,4);
+ assert.deepEqual(result.approved_fix_indices,[]);
+ assert.deepEqual(applyVideoReview(semantic,result).fix_plan,[]);
+});
