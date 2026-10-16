@@ -1,7 +1,7 @@
 import {createReadStream} from 'node:fs';
 import {stat} from 'node:fs/promises';
 import {spawn} from 'node:child_process';
-import {reviewHookSuggestions,reviewEditorialFixes,reviewSupplementalCopy} from './viral-personalization.js';
+import {reviewHookSuggestions,reviewEditorialFixes,reviewSupplementalCopy,reviewedTimelineMoments} from './viral-personalization.js';
 import {verifyWithVideo,applyVideoReview} from './viral-verifier.js';
 import {
   SCORE_VERSION,SCORE_WEIGHTS,validateSemanticAnalysis,
@@ -97,8 +97,9 @@ export async function analyzeVideo({
   );
   // Rejected suggestions are omitted, not replaced with generic claims.
   const fixPlan=editorialReview.fixes;
+  const verifiedTimeline=reviewedTimelineMoments(timeline,fixPlan);
   const priorities=priorityDiagnostics(
-    normalized,semantic.score_evidence||{},fixPlan,timeline,measurable.durationSec
+    normalized,semantic.score_evidence||{},fixPlan,verifiedTimeline,measurable.durationSec
   );
   const supportedPriorities=priorities.filter(x=>x.exact_change&&x.evidence);
   const titleReview=reviewSupplementalCopy(semantic.recommended_title,transcript,'title');
@@ -132,12 +133,13 @@ export async function analyzeVideo({
     recommended_title:titleReview.text,
     recommended_cta:ctaReview.text,
     supplemental_copy_review:{title:titleReview.status,cta:ctaReview.status},
-    timeline,
+    timeline:verifiedTimeline,
+    rejected_timeline_moments:timeline.length-verifiedTimeline.length,
     action_items:fixPlan.map(x=>x.exact_change).filter(Boolean),
     fix_plan:fixPlan,
     priority_diagnostics:priorities.slice(0,5),
     top_priority:supportedPriorities[0]||null,
-    editorial_risk_map:editorialRiskMap(timeline,measurable.durationSec),
+    editorial_risk_map:editorialRiskMap(verifiedTimeline,measurable.durationSec),
     analysis_validation:semantic.validation||null,
     score_breakdown:buildScoreBreakdown(normalized),
     score_evidence:semantic.score_evidence||{},
