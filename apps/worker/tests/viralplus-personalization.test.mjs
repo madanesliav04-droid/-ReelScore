@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {reviewHookSuggestions,reviewEditorialFixes,reviewSupplementalCopy} from '../src/viral-personalization.js';
+import {reviewHookSuggestions,reviewEditorialFixes,reviewSupplementalCopy,reviewedTimelineMoments} from '../src/viral-personalization.js';
 
 const ugc={text:"Pour ma première collaboration UGC avec le restaurant, j'ai filmé une vidéo de la carte puis j'ai envoyé un message personnalisé. Je vous montre le message et comment j'ai proposé cette vidéo."};
 const valid=()=>({
@@ -72,4 +72,18 @@ test('headline and CTA cannot claim unsupported results or become template advic
   assert.equal(reviewSupplementalCopy('9000 euros gagnés en UGC restaurant',ugc,'title').text,'');
   assert.equal(reviewSupplementalCopy('Regarde jusqu à la fin',ugc,'cta').text,'');
   assert.equal(reviewSupplementalCopy('Comment écrire un message personnalisé pour une collaboration UGC restaurant',ugc,'title').status,'hypothesis_related_to_video');
+});
+
+test('risk map only includes a moment overlapping an independently approved edit',()=>{
+ const timeline=[
+   {start_sec:0,end_sec:2,severity:'red',problem:'Accroche confuse'},
+   {start_sec:7,end_sec:10,severity:'orange',problem:'Décrochage non vérifié'},
+   {start_sec:12,end_sec:15,severity:'red',problem:'Autre problème sans preuve'}
+ ];
+ const fixes=[{area:'hook',start_sec:0,end_sec:2,exact_change:'Réécrire la phrase initiale'}];
+ const vetted=reviewedTimelineMoments(timeline,fixes);
+ assert.equal(vetted.length,1);
+ assert.equal(vetted[0].start_sec,0);
+ assert.equal(vetted[0].evidence_status,'checked_against_approved_video_fix');
+ assert.equal(reviewedTimelineMoments(timeline,[]).length,0);
 });
