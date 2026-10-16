@@ -7,7 +7,7 @@ import {Readable} from 'node:stream';
 import {pipeline} from 'node:stream/promises';
 import {randomUUID,createHash} from 'node:crypto';
 import {createClient} from '@supabase/supabase-js';
-import {analyzeVideo} from './viral.js';
+import {analyzeVideo,SCORE_VERSION} from './viral.js';
 import {buildEditTimeline} from './edit.js';
 import {planContextualBroll} from './broll.js';
 import {
@@ -257,7 +257,7 @@ async function runViral(job,media,filePath){
   const digest=hash.digest('hex');
   const {data:cached,error:cacheError}=await supabase.from('viralplus_analyses')
     .select('result_json').eq('user_id',job.user_id).eq('video_sha256',digest)
-    .eq('score_version','vp-score-4-scale-safe').order('created_at',{ascending:false}).limit(1).maybeSingle();
+    .eq('score_version',SCORE_VERSION).order('created_at',{ascending:false}).limit(1).maybeSingle();
   if(cacheError)throw cacheError;
   const result=cached?.result_json||await analyzeVideo({
     filePath,
