@@ -218,9 +218,10 @@ async function route(req:Request){
     const media=await ownMedia(db,user.id,String(body.video_id));
     if(!media)return out({error:"MEDIA_NOT_FOUND"},404);
 
-    const style=["creator_clean","codie","business_viral","podcast_authority"].includes(String(body.style))
-      ? String(body.style)
-      : "creator_clean";
+    const supportedStyles=new Set(["creator_clean","codie","business_viral","podcast_authority","hormozi_omni","social_kinetic"]);
+    const style=String(body.style||"");
+    // Unknown styles must not silently render an unrelated template.
+    if(!supportedStyles.has(style))return out({error:"EDIT_STYLE_UNAVAILABLE",requested_style:style},400);
     const caption=["modern_bold","minimal","creator","karaoke","authority","ugc"].includes(String(body.caption_preset))
       ? String(body.caption_preset)
       : "modern_bold";
