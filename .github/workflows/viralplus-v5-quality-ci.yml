@@ -27,5 +27,6 @@ jobs:
           node --check src/viral.js
           node --check src/viral-quality.js
           node --check src/viral-personalization.js
+          node --check src/viral-verifier.js
       - name: Run V5 scoring and diagnostic tests
         run: node --test tests/viralplus-*.test.mjs
