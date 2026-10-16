@@ -66,39 +66,40 @@ const EDIT_MODELS:EditModel[]=[
     "state": "INTÉGRATION EN COURS"
   },
   {
-    "id": "alex_hormozi",
+    "id": "hormozi_omni",
     "name": "Alex Hormozi",
     "category": "Explication visuelle",
     "preview": "HORMOZI",
-    "meta": "V11 préférée · V16 corrigée · non raccordé",
+    "meta": "Rendu natif 16:9/9:16, moteur Hormozi connecté · fidélité V11/V16 encore à auditer",
     "goal": "Montage didactique plein écran, en conservant toujours le format source.",
     "actions": [
+      "La chaîne de rendu Hormozi est raccordée. Le module pédagogique avancé reste conditionné à des preuves vidéo vérifiables.",
       "Respecter la référence V11 / V16 et le 16:9 natif.",
       "Aucune insertion latérale ni bande ajoutée.",
       "Cuts intentionnels, démonstrations utiles, voix et sous-titres exacts."
     ],
     "never": "Pas de recadrage horizontal, doublage ou superposition.",
-    "available": false,
-    "state": "INTÉGRATION EN COURS"
+    "available": true,
+    "state": "BÊTA · MOTEUR CONNECTÉ"
   },
   {
     "id": "social_kinetic",
     "name": "Social Kinetic",
     "category": "Motion éditorial",
     "preview": "KINETIC",
-    "meta": "Troisième référence vidéo · moteur expérimental",
+    "meta": "Moteur cinétique connecté · animations conditionnées aux preuves temporelles et visuelles",
     "goal": "Facecam, mots animés intégrés au décor, bulles bleues et chiffres vérifiés.",
     "actions": [
+      "Le moteur cinétique fonctionne. Sans alignement forcé et preuve de zone libre, il rend uniquement les sous-titres et les cuts vérifiés.",
       "Suivre la référence vidéo reçue le 16 octobre.",
       "N'afficher un chiffre que s'il est réellement prononcé.",
       "Animer uniquement dans une zone visuelle libre, sans cacher le visage."
     ],
     "never": "Pas d'animation décorative ou de statistique inventée.",
-    "available": false,
-    "state": "INTÉGRATION EN COURS"
+    "available": true,
+    "state": "BÊTA · MOTEUR CONNECTÉ"
   }
 ];
-
 async function freshSession(){
   let {data,error}=await supabase.auth.getSession();
   if(error)throw error;
@@ -441,7 +442,7 @@ export function Dashboard(){
   async function startEdit(autoFix=false){
     if(busy||uploadLocked.current)return;if(!media)return setError("Importe d’abord une vidéo.");
     const modelToUse=autoFix?"codie":editModel;
-    if(modelToUse!=="codie")return setError("Ce modèle n’est pas encore raccordé au moteur. Aucun preset de remplacement ne sera lancé.");
+    if(!["codie","hormozi_omni","social_kinetic"].includes(modelToUse))return setError("Ce modèle n’est pas encore raccordé au moteur. Aucun preset de remplacement ne sera lancé.");
 
     if(autoFix){
       const before=Number(score);
@@ -571,7 +572,7 @@ export function Dashboard(){
         <div className="workspace-grid">
           <section className="panel">
             <small className="eyebrow">EDIT+ / MONTER</small><h3>Un montage construit autour de tes paroles.</h3><p className="social-panel-explainer">Importe un rush, sélectionne un style puis génère un export. L'original reste intact.</p>
-            <label className="upload-zone"><input type="file" disabled={busy||uploading} accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" onChange={e=>{const f=e.currentTarget.files?.[0];e.currentTarget.value="";if(f)void uploadVideo(f)}}/><div><Upload size={30}/><b>{file?file.name:media?"Vidéo importée, prête à monter":"Choisir une vidéo à monter"}</b><span>MP4 · MOV · WebM · max {MAX_VIDEO_UPLOAD_MIB} Mo · Codie bêta disponible</span></div></label>
+            <label className="upload-zone"><input type="file" disabled={busy||uploading} accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" onChange={e=>{const f=e.currentTarget.files?.[0];e.currentTarget.value="";if(f)void uploadVideo(f)}}/><div><Upload size={30}/><b>{file?file.name:media?"Vidéo importée, prête à monter":"Choisir une vidéo à monter"}</b><span>MP4 · MOV · WebM · max {MAX_VIDEO_UPLOAD_MIB} Mo · 3 moteurs bêta disponibles</span></div></label>
             {file&&<div className="social-upload-status" role="status" aria-live="polite"><span>{uploading?"Import en cours":media?"Import terminé":"Préparation du fichier"}</span><strong>{uploadPct}%</strong><div className="progress"><i style={{width:`${uploadPct}%`}}/></div></div>}
             {error&&<div role="alert" className="job-card error">{error}</div>}
             <div className="status-row"><span>Fichier vidéo</span><span className="status-pill">{media?"Prêt":file?`${uploadPct}%`:"En attente"}</span></div>
@@ -580,21 +581,21 @@ export function Dashboard(){
         </div>
 
         <section className="model-library">
-          <div className="section-heading"><small>4 RÉFÉRENCES RETENUES</small><h2>Les montages que nous avons choisis.</h2><p>Codie, Leila, Alex Hormozi et Social Kinetic. Le moteur actuellement utilisable est un ancien Codie bêta, pas encore la V60 certifiée. Les autres sont en cours d’intégration.</p></div>
-          <div className="model-grid social-approved-model-grid">{EDIT_MODELS.map(model=><button type="button" key={model.id} disabled={!model.available||busy||uploading} aria-label={`${model.name} — ${model.state}`} className={`model-card social-approved-model ${editModel===model.id?"selected":""} ${model.available?"is-available":"is-pending"}`} data-model={model.id} onClick={()=>{if(model.available)setEditModel(model.id)}}>
+          <div className="section-heading"><small>4 RÉFÉRENCES RETENUES</small><h2>Choisis ton modèle de montage.</h2><p>Les moteurs Codie, Alex Hormozi et Social Kinetic sont raccordés en bêta. Leila n’est pas encore disponible. Les rendus complets restent à comparer aux références avant validation finale.</p></div>
+          <div className="model-grid social-approved-model-grid">{EDIT_MODELS.map(model=><button type="button" key={model.id} disabled={!model.available||busy||uploading} aria-label={`${model.name} — ${model.state}`} className={`model-card social-approved-model ${editModel===model.id?"selected":""} ${model.available?"is-available":"is-pending"}`} data-model={model.id} onClick={()=>{if(model.available){setEditModel(model.id);if(model.id==="hormozi_omni")setFormat("native")}}}>
               <div className="social-model-identity"><span>EDIT+ / {model.preview}</span><small className={`social-model-state ${model.available?"beta":"pending"}`}>{model.state}</small><strong>{model.name}</strong><p>{model.goal}</p></div>
               <div className="model-copy"><div><strong>{model.name}</strong><span>{model.category}</span></div>{editModel===model.id&&<Check size={18}/>}<p>{model.meta}</p></div>
             </button>)}</div>
-          <p className="social-model-truth" role="note">Aucune vignette factice : seuls les aperçus vidéo réellement validés seront montrés. Les modèles non raccordés ne peuvent pas déclencher un ancien preset par erreur.</p>
+          <p className="social-model-truth" role="note">Les trois moteurs activés produisent un rendu bêta, sans garantie de reproduction fidèle des vidéos de référence. Leila reste désactivé. Aucun modèle non reconnu n’est remplacé silencieusement.</p>
           <section className="model-action-contract" data-testid="edit-model-action-contract" aria-live="polite">
             <div className="contract-head"><span>CONTRAT DE MONTAGE · {selectedModel.name.toUpperCase()}</span><h3>{selectedModel.goal}</h3></div>
             <p className="contract-notice">Le contrat décrit la référence de montage souhaitée. Le moteur historique disponible ne garantit pas encore la fidélité à la V60.</p>
             <ol>{selectedModel.actions.map((action,i)=><li key={i}><span>{String(i+1).padStart(2,"0")}</span><p>{action}</p></li>)}</ol>
             <div className="contract-avoid"><strong>À éviter</strong><p>{selectedModel.never}</p></div>
           </section>
-          <label className="format-picker">Format de sortie <select className="field" value={format} onChange={e=>setFormat(e.target.value)} disabled={busy}><option value="native">Natif — conserver le format source</option><option value="portrait">Portrait — 1080 × 1920</option><option value="landscape">Paysage — 1920 × 1080</option></select></label>
+          <label className="format-picker">Format de sortie {selectedModel.id==="hormozi_omni"&&<small>· Format natif obligatoire pour préserver le cadrage</small>} <select className="field" value={selectedModel.id==="hormozi_omni"?"native":format} onChange={e=>setFormat(e.target.value)} disabled={busy||selectedModel.id==="hormozi_omni"}><option value="native">Natif — conserver le format source</option><option value="portrait">Portrait — 1080 × 1920</option><option value="landscape">Paysage — 1920 × 1080</option></select></label>
           <button className="btn primary create-edit" onClick={()=>void startEdit(false)} disabled={!media||busy||uploading||!selectedModel.available}><Clapperboard size={17}/> {busy&&job?.kind==="edit_render"?"Montage en cours…":`Créer mon montage · ${selectedModel.name}`}</button>
-          <p className="social-model-truth" role="note">Essai Codie bêta : ancienne version du moteur. V60, Leila, Hormozi et Social Kinetic attendent leur validation de rendu réelle.</p>
+          <p className="social-model-truth" role="note">{selectedModel.id==="hormozi_omni"?"Hormozi conserve obligatoirement le cadrage et le format de la source. Les animations fondées sur des preuves peuvent être absentes si l’analyse n’en fournit pas.":selectedModel.id==="social_kinetic"?"Social Kinetic : les animations n’apparaissent que si leurs mots, leurs timings et leur emplacement sont vérifiés.":"Codie bêta : le rendu V60 reste à comparer et à valider."}</p>
           <InlineJobState job={job?.kind==="edit_render"?job:null}/>
         </section>
       </>}
