@@ -148,3 +148,25 @@ export function editorialScoreAudit(semantic,measurable){
     }
   };
 }
+
+
+/**
+ * Catch invalid platform assumptions, not legitimate criticisms of framing.
+ * A horizontal native video can still have a bad crop, but the container's
+ * aspect ratio ALONE does not prove poor craft or a weak hook.
+ */
+export function detectUnsupportedFormatPenalty({evidence={},measurable={},review={}}={}){
+  if(Number(measurable.aspectRatio||0)<1)return [];
+  const contested=new Set(Array.isArray(review?.disputed_keys)?review.disputed_keys:[]);
+  const results=[];
+  for(const key of ['visual','scroll_stop','retention','rhythm']){
+    const rationale=String(evidence[key]||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    const aspect=/\b(16\s*[:/]\s*9|format horizontal|cadrage horizontal|horizontal natif|format paysage|mode paysage)\b/.test(rationale);
+    const negative=/(limite|penalis|moins adapt|faible|defavor|frein|impact reduit|manque de|reste brut|visuellement brut|moins fort)/.test(rationale);
+    const assumesVertical=/(flux mobile vertical|flux vertical|fil vertical|format vertical|reels vertical|tiktok vertical|shorts vertical)/.test(rationale);
+    if(aspect&&negative&&(assumesVertical||contested.has(key))){
+      results.push({criterion:key,issue:'native_horizontal_treated_as_vertical_failure',evidence:String(evidence[key]||'').slice(0,360)});
+    }
+  }
+  return results;
+}
