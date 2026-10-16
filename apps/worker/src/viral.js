@@ -2,6 +2,7 @@ import {createReadStream} from 'node:fs';
 import {stat} from 'node:fs/promises';
 import {spawn} from 'node:child_process';
 import {reviewHookSuggestions,reviewEditorialFixes,reviewSupplementalCopy} from './viral-personalization.js';
+import {verifyWithVideo,applyVideoReview} from './viral-verifier.js';
 import {
   SCORE_VERSION,SCORE_WEIGHTS,validateSemanticAnalysis,
   priorityDiagnostics,editorialRiskMap,calculateScore
@@ -121,6 +122,7 @@ export async function analyzeVideo({
     recommended_hook:hookExperiments.candidates[0]?.proposed_hook||'',
     alternative_hooks:hookExperiments.candidates.slice(1).map(x=>x.proposed_hook),
     hook_experiments:hookExperiments,
+    recommendation_video_review:semantic.recommendation_video_review||null,
     editorial_review:{
       review_status:editorialReview.review_status,
       reviewed_fixes:fixPlan.length,
@@ -634,8 +636,14 @@ Règles:
         .trim();
 
       const parsed=validateSemanticAnalysis(parseJson(text));
-      parsed.model_used=model;
-      return parsed;
+      const challenged=await verifyWithVideo({
+        fileUri,mimeType,apiKey:geminiKey,
+        primaryModel:model,fallbackModel:models.find(x=>x!==model),
+        semantic:parsed,transcript,measurable
+      });
+      const verified=applyVideoReview(parsed,challenged);
+      verified.model_used=model;
+      return verified;
     }catch(error){
       lastError=error;
     }
