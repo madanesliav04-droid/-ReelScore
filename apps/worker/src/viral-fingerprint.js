@@ -41,3 +41,25 @@ export async function decodedSourceFingerprint({filePath,durationSec,width,heigh
  }else hash.update('NO_AUDIO');
  return 'av1-'+hash.digest('hex');
 }
+
+export async function probeFingerprintSource(filePath){
+ return new Promise((resolve,reject)=>{
+  const cp=spawn('ffprobe',['-v','error','-show_streams','-show_format','-of','json',filePath],{stdio:['ignore','pipe','pipe']});
+  let output='',error='',finished=false;
+  const timer=setTimeout(()=>cp.kill('SIGKILL'),18000);
+  cp.stdout.on('data',b=>{output+=String(b);if(output.length>300000)cp.kill('SIGKILL')});
+  cp.stderr.on('data',b=>{error+=String(b).slice(0,300)});
+  cp.once('error',e=>{if(!finished){finished=true;clearTimeout(timer);reject(e)}});
+  cp.once('close',code=>{
+    clearTimeout(timer);if(finished)return;finished=true;
+    if(code!==0)return reject(new Error('FINGERPRINT_PROBE_FAILED '+error.slice(0,180)));
+    try{
+      const data=JSON.parse(output);
+      const video=(data.streams||[]).find(x=>x.codec_type==='video');
+      const audio=(data.streams||[]).find(x=>x.codec_type==='audio');
+      if(!video)throw new Error('NO_VIDEO_STREAM');
+      resolve({durationSec:Number(data.format?.duration||video.duration),width:Number(video.width),height:Number(video.height),hasAudio:Boolean(audio)});
+    }catch(e){reject(e)}
+  });
+ });
+}
