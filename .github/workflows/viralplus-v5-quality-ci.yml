@@ -26,5 +26,6 @@ jobs:
           node --check src/index.js
           node --check src/viral.js
           node --check src/viral-quality.js
+          node --check src/viral-personalization.js
       - name: Run V5 scoring and diagnostic tests
-        run: node --test tests/viralplus-quality-v5.test.mjs
+        run: node --test tests/viralplus-*.test.mjs
