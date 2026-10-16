@@ -12,7 +12,7 @@ export const OMNI_TYPE_STYLES=Object.freeze({
  ugc_native:{reference:'Museo',preview:'Cabin',weight:650,size:66,maxWords:4,stroke:2,position:'middle_low',intent:'personal and native'},
  cinematic_story:{reference:'Didot',preview:'GFS Didot',weight:550,size:60,maxWords:6,stroke:1,position:'lower_third',intent:'quiet high-contrast editorial'}
 });
-const aliases={creator_clean:'clean',business_viral:'impact',podcast_authority:'authority',ugc:'ugc_native',cinematic:'cinematic_story'};
+const aliases={creator_clean:'clean',business_viral:'impact',podcast_authority:'authority',ugc:'ugc_native',cinematic:'cinematic_story',hormozi_omni:'impact'};
 export function resolveOmniTypography(style,current={}){
  const name=aliases[style]||style,selected=OMNI_TYPE_STYLES[name];
  if(!selected)return {...current};

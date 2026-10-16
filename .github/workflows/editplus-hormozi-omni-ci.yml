@@ -1,0 +1,26 @@
+name: Edit+ Hormozi OMNI V1 QA (staging only)
+on:
+  push:
+    branches: [editplus-hormozi-omni-v1-20261015]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  worker-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/worker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install FFmpeg and subtitle tooling
+        run: sudo apt-get update -qq && sudo apt-get install -y ffmpeg fonts-noto-core
+      - name: Install worker dependencies
+        run: npm install --no-audit --no-fund
+      - name: Worker smoke and graphics tests
+        run: npm run check
+      - name: No false creative certification
+        run: echo "CI is synthetic; pixel, audio SFX, rights and third-party rush QA remain pending."

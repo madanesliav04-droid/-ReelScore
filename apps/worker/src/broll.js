@@ -97,7 +97,7 @@ ${transcript}`;
     // image damages a premium edit more than no image. Only transcript-grounded
     // AI cues can propose an insert; every selected photo still passes pixel QA.
     // Keep legacy fallback behavior for other models while they are refined.
-    const raw=(style==='codie'?aiRaw:[...aiRaw,...localRaw])
+    const raw=(['codie','hormozi_omni'].includes(style)?aiRaw:[...aiRaw,...localRaw])
       .sort((a,b)=>Number(a.start_sec||0)-Number(b.start_sec||0));
 
     const cleaned=[];
@@ -149,7 +149,7 @@ ${transcript}`;
         :[];
 
       const specificity=Number(cue.specificity??(String(cue.reason||'').includes('local transcript fallback')?0.78:0));
-      if(specificity<(style==='codie'?0.88:0.72))continue;
+      if(specificity<(['codie','hormozi_omni'].includes(style)?0.88:0.72))continue;
       if(isLowValueBrollQuery(query))continue;
 
       cleaned.push({

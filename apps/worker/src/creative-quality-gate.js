@@ -35,6 +35,7 @@ const concrete=[
 // These are upper limits, never quotas for mandatory insertions.
 export const CREATIVE_STYLE_PROFILES=Object.freeze({
   codie:{maxBrollPer30s:1.5,maxGraphicsPer30s:3,minGraphicGapMs:1350,minBrollGapMs:4200,maxGraphicArea:.10},
+  hormozi_omni:{maxBrollPer30s:3,maxGraphicsPer30s:3,minGraphicGapMs:1700,minBrollGapMs:3000,maxGraphicArea:.12},
   impact:{maxBrollPer30s:4,maxGraphicsPer30s:4,minGraphicGapMs:1100,minBrollGapMs:1900,maxGraphicArea:.10},
   clean:{maxBrollPer30s:1,maxGraphicsPer30s:1,minGraphicGapMs:2700,minBrollGapMs:4400,maxGraphicArea:.075},
   authority:{maxBrollPer30s:1,maxGraphicsPer30s:1,minGraphicGapMs:4300,minBrollGapMs:6400,maxGraphicArea:.085},

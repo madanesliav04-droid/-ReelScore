@@ -4,6 +4,7 @@ import {assessCutCandidates} from './premium-quality-v3.js';
 import {resolveOmniTypography} from './omni-style-system.js';
 import {proposeOmniSemanticCues} from './omni-semantic-director.js';
 import {planPremiumStoryboards} from './premium-creative-grammar.js';
+import {planHormoziOmniStoryboard} from './hormozi-omni-director.js';
 const FILLERS=new Set(['euh','heu','uh','um','erm','hmm','hum']);
 
 export const MODEL_CONTRACT_VERSION='editplus-focus-five-v4';
@@ -17,6 +18,7 @@ export const EDIT_STYLES={
   data:{label:'Data',promise:'Numbers & evidence · proof on screen',pace:'fast',silenceThresholdMs:500,removeFillers:true,maxPunchInsPer30s:5,punchScale:1.09,punchSeverities:['red','orange'],captions:'data',broll:{maxPer30s:4,minDurationMs:1800,maxDurationMs:3100,minGapMs:2800},brollDirective:'Priorité aux preuves visuelles: documents modernes, tableaux, dashboards, produits comparés, lieux ou éléments cités. Pas d’archives décoratives.',soundDesign:'light',visualSignature:{mode:'data',contrast:1.07,saturation:.96,accent:'#ffd166',cadenceMs:4700}},
   ugc_native:{label:'UGC Native',promise:'Native social · human and unpolished',pace:'natural',silenceThresholdMs:740,removeFillers:false,maxPunchInsPer30s:3,punchScale:1.05,punchSeverities:['red'],captions:'ugc',broll:{maxPer30s:1,minDurationMs:1500,maxDurationMs:2600,minGapMs:7000},brollDirective:'Très peu de B-roll. Favorise produit, geste, détail ou usage réel. Le rendu doit rester natif téléphone.',soundDesign:'light',visualSignature:{mode:'ugc_native',contrast:1.03,saturation:1.12,accent:'#ff3fbf',cadenceMs:7000}},
   cinematic_story:{label:'Cinematic Story',promise:'Personal story · emotion and breathing room',pace:'story',silenceThresholdMs:1100,removeFillers:false,maxPunchInsPer30s:2,punchScale:1.04,punchSeverities:['red'],captions:'cinematic',broll:{maxPer30s:3,minDurationMs:3200,maxDurationMs:6200,minGapMs:5600},brollDirective:'B-roll narratif et émotionnel, plus long. Cherche des lieux, objets, actions ou atmosphères directement reliés à l’histoire.',soundDesign:'cinematic',visualSignature:{mode:'cinematic_story',contrast:1.08,saturation:.72,accent:'#ffffff',cadenceMs:0}},
+  hormozi_omni:{label:'Alex Hormozi · OMNI',promise:'Evidence-led business explanation with visible reasoning',pace:'logic_fast',silenceThresholdMs:590,removeFillers:true,maxPunchInsPer30s:4,punchScale:1.075,punchSeverities:['red'],captions:'impact',broll:{maxPer30s:3,minDurationMs:1450,maxDurationMs:3000,minGapMs:3600},brollDirective:'Priorité aux véritables preuves, captures et démonstrations autorisées. Aucun bureau générique, aucun compteur inventé.',soundDesign:'minimal',visualSignature:{mode:'authority',contrast:1.06,saturation:.95,accent:'#7D91DD',cadenceMs:0}},
   // Editorial Breakdown: inspired by restrained business-math storytelling,
   // not a generic Data preset. Figures and comparisons are transcript-grounded.
   editorial_breakdown:{
@@ -42,6 +44,7 @@ const GRAPHIC_TRIGGERS={
   data:'numbers: only a number actually present in the transcript',
   ugc_native:'none: preserve natural phone-native video',
   cinematic_story:'none: rely on shots and timing, not auto-generated quote cards',
+  hormozi_omni:'evidence: real timed numbers, verified steps, sourced charts and comparisons; no invented graph or unsupported proof',
   editorial_breakdown:'editorial serif metrics, equations and comparison only when directly supported by spoken numbers; no fake data or decorative stock imagery'
 };
 
@@ -265,6 +268,13 @@ export function buildEditTimeline({
     outputDurationMs,
     styleCfg
   });
+  // A separate explanatory model; its graphics are strictly opt-in.
+  const hormoziPlan=canonicalStyle==='hormozi_omni'
+    ?planHormoziOmniStoryboard({
+       analysis,words:mappedWords,durationMs:outputDurationMs,
+       enabled:process.env.ENABLE_HORMOZI_OMNI_GRAPHICS==='true'
+     })
+    :null;
   // Do not silently revert to generic decorative effects if premium visual evidence is absent.
   // OMNI framework: seven ideas, no keyword-triggered decorative badges.
   // Hold the entire treatment unless independent frame tracking explicitly clears
@@ -275,8 +285,10 @@ export function buildEditTimeline({
     enabled:process.env.ENABLE_OMNI_BUBBLES==='true'
   });
   const omniBubbles=omniPlan.cues;
-  const graphicCues=storyMode?storyboardReview.accepted:
-    omniBubbles.length?omniBubbles:defaultGraphicCues;
+  const graphicCues=canonicalStyle==='hormozi_omni'
+    ?hormoziPlan.cues
+    :storyMode?storyboardReview.accepted:
+      omniBubbles.length?omniBubbles:defaultGraphicCues;
 
   const sourceW=
     Number(sourceWidth)||
@@ -286,7 +298,11 @@ export function buildEditTimeline({
     Number(sourceHeight)||
     Number(analysis?.measurable?.height)||
     1920;
-  const target=targetDimensions(format,sourceW,sourceH);
+  // Hormozi × OMNI model contract: the user's source aspect ratio ALWAYS wins
+  // over an inherited output preset. A 16:9 raw rush is not padded to 9:16.
+  // This guarantees no automatic centre-square crop or synthetic bands.
+  const preservedSourceFormat=canonicalStyle==='hormozi_omni';
+  const target=targetDimensions(preservedSourceFormat?'native':format,sourceW,sourceH);
 
   return {
     version:3,
@@ -296,6 +312,7 @@ export function buildEditTimeline({
     height:target.height,
     format:target.format,
     sourceAspect:sourceW/sourceH,
+    sourceFramePreservation:preservedSourceFormat?{enabled:true,requestedFormat:format,appliedFormat:'native',cropAllowed:false,paddingAllowed:false}:null,
     style:canonicalStyle,
     modelId:canonicalStyle,
     modelContractVersion:MODEL_CONTRACT_VERSION,
@@ -306,6 +323,7 @@ export function buildEditTimeline({
     captionConfig:captionCfg,
     typographyStatus:captionCfg.typefaceVerification||'legacy',
     omniBubbleAudit:{policy:omniPlan.policy,proposed:omniBubbles.length,held:omniPlan.held,faceSafetyRequired:true},
+    hormoziModelAudit:hormoziPlan?{policy:hormoziPlan.policy,accepted:hormoziPlan.cues.length,held:hormoziPlan.held,soundIntents:hormoziPlan.soundIntents,mixingEnabled:false}:null,
     sourceDurationMs:durationMs,
     outputDurationMs,
     keepRanges,
