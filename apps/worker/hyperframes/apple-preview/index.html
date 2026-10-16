@@ -1,0 +1,29 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><style>
+html,body{width:960px;height:540px;margin:0;overflow:hidden;background:transparent!important;font-family:Inter,"Helvetica Neue",Arial,sans-serif}
+#root{width:960px;height:540px;position:relative;background:transparent!important;color:#1d1d1f}
+.clip{position:absolute;opacity:0;transform-origin:50% 60%;box-sizing:border-box}
+.small{font-size:11px;font-weight:700;letter-spacing:.17em;color:#68707e;margin-bottom:8px}
+.bubble{background:#087cff;border-radius:20px 20px 8px 20px;color:white;box-shadow:0 12px 30px #004c9a44,0 2px 5px #0002;padding:18px 21px;font-size:24px;font-weight:550;letter-spacing:-.035em;line-height:1.23}
+.soft{background:#f8f8faff;color:#212124;border:1px solid #fdfdff;border-radius:20px 20px 20px 8px;box-shadow:0 14px 30px #0002,0 2px 5px #0001;padding:17px 22px;font-size:20px;font-weight:550;letter-spacing:-.035em;line-height:1.25}
+.step{background:#f8f8faff;color:#212124;border:1px solid #ececf0;border-radius:22px;box-shadow:0 14px 35px #0002;padding:17px 20px}
+.number{font-size:42px;font-weight:670;line-height:1;color:#007aff;letter-spacing:-.07em}
+.name{font-size:21px;font-weight:560;letter-spacing:-.035em;line-height:1.15;margin-top:10px}
+#q{left:614px;top:65px;width:300px}#a{left:631px;top:178px;width:280px}
+#n{left:613px;top:293px;width:306px}#one{left:636px;top:80px;width:266px}
+#two{left:619px;top:262px;width:292px}
+</style></head><body>
+<div id="root" data-composition-id="editplus-apple-hf-17s" data-start="0" data-duration="17" data-width="960" data-height="540" data-fps="30">
+<div class="clip soft" id="q" data-start=".6" data-duration="3.4" data-track-index="1"><div class="small">LA QUESTION</div>Comment gagner<br>de l’argent ?</div>
+<div class="clip bubble" id="a" data-start="3.9" data-duration="3.5" data-track-index="1">Aider les autres.</div>
+<div class="clip soft" id="n" data-start="7.1" data-duration="2.8" data-track-index="1"><div class="small">LE PRINCIPE</div>Créer de la valeur.</div>
+<div class="clip step" id="one" data-start="10.5" data-duration="2.6" data-track-index="1"><div class="number">01</div><div class="name">Aider quelqu’un</div></div>
+<div class="clip step" id="two" data-start="13" data-duration="3.5" data-track-index="1"><div class="number">02</div><div class="name">Apprendre à résoudre<br>un problème</div></div>
+</div><script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script><script>
+const tl=gsap.timeline({paused:true});
+for(const [id,s,e] of [["q",.6,4],["a",3.9,7.4],["n",7.1,9.9],["one",10.5,13.1],["two",13,16.5]]) {
+tl.fromTo("#"+id,{autoAlpha:0,y:20,scale:.95},{autoAlpha:1,y:0,scale:1,duration:.46,ease:"power3.out"},s);
+tl.to("#"+id,{autoAlpha:0,y:-8,duration:.31,ease:"power2.inOut"},e-.31);
+}
+window.__timelines=window.__timelines||{};
+window.__timelines["editplus-apple-hf-17s"]=tl;
+</script></body></html>
