@@ -1,7 +1,7 @@
 "use client";
 
 import {useEffect,useMemo,useRef,useState} from "react";
-import {BarChart3,Clapperboard,LogOut,Scissors,Upload,Zap,Check,Link2} from "lucide-react";
+import {BarChart3,Clapperboard,LogOut,Scissors,Upload,Zap,Check,Link2,ArrowRight,FileVideo,ShieldCheck} from "lucide-react";
 import * as tus from "tus-js-client";
 import {functionUrl,supabase,SUPABASE_PROJECT_REF,VIDEO_BUCKET} from "@/lib/supabase";
 import {authMessage} from "@/lib/auth-message";
@@ -111,13 +111,14 @@ function safeName(name:string){return name.replace(/[^a-zA-Z0-9._-]+/g,"-").slic
 
 export function Dashboard(){
   const [session,setSession]=useState<any>(null);
+  const [authReady,setAuthReady]=useState(false);
   const [email,setEmail]=useState("");
   const [password,setPassword]=useState("");
   const [authMode,setAuthMode]=useState<"login"|"signup">("login");
   const [authError,setAuthError]=useState("");
   const [authPending,setAuthPending]=useState(false);
   const authLock=useRef(false);
-  const [active,setActive]=useState<Module>("viral");
+  const [active,setActive]=useState<Module>("edit");
   const [file,setFile]=useState<File|null>(null);
   const [media,setMedia]=useState<Media|null>(null);
   const [uploadPct,setUploadPct]=useState(0);
@@ -151,9 +152,10 @@ export function Dashboard(){
 
   useEffect(()=>{
     const requested=new URLSearchParams(window.location.search).get("tool");
-    if(requested==="viral"||requested==="edit"||requested==="clip")setActive(requested);
-    supabase.auth.getSession().then(({data})=>setSession(data.session));
-    const {data}=supabase.auth.onAuthStateChange((_event,next)=>setSession(next));
+    if(requested==="viral"||requested==="edit")setActive(requested);
+    else if(requested==="clip")history.replaceState(null,"","/dashboard?tool=viral");
+    supabase.auth.getSession().then(({data})=>setSession(data.session)).catch(()=>setSession(null)).finally(()=>setAuthReady(true));
+    const {data}=supabase.auth.onAuthStateChange((_event,next)=>{setSession(next);setAuthReady(true)});
     return ()=>data.subscription.unsubscribe();
   },[]);
   useEffect(()=>{
@@ -171,7 +173,7 @@ export function Dashboard(){
         const saved=localStorage.getItem(`viral-studio-active-job:${owner}`);
         const parsed=saved?JSON.parse(saved):null;
         if(parsed?.id&&["core","clip"].includes(parsed.channel)){
-          setActive(parsed.module||"viral");setBusy(true);
+          setActive(parsed.module==="edit"?"edit":"viral");setBusy(true);
           void watchJob(parsed.id,parsed.channel);
         }
       }catch{}
@@ -193,7 +195,7 @@ export function Dashboard(){
   const safeZone=analysis?.safe_zone||null;
 
   function switchModule(next:Module){
-    if(busy||uploadLocked.current)return;
+    if(busy||uploadLocked.current||next==="clip")return;
     setActive(next);
     setError("");
     setJob(null);
@@ -312,7 +314,7 @@ export function Dashboard(){
         const body=await api(url,token);
         if(!alive())return;
         setJob(body.job);
-        setActive(body.job.kind==="clip_generate"?"clip":body.job.kind==="edit_render"?"edit":"viral");
+        setActive(body.job.kind==="edit_render"?"edit":body.job.kind==="viral_analysis"?"viral":active);
         // Every ready output becomes accessible immediately, including after a browser restart.
         if(kind==="clip"&&body.job.clip_project_id){
           try{
@@ -490,36 +492,40 @@ export function Dashboard(){
     }catch(e:any){setError(e.message)}
   }
 
+  if(!authReady)return <main className="social-loading" role="status" aria-live="polite"><div className="social-loading-icon">S+</div><p>Ouverture de Social+…</p></main>;
+
   if(!session)return <main className="auth-screen"><div className="auth-orb"/><section className="auth-box">
-    <div className="side-brand big">VIRAL <span>STUDIO</span></div>
-    <h1>{authMode==="login"?"Welcome back.":"Create your studio."}</h1><p>Clip. Edit. Analyze. Export.</p>
-    <form onSubmit={authenticate} aria-busy={authPending}><input className="field" type="email" autoComplete="email" disabled={authPending} value={email} onChange={e=>setEmail(e.target.value)} placeholder="Email" required/><input className="field" type="password" autoComplete={authMode==="login"?"current-password":"new-password"} disabled={authPending} value={password} onChange={e=>setPassword(e.target.value)} placeholder="Password" minLength={6} required/><button type="submit" disabled={authPending} className="btn primary auth-submit">{authPending?"Connexion…":authMode==="login"?"Sign in":"Create account"}</button></form>
+    <div className="side-brand big">SOCIAL <span>+</span></div>
+    <h1>{authMode==="login"?"Bon retour.":"Bienvenue sur Social+."}</h1><p>Montage intelligent avec Edit+. Analyse éditoriale avec Viral+.</p>
+    <form onSubmit={authenticate} aria-busy={authPending}><input className="field" type="email" autoComplete="email" disabled={authPending} value={email} onChange={e=>setEmail(e.target.value)} placeholder="Email" required/><input className="field" type="password" autoComplete={authMode==="login"?"current-password":"new-password"} disabled={authPending} value={password} onChange={e=>setPassword(e.target.value)} placeholder="Password" minLength={6} required/><button type="submit" disabled={authPending} className="btn primary auth-submit">{authPending?"Connexion…":authMode==="login"?"Se connecter":"Créer mon compte"}</button></form>
     {authError&&<div role="alert" className="error auth-error">{authError}</div>}{authNotice&&<p role="status">{authNotice}</p>}
-    <button className="auth-switch" disabled={authPending} onClick={()=>{setAuthError("");setAuthNotice("");setAuthMode(authMode==="login"?"signup":"login")}}>{authMode==="login"?"No account? Create one":"Already registered? Sign in"}</button>
+    <button className="auth-switch" disabled={authPending} onClick={()=>{setAuthError("");setAuthNotice("");setAuthMode(authMode==="login"?"signup":"login")}}>{authMode==="login"?"Créer un compte":"Déjà inscrit ? Se connecter"}</button>
   </section></main>;
 
   return <main className="dashboard-shell">
     <aside className="sidebar">
-      <div className="side-brand">VIRAL <span>STUDIO</span></div>
-      <div className="side-group"><small>CREATE</small>
-        <button className="side-link" onClick={()=>switchModule("viral")}><BarChart3 size={16}/> Viral+</button>
-        <button className="side-link" onClick={()=>switchModule("edit")}><Clapperboard size={16}/> Edit+</button>
-        <button className="side-link" onClick={()=>switchModule("clip")}><Scissors size={16}/> Clip+</button>
+      <div className="side-brand">SOCIAL<span>+</span></div>
+      <div className="side-group"><small>TES OUTILS</small>
+        <button type="button" className={`side-link ${active==="edit"?"active":""}`} disabled={busy||uploading} onClick={()=>switchModule("edit")}><Clapperboard size={17}/> Edit+</button>
+        <button type="button" className={`side-link ${active==="viral"?"active":""}`} disabled={busy||uploading} onClick={()=>switchModule("viral")}><BarChart3 size={17}/> Viral+</button>
       </div>
-      <div className="side-group"><small>ACCOUNT</small><button className="side-link" onClick={()=>supabase.auth.signOut()}><LogOut size={16}/> Sign out</button></div>
+      <div className="side-group social-account"><small>COMPTE</small><button type="button" className="side-link" onClick={()=>void supabase.auth.signOut()}><LogOut size={16}/> Se déconnecter</button></div>
     </aside>
 
     <section className="dash-main">
-      <header className="dash-top"><div><h1>What are we creating today?</h1><p>Three tools. One simple workflow.</p></div><div className="user-pill">{session.user.email}</div></header>
-      <div className="module-tabs"><button className={active==="viral"?"active":""} onClick={()=>switchModule("viral")}>Viral+</button><button className={active==="edit"?"active":""} onClick={()=>switchModule("edit")}>Edit+</button><button className={active==="clip"?"active":""} onClick={()=>switchModule("clip")}>Clip+</button></div>
+      <header className="dash-top social-dash-head"><div><div className="social-dash-kicker">SOCIAL+ / STUDIO VIDÉO</div><h1>{active==="edit"?"Montage intelligent.":"Analyse éditoriale."}</h1><p>{active==="edit"?"Un vrai montage adapté à ton contenu, pas des effets automatiques sans raison.":"Comprends ce qui peut être amélioré et pourquoi, avec des observations vérifiables."}</p></div><div className="user-pill">{session.user.email}</div></header>
+      <div className="module-tabs social-workspace-tabs" role="group" aria-label="Choisir un outil">
+        <button type="button" aria-pressed={active==="edit"} disabled={busy||uploading} className={active==="edit"?"active":""} onClick={()=>switchModule("edit")}><Clapperboard size={18}/><span><strong>Edit+</strong><small>Monter une vidéo</small></span></button>
+        <button type="button" aria-pressed={active==="viral"} disabled={busy||uploading} className={active==="viral"?"active":""} onClick={()=>switchModule("viral")}><BarChart3 size={18}/><span><strong>Viral+</strong><small>Analyser une vidéo</small></span></button>
+      </div>
 
       {active==="viral"&&<div className="workspace-grid">
         <section className="panel">
-          <small className="eyebrow">VIRAL+ · ANALYZE</small><h3>Upload. Understand what blocks the video.</h3>
+          <small className="eyebrow">VIRAL+ / ANALYSER</small><h3>Comprends les forces et les faiblesses de ta vidéo.</h3><p className="social-panel-explainer">Ajoute ton rush. Viral+ examine le hook, la clarté, le rythme et les passages à revoir, sans inventer de données Instagram.</p>
           {viralQuota&&<p role="status" className="quota-status" data-testid="viral-monthly-quota">Analyses ce mois : <strong>{viralQuota.used}/{viralQuota.limit}</strong> · {viralQuota.remaining} disponibles · renouvellement le {new Date(viralQuota.reset_at).toLocaleDateString("fr-FR",{day:"numeric",month:"long"})}</p>}
-          <label className="upload-zone"><input type="file" disabled={busy||uploading} accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" onChange={e=>{const f=e.currentTarget.files?.[0];e.currentTarget.value="";if(f)void uploadVideo(f)}}/><div><Upload size={30}/><b>{file?file.name:media?"Clip importé — prêt à analyser":"Drop a Reel here"}</b><span>MP4 · MOV · WebM · max {MAX_VIDEO_UPLOAD_MIB} Mo</span></div></label>
-          {file&&<div className="progress"><i style={{width:`${uploadPct}%`}}/></div>}
-          <button className="btn primary full" onClick={startAnalysis} disabled={!media||busy||uploading}><Zap size={16}/> {busy&&job?.kind==="viral_analysis"?"Analyzing…":"Analyze video"}</button>
+          <label className="upload-zone"><input type="file" disabled={busy||uploading} accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" onChange={e=>{const f=e.currentTarget.files?.[0];e.currentTarget.value="";if(f)void uploadVideo(f)}}/><div><Upload size={30}/><b>{file?file.name:media?"Vidéo importée, prête à analyser":"Choisir une vidéo à analyser"}</b><span>MP4 · MOV · WebM · max {MAX_VIDEO_UPLOAD_MIB} Mo</span></div></label>
+          {file&&<div className="social-upload-status" role="status" aria-live="polite"><span>{uploading?"Import en cours":media?"Import terminé":"Préparation du fichier"}</span><strong>{uploadPct}%</strong><div className="progress"><i style={{width:`${uploadPct}%`}}/></div></div>}
+          <button className="btn primary full" onClick={startAnalysis} disabled={!media||busy||uploading}><Zap size={16}/> {busy&&job?.kind==="viral_analysis"?"Analyse en cours…":uploading?"Import en cours…":"Analyser ma vidéo"}</button>
           <InlineJobState job={job?.kind==="viral_analysis"?job:null}/>
           {error&&<div className="job-card error">{error}</div>}
         </section>
@@ -529,11 +535,11 @@ export function Dashboard(){
       {active==="edit"&&<>
         <div className="workspace-grid">
           <section className="panel">
-            <small className="eyebrow">EDIT+ · AI EDIT</small><h3>Upload once. Pick the look. Edit+ does the rest.</h3>
-            <label className="upload-zone"><input type="file" disabled={busy||uploading} accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" onChange={e=>{const f=e.currentTarget.files?.[0];e.currentTarget.value="";if(f)void uploadVideo(f)}}/><div><Upload size={30}/><b>{file?file.name:media?"Clip importé — prêt à monter":"Drop your video here"}</b><span>MP4 · MOV · WebM · max {MAX_VIDEO_UPLOAD_MIB} Mo · 5 modèles ciblés</span></div></label>
-            {file&&<div className="progress"><i style={{width:`${uploadPct}%`}}/></div>}
+            <small className="eyebrow">EDIT+ / MONTER</small><h3>Un montage construit autour de tes paroles.</h3><p className="social-panel-explainer">Importe un rush, sélectionne un style puis génère un export. L'original reste intact.</p>
+            <label className="upload-zone"><input type="file" disabled={busy||uploading} accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" onChange={e=>{const f=e.currentTarget.files?.[0];e.currentTarget.value="";if(f)void uploadVideo(f)}}/><div><Upload size={30}/><b>{file?file.name:media?"Vidéo importée, prête à monter":"Choisir une vidéo à monter"}</b><span>MP4 · MOV · WebM · max {MAX_VIDEO_UPLOAD_MIB} Mo · 5 modèles ciblés</span></div></label>
+            {file&&<div className="social-upload-status" role="status" aria-live="polite"><span>{uploading?"Import en cours":media?"Import terminé":"Préparation du fichier"}</span><strong>{uploadPct}%</strong><div className="progress"><i style={{width:`${uploadPct}%`}}/></div></div>}
             {error&&<div role="alert" className="job-card error">{error}</div>}
-            <div className="status-row"><span>Video</span><span className="status-pill">{media?"Ready":file?`${uploadPct}%`:"Waiting"}</span></div>
+            <div className="status-row"><span>Fichier vidéo</span><span className="status-pill">{media?"Prêt":file?`${uploadPct}%`:"En attente"}</span></div>
           </section>
           {sourceUrl?<video ref={sourceRef} className="source-preview" src={sourceUrl} controls playsInline/>:<BackendState media={media} job={job}/>}
         </div>
@@ -551,40 +557,17 @@ export function Dashboard(){
             <div className="contract-avoid"><strong>À éviter</strong><p>{selectedModel.never}</p></div>
           </section>
           <label className="format-picker">Format de sortie <select className="field" value={format} onChange={e=>setFormat(e.target.value)} disabled={busy}><option value="native">Natif — conserver le format source</option><option value="portrait">Portrait — 1080 × 1920</option><option value="landscape">Paysage — 1920 × 1080</option></select></label>
-          <button className="btn primary create-edit" onClick={()=>void startEdit(false)} disabled={!media||busy||uploading}><Clapperboard size={17}/> {busy&&job?.kind==="edit_render"?"Editing…":`Create with ${selectedModel.name}`}</button>
+          <button className="btn primary create-edit" onClick={()=>void startEdit(false)} disabled={!media||busy||uploading}><Clapperboard size={17}/> {busy&&job?.kind==="edit_render"?"Montage en cours…":`Créer mon montage · ${selectedModel.name}`}</button>
           <InlineJobState job={job?.kind==="edit_render"?job:null}/>
         </section>
       </>}
 
-      {active==="clip"&&<div className="workspace-grid">
-        <section className="panel clip-url-panel">
-          <small className="eyebrow">CLIP+ · YOUTUBE TO SHORTS</small><h3>Paste a long YouTube video. Get the best Shorts.</h3>
-          <p className="clip-promise">URL → analyse des moments forts → extraits de 10 à 15 secondes → 9:16 → captions → clips prêts à poster.</p>
-          <div className="url-box"><Link2 size={20}/><input value={clipUrl} onChange={e=>{setClipUrl(e.target.value);setClipMedia(null)}} placeholder="Paste YouTube URL"/></div>
-          <button type="button" className="clip-upload-toggle" onClick={()=>setClipFallback(v=>!v)}>{clipFallback?"Hide file import":"YouTube blocked? Import the video instead"}</button>
-          {clipFallback&&<div className="clip-upload-fallback">
-            <small>DIRECT FILE FALLBACK</small>
-            <p>MP4, MOV ou WebM. Le fichier rejoint ensuite le même moteur Clip+ : sélection des passages, 9:16 et captions.</p>
-            <label className="upload-zone compact"><input type="file" disabled={busy||uploading} accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" onChange={e=>{const f=e.currentTarget.files?.[0];e.currentTarget.value="";if(f)void uploadClipSource(f)}}/><div><Upload size={24}/><b>{clipFile?clipFile.name:"Import the source video"}</b><span>{clipMedia?"Ready for Clip+":clipFile?`${clipUploadPct}% uploaded`:`Max ${MAX_VIDEO_UPLOAD_MIB} Mo actuellement`}</span></div></label>
-            {clipFile&&<div className="progress"><i style={{width:`${clipUploadPct}%`}}/></div>}
-          </div>}
-          <div className="clip-count-label">Combien d’extraits courts de 10–15 s veux-tu ?</div>
-          <div className="clip-count-selector">{([5,10,20] as const).map(n=><button key={n} className={clipCount===n?"selected":""} onClick={()=>setClipCount(n)}><strong>{n}</strong><span>clips</span></button>)}</div>
-          <div className="quality-note"><Check size={14}/><span>Meilleurs moments uniquement : hook immédiat, idée autonome, chute naturelle. Clip+ peut en produire moins si la vidéo ne contient pas assez de passages forts.</span></div>
-          <label className="rights-check"><input type="checkbox" checked={clipRights} onChange={e=>setClipRights(e.target.checked)}/><span>Je confirme que je possède cette vidéo ou que j’ai l’autorisation de la traiter.</span></label>
-          <button className="btn primary full" onClick={startClip} disabled={(!clipMedia&&!clipUrl.trim())||!clipRights||busy||uploading}><Scissors size={16}/> {busy&&job?.kind==="clip_generate"?`Creating up to ${clipCount} clips…`:clipMedia?`Generate ${clipCount} clips from upload`:`Generate ${clipCount} clips`}</button>
-          <InlineJobState job={job?.kind==="clip_generate"?job:null}/>
-          {error&&<div className="job-card error">{error}</div>}
-        </section>
-        <BackendState media={null} job={job}/>
-      </div>}
-
-      {active==="edit"&&editExportUrl&&<section className="result-panel edit-result"><div className="result-copy"><small>EDIT+ · READY</small><h2>{selectedModel.name} render ready.</h2><p>The final video was rendered with the locked {selectedModel.name} model.</p><div className="result-actions"><a className="btn primary" href={editExportUrl} target="_blank" rel="noreferrer">Open MP4 ↗</a><button className="btn ghost" onClick={()=>void analyzeEditOutput()} disabled={busy||!editOutputMediaId}>Analyze improved version →</button></div></div><video className="result-video" src={editExportUrl} controls playsInline/></section>}
+      {active==="edit"&&editExportUrl&&<section className="result-panel edit-result"><div className="result-copy"><small>EDIT+ · EXPORT TERMINÉ</small><h2>Ton montage {selectedModel.name} est prêt.</h2><p>Regarde l’export puis télécharge-le pour le publier.</p><div className="result-actions"><a className="btn primary" href={editExportUrl} target="_blank" rel="noreferrer">Ouvrir le MP4 ↗</a><button className="btn ghost" onClick={()=>void analyzeEditOutput()} disabled={busy||!editOutputMediaId}>Analyser dans Viral+ <ArrowRight size={15}/></button></div></div><video className="result-video" src={editExportUrl} controls playsInline/></section>}
 
       {active==="viral"&&analysis&&<>
         <section className="result-panel viral-hero-result">
           <div><small>VIRAL SCORE</small><div className="score-big">{score??"—"}<span>/100</span></div><div className="score-version">{preFixScore!==null&&score!==null?(preFixVersion&&preFixVersion===analysis.score_version?`Score créatif estimé : avant ${preFixScore} → après ${score} (pas des performances Instagram)`:"Scores non comparables : méthodologies différentes"):"Potentiel créatif estimé · avant publication"}</div></div>
-          <div className="result-copy"><small>VERDICT</small><h2>{analysis.main_problem||"Diagnostic completed"}</h2><p>{analysis.verdict||analysis.why}</p><div className="result-why">{analysis.why}</div><button className="btn primary" onClick={()=>void startEdit(true)} disabled={busy}>FIX WITH AI →</button></div>
+          <div className="result-copy"><small>VERDICT</small><h2>{analysis.main_problem||"Diagnostic completed"}</h2><p>{analysis.verdict||analysis.why}</p><div className="result-why">{analysis.why}</div><button className="btn primary" onClick={()=>void startEdit(true)} disabled={busy}>Essayer avec Edit+ <ArrowRight size={15}/></button></div>
         </section>
 
         {analysis.top_priority&&<section className="viral-v5-priority" aria-label="Priorité éditoriale du Viral Score">
@@ -601,19 +584,19 @@ export function Dashboard(){
         </section>}
 
         <section className="viral-detail-section">
-          <div className="section-heading"><small>DETAILED SCORING</small><h2>Exactly where the score comes from.</h2><p>Each criterion is scored independently, with the observable reason behind it.</p></div>
+          <div className="section-heading"><small>LE DÉTAIL DU SCORE</small><h2>Comprends chaque critère.</h2><p>Chaque note repose sur une évaluation éditoriale et ses observations. Pas sur des statistiques Instagram.</p></div>
           <div className="viral-score-grid">
-            {VIRAL_METRICS.map(([key,label])=>{const value=analysis.scores?.[key];const evidence=analysis.score_evidence?.[key];const breakdown=(analysis.score_breakdown||[]).find((x:any)=>x.key===key);return <article className={`viral-metric ${scoreTone(value)}`} key={key}><div className="metric-head"><span>{label}</span><strong>{value??"—"}<small>/100</small></strong></div><div className="metric-bar"><i style={{width:`${Math.max(0,Math.min(100,Number(value||0)))}%`}}/></div><p>{evidence||"No evidence returned."}</p>{breakdown&&<div className="score-weight"><span>Weight {breakdown.weight}%</span><b>+{breakdown.contribution} pts</b></div>}{key==="cta"&&<small className="metric-note">Diagnosed separately · 0% weight in Viral Score</small>}</article>})}
+            {VIRAL_METRICS.map(([key,label])=>{const value=analysis.scores?.[key];const evidence=analysis.score_evidence?.[key];const breakdown=(analysis.score_breakdown||[]).find((x:any)=>x.key===key);return <article className={`viral-metric ${scoreTone(value)}`} key={key}><div className="metric-head"><span>{label}</span><strong>{value??"—"}<small>/100</small></strong></div><div className="metric-bar"><i style={{width:`${Math.max(0,Math.min(100,Number(value||0)))}%`}}/></div><p>{evidence||"Aucune observation fournie."}</p>{breakdown&&<div className="score-weight"><span>Poids {breakdown.weight}%</span><b>+{breakdown.contribution} pts</b></div>}{key==="cta"&&<small className="metric-note">Diagnostiqué à part · 0 % dans le score</small>}</article>})}
           </div>
         </section>
 
         <section className="viral-fix-grid">
           <article className="viral-fix-card priority-card">
-            <small>TOP 3 FIXES</small><h3>Change these before posting.</h3>
-            <div className="fix-plan-list">{(analysis.fix_plan?.length?analysis.fix_plan:(analysis.action_items||[]).map((item:any,i:number)=>({priority:i+1,area:"editing",problem:item,exact_change:item}))).slice(0,3).map((item:any,i:number)=><div className="fix-plan-item" key={i}><div className="fix-priority">P{item.priority||i+1}</div><div><div className="fix-meta"><strong>{String(item.area||"editing").toUpperCase()}</strong>{Number(item.end_sec||0)>Number(item.start_sec||0)&&<span>{Number(item.start_sec||0).toFixed(1)}s → {Number(item.end_sec||0).toFixed(1)}s</span>}</div>{item.problem&&<p><b>Problem:</b> {item.problem}</p>}{item.why_it_matters&&<p><b>Why:</b> {item.why_it_matters}</p>}<div className="exact-change"><b>DO THIS →</b> {item.exact_change||item.problem}</div>{item.example&&<div className="fix-example"><b>Example:</b> {item.example}</div>}{item.evidence_status&&<small className="viral-fix-evidence">{item.evidence_status==="transcript_excerpt_verified"?"Extrait présent dans la transcription":"Observation IA à vérifier dans la vidéo"}</small>}{item.source_quote&&<p className="viral-quote"><b>Extrait :</b> « {item.source_quote} »</p>}{item.observable_evidence&&<p className="viral-quote"><b>Observation :</b> {item.observable_evidence}</p>}{item.expected_effect&&<small>{item.expected_effect}</small>}</div></div>)}</div>
+            <small>À CORRIGER, SI NÉCESSAIRE</small><h3>Des modifications concrètes.</h3>
+            <div className="fix-plan-list">{(analysis.fix_plan?.length?analysis.fix_plan:(analysis.action_items||[]).map((item:any,i:number)=>({priority:i+1,area:"editing",problem:item,exact_change:item}))).slice(0,3).map((item:any,i:number)=><div className="fix-plan-item" key={i}><div className="fix-priority">P{item.priority||i+1}</div><div><div className="fix-meta"><strong>{String(item.area||"editing").toUpperCase()}</strong>{Number(item.end_sec||0)>Number(item.start_sec||0)&&<span>{Number(item.start_sec||0).toFixed(1)}s → {Number(item.end_sec||0).toFixed(1)}s</span>}</div>{item.problem&&<p><b>Problème :</b> {item.problem}</p>}{item.why_it_matters&&<p><b>Pourquoi :</b> {item.why_it_matters}</p>}<div className="exact-change"><b>À FAIRE →</b> {item.exact_change||item.problem}</div>{item.example&&<div className="fix-example"><b>Exemple :</b> {item.example}</div>}{item.evidence_status&&<small className="viral-fix-evidence">{item.evidence_status==="transcript_excerpt_verified"?"Extrait présent dans la transcription":"Observation IA à vérifier dans la vidéo"}</small>}{item.source_quote&&<p className="viral-quote"><b>Extrait :</b> « {item.source_quote} »</p>}{item.observable_evidence&&<p className="viral-quote"><b>Observation :</b> {item.observable_evidence}</p>}{item.expected_effect&&<small>{item.expected_effect}</small>}</div></div>)}</div>
           </article>
           <article className="viral-fix-card rewrite-card">
-            <small>REWRITE</small><h3>Use stronger packaging.</h3>
+            <small>TESTS POSSIBLES</small><h3>Une meilleure accroche ? Vérifions.</h3>
             {analysis.recommendation_video_review&&<p className="viral-hook-warning">{analysis.recommendation_video_review.status==="video_review_completed"?"Double contrôle : propositions réexaminées à partir du rush original.":"Second contrôle indisponible : suggestions non vérifiées écartées."}</p>}
                         {analysis.hook_experiments?.candidates?.length>0?<>
               <div className="viral-hook-test-flag">HYPOTHÈSES PERSONNALISÉES · PAS DE GAIN GARANTI</div>
@@ -641,14 +624,13 @@ export function Dashboard(){
         </section>}
 
         {analysis.timeline?.length>0&&<section className="viral-timeline-panel">
-          <div className="section-heading"><small>TIMELINE FIXES</small><h2>What to change, second by second.</h2></div>
+          <div className="section-heading"><small>CHRONOLOGIE</small><h2>Les passages à vérifier.</h2></div>
           <div className="viral-timeline">{analysis.timeline.map((x:any,i:number)=><article key={i} className={`timeline-fix ${x.severity||"orange"}`}><button className="timeline-time" onClick={()=>{if(sourceRef.current){sourceRef.current.currentTime=Number(x.start_sec)||0;sourceRef.current.scrollIntoView({behavior:"smooth",block:"center"});}}}>{Number(x.start_sec||0).toFixed(1)}s → {Number(x.end_sec||0).toFixed(1)}s ▶</button><div><strong>{x.label||"Moment to fix"}</strong><p>{x.problem}</p><small>{x.correction}</small>{x.broll_query&&<em>B-roll: {x.broll_query}</em>}</div></article>)}</div>
         </section>}
 
-        {safeZone&&<section className="safe-zone-panel"><div className="safe-phone"><div className="unsafe top"/><div className="safe-frame"><span>UNIVERSAL SAFE</span></div><div className="unsafe right"/><div className="unsafe bottom"/></div><div className="safe-copy"><small>SAFE ZONE</small><h2>{safeZone.score??"—"}<span>/100</span></h2><p>{safeZone.summary||"Framing, text and caption placement checked for short-form UI risk."}</p><div className="safe-metrics"><span>Framing <b>{safeZone.framing}</b></span><span>Text <b>{safeZone.text_safety}</b></span><span>Captions <b>{safeZone.caption_safety}</b></span><span>Platform fit <b>{safeZone.platform_fit}</b></span></div>{safeZone.issues?.length>0&&<div className="safe-issues">{safeZone.issues.slice(0,6).map((x:any,i:number)=><div className={`safe-issue ${x.severity}`} key={i}><strong>{x.element}</strong><span>{x.problem}</span><small>{x.correction}</small></div>)}</div>}</div></section>}
+        {safeZone&&<section className="safe-zone-panel"><div className="safe-phone"><div className="unsafe top"/><div className="safe-frame"><span>UNIVERSAL SAFE</span></div><div className="unsafe right"/><div className="unsafe bottom"/></div><div className="safe-copy"><small>ZONE DE VISIBILITÉ</small><h2>{safeZone.score??"—"}<span>/100</span></h2><p>{safeZone.summary||"Framing, text and caption placement checked for short-form UI risk."}</p><div className="safe-metrics"><span>Cadrage <b>{safeZone.framing}</b></span><span>Texte <b>{safeZone.text_safety}</b></span><span>Sous-titres <b>{safeZone.caption_safety}</b></span><span>Format <b>{safeZone.platform_fit}</b></span></div>{safeZone.issues?.length>0&&<div className="safe-issues">{safeZone.issues.slice(0,6).map((x:any,i:number)=><div className={`safe-issue ${x.severity}`} key={i}><strong>{x.element}</strong><span>{x.problem}</span><small>{x.correction}</small></div>)}</div>}</div></section>}
       </>}
 
-      {active==="clip"&&clipProject?.clips?.length>0&&<section className="clips-section"><div className="section-heading"><small>CLIP+ · {job?.kind==="clip_generate"&&job.status!=="completed"?"EN COURS":"READY"}</small><h2>{clipProject.clips.length} clip{clipProject.clips.length>1?"s":""} disponible{clipProject.clips.length>1?"s":""}.</h2><p>{job?.kind==="clip_generate"&&!["completed","failed","cancelled"].includes(job.status)?`${clipProject.clips.length}/${clipProject.project?.requested_clip_count||clipCount} export(s) prêt(s). Les autres continuent en arrière-plan.`:clipProject.clips.length<clipCount?`Tu as demandé ${clipCount} clips : ${clipProject.clips.length} ont franchi le seuil qualité.`:"Les clips demandés sont disponibles."}</p></div><div className="clips-grid">{clipProject.clips.map((clip:any)=><article className="clip-card" key={clip.id}><div className="clip-rank">0{clip.rank}</div><strong>{clip.viral_score??"—"}</strong><small>{Number(clip.end_ms)>Number(clip.start_ms)?`${((clip.end_ms-clip.start_ms)/1000).toFixed(1)} s · `:""}Viral potential</small><h3>{clip.title||"Untitled clip"}</h3><p>{clip.hook||clip.rationale}</p><button className="btn primary clip-open" onClick={()=>openClip(clip.id)}>Voir le clip ↗</button><button className="btn ghost" onClick={()=>openClip(clip.id,true)}>Télécharger MP4 ↓</button><button className="btn ghost" onClick={()=>useClip(clip,"edit")}>Open in Edit+ →</button><button className="btn ghost" onClick={()=>useClip(clip,"viral")}>Analyze with Viral+ →</button></article>)}</div></section>}
     </section>
   </main>;
 }
@@ -662,13 +644,13 @@ function InlineJobState({job}:{job:Job|null}){
   if(!job)return null;
   const done=job.status==="completed";
   const label=job.status==="queued"
-    ?"Queued — waiting for worker"
+    ?"En attente de traitement"
     :job.status==="completed"
-      ?"Completed"
+      ?"Terminé"
       :job.status==="failed"
-        ?"Failed"
+        ?"Échec du traitement"
         :job.stage||job.status||"Processing";
-  return <div className="inline-job-state">
+  return <div className="inline-job-state" role="status" aria-live="polite">
     <div><span>{label}</span><b>{done?"100 %":"Étape en cours"}</b></div>
     {done&&<div className="progress"><i style={{width:"100%"}}/></div>}
   </div>;
