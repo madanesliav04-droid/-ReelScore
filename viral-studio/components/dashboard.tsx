@@ -153,7 +153,7 @@ export function Dashboard(){
   useEffect(()=>{
     const requested=new URLSearchParams(window.location.search).get("tool");
     if(requested==="viral"||requested==="edit")setActive(requested);
-    else if(requested==="clip")history.replaceState(null,"","/dashboard?tool=viral");
+    else if(requested==="clip"){setActive("viral");history.replaceState(null,"","/dashboard?tool=viral");}
     supabase.auth.getSession().then(({data})=>setSession(data.session)).catch(()=>setSession(null)).finally(()=>setAuthReady(true));
     const {data}=supabase.auth.onAuthStateChange((_event,next)=>{setSession(next);setAuthReady(true)});
     return ()=>data.subscription.unsubscribe();
