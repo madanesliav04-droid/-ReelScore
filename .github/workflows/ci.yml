@@ -233,3 +233,41 @@ jobs:
           name: social-kinetic-v8-hyperframes-render-real-gsap
           path: ${{ runner.temp }}/social-kinetic-v8-gsap-hyperframes.webm
           retention-days: 5
+
+  social-kinetic-v9-transcript-hyperframes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      PUPPETEER_SKIP_DOWNLOAD: '1'
+      HYPERFRAMES_BROWSER_PATH: /usr/bin/chromium
+      PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium
+      CHROME_PATH: /usr/bin/chromium
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install HyperFrames rendering environment
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq chromium ffmpeg fonts-dejavu fonts-liberation
+          cd apps/worker
+          npm install --no-audit --no-fund
+      - name: Render true HyperFrames V9 speech-grounded kinetic typography
+        run: |
+          set -euo pipefail
+          cd apps/worker/hyperframes/social-kinetic-v9-transcript
+          "$GITHUB_WORKSPACE/apps/worker/node_modules/.bin/hyperframes" lint .
+          "$GITHUB_WORKSPACE/apps/worker/node_modules/.bin/hyperframes" render \
+            --format webm --quality draft --workers 2 --fps 30 \
+            --output "$RUNNER_TEMP/social-kinetic-v9-real-words.webm"
+          ffprobe -v error -show_entries stream=codec_type,width,height,duration -of json \
+            "$RUNNER_TEMP/social-kinetic-v9-real-words.webm"
+          ffmpeg -hide_banner -loglevel error -xerror \
+            -i "$RUNNER_TEMP/social-kinetic-v9-real-words.webm" -f null -
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: social-kinetic-v9-real-speech-hyperframes
+          path: ${{ runner.temp }}/social-kinetic-v9-real-words.webm
+          retention-days: 7
