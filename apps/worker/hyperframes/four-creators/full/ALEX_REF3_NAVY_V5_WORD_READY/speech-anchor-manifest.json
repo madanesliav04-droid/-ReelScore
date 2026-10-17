@@ -1,0 +1,99 @@
+{
+  "version": 5,
+  "source": "IMG_0506(1).mp4",
+  "sourceDurationMs": 44500,
+  "originalAudio": "preserved",
+  "nativeAspect": "landscape",
+  "analysisStatus": "speech-activity measured; no authenticated word-level transcript is available",
+  "measuredBy": "FFmpeg silencedetect -33dB d=.22 (2026-10-17 from retained V4 audit)",
+  "speechOnsetsMs": [
+    799,
+    5660,
+    8386,
+    10930,
+    12244,
+    15989,
+    18127,
+    19740,
+    21456,
+    25945,
+    29859,
+    32763,
+    37922,
+    39290,
+    41088
+  ],
+  "motionGroups": [
+    {
+      "name": "question_to_value",
+      "sourceMs": [
+        10930,
+        14457
+      ],
+      "concepts": [
+        "gagner de l'argent",
+        "aider quelqu'un"
+      ],
+      "confidence": "semantic approximation; must confirm with transcript"
+    },
+    {
+      "name": "need_to_solution",
+      "sourceMs": [
+        21456,
+        25440
+      ],
+      "concepts": [
+        "aider les autres",
+        "un besoin",
+        "une solution"
+      ],
+      "confidence": "semantic approximation; must confirm with transcript"
+    },
+    {
+      "name": "learn_to_solve",
+      "sourceMs": [
+        29859,
+        37406
+      ],
+      "concepts": [
+        "apprendre",
+        "résoudre un problème"
+      ],
+      "confidence": "semantic approximation; must confirm with transcript"
+    }
+  ],
+  "removedSilencesMs": [
+    [
+      3790,
+      5520
+    ],
+    [
+      7670,
+      8200
+    ],
+    [
+      9990,
+      10770
+    ],
+    [
+      14640,
+      15820
+    ],
+    [
+      16880,
+      17960
+    ],
+    [
+      43780,
+      44500
+    ]
+  ],
+  "timecodePolicy": "Scene event timecodes refer to the ORIGINAL source. Render 44.5s HyperFrames overlay and original video first, then trim visual and original audio together using these ranges.",
+  "futureExactWordSync": "Pass verified analysis.transcript.words with alignment.method=forced_word_alignment or provider_word_timestamps into apps/worker/src/hyperframes-speech-sync.js; reject unverified word timing for paid exports.",
+  "onScreenTextPolicy": "Conceptual graphics only, not verbatim subtitles; source script and exact word timing not independently verified.",
+  "gate": {
+    "wordVerified": false,
+    "exportReadyForCommercial": false,
+    "hyperframesRendersOnly": true
+  }
+}
