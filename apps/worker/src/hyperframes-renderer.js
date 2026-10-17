@@ -24,11 +24,14 @@ export async function renderWithHyperframes({
   const rate=Math.min(60,Math.max(1,Math.floor(Number(fps)||30)));
   const project=path.resolve(compositionDir);
   const destination=path.resolve(outputPath);
+  // File extensions alone do not enable HyperFrames alpha encoding.
+  const format=path.extname(destination).toLowerCase()==='.webm'?'webm':
+    path.extname(destination).toLowerCase()==='.mov'?'mov':'mp4';
   const cli=path.join(process.cwd(),'node_modules','.bin','hyperframes');
 
   const result=await new Promise((resolve,reject)=>{
     const child=spawn(cli,[
-      'render',project,'--output',destination,
+      'render',project,'--format',format,'--output',destination,
       '--fps',String(rate),'--quality','looks'
     ],{
       env:{...process.env,HYPERFRAMES_NO_UPDATE_CHECK:'1'},
