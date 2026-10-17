@@ -47,10 +47,12 @@ jobs:
           node --check src/viral.js
           node --check src/alex-v7-audio-captions.js
           node --check src/alex-v7-runtime.js
+          node --check src/alex-v8-release.js
+          node --check src/hyperframes-renderer.js
       - name: ASR timings and no-premature-reveal regression tests
         working-directory: apps/worker
         run: |
-          node --test test/alex-v7-audio-captions.test.js test/hyperframes-speech-sync.test.js test/hyperframes-story-first-gate.test.js
+          node --test test/alex-v7-audio-captions.test.js test/hyperframes-speech-sync.test.js test/hyperframes-story-first-gate.test.js test/alex-v8-release.test.js
 
   alex-v7-hyperframes-visual-proof:
     runs-on: ubuntu-latest
@@ -101,6 +103,35 @@ jobs:
           "$GITHUB_WORKSPACE/apps/worker/node_modules/.bin/hyperframes" render --format webm --quality draft --workers 2 --fps 30 --output "$RUNNER_TEMP/alex-v7-synthetic-wordtimed.webm"
           test -s "$RUNNER_TEMP/alex-v7-synthetic-wordtimed.webm"
           ffmpeg -hide_banner -loglevel error -xerror -i "$RUNNER_TEMP/alex-v7-synthetic-wordtimed.webm" -f null -
+      - name: V8 alpha overlay and original audio composition proof
+        run: |
+          set -euo pipefail
+          # Synthetic source: no customer media, no external audio inference.
+          ffmpeg -hide_banner -loglevel error -y \
+            -f lavfi -i color=c=0x174832:s=960x540:r=30:d=4.5 \
+            -f lavfi -i sine=frequency=440:duration=4.5:sample_rate=48000 \
+            -map 0:v -map 1:a -c:v libx264 -pix_fmt yuv420p \
+            -c:a aac -t 4.5 "$RUNNER_TEMP/v8-source.mp4"
+          ffprobe -v error -show_entries stream_tags=alpha_mode:stream=codec_name \
+            -of json "$RUNNER_TEMP/alex-v7-synthetic-wordtimed.webm"
+          # libvpx-vp9 is required to decode the WebM alpha plane.
+          ffmpeg -hide_banner -loglevel error -y \
+            -i "$RUNNER_TEMP/v8-source.mp4" \
+            -c:v libvpx-vp9 -i "$RUNNER_TEMP/alex-v7-synthetic-wordtimed.webm" \
+            -filter_complex "[0:v][1:v]overlay=x=0:y=0:format=auto:shortest=1,format=yuv420p[v]" \
+            -map "[v]" -map "0:a:0" -c:v libx264 -pix_fmt yuv420p \
+            -c:a copy "$RUNNER_TEMP/v8-composite.mp4"
+          ffmpeg -hide_banner -loglevel error -xerror -i "$RUNNER_TEMP/v8-composite.mp4" -f null -
+          python3 - "$RUNNER_TEMP/v8-composite.mp4" <<'EOF'
+          import json,subprocess,sys
+          p=json.loads(subprocess.check_output(['ffprobe','-v','error','-show_streams','-show_format','-of','json',sys.argv[1]]))
+          v=[x for x in p['streams'] if x['codec_type']=='video']
+          a=[x for x in p['streams'] if x['codec_type']=='audio']
+          assert len(v)==1 and len(a)==1, 'voice missing or doubled'
+          assert (v[0]['width'],v[0]['height'])==(960,540),'wrong native raster'
+          assert 4.3<float(p['format']['duration'])<4.7,'overlay changes duration'
+          print('V8 synthetic composition: valid video + single original audio track')
+          EOF
       - uses: actions/upload-artifact@v4
         if: success()
         with:

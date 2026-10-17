@@ -2,6 +2,7 @@ import path from 'node:path';
 import {mkdir,writeFile} from 'node:fs/promises';
 import {spawn} from 'node:child_process';
 import {alexV7CaptionHtml} from './alex-v7-audio-captions.js';
+import {assertAlexV8Deployment} from './alex-v8-release.js';
 import {renderWithHyperframes} from './hyperframes-renderer.js';
 import {renderNativeEdit} from './render.js';
 
@@ -23,12 +24,14 @@ function runFfmpeg(args){
 export async function renderAlexV7Staging({
  sourcePath,outputPath,plan,timeline,workDir,onProgress=async()=>{}
 }={}){
- if(process.env.ENABLE_ALEX_V7_WORD_SYNC!=='staging')
+ const v8=plan?.model==='alex_hormozi_v8';
+ if(v8)assertAlexV8Deployment();
+ else if(process.env.ENABLE_ALEX_V7_WORD_SYNC!=='staging')
    throw new Error('ALEX_V7_WORD_SYNC_DISABLED');
  if(process.env.ENABLE_HYPERFRAMES_RENDER!=='true')
    throw new Error('HYPERFRAMES_DISABLED');
  if(!plan?.groups?.length)throw new Error('ALEX_V7_TIMED_WORDS_MISSING');
- if(!['preview_transcript_timed','audio_reviewed'].includes(plan.status))
+ if(!['preview_transcript_timed','audio_reviewed','ready_for_render'].includes(plan.status))
    throw new Error('ALEX_V7_WORDS_NOT_EVIDENCED');
  await mkdir(workDir,{recursive:true});
  const compositionDir=path.join(workDir,'alex-v7-kinetic-html');
@@ -37,7 +40,7 @@ export async function renderAlexV7Staging({
  const overlay=path.join(workDir,'alex-v7-transparent.webm');
  const w=Number(timeline?.export?.width||timeline?.width);
  const h=Number(timeline?.export?.height||timeline?.height);
- const doc=alexV7CaptionHtml(plan,{width:w,height:h});
+ const doc=alexV7CaptionHtml(plan,{width:w,height:h,responsiveV8:v8});
  await writeFile(path.join(compositionDir,'index.html'),doc,'utf8');
  await onProgress(57,'V7 · cadrage naturel sans sous-titres génériques');
  await renderNativeEdit({
@@ -58,7 +61,7 @@ export async function renderAlexV7Staging({
   '-c:v','libx264','-preset','medium','-crf','17','-pix_fmt','yuv420p',
   '-c:a','copy','-movflags','+faststart',outputPath
  ]);
- return {outputPath,captionCount:plan.groups.length,
+ return {model:v8?'alex_hormozi_v8':'alex_v7_staging',outputPath,captionCount:plan.groups.length,
   wordCount:plan.wordCount,releaseStatus:plan.releaseStatus,
   humanAudioReviewRequired:plan.releaseStatus!=='READY_FOR_VISUAL_QA'};
 }

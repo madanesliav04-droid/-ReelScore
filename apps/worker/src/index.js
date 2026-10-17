@@ -11,6 +11,7 @@ import {analyzeVideo,SCORE_VERSION} from './viral.js';
 import {decodedSourceFingerprint,probeFingerprintSource} from './viral-fingerprint.js';
 import {buildEditTimeline} from './edit.js';
 import {buildAlexV7AudioPlan} from './alex-v7-audio-captions.js';
+import {buildAlexV8ReleasePlan,assertAlexV8Deployment} from './alex-v8-release.js';
 import {renderAlexV7Staging} from './alex-v7-runtime.js';
 import {reviewCreativeTimeline} from './creative-quality-gate.js';
 import {auditOmniCodieModel} from './omni-codie-quality-contract.js';
@@ -401,7 +402,8 @@ async function runEdit(job,media,sourcePath,dir){
   }
 
   if(!analysis?.transcript?.words?.length ||
-     (process.env.ENABLE_ALEX_V7_WORD_SYNC==='staging' &&
+     ((process.env.ENABLE_ALEX_V7_WORD_SYNC==='staging'||
+       ['staging','production'].includes(process.env.ENABLE_ALEX_V8_WORD_SYNC)) &&
       (payload.style||project.style)==='hormozi_omni' &&
       !analysis?.transcript?.alignment?.verified) ||
      (process.env.ENABLE_MULTIMODAL_EDITORIAL==='true' &&
@@ -530,7 +532,19 @@ async function runEdit(job,media,sourcePath,dir){
   timeline.omniModelAudit=auditOmniCodieModel({timeline,analysis});
   // Staging is opt-in and NOT the default user-facing Edit+ renderer.
   // Word timing is remapped after cuts; semantic visuals are held until proved.
-  const alexV7Staging=
+  // V8 takes priority over V7, and cannot run publicly without an explicit
+  // release approval flag; all other Edit+ styles remain unchanged.
+  const alexV8Mode=selectedStyle==='hormozi_omni'&&
+    ['staging','production'].includes(process.env.ENABLE_ALEX_V8_WORD_SYNC);
+  if(alexV8Mode){
+    assertAlexV8Deployment();
+    timeline.appleKineticAudioPlan=buildAlexV8ReleasePlan({
+      analysis,timeline,semanticEvents:[]
+    });
+    if(timeline.appleKineticAudioPlan.status==='blocked')
+      throw tagged('ALEX_V8_QA_BLOCKED',timeline.appleKineticAudioPlan.reason);
+  }
+  const alexV7Staging=!alexV8Mode&&
     process.env.ENABLE_ALEX_V7_WORD_SYNC==='staging'&&
     selectedStyle==='hormozi_omni';
   if(alexV7Staging){
@@ -608,8 +622,8 @@ async function runEdit(job,media,sourcePath,dir){
     'Application du style Edit+'
   );
 
-  if(alexV7Staging){
-    // Uses the unchanged V7 design, but timings come from real transcript words.
+  if(alexV7Staging||alexV8Mode){
+    // V8 keeps the locked V7 visual language but requires real transcript words.
     // Export remains staging-only until the source audio is human-reviewed.
     await renderAlexV7Staging({
       sourcePath:preparedPath,
@@ -641,12 +655,15 @@ async function runEdit(job,media,sourcePath,dir){
   const qualityReport=await verifyExport({filePath:finalPath,timeline});
   // Optional second FFmpeg pass: observable defects; never an aesthetic certification.
   // Disabled by default until latency benchmarking in staging.
-  const observedRenderQA=process.env.ENABLE_POST_RENDER_QA==='true'
+  const observedRenderQA=(alexV8Mode||process.env.ENABLE_POST_RENDER_QA==='true')
     ?await inspectRenderedVideo(finalPath,{
       durationSec:timeline.outputDurationMs/1000,
       hasAudio:Boolean(timeline.audio?.hasAudio)
     })
     :{policy:'editplus-render-observable-signals-v4',status:'SKIPPED_FEATURE_DISABLED'};
+  if(alexV8Mode&&observedRenderQA.verdict==='NEEDS_HUMAN_REVIEW')
+    throw tagged('ALEX_V8_EXPORT_QA_BLOCKED',
+      'Contrôle vidéo/audio : anomalies détectées, publication suspendue.');
 
   const outputStoragePath=
     `${job.user_id}/exports/${project.id}/${job.id}.mp4`;
