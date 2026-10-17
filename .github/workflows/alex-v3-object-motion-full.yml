@@ -1,0 +1,48 @@
+name: Edit+ Alex V3 Object Motion — HyperFrames full render
+on:
+  push:
+    branches: [editplus-alex-v3-object-motion-render-20261017]
+    paths:
+      - 'apps/worker/hyperframes/four-creators/full/ALEX_REF3_NAVY_V3_OBJECTS/**'
+      - '.github/workflows/alex-v3-object-motion-full.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  render-alex-v3:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      PUPPETEER_SKIP_DOWNLOAD: '1'
+      HYPERFRAMES_BROWSER_PATH: /usr/bin/chromium
+      PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium
+      CHROME_PATH: /usr/bin/chromium
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install system video renderer
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq chromium ffmpeg fonts-liberation
+      - name: Install pinned HyperFrames
+        working-directory: apps/worker
+        run: |
+          npm install --no-audit --no-fund
+          node -e 'const p=require("./node_modules/hyperframes/package.json");if(p.version!=="0.8.164")process.exit(2)'
+      - name: Lint and render complete 44.5-second Alex V3
+        working-directory: apps/worker/hyperframes/four-creators/full/ALEX_REF3_NAVY_V3_OBJECTS
+        run: |
+          set -euo pipefail
+          "$GITHUB_WORKSPACE/apps/worker/node_modules/.bin/hyperframes" lint .
+          "$GITHUB_WORKSPACE/apps/worker/node_modules/.bin/hyperframes" render --format webm --quality looks --workers 3 --fps 30 --output "$RUNNER_TEMP/EDITPLUS_ALEX_V3_OBJECTS_44s.webm"
+          test -s "$RUNNER_TEMP/EDITPLUS_ALEX_V3_OBJECTS_44s.webm"
+          ffprobe -v error -show_entries format=duration:stream=codec_name,width,height,pix_fmt -of json "$RUNNER_TEMP/EDITPLUS_ALEX_V3_OBJECTS_44s.webm"
+          ffmpeg -hide_banner -loglevel error -xerror -i "$RUNNER_TEMP/EDITPLUS_ALEX_V3_OBJECTS_44s.webm" -f null -
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: editplus-alex-v3-objects-full-hyperframes
+          path: ${{ runner.temp }}/EDITPLUS_ALEX_V3_OBJECTS_44s.webm
+          retention-days: 7
