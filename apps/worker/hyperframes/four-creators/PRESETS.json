@@ -18,11 +18,18 @@
       "editorial": "concept_explanation",
       "sceneTypes": [
         "facecam",
-        "fullscreen_explanatory_scene"
+        "fullscreen_navy_teaching",
+        "progressive_list",
+        "navy_comparison",
+        "verified_graph",
+        "licensed_evidence"
       ],
-      "graphics": "source_verified_reasoning",
-      "broll": "evidence_only",
-      "sound": "clean_cut"
+      "graphics": "dark_navy_fullscreen_white_yellow_incremental_reasoning",
+      "broll": "verified_specific_proof_only",
+      "sound": "source_voice_priority_modest_semantic",
+      "reference_override": "ALEX_HORMOZI_REF3_NAVY",
+      "referenceRules": "references/alex-hormozi-20261017/MODEL_RULES.md",
+      "status": "reference_guidance_updated_not_deployed"
     },
     "LEILA_EDITORIAL": {
       "name": "Leila Hormozi inspired",
