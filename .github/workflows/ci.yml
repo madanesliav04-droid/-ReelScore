@@ -193,5 +193,5 @@ jobs:
         if: success()
         with:
           name: social-kinetic-v4-synthetic-visual-contract-not-user-rush
-          path: \${{ runner.temp }}/social-kinetic-v4-synthetic.webm
+          path: ${{ runner.temp }}/social-kinetic-v4-synthetic.webm
           retention-days: 5
