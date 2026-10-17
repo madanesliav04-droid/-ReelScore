@@ -41,7 +41,7 @@ export async function renderSocialKineticV4Staging({
  await onProgress(60,'Social Kinetic : plan naturel et cuts');
  await renderNativeEdit({
   sourcePath,outputPath:native,durationMs:timeline.outputDurationMs,
-  timeline:{...timeline,captions:[],graphicCues:[],brollCues:[]},onProgress
+  timeline:{...timeline,captions:[],graphicCues:[],brollCues:[],punchIns:[]},onProgress
  });
  await onProgress(78,'Social Kinetic : motion fidèle au sens');
  await renderWithHyperframes({compositionDir:project,outputPath:overlay,
