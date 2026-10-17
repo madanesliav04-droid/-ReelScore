@@ -42,7 +42,7 @@ function proofFor(proofs,event,start,end) {
  const frames=(proof.frames||[]).filter(x=>good(x.ms)&&x.ms>=start-250&&x.ms<=end+250)
    .sort((a,b)=>a.ms-b.ms);
  if(frames.length<3||frames[0].ms>start+270||
-   frames.at(-1).ms<end-270||frames.some(x=>x.confidence<.90||x.subjectOverlap===true))
+   frames.at(-1).ms<end-270||frames.some(x=>!good(x.confidence)||x.confidence<.90||x.subjectOverlap!==false))
    return {reason:'FRAME_SAFETY_INCOMPLETE'};
  if(frames.some((x,i)=>i&&x.ms-frames[i-1].ms>650))
    return {reason:'FRAME_SAFETY_GAP'};
@@ -94,6 +94,16 @@ export function buildSocialKineticReferenceV4Plan({
  const sum=keepRanges.reduce((n,r)=>n+Number(r.endMs)-Number(r.startMs),0);
  if(!good(sum)||Math.abs(sum-outputDurationMs)>60)
    return blocked('CUT_TIMING_DRIFT');
+ if(!analysis?.measurable?.audioCodec||timeline?.audio?.hasAudio!==true)
+   return blocked('ORIGINAL_AUDIO_REQUIRED');
+ const sourceW=Number(analysis?.measurable?.width);
+ const sourceH=Number(analysis?.measurable?.height);
+ const exportW=Number(timeline?.export?.width);
+ const exportH=Number(timeline?.export?.height);
+ if(![sourceW,sourceH,exportW,exportH].every(good)||
+   sourceW<240||sourceH<240||exportW<240||exportH<240||
+   (sourceW>sourceH)!==(exportW>exportH))
+   return blocked('NATIVE_ORIENTATION_REQUIRED');
  const alignment=analysis?.transcript?.alignment;
  const validation=validateSpeechWords(analysis?.transcript?.words,{durationMs,alignment});
  if(validation.status!=='verified')return blocked('ASR_WORD_TIMING_NOT_EVIDENCED');
@@ -123,8 +133,8 @@ export function buildSocialKineticReferenceV4Plan({
    hold('EVENT_CROSSES_CUT');continue;
   }
   const kind=event.kind;
-  if(kind==='chat'&&event.exampleOnly!==true&&
-    norm(event.text)!==norm(event.spokenEvidence)){
+  if(kind==='chat'&&norm(event.text)!==norm(event.spokenEvidence)&&
+    !(event.exampleOnly===true&&event.userApprovedText===true)){
    hold('CHAT_NOT_VERBATIM_OR_APPROVED_EXAMPLE');continue;
   }
   if(kind==='metric'){
@@ -144,6 +154,17 @@ export function buildSocialKineticReferenceV4Plan({
    displayPriority:Number(event.displayPriority)||0,
    groupId:event.groupId||null
   };
+  // Two text effects may coexist only if independently cleared rectangles
+  // do not collide. This permits stacked blue messages but not random labels
+  // drawn over the same part of the speaker's frame.
+  const collides=accepted.some(other=>{
+   const concurrent=evt.startMs<other.endMs&&evt.endMs>other.startMs;
+   const a=evt.safeRect,b=other.safeRect;
+   const touching=Math.min(a.x+a.w,b.x+b.w)>Math.max(a.x,b.x)&&
+    Math.min(a.y+a.h,b.y+b.h)>Math.max(a.y,b.y);
+   return concurrent&&touching;
+  });
+  if(collides){hold('ONSCREEN_EFFECT_COLLISION');continue;}
   accepted.push(evt);
  }
  accepted.sort((a,b)=>a.startMs-b.startMs||b.displayPriority-a.displayPriority);
