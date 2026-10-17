@@ -322,6 +322,13 @@ async function transcribeFromVideo({
           text,
           words,
           captions:wordsToCaptions(words),
+          // Trust only the provider's explicit word offsets as structured input.
+          // This does NOT prove that the ASR text matches the audio perfectly.
+          alignment:{
+            verified:true,method:'provider_word_timestamps',
+            source:'gemini_interactions_word_info',
+            reviewedAgainstAudio:false,reviewStatus:'pending_human_review'
+          },
           error:null,
           model
         };
@@ -435,6 +442,11 @@ async function transcribeViaGenerateContent({
     text:text||words.map(x=>x.text).join(' '),
     words,
     captions:wordsToCaptions(words),
+    alignment:{
+      verified:true,method:'provider_word_timestamps',
+      source:'gemini_generate_content_word_offsets',
+      reviewedAgainstAudio:false,reviewStatus:'pending_human_review'
+    },
     error:null,
     model:`${model}:generateContent`
   };
