@@ -14,6 +14,8 @@ import {buildAlexV7AudioPlan} from './alex-v7-audio-captions.js';
 import {buildAlexV8ReleasePlan,assertAlexV8Deployment} from './alex-v8-release.js';
 import {buildSocialKineticReferenceV4Plan} from './social-kinetic-reference-v4.js';
 import {renderSocialKineticV4Staging} from './social-kinetic-v4-runtime.js';
+import {buildSocialKineticV10WordPlan} from './social-kinetic-v10-word-plan.js';
+import {renderSocialKineticV10Staging} from './social-kinetic-v10-runtime.js';
 import {renderAlexV7Staging} from './alex-v7-runtime.js';
 import {reviewCreativeTimeline} from './creative-quality-gate.js';
 import {auditOmniCodieModel} from './omni-codie-quality-contract.js';
@@ -407,9 +409,12 @@ async function runEdit(job,media,sourcePath,dir){
      (((process.env.ENABLE_ALEX_V7_WORD_SYNC==='staging'||
        ['staging','production'].includes(process.env.ENABLE_ALEX_V8_WORD_SYNC)) &&
       (payload.style||project.style)==='hormozi_omni' ||
-       process.env.ENABLE_SOCIAL_KINETIC_REFERENCE==='staging' &&
+       (process.env.ENABLE_SOCIAL_KINETIC_REFERENCE==='staging'||
+        process.env.ENABLE_SOCIAL_KINETIC_V10==='staging') &&
        (payload.style||project.style)==='social_kinetic') &&
-      !analysis?.transcript?.alignment?.verified) ||
+      (!analysis?.transcript?.alignment?.verified||
+       process.env.ENABLE_SOCIAL_KINETIC_V10==='staging' &&
+       analysis?.transcript?.alignment?.source!=='gemini_interactions_word_info')) ||
      (process.env.ENABLE_MULTIMODAL_EDITORIAL==='true' &&
       !Array.isArray(analysis?.editorial_director?.decisions))){
     await progress(
@@ -539,7 +544,19 @@ async function runEdit(job,media,sourcePath,dir){
   // The reference-accurate second model stays strictly opt-in.
   // Without independently checked frame-safe regions or spoken evidence,
   // fail CLOSED rather than publish fake blue messages or decorative cards.
-  const socialKineticRefStaging=
+  const socialKineticV10Staging=
+    process.env.ENABLE_SOCIAL_KINETIC_V10==='staging'&&selectedStyle==='social_kinetic';
+  if(socialKineticV10Staging){
+    timeline.socialKineticV10Plan=buildSocialKineticV10WordPlan({
+      analysis,timeline,
+      frameProof:analysis?.socialKineticV10?.frameProof||{},
+      editorialEvents:analysis?.socialKineticV10?.editorialEvents||[]
+    });
+    if(timeline.socialKineticV10Plan.status!=='staging_renderable')
+      throw tagged('SOCIAL_KINETIC_V10_QA_BLOCKED',
+        timeline.socialKineticV10Plan.reason||'Horodatages ou placements visuels non vérifiés.');
+  }
+  const socialKineticRefStaging=!socialKineticV10Staging&&
     process.env.ENABLE_SOCIAL_KINETIC_REFERENCE==='staging'&&
     selectedStyle==='social_kinetic';
   if(socialKineticRefStaging){
@@ -642,7 +659,14 @@ async function runEdit(job,media,sourcePath,dir){
     'Application du style Edit+'
   );
 
-  if(socialKineticRefStaging){
+  if(socialKineticV10Staging){
+    await renderSocialKineticV10Staging({
+      inputPath:preparedPath,outputPath:renderedPath,timeline,
+      plan:timeline.socialKineticV10Plan,
+      workDir:path.join(dir,'social-kinetic-v10-runtime'),
+      onProgress:(pct,stage)=>progress(job,'rendering',pct,stage)
+    });
+  }else if(socialKineticRefStaging){
     await renderSocialKineticV4Staging({
       sourcePath:preparedPath,outputPath:renderedPath,timeline,
       plan:timeline.socialKineticReferencePlan,
@@ -682,12 +706,14 @@ async function runEdit(job,media,sourcePath,dir){
   const qualityReport=await verifyExport({filePath:finalPath,timeline});
   // Optional second FFmpeg pass: observable defects; never an aesthetic certification.
   // Disabled by default until latency benchmarking in staging.
-  const observedRenderQA=(socialKineticRefStaging||alexV8Mode||process.env.ENABLE_POST_RENDER_QA==='true')
+  const observedRenderQA=(socialKineticV10Staging||socialKineticRefStaging||alexV8Mode||process.env.ENABLE_POST_RENDER_QA==='true')
     ?await inspectRenderedVideo(finalPath,{
       durationSec:timeline.outputDurationMs/1000,
       hasAudio:Boolean(timeline.audio?.hasAudio)
     })
     :{policy:'editplus-render-observable-signals-v4',status:'SKIPPED_FEATURE_DISABLED'};
+  if(socialKineticV10Staging&&observedRenderQA.verdict==='NEEDS_HUMAN_REVIEW')
+    throw tagged('SOCIAL_KINETIC_V10_EXPORT_QA_BLOCKED','Export vidéo ou voix : contrôle non satisfaisant.');
   if(socialKineticRefStaging&&observedRenderQA.verdict==='NEEDS_HUMAN_REVIEW')
     throw tagged('SOCIAL_KINETIC_REFERENCE_EXPORT_QA_BLOCKED',
       'Audio, vidéo ou rendu visuel : anomalie technique détectée.');
