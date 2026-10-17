@@ -13,6 +13,12 @@ IMPORTANT: Original is a phone screen recording of a horizontal ~16:9 video embe
 - Chiffre inset: dark semi-transparent slate with OFFRE PRINCIPALE 3000€, then 1 MOIS tab, then OFFRE D'ATTRACTION 1000€. Values cannot be fabricated.
 - All motion tied to audible meaning; no early display. Source voice must remain sole voice.
 
+## Measured optical and audio values (screen recording only)
+- Blue bubble interior median captured: approx. RGB 11/99/188, #0B63BC.
+- Green emphasis median captured: approx. RGB 33/68/33, #214421.
+- Screen-recorded soundtrack: integrated -12.4 LUFS, loudness range 1.6 LU, true peak -0.9 dBFS. These are capture/audio-encoder measurements, not isolated clean source or original mix levels.
+- The face remains dominant on the left in the reference, while the previously edited user rush is more centered; the model must dynamically determine safe side space, never force text over the face.
+
 ## Timeline observed (visual sampling approx. 0.2-0.4 s)
 - 00.0-00.7 giant green COACH with white qualifier.
 - 01.0-03.2 large green numeral 3 plus white statement on three ways.
