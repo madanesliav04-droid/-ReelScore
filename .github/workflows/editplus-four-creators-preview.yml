@@ -55,3 +55,39 @@ jobs:
           name: editplus-four-creator-hyperframes-overlays
           path: ${{ runner.temp }}/four-creator-renders/*.webm
           retention-days: 7
+
+  alex-ref3-navy-full:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      PUPPETEER_SKIP_DOWNLOAD: '1'
+      HYPERFRAMES_BROWSER_PATH: /usr/bin/chromium
+      PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium
+      CHROME_PATH: /usr/bin/chromium
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install browser and encoder
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq chromium ffmpeg fonts-liberation
+      - name: Install pinned HyperFrames
+        working-directory: apps/worker
+        run: npm install --no-audit --no-fund
+      - name: Render and verify full Alex REF3 Navy
+        working-directory: apps/worker/hyperframes/four-creators/full/ALEX_REF3_NAVY_V2
+        run: |
+          set -euo pipefail
+          "$GITHUB_WORKSPACE/apps/worker/node_modules/.bin/hyperframes" lint .
+          "$GITHUB_WORKSPACE/apps/worker/node_modules/.bin/hyperframes" render --format webm --quality looks --workers 3 --fps 30 --output "$RUNNER_TEMP/ALEX_REF3_NAVY_V2_44s.webm"
+          test -s "$RUNNER_TEMP/ALEX_REF3_NAVY_V2_44s.webm"
+          ffprobe -v error -show_entries format=duration:stream=codec_name,width,height,pix_fmt:stream_tags=alpha_mode -of json "$RUNNER_TEMP/ALEX_REF3_NAVY_V2_44s.webm"
+          ffmpeg -hide_banner -loglevel error -xerror -i "$RUNNER_TEMP/ALEX_REF3_NAVY_V2_44s.webm" -f null -
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: editplus-alex-ref3-navy-v2-overlay-full
+          path: ${{ runner.temp }}/ALEX_REF3_NAVY_V2_44s.webm
+          retention-days: 7

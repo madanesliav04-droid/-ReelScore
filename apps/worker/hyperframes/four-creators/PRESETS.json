@@ -18,11 +18,33 @@
       "editorial": "concept_explanation",
       "sceneTypes": [
         "facecam",
-        "fullscreen_explanatory_scene"
+        "fullscreen_navy_teaching",
+        "semantic_object_explainer",
+        "sequential_process",
+        "navy_comparison",
+        "verified_graph",
+        "licensed_evidence"
       ],
-      "graphics": "source_verified_reasoning",
-      "broll": "evidence_only",
-      "sound": "clean_cut"
+      "graphics": "dark_navy_fullscreen_white_yellow_incremental_reasoning",
+      "broll": "verified_specific_proof_only",
+      "sound": "source_voice_priority_modest_semantic",
+      "reference_override": "ALEX_HORMOZI_REF3_NAVY_V3_OBJECT_MOTION",
+      "referenceRules": "references/alex-hormozi-20261017/MODEL_RULES.md",
+      "status": "brief-v3-ready; render integration pending",
+      "v3Brief": "references/alex-hormozi-20261017/ALEX_V3_BRIEF_OBJECT_MOTION.md",
+      "objectMotion": {
+        "enabledAsCreativeSpecification": true,
+        "renderEngine": "HyperFrames",
+        "decisionEngine": "Edit+ semantic analysis (integration pending)",
+        "trigger": "only_for_concrete_spoken_meaning",
+        "assets": "local custom SVG/CSS primitives and licensed media",
+        "avoid": [
+          "decorative floating shapes",
+          "made up figures",
+          "stock placeholders",
+          "screen obstruction"
+        ]
+      }
     },
     "LEILA_EDITORIAL": {
       "name": "Leila Hormozi inspired",
