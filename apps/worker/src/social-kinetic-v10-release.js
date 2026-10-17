@@ -29,7 +29,9 @@ export function assessSocialKineticV10CommercialRelease({
    video.fullDecodePassed===true&&
    finite(video.sourceWidth)&&finite(video.sourceHeight)&&
    video.sourceWidth>=320&&video.sourceHeight>=240&&
-   video.width===video.sourceWidth&&video.height===video.sourceHeight&&
+   finite(video.width)&&finite(video.height)&&video.width>=320&&video.height>=240&&
+   Math.abs(video.width/video.height-video.sourceWidth/video.sourceHeight)<.012&&
+   (video.width>video.height)===(video.sourceWidth>video.sourceHeight)&&
    finite(video.measuredFps)&&video.measuredFps>=V10_MINIMUMS.minimumMeasuredFps&&
    finite(video.durationSeconds)&&video.durationSeconds>2&&
    finite(video.expectedDurationSeconds)&&
