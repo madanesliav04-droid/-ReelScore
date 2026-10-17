@@ -16,7 +16,7 @@ const sourceWords=[
  {text:'un',startMs:23120,endMs:23200},
  {text:'problème',startMs:23220,endMs:23800}
 ];
-const t={sourceDurationMs:44500,outputDurationMs:39970,
+const t={sourceDurationMs:44500,outputDurationMs:38480,
  keepRanges:[{startMs:0,endMs:3790},{startMs:5520,endMs:7670},
    {startMs:8200,endMs:9990},{startMs:10770,endMs:14640},
    {startMs:15820,endMs:16880},{startMs:17960,endMs:43780}]};
@@ -72,4 +72,28 @@ test('HTML escaping prevents user-supplied transcript markup from becoming eleme
  const html=alexV7CaptionHtml(p);
  assert.ok(!html.includes('<span class="token" id="w0_0"><script>'));
  assert.ok(html.includes('&lt;script&gt;'));
+});
+
+test('Stale cut duration is rejected before any caption can be displayed',()=>{
+ const bad={...t,outputDurationMs:t.outputDurationMs+1500};
+ const plan=buildAlexV7AudioPlan({analysis:{transcript:{alignment,words:sourceWords}},timeline:bad});
+ assert.equal(plan.status,'blocked');
+ assert.equal(plan.reason,'CUT_TIMELINE_DURATION_MISMATCH');
+ assert.equal(plan.groups.length,0);
+});
+test('Adjacent kinetic phrase groups cannot remain visible simultaneously',()=>{
+ const words=[
+   {text:'Un',startMs:10800,endMs:10930},
+   {text:'texte',startMs:10935,endMs:11100},
+   {text:'fluide',startMs:11105,endMs:11280},
+   {text:'et',startMs:11284,endMs:11350},
+   {text:'précis',startMs:11355,endMs:11600},
+   {text:'sans',startMs:11605,endMs:11720},
+   {text:'doublon',startMs:11725,endMs:11900}
+ ];
+ const p=buildAlexV7AudioPlan({analysis:{transcript:{alignment,words}},timeline:t});
+ assert.equal(p.status,'preview_transcript_timed');
+ for(let i=0;i<p.groups.length-1;i++)
+   assert.ok(p.groups[i].endMs<=p.groups[i+1].startMs,
+     'caption groups must not overlap');
 });
