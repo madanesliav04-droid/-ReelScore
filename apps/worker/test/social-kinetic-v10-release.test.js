@@ -7,7 +7,7 @@ function passing(){
     verifiedWords:149,spokenWords:151},
   video:{fullDecodePassed:true,sourceWidth:960,sourceHeight:540,width:960,height:540,
     measuredFps:30,durationSeconds:38.533,expectedDurationSeconds:38.533},
-  audio:{sourceVoiceVerified:true,aiVoice:false,channels:2,voiceCorrelation:.999,
+  audio:{sourceVoiceVerified:true,aiVoice:false,sourceChannels:2,channels:2,voiceCorrelation:.999,
     truePeakDbTP:-1.2},
   visual:{frameSampler:'independent_frames',framesSampled:200,safeFrames:200,
     handCollisions:0,textClipping:0,textBeforeSpeech:0,unsupportedClaimGraphics:0,
@@ -32,7 +32,7 @@ for(const [reason,modify] of [
  ['SPEECH_WORD_TIMING_NOT_FORCE_ALIGNED',x=>{x.speech.alignment.reviewedAgainstAudio=false}],
  ['SPEECH_MISSING_VERIFIED_WORD_COVERAGE',x=>{x.speech.verifiedWords=100}],
  ['VIDEO_DECODE_OR_NATIVE_GEOMETRY_FAILED',x=>{x.video.width=540;x.video.height=960}],
- ['ORIGINAL_VOICE_OR_STEREO_NOT_VERIFIED',x=>{x.audio.channels=1}],
+ ['ORIGINAL_VOICE_OR_AUDIO_CHANNELS_NOT_VERIFIED',x=>{x.audio.channels=1}],
  ['VFX_FACE_COLLISION_OR_MOTION_GAPS',x=>{x.visual.handCollisions=1}],
  ['REFERENCE_VISUAL_REVIEW_NOT_APPROVED',x=>{x.review.userApproved=false}],
  ['REAL_RUSH_REGRESSION_NOT_PROVEN',x=>{x.regression.realRushCount=1}]
@@ -43,3 +43,10 @@ for(const [reason,modify] of [
   assert.equal(r.ready,false);assert.ok(r.blockedBy.includes(reason));
  });
 }
+
+test('Commercial gate accepts original mono as well as original stereo when every proof is met',()=>{
+ const x=passing();x.audio.sourceChannels=1;x.audio.channels=1;
+ assert.equal(assessSocialKineticV10CommercialRelease(x).ready,true);
+ x.audio.channels=2;
+ assert.equal(assessSocialKineticV10CommercialRelease(x).ready,false);
+});
