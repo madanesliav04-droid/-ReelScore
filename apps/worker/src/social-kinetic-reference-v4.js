@@ -77,6 +77,22 @@ function displayWords(words,startMs,endMs,keepRanges){
  return mapped;
 }
 /**
+ * The reference shows max 3 conversations at once: the fourth replaces
+ * the oldest instead of stacking a fourth over the creator's face.
+ */
+export function retireOldestChatEvent(accepted,upcoming){
+ if(upcoming.kind!=='chat')return null;
+ const active=accepted.filter(x=>x.kind==='chat'&&
+   upcoming.startMs<x.endMs&&upcoming.endMs>x.startMs)
+   .sort((a,b)=>a.startMs-b.startMs);
+ if(active.length<3)return null;
+ const oldest=active[0];
+ oldest.endMs=Math.min(oldest.endMs,
+   Math.max(oldest.startMs+120,upcoming.startMs-40));
+ return oldest.id;
+}
+
+/**
  * editorialEvents come from speech-aware directing, not a timer/keyword quota.
  * one event = {id,kind,spokenEvidence,sourceEndMs,...}
  * Chat text must be verbatim or explicitly user-authored illustration.
@@ -160,6 +176,9 @@ export function buildSocialKineticReferenceV4Plan({
    displayPriority:Number(event.displayPriority)||0,
    groupId:event.groupId||null
   };
+  // Stagger messages by replacing the oldest before checking layer bounds.
+  // All word evidence and placements are still reviewed independently.
+  retireOldestChatEvent(accepted,evt);
   // Two text effects may coexist only if independently cleared rectangles
   // do not collide. This permits stacked blue messages but not random labels
   // drawn over the same part of the speaker's frame.
@@ -171,11 +190,6 @@ export function buildSocialKineticReferenceV4Plan({
    return concurrent&&touching;
   });
   if(collides){hold('ONSCREEN_EFFECT_COLLISION');continue;}
-  // Up to three chat bubbles can be displayed at once (reference 10-17s).
-  if(kind==='chat'&&accepted.filter(x=>x.kind==='chat'&&
-      evt.startMs<x.endMs&&evt.endMs>x.startMs).length>=3){
-   hold('CHAT_STACK_MAX_3');continue;
-  }
   accepted.push(evt);
  }
  accepted.sort((a,b)=>a.startMs-b.startMs||b.displayPriority-a.displayPriority);
