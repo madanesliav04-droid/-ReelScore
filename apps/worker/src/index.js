@@ -402,7 +402,8 @@ async function runEdit(job,media,sourcePath,dir){
   }
 
   if(!analysis?.transcript?.words?.length ||
-     (process.env.ENABLE_ALEX_V7_WORD_SYNC==='staging' &&
+     ((process.env.ENABLE_ALEX_V7_WORD_SYNC==='staging'||
+       ['staging','production'].includes(process.env.ENABLE_ALEX_V8_WORD_SYNC)) &&
       (payload.style||project.style)==='hormozi_omni' &&
       !analysis?.transcript?.alignment?.verified) ||
      (process.env.ENABLE_MULTIMODAL_EDITORIAL==='true' &&
