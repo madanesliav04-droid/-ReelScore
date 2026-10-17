@@ -38,12 +38,15 @@ export function gateSemanticVisual({
  if(!phrase)return reject('SPOKEN_EVIDENCE_MISSING');
  // A human reading the video must explicitly choose between repeated phrases.
  const tokens=phrase.split(' ');
- const compact=speech.words.map(w=>norm(w.text));
+ // French contractions may be one ASR word: "quelqu'un" -> ["quelqu","un"].
+ // Expand each ASR word without losing its original evidence timestamps.
+ const expanded=speech.words.flatMap(w=>norm(w.text).split(' ').filter(Boolean)
+   .map(token=>({token,startMs:w.startMs,endMs:w.endMs})));
  const hits=[];
- for(let i=0;i<=compact.length-tokens.length;i++){
-   if(tokens.every((x,j)=>compact[i+j]===x)){
-     hits.push({startMs:speech.words[i].startMs,
-       endMs:speech.words[i+tokens.length-1].endMs});
+ for(let i=0;i<=expanded.length-tokens.length;i++){
+   if(tokens.every((x,j)=>expanded[i+j].token===x)){
+     hits.push({startMs:expanded[i].startMs,
+       endMs:expanded[i+tokens.length-1].endMs});
    }
  }
  if(!hits.length)return reject('PHRASE_NOT_SPOKEN');
