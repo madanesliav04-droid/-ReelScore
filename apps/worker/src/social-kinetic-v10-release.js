@@ -18,7 +18,7 @@ export function assessSocialKineticV10CommercialRelease({
  const fail=(name,condition)=>{if(!condition)blocked.push(name);};
  fail('SPEECH_WORD_TIMING_NOT_FORCE_ALIGNED',
    speech.alignment?.verified===true&&
-   ['forced_alignment','provider_word_timestamps'].includes(speech.alignment?.method)&&
+   ['forced_alignment','forced_word_alignment','provider_word_timestamps'].includes(speech.alignment?.method)&&
    speech.alignment?.reviewedAgainstAudio===true&&
    finite(speech.alignment?.maxObservedDriftMs)&&
    speech.alignment.maxObservedDriftMs<=V10_MINIMUMS.exactWordMaxDriftMs);
@@ -36,9 +36,10 @@ export function assessSocialKineticV10CommercialRelease({
    finite(video.durationSeconds)&&video.durationSeconds>2&&
    finite(video.expectedDurationSeconds)&&
    Math.abs(video.durationSeconds-video.expectedDurationSeconds)<.067);
- fail('ORIGINAL_VOICE_OR_STEREO_NOT_VERIFIED',
+ fail('ORIGINAL_VOICE_OR_AUDIO_CHANNELS_NOT_VERIFIED',
    audio.sourceVoiceVerified===true&&audio.aiVoice===false&&
-   audio.channels===2&&
+   Number.isInteger(audio.sourceChannels)&&audio.sourceChannels>=1&&
+   Number.isInteger(audio.channels)&&audio.channels===audio.sourceChannels&&
    finite(audio.voiceCorrelation)&&audio.voiceCorrelation>=V10_MINIMUMS.minimumVoiceCorrelation&&
    finite(audio.truePeakDbTP)&&audio.truePeakDbTP<=-1.0);
  fail('VFX_FACE_COLLISION_OR_MOTION_GAPS',
