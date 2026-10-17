@@ -1,7 +1,7 @@
 name: Edit+ HyperFrames four-creator render tests
 on:
   push:
-    branches: [editplus-four-creator-render-tests-20261017]
+    branches: [editplus-four-creator-render-tests-20261017, editplus-alex-v7-audio-driven-staging-20261017]
     paths:
       - 'apps/worker/hyperframes/four-creators/**'
       - '.github/workflows/editplus-four-creators-preview.yml'
@@ -299,3 +299,62 @@ jobs:
           name: editplus-alex-v7-apple-kinetic-full-overlay
           path: ${{ runner.temp }}/ALEX_V7_APPLE_44s.webm
           retention-days: 7
+
+  alex-v7-audio-driven:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    env:
+      PUPPETEER_SKIP_DOWNLOAD: '1'
+      HYPERFRAMES_BROWSER_PATH: /usr/bin/chromium
+      PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium
+      CHROME_PATH: /usr/bin/chromium
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate worker JavaScript
+        working-directory: apps/worker
+        run: |
+          node --check src/index.js
+          node --check src/viral.js
+          node --check src/alex-v7-audio-captions.js
+          node --check src/alex-v7-runtime.js
+      - name: Regression tests: word timing, cuts, spoiler safety
+        working-directory: apps/worker
+        run: |
+          node --test test/alex-v7-audio-captions.test.js test/hyperframes-speech-sync.test.js test/hyperframes-story-first-gate.test.js
+      - name: Install Chromium and FFmpeg
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq chromium ffmpeg fonts-liberation
+      - name: Install pinned HyperFrames
+        working-directory: apps/worker
+        run: npm install --no-audit --no-fund
+      - name: Render a synthetic ASR-timed kinetic caption test
+        working-directory: apps/worker
+        run: |
+          mkdir -p "$RUNNER_TEMP/alex-word-test"
+          node --input-type=module <<'EOF'
+          import {writeFileSync} from 'node:fs';
+          import {alexV7CaptionHtml} from './src/alex-v7-audio-captions.js';
+          const demo={
+            outputDurationMs:4200,groups:[
+             {startMs:500,endMs:2100,words:[
+              {text:'Une',startMs:500,endMs:780},
+              {text:'idée',startMs:880,endMs:1120},
+              {text:'bien',startMs:1250,endMs:1510},
+              {text:'expliquée',startMs:1670,endMs:1930}]},
+             {startMs:2400,endMs:3850,words:[
+              {text:'devient',startMs:2400,endMs:2800},
+              {text:'visible.',startMs:3200,endMs:3580}]}
+            ]
+          };
+          const out=alexV7CaptionHtml(demo,{width:960,height:540});
+          writeFileSync(process.env.RUNNER_TEMP+'/alex-word-test/index.html',out);
+          EOF
+          cd "$RUNNER_TEMP/alex-word-test"
+          "$GITHUB_WORKSPACE/apps/worker/node_modules/.bin/hyperframes" lint .
+          "$GITHUB_WORKSPACE/apps/worker/node_modules/.bin/hyperframes" render --format webm --quality draft --workers 2 --fps 30 --output "$RUNNER_TEMP/ALEX_V7_WORD_SYNC_SYNTHETIC.webm"
+          ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1 "$RUNNER_TEMP/ALEX_V7_WORD_SYNC_SYNTHETIC.webm"
+          ffmpeg -hide_banner -loglevel error -xerror -i "$RUNNER_TEMP/ALEX_V7_WORD_SYNC_SYNTHETIC.webm" -f null -

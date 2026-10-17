@@ -10,6 +10,8 @@ import {createClient} from '@supabase/supabase-js';
 import {analyzeVideo,SCORE_VERSION} from './viral.js';
 import {decodedSourceFingerprint,probeFingerprintSource} from './viral-fingerprint.js';
 import {buildEditTimeline} from './edit.js';
+import {buildAlexV7AudioPlan} from './alex-v7-audio-captions.js';
+import {renderAlexV7Staging} from './alex-v7-runtime.js';
 import {reviewCreativeTimeline} from './creative-quality-gate.js';
 import {auditOmniCodieModel} from './omni-codie-quality-contract.js';
 import {planContextualBroll} from './broll.js';
@@ -399,6 +401,9 @@ async function runEdit(job,media,sourcePath,dir){
   }
 
   if(!analysis?.transcript?.words?.length ||
+     (process.env.ENABLE_ALEX_V7_WORD_SYNC==='staging' &&
+      (payload.style||project.style)==='hormozi_omni' &&
+      !analysis?.transcript?.alignment?.verified) ||
      (process.env.ENABLE_MULTIMODAL_EDITORIAL==='true' &&
       !Array.isArray(analysis?.editorial_director?.decisions))){
     await progress(
@@ -523,6 +528,20 @@ async function runEdit(job,media,sourcePath,dir){
   });
   timeline.effectDecisions={policy:effectReview.policy,rejected:effectReview.rejected};
   timeline.omniModelAudit=auditOmniCodieModel({timeline,analysis});
+  // Staging is opt-in and NOT the default user-facing Edit+ renderer.
+  // Word timing is remapped after cuts; semantic visuals are held until proved.
+  const alexV7Staging=
+    process.env.ENABLE_ALEX_V7_WORD_SYNC==='staging'&&
+    selectedStyle==='hormozi_omni';
+  if(alexV7Staging){
+    timeline.appleKineticAudioPlan=buildAlexV7AudioPlan({
+      analysis,timeline,semanticEvents:[]
+    });
+    if(!timeline.appleKineticAudioPlan.groups.length){
+      throw tagged('ASR_TIMING_INVALID',
+        'V7 synchronisé indisponible : mots horodatés non confirmés.');
+    }
+  }
   const timelineAudit=validateEditTimeline(timeline);
   timeline.releaseGate={policy:'editplus-beta-gates-v1',transcript:transcriptAudit,timeline:timelineAudit,brollRejected:mediaRights.rejected};
   const {error:timelineError}=await supabase
@@ -589,14 +608,26 @@ async function runEdit(job,media,sourcePath,dir){
     'Application du style Edit+'
   );
 
-  await renderNativeEdit({
-    sourcePath:preparedPath,
-    outputPath:renderedPath,
-    durationMs:timeline.outputDurationMs,
-    timeline,
-    onProgress:(pct,stage)=>
-      progress(job,'rendering',pct,stage)
-  });
+  if(alexV7Staging){
+    // Uses the unchanged V7 design, but timings come from real transcript words.
+    // Export remains staging-only until the source audio is human-reviewed.
+    await renderAlexV7Staging({
+      sourcePath:preparedPath,
+      outputPath:renderedPath,
+      timeline,plan:timeline.appleKineticAudioPlan,
+      workDir:path.join(dir,'alex-v7-runtime'),
+      onProgress:(pct,stage)=>progress(job,'rendering',pct,stage)
+    });
+  }else{
+    await renderNativeEdit({
+      sourcePath:preparedPath,
+      outputPath:renderedPath,
+      durationMs:timeline.outputDurationMs,
+      timeline,
+      onProgress:(pct,stage)=>
+        progress(job,'rendering',pct,stage)
+    });
+  }
 
   await finalEncode({
     inputPath:renderedPath,
