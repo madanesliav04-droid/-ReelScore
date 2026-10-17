@@ -136,3 +136,20 @@ test('fourth blue bubble retires the oldest one instead of flooding the screen',
   .filter(x=>x.startMs<=4500&&x.endMs>4500);
  assert.equal(simultaneouslyVisible.length,3);
 });
+
+test('3000€ stays spoken first; 1 MOIS pill does not appear until its own word',()=>{
+ const events=[{
+  id:'amount',kind:'metric',text:'3000€',spokenEvidence:'3000€',
+  sourceEndMs:49000,durationLabel:'1 mois',durationEvidence:'1 mois'
+ }];
+ const p=build({editorialEvents:events,frameProof:{amount:proof(46000,49000)}});
+ assert.equal(p.status,'staging_renderable');
+ const extra=p.events[0].extras;
+ assert.equal(extra.length,1);
+ assert.equal(extra[0].role,'pill');
+ assert.equal(extra[0].startMs,48200);
+ const html=socialKineticReferenceV4Html(p,{width:1280,height:720});
+ assert.match(html,/extra0_pill0/);
+ assert.match(html,/1 MOIS/);
+ assert.match(html,/48\.200/);
+});
