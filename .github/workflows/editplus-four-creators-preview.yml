@@ -201,3 +201,16 @@ jobs:
           name: editplus-alex-v5-semantic-motion-full
           path: ${{ runner.temp }}/EDITPLUS_ALEX_V5_44s.webm
           retention-days: 7
+
+  alex-v6-story-first-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test never showing a human before the user says helping someone
+        working-directory: apps/worker
+        run: |
+          node --test test/hyperframes-speech-sync.test.js test/hyperframes-story-first-gate.test.js
