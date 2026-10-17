@@ -31,3 +31,23 @@ jobs:
           test -f viralplus-product-config.js
           test -f supabase/migrations/20261006090000_shared_viral_edit_core.sql
           test -f docs/ARCHITECTURE.md
+
+  alex-v7-word-sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Worker syntax
+        working-directory: apps/worker
+        run: |
+          node --check src/index.js
+          node --check src/viral.js
+          node --check src/alex-v7-audio-captions.js
+          node --check src/alex-v7-runtime.js
+      - name: ASR timings and no-premature-reveal regression tests
+        working-directory: apps/worker
+        run: |
+          node --test test/alex-v7-audio-captions.test.js test/hyperframes-speech-sync.test.js test/hyperframes-story-first-gate.test.js
