@@ -50,11 +50,12 @@ jobs:
           node --check src/alex-v8-release.js
           node --check src/social-kinetic-reference-v4.js
           node --check src/social-kinetic-v4-runtime.js
+          node --check src/social-kinetic-v10-release.js
           node --check src/hyperframes-renderer.js
       - name: ASR timings and no-premature-reveal regression tests
         working-directory: apps/worker
         run: |
-          node --test test/alex-v7-audio-captions.test.js test/hyperframes-speech-sync.test.js test/hyperframes-story-first-gate.test.js test/alex-v8-release.test.js test/social-kinetic-reference-v4.test.js
+          node --test test/alex-v7-audio-captions.test.js test/hyperframes-speech-sync.test.js test/hyperframes-story-first-gate.test.js test/alex-v8-release.test.js test/social-kinetic-reference-v4.test.js test/social-kinetic-v10-release.test.js
 
   alex-v7-hyperframes-visual-proof:
     runs-on: ubuntu-latest
@@ -270,4 +271,42 @@ jobs:
         with:
           name: social-kinetic-v9-real-speech-hyperframes
           path: ${{ runner.temp }}/social-kinetic-v9-real-words.webm
+          retention-days: 7
+
+  social-kinetic-v10-commercial-render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      PUPPETEER_SKIP_DOWNLOAD: '1'
+      HYPERFRAMES_BROWSER_PATH: /usr/bin/chromium
+      PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium
+      CHROME_PATH: /usr/bin/chromium
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned HyperFrames runtime
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq chromium ffmpeg fonts-dejavu fonts-liberation
+          cd apps/worker
+          npm install --no-audit --no-fund
+      - name: Validate and render exact V10 GSAP/HyperFrames timeline
+        run: |
+          set -euo pipefail
+          cd apps/worker/hyperframes/social-kinetic-v10-commercial-qa
+          "$GITHUB_WORKSPACE/apps/worker/node_modules/.bin/hyperframes" lint .
+          "$GITHUB_WORKSPACE/apps/worker/node_modules/.bin/hyperframes" render \
+            --format webm --quality draft --workers 2 --fps 30 \
+            --output "$RUNNER_TEMP/social-kinetic-v10-hyperframes.webm"
+          ffmpeg -hide_banner -loglevel error -xerror \
+            -i "$RUNNER_TEMP/social-kinetic-v10-hyperframes.webm" -f null -
+          ffprobe -v error -show_entries stream=codec_name,width,height,codec_type \
+            -show_entries format=duration -of json "$RUNNER_TEMP/social-kinetic-v10-hyperframes.webm"
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: social-kinetic-v10-hyperframes-actual-render
+          path: ${{ runner.temp }}/social-kinetic-v10-hyperframes.webm
           retention-days: 7
