@@ -20,6 +20,13 @@ export function buildAlexV7AudioPlan({
  const blocked=(reason)=>({status:'blocked',reason,groups:[],semanticVisuals:[],
    heldVisuals:semanticEvents.map(e=>({eventId:e.id,reason})),wordCount:0,
    releaseStatus:'NOT_APPROVED',design:'alex-v7-apple-kinetic'});
+ // A cut-aware overlay must have exactly the same runtime as the edited video.
+ // Reject stale manifests instead of shifting captions silently at every cut.
+ const cutsDuration=keepRanges.reduce((sum,r)=>sum+Number(r.endMs)-Number(r.startMs),0);
+ if(!keepRanges.length||!Number.isFinite(cutsDuration)||
+    !good(Number(timeline?.outputDurationMs))||
+    Math.abs(cutsDuration-Number(timeline.outputDurationMs))>100)
+   return blocked('CUT_TIMELINE_DURATION_MISMATCH');
  if(check.status!=='verified')return blocked(check.errors.join(',')||'TRANSCRIPT_UNVERIFIED');
  // Verified field structure is not a human audio audit. Treat as provisional.
  const provider=alignment.method==='provider_word_timestamps';
@@ -55,6 +62,11 @@ export function buildAlexV7AudioPlan({
    if(/[.!?]$/.test(w.text))flush();
  }
  flush();
+ // Avoid showing two complete phrases on top of each other at a boundary.
+ for(let i=0;i<groups.length-1;i++){
+   const nextStart=groups[i+1].startMs;
+   groups[i].endMs=Math.min(groups[i].endMs,Math.max(groups[i].startMs+1,nextStart-8));
+ }
  // Semantic objects require independent audio verified content, not an ASR guess.
  // In provider-preview mode they remain held until editorial QA signs off.
  const allowVisuals=!provider && alignment.reviewedAgainstAudio===true;
