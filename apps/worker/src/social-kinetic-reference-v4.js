@@ -166,6 +166,34 @@ export function buildSocialKineticReferenceV4Plan({
     hold('METRIC_UNSPOKEN_VALUE');continue;
    }
   }
+  // Additional labels and the 1 MOIS pill are distinct spoken anchors,
+  // not baked into a generic white rectangular data card.
+  const extras=[];
+  let extraError=null;
+  const fields=[
+   ['supportText','supportEvidence','support'],
+   ['metricHeading','metricHeadingEvidence','heading'],
+   ['durationLabel','durationEvidence','pill']
+  ];
+  for(const [textKey,evidenceKey,role] of fields){
+   const label=event[textKey];
+   if(!label)continue;
+   if(role==='pill'&&kind!=='metric'){extraError='PILL_REQUIRES_METRIC';break;}
+   const evidence=event[evidenceKey];
+   if(!evidence){extraError='EXTRA_SPOKEN_EVIDENCE_MISSING';break;}
+   const x=findSpeechMatch(speech,evidence);
+   if(x.reason){extraError=x.reason;break;}
+   const at=mapSourceToOutput(x.match.startMs,keepRanges);
+   if(at===null||at>outputEnd||x.match.endMs>sourceEnd){
+    extraError='EXTRA_EVIDENCE_OUTSIDE_EVENT';break;
+   }
+   if(norm(label)!==norm(evidence)&&event.userApprovedText!==true){
+    extraError='EXTRA_TEXT_NOT_VERBATIM';break;
+   }
+   extras.push({role,text:String(label).slice(0,90),
+     startMs:Math.max(outputStart,at)});
+  }
+  if(extraError){hold(extraError);continue;}
   const evt={
    id:String(event.id),kind,text:String(event.text),startMs:outputStart,
    endMs:outputEnd+1,sourceSpeechStartMs:speechTime,
@@ -174,7 +202,7 @@ export function buildSocialKineticReferenceV4Plan({
      kind==='phrase'?found.match.endMs:sourceEnd,keepRanges),
    palette:proof.palette,exampleOnly:event.exampleOnly===true,
    displayPriority:Number(event.displayPriority)||0,
-   groupId:event.groupId||null
+   groupId:event.groupId||null,extras
   };
   // Stagger messages by replacing the oldest before checking layer bounds.
   // All word evidence and placements are still reviewed independently.
@@ -215,10 +243,18 @@ export function socialKineticReferenceV4Html(plan,{width=1280,height=720}={}){
   const className=e.kind==='hero'?'hero':e.kind==='phrase'?'phrase':
     e.kind==='keyword'?'keyword':e.kind==='chat'?'bubble':'metric';
   const example=e.exampleOnly?'<span class="example">EXEMPLE</span>':'';
-  const html=e.kind==='phrase'?(
+  const additional=role=>(e.extras||[]).filter(x=>x.role===role)
+   .map((x,k)=>'<span id="extra'+i+'_'+role+k+'" class="extra '+role+
+    '">'+esc(x.text.toUpperCase())+'</span>').join(' ');
+  const main=e.kind==='phrase'?(
    e.words.filter(w=>w.startMs>=e.startMs&&w.startMs<=e.endMs)
      .map((w,k)=>'<span class="spoken" id="s'+i+'_'+k+'">'+esc(w.text.toUpperCase())+'</span>').join(' ')
   ):esc(e.text.toUpperCase());
+  const html=e.kind==='metric'?
+    additional('heading')+'<strong class="amount">'+main+'</strong>'+
+     additional('pill'):
+    e.kind==='hero'||e.kind==='keyword'?
+     '<div class="accentWord">'+main+'</div>'+additional('support'):main;
   return '<div class="clip '+className+'" id="e'+i+'" data-start="'+sec(e.startMs)+
    '" data-duration="'+sec(e.endMs-e.startMs)+'" data-track-index="3" style="left:'+left+
    'px;top:'+top+'px;width:'+w+'px;height:'+h+'px">'+
@@ -232,6 +268,13 @@ export function socialKineticReferenceV4Html(plan,{width=1280,height=720}={}){
    :'{opacity:0,y:11,scale:.98,filter:"blur(3px)"}';
   animations.push('tl.fromTo("#c'+i+'",'+entering+
    ',{opacity:1,y:0,scale:1,filter:"blur(0px)",duration:.23,ease:"power2.out"},'+start+');');
+  for(const extra of e.extras||[]){
+   const index=(e.extras||[]).filter(x=>x.role===extra.role)
+     .findIndex(x=>x===extra);
+   const at=sec(extra.startMs);
+   animations.push('tl.fromTo("#extra'+i+'_'+extra.role+index+
+    '",{opacity:0,y:8,scale:.96},{opacity:1,y:0,scale:1,duration:.19,ease:"power2.out"},'+at+');');
+  }
   if(e.kind==='phrase'){
    let words=e.words.filter(w=>w.startMs>=e.startMs&&w.startMs<=e.endMs);
    for(let k=0;k<words.length;k++)
@@ -252,6 +295,11 @@ export function socialKineticReferenceV4Html(plan,{width=1280,height=720}={}){
  'font-weight:750;text-shadow:none;box-shadow:0 2px 8px #070f2035}'+
  '.example{position:absolute;top:-17px;right:2px;color:#e7f0ff;font-size:10px;'+
  'font-family:Arial,sans-serif;letter-spacing:.06em}'+
+ '.extra{display:block;opacity:0}.extra.support{font-weight:750;font-size:'+Math.round(font*.63)+'px;color:white;letter-spacing:0}'+
+ '.extra.heading{font-size:'+Math.round(font*.50)+'px;font-weight:700;text-align:left;letter-spacing:.04em}'+
+ '.extra.pill{display:table;margin:8px auto 0;background:#f4f5f5;color:#1a1d22;font-size:'+Math.round(font*.55)+'px;'+
+ 'padding:6px 14px;border-radius:5px;box-shadow:0 2px 6px #0a101633}'+
+ '.metric .amount{display:block;font-size:'+Math.round(font*1.6)+'px}'+
  '.metric .content{font-weight:850;font-size:'+Math.round(font*1.75)+'px;'+
  'background:#06111a84;border-radius:3px;padding:7px 14px;color:#fff;'+
  'font-variant-numeric:tabular-nums;letter-spacing:-.04em}'+
