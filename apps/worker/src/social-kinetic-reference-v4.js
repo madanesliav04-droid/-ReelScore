@@ -232,8 +232,8 @@ export function socialKineticReferenceV4Html(plan,{width=1280,height=720}={}){
  'px;line-height:1.14;letter-spacing:-.035em;text-align:center;text-shadow:0 2px 9px #0a1016c4}'+
  '.phrase .content{font-size:'+Math.round(font*.90)+'px;font-weight:760}'+
  '.spoken{opacity:0;display:inline-block;white-space:nowrap}'+
- '.hero .content,.keyword .content{font-weight:900;color:#266734;font-size:'+Math.round(font*2.13)+'px;line-height:1.02;letter-spacing:-.04em}'+
- '.bubble .content{background:#146ece;color:white;font-size:'+Math.round(font*.73)+'px;'+
+ '.hero .content,.keyword .content{font-weight:900;color:#214421;font-size:'+Math.round(font*2.13)+'px;line-height:1.02;letter-spacing:-.04em}'+
+ '.bubble .content{background:#0B63BC;color:white;font-size:'+Math.round(font*.73)+'px;'+
  'line-height:1.25;letter-spacing:-.02em;border-radius:12px;padding:10px 14px;'+
  'font-weight:750;text-shadow:none;box-shadow:0 2px 8px #070f2035}'+
  '.example{position:absolute;top:-17px;right:2px;color:#e7f0ff;font-size:10px;'+
