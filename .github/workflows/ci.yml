@@ -195,3 +195,41 @@ jobs:
           name: social-kinetic-v4-synthetic-visual-contract-not-user-rush
           path: ${{ runner.temp }}/social-kinetic-v4-synthetic.webm
           retention-days: 5
+
+  social-kinetic-v8-real-hyperframes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      PUPPETEER_SKIP_DOWNLOAD: '1'
+      HYPERFRAMES_BROWSER_PATH: /usr/bin/chromium
+      PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium
+      CHROME_PATH: /usr/bin/chromium
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned HyperFrames runtime
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq chromium ffmpeg fonts-liberation
+          cd apps/worker
+          npm install --no-audit --no-fund
+      - name: Confirm full V8 motion composition and render real HyperFrames WebM
+        run: |
+          set -euo pipefail
+          cd apps/worker/hyperframes/social-kinetic-v8-motion
+          "$GITHUB_WORKSPACE/apps/worker/node_modules/.bin/hyperframes" lint .
+          "$GITHUB_WORKSPACE/apps/worker/node_modules/.bin/hyperframes" render \
+            --format webm --quality draft --workers 2 --fps 24 \
+            --output "$RUNNER_TEMP/social-kinetic-v8-gsap-hyperframes.webm"
+          ffprobe -v error -show_entries stream=codec_type,width,height,duration \
+            -of json "$RUNNER_TEMP/social-kinetic-v8-gsap-hyperframes.webm"
+          ffmpeg -hide_banner -loglevel error -xerror \
+            -i "$RUNNER_TEMP/social-kinetic-v8-gsap-hyperframes.webm" -f null -
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: social-kinetic-v8-hyperframes-render-real-gsap
+          path: ${{ runner.temp }}/social-kinetic-v8-gsap-hyperframes.webm
+          retention-days: 5
