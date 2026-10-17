@@ -51,3 +51,59 @@ jobs:
         working-directory: apps/worker
         run: |
           node --test test/alex-v7-audio-captions.test.js test/hyperframes-speech-sync.test.js test/hyperframes-story-first-gate.test.js
+
+  alex-v7-hyperframes-visual-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PUPPETEER_SKIP_DOWNLOAD: '1'
+      HYPERFRAMES_BROWSER_PATH: /usr/bin/chromium
+      PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium
+      CHROME_PATH: /usr/bin/chromium
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: System video tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq chromium ffmpeg fonts-liberation
+      - name: Install pinned renderer
+        working-directory: apps/worker
+        run: npm install --no-audit --no-fund
+      - name: Render synthetic word-level transcript test (NOT user audio)
+        working-directory: apps/worker
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/apple-word-proof"
+          node --input-type=module <<'EOF'
+          import {writeFileSync} from 'node:fs';
+          import {alexV7CaptionHtml} from './src/alex-v7-audio-captions.js';
+          const demo={
+           outputDurationMs:4500,groups:[
+            {startMs:400,endMs:2300,words:[
+             {text:'Une',startMs:400,endMs:720},
+             {text:'idée',startMs:850,endMs:1200},
+             {text:'devient',startMs:1420,endMs:1730},
+             {text:'visible',startMs:1870,endMs:2150}]},
+            {startMs:2650,endMs:4160,words:[
+             {text:'au',startMs:2650,endMs:2890},
+             {text:'bon',startMs:3070,endMs:3300},
+             {text:'moment.',startMs:3530,endMs:4020}]}
+           ]
+          };
+          writeFileSync(process.env.RUNNER_TEMP+'/apple-word-proof/index.html',
+            alexV7CaptionHtml(demo,{width:960,height:540}));
+          EOF
+          cd "$RUNNER_TEMP/apple-word-proof"
+          "$GITHUB_WORKSPACE/apps/worker/node_modules/.bin/hyperframes" lint .
+          "$GITHUB_WORKSPACE/apps/worker/node_modules/.bin/hyperframes" render --format webm --quality draft --workers 2 --fps 30 --output "$RUNNER_TEMP/alex-v7-synthetic-wordtimed.webm"
+          test -s "$RUNNER_TEMP/alex-v7-synthetic-wordtimed.webm"
+          ffmpeg -hide_banner -loglevel error -xerror -i "$RUNNER_TEMP/alex-v7-synthetic-wordtimed.webm" -f null -
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: alex-v7-synthetic-word-timing-proof
+          path: ${{ runner.temp }}/alex-v7-synthetic-wordtimed.webm
+          retention-days: 5
