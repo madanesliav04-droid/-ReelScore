@@ -86,15 +86,19 @@ export function buildAlexV7AudioPlan({
 }
 
 /* Rendering contract: HyperFrames timestamps are POST-CUT output timestamps. */
-export function alexV7CaptionHtml(plan,{width=1280,height=720}={}){
+export function alexV7CaptionHtml(plan,{width=1280,height=720,responsiveV8=false}={}){
  if(!plan?.groups?.length)throw Error('ALEX_V7_CAPTIONS_REQUIRE_TIMED_WORDS');
  const W=Math.round(width),H=Math.round(height);
  if(W<320||H<240||W>4096||H>4096)throw Error('BAD_RASTER');
  const sec=ms=>(Math.max(0,ms)/1000).toFixed(3);
  const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;')
    .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
- const fsize=Math.round(Math.min(W*.039,H*.071));
- const y=Math.round(H*.76);
+ const portrait=H>W;
+ const fsize=responsiveV8&&portrait?
+   Math.round(Math.min(W*.065,H*.055)):
+   Math.round(Math.min(W*.039,H*.071));
+ const y=Math.round(H*(responsiveV8?(portrait?.63:.72):.76));
+ const blockHeight=Math.round(H*(responsiveV8?.20:.15));
  const ids=[];
  const blocks=plan.groups.map((g,gi)=>{
    const id='wordgroup'+gi;ids.push(id);
@@ -102,7 +106,7 @@ export function alexV7CaptionHtml(plan,{width=1280,height=720}={}){
    return '<div class="clip" id="'+id+'" data-start="'+sec(g.startMs)+
      '" data-duration="'+sec(Math.max(200,g.endMs-g.startMs))+
      '" data-track-index="2" style="left:'+Math.round(W*.075)+'px;top:'+y+
-     'px;width:'+Math.round(W*.85)+'px;height:'+Math.round(H*.15)+'px">'+
+     'px;width:'+Math.round(W*.85)+'px;height:'+blockHeight+'px">'+
      '<div class="phrase" id="'+id+'_inner">'+html+'</div></div>';
  }).join('\n');
  const tweens=[];
@@ -121,7 +125,8 @@ export function alexV7CaptionHtml(plan,{width=1280,height=720}={}){
  '#root{position:relative;width:'+W+'px;height:'+H+'px;background:transparent!important;overflow:hidden}'+
  '.clip{position:absolute;pointer-events:none}'+
  '.phrase{font-family:Arial,"Helvetica Neue",sans-serif;font-weight:850;font-size:'+fsize+'px;'+
- 'line-height:1.12;text-align:center;letter-spacing:-.052em;color:#F9FAFD;opacity:1;white-space:nowrap;'+
+ 'line-height:1.12;text-align:center;letter-spacing:-.052em;color:#F9FAFD;opacity:1;'+
+ (responsiveV8?'white-space:normal;overflow-wrap:break-word;':'white-space:nowrap;')+
  'text-shadow:0 2px 8px #050917bc,0 8px 30px #03091491}'+
  '.token{display:inline-block;opacity:0;will-change:transform,filter,opacity}'+
  '</style></head><body><div id="root" data-composition-id="alex-v7-word-synced" data-start="0" data-duration="'+duration+
