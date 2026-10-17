@@ -97,8 +97,8 @@ export function alexV7CaptionHtml(plan,{width=1280,height=720,responsiveV8=false
  const fsize=responsiveV8&&portrait?
    Math.round(Math.min(W*.065,H*.055)):
    Math.round(Math.min(W*.039,H*.071));
- const y=Math.round(H*(responsiveV8?(portrait?.63:.72):.76));
- const blockHeight=Math.round(H*(responsiveV8?.20:.15));
+ const y=Math.round(H*(responsiveV8?(portrait ? .63 : .72):.76));
+ const blockHeight=Math.round(H*(responsiveV8 ? .20 : .15));
  const ids=[];
  const blocks=plan.groups.map((g,gi)=>{
    const id='wordgroup'+gi;ids.push(id);
