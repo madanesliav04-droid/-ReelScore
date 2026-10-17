@@ -133,6 +133,11 @@ export function buildSocialKineticReferenceV4Plan({
    hold('EVENT_CROSSES_CUT');continue;
   }
   const kind=event.kind;
+  // Fragment overlays differ from generic subtitles: display exactly the
+  // approved spoken clause, never append extra words from the next sentence.
+  if(kind==='phrase'&&norm(event.text)!==norm(event.spokenEvidence)){
+   hold('PHRASE_TEXT_NOT_VERBATIM');continue;
+  }
   if(kind==='chat'&&norm(event.text)!==norm(event.spokenEvidence)&&
     !(event.exampleOnly===true&&event.userApprovedText===true)){
    hold('CHAT_NOT_VERBATIM_OR_APPROVED_EXAMPLE');continue;
@@ -149,7 +154,8 @@ export function buildSocialKineticReferenceV4Plan({
    id:String(event.id),kind,text:String(event.text),startMs:outputStart,
    endMs:outputEnd+1,sourceSpeechStartMs:speechTime,
    spokenEvidence:String(event.spokenEvidence),safeRect:proof.rect,
-   words:displayWords(speech,speechTime,sourceEnd,keepRanges),
+   words:displayWords(speech,speechTime,
+     kind==='phrase'?found.match.endMs:sourceEnd,keepRanges),
    palette:proof.palette,exampleOnly:event.exampleOnly===true,
    displayPriority:Number(event.displayPriority)||0,
    groupId:event.groupId||null
@@ -165,6 +171,11 @@ export function buildSocialKineticReferenceV4Plan({
    return concurrent&&touching;
   });
   if(collides){hold('ONSCREEN_EFFECT_COLLISION');continue;}
+  // Up to three chat bubbles can be displayed at once (reference 10-17s).
+  if(kind==='chat'&&accepted.filter(x=>x.kind==='chat'&&
+      evt.startMs<x.endMs&&evt.endMs>x.startMs).length>=3){
+   hold('CHAT_STACK_MAX_3');continue;
+  }
   accepted.push(evt);
  }
  accepted.sort((a,b)=>a.startMs-b.startMs||b.displayPriority-a.displayPriority);
