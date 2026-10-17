@@ -31,7 +31,7 @@ export async function renderAlexV7Staging({
  if(process.env.ENABLE_HYPERFRAMES_RENDER!=='true')
    throw new Error('HYPERFRAMES_DISABLED');
  if(!plan?.groups?.length)throw new Error('ALEX_V7_TIMED_WORDS_MISSING');
- if(!['preview_transcript_timed','audio_reviewed'].includes(plan.status))
+ if(!['preview_transcript_timed','audio_reviewed','ready_for_render'].includes(plan.status))
    throw new Error('ALEX_V7_WORDS_NOT_EVIDENCED');
  await mkdir(workDir,{recursive:true});
  const compositionDir=path.join(workDir,'alex-v7-kinetic-html');
