@@ -254,3 +254,48 @@ jobs:
           name: editplus-alex-v6-premium-full-overlay
           path: ${{ runner.temp }}/ALEX_V6_PREMIUM_44s.webm
           retention-days: 7
+
+  alex-v7-apple-kinetic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      PUPPETEER_SKIP_DOWNLOAD: '1'
+      HYPERFRAMES_BROWSER_PATH: /usr/bin/chromium
+      PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium
+      CHROME_PATH: /usr/bin/chromium
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check no caption frame or backdrop
+        working-directory: apps/worker/hyperframes/four-creators/full/ALEX_V7_APPLE_KINETIC
+        run: |
+          if grep -qiE 'captionback|border-left:3px|backdrop-filter:blur' index.html; then
+            echo "Old caption card detected"
+            exit 1
+          fi
+          grep -q 'apple-kinetic' index.html
+          grep -q 'hairline' index.html
+      - name: Install Chromium, FFmpeg and fonts
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq chromium ffmpeg fonts-liberation fonts-dejavu-core
+      - name: Install HyperFrames
+        working-directory: apps/worker
+        run: npm install --no-audit --no-fund
+      - name: Render full Apple kinetic typography composition
+        working-directory: apps/worker/hyperframes/four-creators/full/ALEX_V7_APPLE_KINETIC
+        run: |
+          set -euo pipefail
+          "$GITHUB_WORKSPACE/apps/worker/node_modules/.bin/hyperframes" lint .
+          "$GITHUB_WORKSPACE/apps/worker/node_modules/.bin/hyperframes" render --format webm --quality looks --workers 3 --fps 30 --output "$RUNNER_TEMP/ALEX_V7_APPLE_44s.webm"
+          test -s "$RUNNER_TEMP/ALEX_V7_APPLE_44s.webm"
+          ffprobe -v error -show_entries stream=width,height,codec_name,pix_fmt:format=duration -of json "$RUNNER_TEMP/ALEX_V7_APPLE_44s.webm"
+          ffmpeg -hide_banner -loglevel error -xerror -c:v libvpx-vp9 -i "$RUNNER_TEMP/ALEX_V7_APPLE_44s.webm" -f null -
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: editplus-alex-v7-apple-kinetic-full-overlay
+          path: ${{ runner.temp }}/ALEX_V7_APPLE_44s.webm
+          retention-days: 7
