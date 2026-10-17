@@ -1,7 +1,7 @@
 name: Edit+ HyperFrames four-creator render tests
 on:
   push:
-    branches: [editplus-four-creator-render-tests-20261017]
+    branches: [editplus-four-creator-render-tests-20261017, editplus-alex-v7-audio-driven-staging-20261017]
     paths:
       - 'apps/worker/hyperframes/four-creators/**'
       - '.github/workflows/editplus-four-creators-preview.yml'
