@@ -1,7 +1,7 @@
 # Edit+ → HyperFrames — Alex Hormozi reference handoff (2026-10-17)
 
 READ FIRST before coding / rendering Alex style. This replaces any previous beige-card or small-sidebar assumption.
-1. Read MODEL_RULES.md and REFERENCE_SHOTS.md.
+1. Read **ALEX_V3_BRIEF_OBJECT_MOTION.md FIRST**, then MODEL_RULES.md and REFERENCE_SHOTS.md. V3 adds semantic object motion in addition to full-screen navy infographics; don't render old basic text slides as the final V3.
 2. Inspect all 3 PRIVATE user-provided reference clips, if available; do not invent frame-by-frame details.
 3. Analyze the client's whole raw footage, source words and reliable time alignment; plan editorial cuts, narrative visual scenes and their precise post-cut timings.
 4. Render full-screen navy business diagrams and their stepwise animation with HyperFrames HTML/CSS/seekable GSAP — not an arbitrary title animation library.
