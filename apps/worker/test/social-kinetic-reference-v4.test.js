@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {buildSocialKineticReferenceV4Plan,socialKineticReferenceV4Html}
+import {buildSocialKineticReferenceV4Plan,socialKineticReferenceV4Html,retireOldestChatEvent}
  from '../src/social-kinetic-reference-v4.js';
 
 const time=55000;
@@ -121,4 +121,18 @@ test('Text is escaped so a fake transcript cannot execute HTML',()=>{
  const html=socialKineticReferenceV4Html(p,{width:1280,height:720});
  assert.ok(!html.includes('<img src=x>'));
  assert.ok(html.includes('&lt;IMG SRC=X&gt;'));
+});
+
+test('fourth blue bubble retires the oldest one instead of flooding the screen',()=>{
+ const conversations=[
+  {id:'1',kind:'chat',startMs:1000,endMs:9000},
+  {id:'2',kind:'chat',startMs:2000,endMs:9000},
+  {id:'3',kind:'chat',startMs:3000,endMs:9000}
+ ];
+ const newcomer={id:'4',kind:'chat',startMs:4500,endMs:9000};
+ assert.equal(retireOldestChatEvent(conversations,newcomer),'1');
+ assert.equal(conversations[0].endMs,4460);
+ const simultaneouslyVisible=[...conversations,newcomer]
+  .filter(x=>x.startMs<=4500&&x.endMs>4500);
+ assert.equal(simultaneouslyVisible.length,3);
 });
