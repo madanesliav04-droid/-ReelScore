@@ -40,7 +40,7 @@ export async function renderAlexV7Staging({
  const overlay=path.join(workDir,'alex-v7-transparent.webm');
  const w=Number(timeline?.export?.width||timeline?.width);
  const h=Number(timeline?.export?.height||timeline?.height);
- const doc=alexV7CaptionHtml(plan,{width:w,height:h});
+ const doc=alexV7CaptionHtml(plan,{width:w,height:h,responsiveV8:v8});
  await writeFile(path.join(compositionDir,'index.html'),doc,'utf8');
  await onProgress(57,'V7 · cadrage naturel sans sous-titres génériques');
  await renderNativeEdit({
