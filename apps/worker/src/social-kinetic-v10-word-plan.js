@@ -44,6 +44,13 @@ export function buildSocialKineticV10WordPlan({analysis,timeline,frameProof={},e
  if(!Array.isArray(ranges)||!ranges.length)return reject('REAL_CUT_MAP_MISSING');
  const sourceEnd=Number(timeline?.outputDurationMs);
  if(!finite(sourceEnd)||sourceEnd<=0)return reject('EDITED_DURATION_MISSING');
+ let lastEnd=0,total=0;
+ for(const r of ranges){
+  if(!finite(r.startMs)||!finite(r.endMs)||r.startMs<lastEnd||r.endMs<=r.startMs||r.endMs>d+60)
+   return reject('INVALID_UNSORTED_OR_OVERLAPPING_CUTS');
+  lastEnd=r.endMs;total+=r.endMs-r.startMs;
+ }
+ if(Math.abs(total-sourceEnd)>65)return reject('CUT_DURATION_DRIFT');
  // Drop words that straddle cuts rather than attributing inaccurate positions.
  const words=[];
  for(const word of v.words){
