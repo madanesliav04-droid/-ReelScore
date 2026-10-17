@@ -48,11 +48,13 @@ jobs:
           node --check src/alex-v7-audio-captions.js
           node --check src/alex-v7-runtime.js
           node --check src/alex-v8-release.js
+          node --check src/social-kinetic-reference-v4.js
+          node --check src/social-kinetic-v4-runtime.js
           node --check src/hyperframes-renderer.js
       - name: ASR timings and no-premature-reveal regression tests
         working-directory: apps/worker
         run: |
-          node --test test/alex-v7-audio-captions.test.js test/hyperframes-speech-sync.test.js test/hyperframes-story-first-gate.test.js test/alex-v8-release.test.js
+          node --test test/alex-v7-audio-captions.test.js test/hyperframes-speech-sync.test.js test/hyperframes-story-first-gate.test.js test/alex-v8-release.test.js test/social-kinetic-reference-v4.test.js
 
   alex-v7-hyperframes-visual-proof:
     runs-on: ubuntu-latest
@@ -137,4 +139,59 @@ jobs:
         with:
           name: alex-v7-synthetic-word-timing-proof
           path: ${{ runner.temp }}/alex-v7-synthetic-wordtimed.webm
+          retention-days: 5
+
+  social-kinetic-v4-reference-visual-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PUPPETEER_SKIP_DOWNLOAD: '1'
+      HYPERFRAMES_BROWSER_PATH: /usr/bin/chromium
+      PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium
+      CHROME_PATH: /usr/bin/chromium
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Renderer dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq chromium ffmpeg fonts-liberation
+      - name: Install pinned renderer
+        working-directory: apps/worker
+        run: npm install --no-audit --no-fund
+      - name: Render five-second visual contract demo (FICTIONAL WORDS, NO USER AUDIO)
+        working-directory: apps/worker
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/social-kinetic-v4-proof"
+          node --input-type=module <<'EOF'
+          import {writeFileSync} from 'node:fs';
+          import {socialKineticReferenceV4Html} from './src/social-kinetic-reference-v4.js';
+          const safety={x:.57,y:.28,w:.35,h:.44};
+          const p={outputDurationMs:5000,events:[
+           {id:'n',kind:'hero',text:'3 FAÇONS',startMs:200,endMs:1400,
+             safeRect:safety,words:[]},
+           {id:'f',kind:'phrase',text:'UN PROBLÈME RÉEL',startMs:1500,endMs:2900,
+             safeRect:safety,words:[
+              {text:'Un',startMs:1500},{text:'problème',startMs:1870},{text:'réel',startMs:2320}]},
+           {id:'q',kind:'chat',text:'Un exemple explicitement illustré',
+            exampleOnly:true,startMs:3000,endMs:4800,safeRect:safety,words:[]}
+          ]};
+          writeFileSync(process.env.RUNNER_TEMP+'/social-kinetic-v4-proof/index.html',
+            socialKineticReferenceV4Html(p,{width:960,height:540}));
+          EOF
+          cd "$RUNNER_TEMP/social-kinetic-v4-proof"
+          "$GITHUB_WORKSPACE/apps/worker/node_modules/.bin/hyperframes" lint .
+          "$GITHUB_WORKSPACE/apps/worker/node_modules/.bin/hyperframes" render \
+            --format webm --quality draft --workers 2 --fps 30 \
+            --output "$RUNNER_TEMP/social-kinetic-v4-synthetic.webm"
+          ffmpeg -hide_banner -loglevel error -xerror \
+            -i "$RUNNER_TEMP/social-kinetic-v4-synthetic.webm" -f null -
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: social-kinetic-v4-synthetic-visual-contract-not-user-rush
+          path: ${{ runner.temp }}/social-kinetic-v4-synthetic.webm
           retention-days: 5

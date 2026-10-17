@@ -12,6 +12,8 @@ import {decodedSourceFingerprint,probeFingerprintSource} from './viral-fingerpri
 import {buildEditTimeline} from './edit.js';
 import {buildAlexV7AudioPlan} from './alex-v7-audio-captions.js';
 import {buildAlexV8ReleasePlan,assertAlexV8Deployment} from './alex-v8-release.js';
+import {buildSocialKineticReferenceV4Plan} from './social-kinetic-reference-v4.js';
+import {renderSocialKineticV4Staging} from './social-kinetic-v4-runtime.js';
 import {renderAlexV7Staging} from './alex-v7-runtime.js';
 import {reviewCreativeTimeline} from './creative-quality-gate.js';
 import {auditOmniCodieModel} from './omni-codie-quality-contract.js';
@@ -402,9 +404,11 @@ async function runEdit(job,media,sourcePath,dir){
   }
 
   if(!analysis?.transcript?.words?.length ||
-     ((process.env.ENABLE_ALEX_V7_WORD_SYNC==='staging'||
+     (((process.env.ENABLE_ALEX_V7_WORD_SYNC==='staging'||
        ['staging','production'].includes(process.env.ENABLE_ALEX_V8_WORD_SYNC)) &&
-      (payload.style||project.style)==='hormozi_omni' &&
+      (payload.style||project.style)==='hormozi_omni' ||
+       process.env.ENABLE_SOCIAL_KINETIC_REFERENCE==='staging' &&
+       (payload.style||project.style)==='social_kinetic') &&
       !analysis?.transcript?.alignment?.verified) ||
      (process.env.ENABLE_MULTIMODAL_EDITORIAL==='true' &&
       !Array.isArray(analysis?.editorial_director?.decisions))){
@@ -532,6 +536,22 @@ async function runEdit(job,media,sourcePath,dir){
   timeline.omniModelAudit=auditOmniCodieModel({timeline,analysis});
   // Staging is opt-in and NOT the default user-facing Edit+ renderer.
   // Word timing is remapped after cuts; semantic visuals are held until proved.
+  // The reference-accurate second model stays strictly opt-in.
+  // Without independently checked frame-safe regions or spoken evidence,
+  // fail CLOSED rather than publish fake blue messages or decorative cards.
+  const socialKineticRefStaging=
+    process.env.ENABLE_SOCIAL_KINETIC_REFERENCE==='staging'&&
+    selectedStyle==='social_kinetic';
+  if(socialKineticRefStaging){
+    timeline.socialKineticReferencePlan=buildSocialKineticReferenceV4Plan({
+      analysis,timeline,
+      editorialEvents:analysis?.socialKineticReference?.events||[],
+      frameProof:analysis?.socialKineticReference?.frameProof||{}
+    });
+    if(timeline.socialKineticReferencePlan.status!=='staging_renderable')
+      throw tagged('SOCIAL_KINETIC_REFERENCE_QA_BLOCKED',
+        timeline.socialKineticReferencePlan.reason||'REAL_SPEECH_OR_FACE_PROOF_MISSING');
+  }
   // V8 takes priority over V7, and cannot run publicly without an explicit
   // release approval flag; all other Edit+ styles remain unchanged.
   const alexV8Mode=selectedStyle==='hormozi_omni'&&
@@ -622,7 +642,14 @@ async function runEdit(job,media,sourcePath,dir){
     'Application du style Edit+'
   );
 
-  if(alexV7Staging||alexV8Mode){
+  if(socialKineticRefStaging){
+    await renderSocialKineticV4Staging({
+      sourcePath:preparedPath,outputPath:renderedPath,timeline,
+      plan:timeline.socialKineticReferencePlan,
+      workDir:path.join(dir,'social-kinetic-v4-runtime'),
+      onProgress:(pct,stage)=>progress(job,'rendering',pct,stage)
+    });
+  }else if(alexV7Staging||alexV8Mode){
     // V8 keeps the locked V7 visual language but requires real transcript words.
     // Export remains staging-only until the source audio is human-reviewed.
     await renderAlexV7Staging({
@@ -655,12 +682,15 @@ async function runEdit(job,media,sourcePath,dir){
   const qualityReport=await verifyExport({filePath:finalPath,timeline});
   // Optional second FFmpeg pass: observable defects; never an aesthetic certification.
   // Disabled by default until latency benchmarking in staging.
-  const observedRenderQA=(alexV8Mode||process.env.ENABLE_POST_RENDER_QA==='true')
+  const observedRenderQA=(socialKineticRefStaging||alexV8Mode||process.env.ENABLE_POST_RENDER_QA==='true')
     ?await inspectRenderedVideo(finalPath,{
       durationSec:timeline.outputDurationMs/1000,
       hasAudio:Boolean(timeline.audio?.hasAudio)
     })
     :{policy:'editplus-render-observable-signals-v4',status:'SKIPPED_FEATURE_DISABLED'};
+  if(socialKineticRefStaging&&observedRenderQA.verdict==='NEEDS_HUMAN_REVIEW')
+    throw tagged('SOCIAL_KINETIC_REFERENCE_EXPORT_QA_BLOCKED',
+      'Audio, vidéo ou rendu visuel : anomalie technique détectée.');
   if(alexV8Mode&&observedRenderQA.verdict==='NEEDS_HUMAN_REVIEW')
     throw tagged('ALEX_V8_EXPORT_QA_BLOCKED',
       'Contrôle vidéo/audio : anomalies détectées, publication suspendue.');
