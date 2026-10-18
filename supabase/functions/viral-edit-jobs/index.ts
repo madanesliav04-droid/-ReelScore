@@ -245,6 +245,22 @@ async function route(req:Request){
     }
   }
 
+  // Model catalog for the real Edit+ selector. V28 is not advertised as
+  // production-ready until verified end-to-end on three independent uploads.
+  if(req.method==="GET"&&tail[0]==="edit"&&tail[1]==="models"){
+    const v28Stage=Deno.env.get("ENABLE_SOCIAL_KINETIC_V28")==="staging";
+    return out({models:[
+      {id:"codie",label:"Codie",status:"available"},
+      {id:"hormozi_omni",label:"Hormozi OMNI",status:"available"},
+      {id:"ugc_native",label:"UGC Native",status:"available"},
+      {id:"social_kinetic",label:"Social Kinetic (historique)",status:"available"},
+      {id:"social_kinetic_v28",label:"Social Kinetic V28",
+        description:"Sous-titres V16 · animations vertes · bulles iOS liées aux paroles",
+        status:v28Stage?"staging":"verification_required",
+        can_render:v28Stage,requires:"verified_word_timestamps_and_independent_face_hand_safe_zones"}
+    ]});
+  }
+
   if(req.method==="POST"&&tail[0]==="edit"){
     const body=await req.json().catch(()=>null);
     if(!body||!isUuid(body.video_id))return out({error:"VIDEO_ID_REQUIRED"},400);
