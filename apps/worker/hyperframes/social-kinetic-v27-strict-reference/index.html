@@ -16,7 +16,7 @@ html,body{margin:0;width:910px;height:512px;overflow:hidden;background:transpare
 .hero .hint{color:#f8faf8;font-size:25px;font-weight:800;line-height:1.08;letter-spacing:-.015em;text-shadow:0 2px 5px #0006}
 .hero .word{color:#2e5f34;font-size:66px;font-family:"DejaVu Sans Condensed",Arial,sans-serif;font-weight:900;letter-spacing:-.052em;line-height:.89;text-shadow:0 1px 2px #fff9,0 2px 4px #0003;overflow-wrap:break-word}
 .hero.opening{top:101px}
-.hero.opening{width:406px;top:84px}.hero.opening .word{font-size:88px;line-height:.87;letter-spacing:-.06em}
+.hero.opening{width:332px;top:84px}.hero.opening .word{font-size:88px;line-height:.87;letter-spacing:-.06em}.hero.opening .emphasis-top{display:block;font-size:88px;line-height:.89}.hero.opening .emphasis-bottom{display:block;font-size:64px;line-height:.93;letter-spacing:-.045em}
 .hero.question{top:83px;width:392px}.hero.question .word{font-size:66px}
 .hero.value{left:26px;top:104px}.hero.value .word{font-size:69px}
 .chat{left:622px;top:345px;width:240px;min-height:60px;padding:9px 12px;display:flex;align-items:center;justify-content:center;text-align:center;
@@ -67,7 +67,13 @@ const IMPACTS=[
 for(let i=0;i<IMPACTS.length;i++){
  const p=IMPACTS[i],e=stage('hero '+p.cls,'hero'+i,p.a,p.b,'semantic-green-impact');
  const pre=document.createElement('div');pre.className='hint';pre.textContent=p.pre;
- const big=document.createElement('div');big.className='word';big.textContent=p.word;e.append(pre,big);
+ const big=document.createElement('div');big.className='word';
+ if(p.cls==='opening'){
+  const major=document.createElement('span');major.className='emphasis-top';major.textContent='PAS';
+  const secondary=document.createElement('span');secondary.className='emphasis-bottom';secondary.textContent="D'ARGENT";
+  big.append(major,secondary);
+ }else{big.textContent=p.word}
+ e.append(pre,big);
  tl.fromTo(e,{opacity:0,x:-18},{opacity:1,x:0,duration:.19,ease:'power3.out',immediateRender:false},p.a);
  tl.fromTo(pre,{opacity:0,y:12},{opacity:1,y:0,duration:.16,ease:'power2.out',immediateRender:false},p.a+.055);
  tl.fromTo(big,{opacity:0,y:20,scale:.86,filter:'blur(3px)'},{opacity:1,y:0,scale:1,filter:'blur(0px)',duration:.30,ease:'power3.out',immediateRender:false},p.a+.10);
