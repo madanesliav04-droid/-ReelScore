@@ -272,6 +272,25 @@ async function route(req:Request){
     const sourceAnalysisId=isUuid(body.analysis_id)?String(body.analysis_id):null;
     const requestId=crypto.randomUUID();
     const format=["native","portrait","landscape"].includes(body.settings?.format)?body.settings.format:"native";
+    // Validate every UGC secondary source on the server: a client-supplied media ID
+    // must never be enough to attach someone else's private video to a render.
+    const rawRushes=body?.settings?.ugc_rush_video_ids;
+    if(rawRushes!==undefined&&canonicalStyle!=="ugc_native")return out({error:"UGC_RUSHES_REQUIRE_UGC_STYLE"},422);
+    if(rawRushes!==undefined&&!Array.isArray(rawRushes))return out({error:"INVALID_UGC_RUSH_LIST"},422);
+    const rushIds:Array<string>=rawRushes||[];
+    if(rushIds.length>40||new Set(rushIds).size!==rushIds.length||rushIds.some(id=>!isUuid(id)||id===media.id)){
+      return out({error:"INVALID_UGC_RUSH_LIST"},422);
+    }
+    let totalRushBytes=0;
+    for(const id of rushIds){
+      const rush=await ownMedia(db,user.id,id);
+      if(!rush||rush.storage_bucket!==VIDEO_BUCKET||!String(rush.mime_type).startsWith("video/")){
+        return out({error:"UGC_RUSH_NOT_ACCESSIBLE"},403);
+      }
+      totalRushBytes+=Number(rush.size_bytes)||0;
+      if(totalRushBytes>3*1024*1024*1024)return out({error:"UGC_BATCH_TOO_LARGE"},422);
+    }
+    const editSettings={format,model_contract_version:"editplus-ugc-multirush-v1",...(canonicalStyle==="ugc_native"?{ugc_rush_video_ids:rushIds}:{})};
 
     const {data:project,error:projectError}=await db.from("edit_projects")
       .insert({
@@ -282,9 +301,7 @@ async function route(req:Request){
         caption_preset:caption,
         status:"planning",
         settings:{
-          ...(body.settings&&typeof body.settings==="object"?body.settings:{}),
-          format,
-          model_contract_version:"editplus-focus-five-v4"
+          ...editSettings
         }
       })
       .select("*")
@@ -297,7 +314,7 @@ async function route(req:Request){
         source_analysis_id:sourceAnalysisId,
         style:canonicalStyle,
         caption_preset:caption,
-        settings:{format,model_contract_version:"editplus-focus-five-v4"},
+        settings:editSettings,
         requested_at:new Date().toISOString()
       },`edit:${project.id}:${requestId}`);
       return out({project,job},202);
