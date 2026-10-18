@@ -87,7 +87,8 @@ function meaningfulCaptions(chunks){
 M.captions=meaningfulCaptions(M.captions);
 let count=0;
 for(const c of M.captions){
- if(withheld(c.a,c.b,heroIntervals)||false||withheld(c.a,c.b,stepIntervals))continue;
+ if(withheld(c.a,c.b,heroIntervals)||false||withheld(c.a,c.b,stepIntervals)||
+    (c.a>=28.00 && c.a<35.25))continue; // iOS point bubbles already carry the meaning; protects closeup face
  const isRight=c.a>=7.1&&c.a<20.45;
  const el=add('phrase t'+(count%3)+(isRight?' right':''),'phrase'+count,'caption',c.a,c.b);count++;
  c.words.forEach((word,i)=>{const sp=document.createElement('span');sp.className='word';sp.textContent=word.text;el.append(sp);
