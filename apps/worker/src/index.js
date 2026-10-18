@@ -16,6 +16,8 @@ import {buildSocialKineticReferenceV4Plan} from './social-kinetic-reference-v4.j
 import {renderSocialKineticV4Staging} from './social-kinetic-v4-runtime.js';
 import {buildSocialKineticV10WordPlan} from './social-kinetic-v10-word-plan.js';
 import {renderSocialKineticV10Staging} from './social-kinetic-v10-runtime.js';
+import {buildSocialKineticV28Plan} from './social-kinetic-v28-engine.js';
+import {renderSocialKineticV28Staging} from './social-kinetic-v28-runtime.js';
 import {scoreSocialKineticV10} from './social-kinetic-v10-score.js';
 import {renderAlexV7Staging} from './alex-v7-runtime.js';
 import {reviewCreativeTimeline} from './creative-quality-gate.js';
@@ -416,6 +418,10 @@ async function runEdit(job,media,sourcePath,dir){
       (!analysis?.transcript?.alignment?.verified||
        process.env.ENABLE_SOCIAL_KINETIC_V10==='staging' &&
        analysis?.transcript?.alignment?.source!=='gemini_interactions_word_info')) ||
+     (process.env.ENABLE_SOCIAL_KINETIC_V28==='staging'&&
+      (payload.style||project.style)==='social_kinetic_v28'&&
+      (!analysis?.transcript?.alignment?.verified||
+       analysis?.transcript?.alignment?.source!=='gemini_interactions_word_info'))||
      (process.env.ENABLE_MULTIMODAL_EDITORIAL==='true' &&
       !Array.isArray(analysis?.editorial_director?.decisions))){
     await progress(
@@ -540,12 +546,31 @@ async function runEdit(job,media,sourcePath,dir){
   });
   timeline.effectDecisions={policy:effectReview.policy,rejected:effectReview.rejected};
   timeline.omniModelAudit=auditOmniCodieModel({timeline,analysis});
+  // Versioned V28 selection is real, but must never silently fall back to the
+  // legacy renderer (which would render different visuals than the selected model).
+  const socialKineticV28Selected=selectedStyle==='social_kinetic_v28';
+  if(socialKineticV28Selected&&process.env.ENABLE_SOCIAL_KINETIC_V28!=='staging')
+    throw tagged('SOCIAL_KINETIC_V28_NOT_ENABLED',
+      'Social Kinetic V28 nécessite encore une validation du moteur sur ce serveur.');
+  const socialKineticV28Staging=socialKineticV28Selected;
+  if(socialKineticV28Staging){
+    timeline.socialKineticV28Plan=buildSocialKineticV28Plan({
+      analysis,timeline,
+      frameProof:analysis?.socialKineticV28?.frameProof||
+        analysis?.socialKineticV10?.frameProof||{},
+      editorialEvents:analysis?.socialKineticV28?.editorialEvents||
+        analysis?.socialKineticV10?.editorialEvents||[]
+    });
+    if(timeline.socialKineticV28Plan.status!=='staging_renderable')
+      throw tagged('SOCIAL_KINETIC_V28_PROOF_REQUIRED',
+        'V28 : mots horodatés ou zones sans chevauchement du visage non vérifiés.');
+  }
   // Staging is opt-in and NOT the default user-facing Edit+ renderer.
   // Word timing is remapped after cuts; semantic visuals are held until proved.
   // The reference-accurate second model stays strictly opt-in.
   // Without independently checked frame-safe regions or spoken evidence,
   // fail CLOSED rather than publish fake blue messages or decorative cards.
-  const socialKineticV10Staging=
+  const socialKineticV10Staging=!socialKineticV28Staging&&
     process.env.ENABLE_SOCIAL_KINETIC_V10==='staging'&&selectedStyle==='social_kinetic';
   if(socialKineticV10Staging){
     timeline.socialKineticV10Plan=buildSocialKineticV10WordPlan({
@@ -660,7 +685,14 @@ async function runEdit(job,media,sourcePath,dir){
     'Application du style Edit+'
   );
 
-  if(socialKineticV10Staging){
+  if(socialKineticV28Staging){
+    await renderSocialKineticV28Staging({
+      inputPath:preparedPath,outputPath:renderedPath,timeline,
+      plan:timeline.socialKineticV28Plan,
+      workDir:path.join(dir,'social-kinetic-v28-runtime'),
+      onProgress:(pct,stage)=>progress(job,'rendering',pct,stage)
+    });
+  }else if(socialKineticV10Staging){
     await renderSocialKineticV10Staging({
       inputPath:preparedPath,outputPath:renderedPath,timeline,
       plan:timeline.socialKineticV10Plan,
@@ -707,12 +739,14 @@ async function runEdit(job,media,sourcePath,dir){
   const qualityReport=await verifyExport({filePath:finalPath,timeline});
   // Optional second FFmpeg pass: observable defects; never an aesthetic certification.
   // Disabled by default until latency benchmarking in staging.
-  const observedRenderQA=(socialKineticV10Staging||socialKineticRefStaging||alexV8Mode||process.env.ENABLE_POST_RENDER_QA==='true')
+  const observedRenderQA=(socialKineticV28Staging||socialKineticV10Staging||socialKineticRefStaging||alexV8Mode||process.env.ENABLE_POST_RENDER_QA==='true')
     ?await inspectRenderedVideo(finalPath,{
       durationSec:timeline.outputDurationMs/1000,
       hasAudio:Boolean(timeline.audio?.hasAudio)
     })
     :{policy:'editplus-render-observable-signals-v4',status:'SKIPPED_FEATURE_DISABLED'};
+  if(socialKineticV28Staging&&observedRenderQA.verdict==='NEEDS_HUMAN_REVIEW')
+    throw tagged('SOCIAL_KINETIC_V28_EXPORT_QA_BLOCKED','V28 : le contrôle vidéo/audio a demandé une revue.');
   if(socialKineticV10Staging&&observedRenderQA.verdict==='NEEDS_HUMAN_REVIEW')
     throw tagged('SOCIAL_KINETIC_V10_EXPORT_QA_BLOCKED','Export vidéo ou voix : contrôle non satisfaisant.');
   if(socialKineticRefStaging&&observedRenderQA.verdict==='NEEDS_HUMAN_REVIEW')
