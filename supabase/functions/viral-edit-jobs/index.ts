@@ -260,7 +260,9 @@ async function route(req:Request){
     if(requestedStyle==="social_kinetic_v28"&&Deno.env.get("ENABLE_SOCIAL_KINETIC_V28")!=="staging")
       return out({error:"EDIT_V28_AWAITING_VALIDATION",model:"social_kinetic_v28",
         detail:"Montage V28 présent; rendu sur nouveaux rushes réservé aux tests avec paroles et placements vérifiés."},423);
-    const canonicalStyle={creator_clean:"clean",business_viral:"impact"}[requestedStyle]||requestedStyle;
+    // Keep the stable DB style; V28 is a job-level variant, not a new SQL enum value.
+    const canonicalStyle=requestedStyle==="social_kinetic_v28"?"social_kinetic":
+      ({creator_clean:"clean",business_viral:"impact"}[requestedStyle]||requestedStyle);
     const captionByModel={
       codie:"codie",
       impact:"impact",
@@ -291,7 +293,8 @@ async function route(req:Request){
         settings:{
           ...(body.settings&&typeof body.settings==="object"?body.settings:{}),
           format,
-          model_contract_version:"editplus-focus-five-v4"
+          model_contract_version:"editplus-focus-five-v4",
+          ...(requestedStyle==="social_kinetic_v28"?{model_variant:"v28_verified_speech"}:{})
         }
       })
       .select("*")
@@ -302,9 +305,10 @@ async function route(req:Request){
       const job=await createJob(userDb,"edit_render",media.id,{
         edit_project_id:project.id,
         source_analysis_id:sourceAnalysisId,
-        style:canonicalStyle,
+        style:requestedStyle==="social_kinetic_v28"?"social_kinetic_v28":canonicalStyle,
         caption_preset:caption,
-        settings:{format,model_contract_version:"editplus-focus-five-v4"},
+        settings:{format,model_contract_version:"editplus-focus-five-v4",
+          ...(requestedStyle==="social_kinetic_v28"?{model_variant:"v28_verified_speech"}:{})},
         requested_at:new Date().toISOString()
       },`edit:${project.id}:${requestId}`);
       return out({project,job},202);
