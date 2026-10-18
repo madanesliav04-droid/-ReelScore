@@ -38,20 +38,38 @@ const LeilaGlass=({scene,ms,portrait})=>{
       <span>{scene.label}</span>
       <span style={{fontVariantNumeric:'tabular-nums',opacity:.45}}>EDIT / 03</span>
     </div>
-    <div style={{padding:portrait?'21px 24px 24px':'16px 20px 21px'}}>
+    <div style={{
+      display:'grid',gridTemplateColumns:'minmax(75px,30%) 1fr',
+      backgroundImage:'linear-gradient(rgba(247,241,232,.032) 1px,transparent 1px)',
+      backgroundSize:'100% 28px'
+    }}>
       <div style={{
+        borderRight:'1px solid rgba(247,241,232,.15)',
+        borderBottom:'1px solid rgba(247,241,232,.13)',
+        padding:portrait?'18px 11px 18px 22px':'17px 9px 16px 17px',
+        fontFamily:'Arial,sans-serif',fontSize:portrait?13:10,
+        fontWeight:500,letterSpacing:'0.13em',color:'rgba(247,241,232,.58)'
+      }}>MOT CLÉ</div>
+      <div style={{
+        borderBottom:'1px solid rgba(247,241,232,.13)',
+        padding:portrait?'15px 18px':'13px 15px',
         fontFamily:'Georgia,Times New Roman,serif',fontWeight:400,
-        fontSize:portrait?38:Math.max(23,Math.min(39,headline.length>22?26:35)),
-        lineHeight:1.14,letterSpacing:'-.025em',color:'#faf7f0',
-        transform:`translateY(${(1-ease((t-120)/390))*7}px)`,
-        opacity:ease((t-65)/390)
+        fontSize:portrait?32:Math.max(21,headline.length>22?22:28),
+        lineHeight:1.17,letterSpacing:'-.025em',color:'#faf7f0',
+        opacity:ease((t-75)/390),transform:`translateY(${(1-ease((t-100)/410))*7}px)`
       }}>{headline}</div>
-      <div style={{height:1,background:'linear-gradient(90deg,rgba(248,243,233,.29),rgba(248,243,233,0))',margin:'15px 0 12px',transformOrigin:'left',transform:`scaleX(${ease((t-140)/550)})`}}/>
       <div style={{
+        borderRight:'1px solid rgba(247,241,232,.15)',
+        padding:portrait?'19px 11px 22px 22px':'16px 9px 20px 17px',
+        fontFamily:'Arial,sans-serif',fontSize:portrait?13:10,
+        fontWeight:500,letterSpacing:'0.13em',color:'rgba(247,241,232,.58)'
+      }}>CONTEXTE</div>
+      <div style={{
+        padding:portrait?'16px 18px 22px':'13px 15px 20px',
         fontFamily:'Arial,sans-serif',fontWeight:400,
-        fontSize:portrait?20:15,lineHeight:1.38,
+        fontSize:portrait?19:14,lineHeight:1.42,
         color:'rgba(248,244,237,.82)',
-        opacity:ease((t-210)/360)
+        opacity:ease((t-210)/380)
       }}>{detail}</div>
     </div>
     <div style={{
