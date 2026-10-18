@@ -156,7 +156,11 @@ async function api(path:string,_token:string,init:RequestInit={},allowRetry=true
     const code=String(body?.error||body?.message||"");
     if(res.status===401||code==="AUTH_REQUIRED")throw Object.assign(new Error("Ta session a expiré. Reconnecte-toi pour reprendre ton travail."),{status:401});
     if(code.toLowerCase().includes("quota_exhausted"))throw Object.assign(new Error("Ton quota mensuel d’analyses Viral+ est atteint. Consulte le compteur, puis réessaie après son renouvellement."),{status:429,code});
-    throw Object.assign(new Error(/quota|credit|limit/i.test(code)?"La limite de traitement est atteinte. Réessaie plus tard.":"Le service n’a pas pu traiter la demande. Réessaie dans un instant."),{status:res.status});
+    if(["UGC_RUSH_NOT_ACCESSIBLE","INVALID_UGC_RUSH_LIST","UGC_BATCH_TOO_LARGE"].includes(code))
+      throw Object.assign(new Error(code==="UGC_BATCH_TOO_LARGE"?"Le lot de rushes est trop volumineux.":"Un rush n'est plus disponible. Vérifie la sélection dans ta bibliothèque."),{status:res.status,code});
+    if(["VIDEO_ID_REQUIRED","MEDIA_NOT_FOUND"].includes(code))
+      throw Object.assign(new Error("Choisis une vidéo avec la voix principale avant de lancer le montage."),{status:res.status,code});
+    throw Object.assign(new Error(/quota|credit|limit/i.test(code)?"La limite de traitement est atteinte. Réessaie plus tard.":"Le service n’a pas pu traiter la demande. Réessaie dans un instant."),{status:res.status,code});
   }
   return body;
 }
@@ -264,7 +268,7 @@ export function Dashboard(){
   const userId=session?.user?.id||"";
   const selectedModel=EDIT_MODELS.find(x=>x.id===editModel)||EDIT_MODELS[0];
   const ugcReadyIds=Array.from(new Set([...ugcRushIds,...ugcLibraryIds]));
-  const ugcPrimaryId=media?.id||ugcPrimaryMedia?.id||ugcReadyIds[0]||"";
+  const ugcPrimaryId=ugcPrimaryMedia?.id||media?.id||ugcReadyIds[0]||"";
   const ugcSecondaryIds=ugcReadyIds.filter(id=>id!==ugcPrimaryId);
   const canCreateEdit=Boolean((editModel==="ugc_native"?ugcPrimaryId:media?.id)&&!busy&&!uploading&&!ugcRushPending&&selectedModel.available);
   const score=useMemo(()=>analysis?.final_score??analysis?.score??null,[analysis]);
