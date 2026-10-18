@@ -16,7 +16,7 @@ html,body{margin:0;padding:0;width:910px;height:512px;background:transparent!imp
 .hero .big.long{font-size:54px;line-height:1.01;letter-spacing:-.045em}
 /* Authentic iMessage-style outgoing bubbles: thin, centered, 1-2 concise lines.
    Not decorative chat. Each payload is a grounded enumeration / benefit. */
-.imsg{position:absolute;left:604px;width:286px;min-height:68px;max-height:103px;
+.imsg{position:absolute;left:635px;width:258px;min-height:68px;max-height:103px;
   padding:11px 15px 12px;display:flex;flex-direction:column;align-items:center;
   justify-content:center;gap:4px;color:#fff;background:#0879F9;
   border-radius:20px 20px 7px 20px;border:1px solid #ffffff19;
@@ -26,7 +26,7 @@ html,body{margin:0;padding:0;width:910px;height:512px;background:transparent!imp
   background:#0879F9;border-radius:0 0 13px 1px;transform:skewX(-19deg);z-index:-1}
 .imsg .imsg-index{font-weight:700;font-size:13px;letter-spacing:.085em;color:#D9EAFF;line-height:1}
 .imsg .imsg-copy{font-weight:650;font-size:23px;letter-spacing:-.021em;color:#fff;
-  line-height:1.14;overflow-wrap:break-word;max-width:261px;text-align:center;}
+  line-height:1.14;overflow-wrap:break-word;max-width:230px;text-align:center;}
 .imsg.point0{top:198px}.imsg.point1{top:299px}
 /* A single useful benefit at a time, placed in verified empty upper-left wall. */
 .imsg.benefit0,.imsg.benefit1,.imsg.benefit2{
@@ -46,8 +46,8 @@ M.bubbles=[];
 M.steps=[];
 M.heroes=M.heroes.filter((x)=>x.one!=="UN PROBLÈME");
 M.keypoints=[
- {a:28.12,b:34.86,type:"point",index:"01 · PREMIER POINT",text:"AIDER LES AUTRES À GAGNER",source:"ça c'est le 1er des points",reason:"point_1_explicit"},
- {a:29.12,b:34.86,type:"point",index:"02 · DEUXIÈME POINT",text:"DÉVELOPPER UNE COMPÉTENCE UTILE",source:"2e des points, tu dois apprendre quelque chose",reason:"point_2_explicit"},
+ {a:28.12,b:34.86,type:"point",index:"01 · PREMIER POINT",text:"AIDER À GAGNER",source:"ça c'est le 1er des points",reason:"point_1_explicit"},
+ {a:29.12,b:34.86,type:"point",index:"02 · DEUXIÈME POINT",text:"APPRENDRE UNE COMPÉTENCE",source:"2e des points, tu dois apprendre quelque chose",reason:"point_2_explicit"},
  {a:36.08,b:37.47,type:"benefit",index:"01 / 03",text:"GAGNER DU TEMPS",source:"leur faire gagner du temps",reason:"benefit_1_enumeration"},
  {a:37.52,b:38.87,type:"benefit",index:"02 / 03",text:"GAGNER DE L’ARGENT",source:"leur faire gagner de l'argent",reason:"benefit_2_enumeration"},
  {a:39.18,b:40.38,type:"benefit",index:"03 / 03",text:"RÉSOUDRE UN PROBLÈME",source:"résoudre un problème",reason:"benefit_3_enumeration"}
