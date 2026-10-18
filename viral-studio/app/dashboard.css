@@ -238,3 +238,12 @@
   .ugc-rush-item button{padding:4px}
   .ugc-uploader-head{flex-wrap:wrap}
 }
+
+/* UGC iPhone picker recovery: give users a single-file option and a Files fallback. */
+.ugc-picker-actions{display:grid;gap:10px}
+.ugc-picker-single{border-style:solid;border-color:#b0e5cc88;background:#8bdbb21a}
+.ugc-picker-files{background:#ffffff06;border-color:#ffffff31}
+.ugc-picker-hint{font-size:12px;line-height:1.55;color:#b5d5c4;margin:0;border-left:2px solid #a8dabe;padding:4px 0 4px 10px}
+.ugc-rush-item button.ugc-rush-retry{display:flex;align-items:center;gap:4px;font-size:11px;background:#7ccda828;padding:7px 8px;color:#ceead9;white-space:nowrap}
+@media(min-width:780px){.ugc-picker-actions{grid-template-columns:repeat(3,minmax(0,1fr))}.ugc-picker-actions .ugc-batch-drop{padding:15px 13px;align-items:flex-start}}
+@media(max-width:480px){.ugc-picker-actions{gap:9px}.ugc-picker-actions .ugc-batch-drop{min-height:76px;padding:14px}.ugc-rush-item button.ugc-rush-retry{font-size:0;padding:6px}.ugc-rush-item button.ugc-rush-retry svg{height:16px;width:16px}}
