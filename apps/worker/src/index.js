@@ -16,6 +16,7 @@ import {buildSocialKineticReferenceV4Plan} from './social-kinetic-reference-v4.j
 import {renderSocialKineticV4Staging} from './social-kinetic-v4-runtime.js';
 import {buildSocialKineticV10WordPlan} from './social-kinetic-v10-word-plan.js';
 import {renderSocialKineticV10Staging} from './social-kinetic-v10-runtime.js';
+import {scoreSocialKineticV10} from './social-kinetic-v10-score.js';
 import {renderAlexV7Staging} from './alex-v7-runtime.js';
 import {reviewCreativeTimeline} from './creative-quality-gate.js';
 import {auditOmniCodieModel} from './omni-codie-quality-contract.js';
@@ -721,6 +722,18 @@ async function runEdit(job,media,sourcePath,dir){
     throw tagged('ALEX_V8_EXPORT_QA_BLOCKED',
       'Contrôle vidéo/audio : anomalies détectées, publication suspendue.');
 
+  // A technically valid staging export is NOT a 100/100 commercial certification.
+  // Compute only from worker-owned FFmpeg evidence. AI-generated analysis is
+  // forbidden from filling proof for SFX listening, independent safe frames,
+  // 3 full reviewed rushes or user approval.
+  const v10ProofScore=socialKineticV10Staging
+    ?scoreSocialKineticV10({video:{
+        fullDecodePassed:qualityReport.passed===true,
+        sourceWidth:Number(media.width),sourceHeight:Number(media.height),
+        width:Number(timeline.export.width),height:Number(timeline.export.height)
+      }})
+    :null;
+
   const outputStoragePath=
     `${job.user_id}/exports/${project.id}/${job.id}.mp4`;
 
@@ -772,6 +785,7 @@ async function runEdit(job,media,sourcePath,dir){
         creative_audit:timeline.creativeAudit,
         storyboard_audit:timeline.storyboardReview?{policy:timeline.storyboardReview.policy,accepted:timeline.storyboardReview.accepted.length,rejected:timeline.storyboardReview.rejected}:null,
         observed_render_qa:observedRenderQA,
+        social_kinetic_v10_proof_score:v10ProofScore,
         cut_decisions:{accepted:timeline.cutReview?.accepted?.length||0,held:timeline.cutReview?.held?.length||0},
         rejected_dominant_effects:timeline.effectDecisions?.rejected?.length||0,
         experimental_director:timeline.director?{origin:timeline.director.origin,accepted_graphics:timeline.director.cues.length,accepted_punches:timeline.director.punchIns.length,rejections:timeline.director.rejected.length,limitations:timeline.director.limitations}:null,
@@ -842,7 +856,12 @@ async function runEdit(job,media,sourcePath,dir){
       style:timeline.style,
       caption_preset:timeline.captionPreset,
       format:timeline.format,
-      broll_count:timeline.brollCues?.length||0
+      broll_count:timeline.brollCues?.length||0,
+      ...(v10ProofScore?{
+        v10_proof_score:v10ProofScore.score,
+        v10_proof_score_type:v10ProofScore.scoreType,
+        v10_commercial_release_ready:v10ProofScore.releaseReady
+      }:{}),
     },
     outputAsset.id
   );
