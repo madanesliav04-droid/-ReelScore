@@ -11,6 +11,7 @@ import {analyzeVideo,SCORE_VERSION} from './viral.js';
 import {decodedSourceFingerprint,probeFingerprintSource} from './viral-fingerprint.js';
 import {buildEditTimeline} from './edit.js';
 import {composeUgcRushes} from './ugc-rush-compositor.js';
+import {renderUgcVisualSequence} from './ugc-visual-sequence.js';
 import {buildAlexV7AudioPlan} from './alex-v7-audio-captions.js';
 import {buildAlexV8ReleasePlan,assertAlexV8Deployment} from './alex-v8-release.js';
 import {buildSocialKineticReferenceV4Plan} from './social-kinetic-reference-v4.js';
@@ -394,6 +395,20 @@ async function runEdit(job,media,sourcePath,dir){
     media,
     payload
   );
+  const isUgc=(payload.style||project.style)==='ugc_native';
+  const ugcRushIds=payload.settings?.ugc_rush_video_ids??project.settings?.ugc_rush_video_ids??[];
+  if(isUgc){
+    if(!Array.isArray(ugcRushIds)||ugcRushIds.length<1)
+      throw tagged('UGC_NEEDS_MULTIPLE_RUSHES','Sélectionne au moins deux vidéos UGC pour construire ton montage.');
+    if(ugcRushIds.length>40||new Set(ugcRushIds).size!==ugcRushIds.length||ugcRushIds.includes(job.video_id))
+      throw tagged('UGC_INVALID_RUSH_LIST','Liste de rushes UGC invalide.');
+    // 3s product footage is not a valid spoken narration source.
+    // Build a real silent/ambient montage rather than inventing speech timestamps.
+    if(Number(media.duration_ms)>0&&Number(media.duration_ms)<4000){
+      await runUgcVisualOnlyJob(job,media,sourcePath,dir,project,ugcRushIds,'PRIMARY_SHORT_NO_RELIABLE_TIMED_SPEECH');
+      return;
+    }
+  }
 
   let analysis=null;
   if(project.source_analysis_id){
@@ -472,6 +487,11 @@ async function runEdit(job,media,sourcePath,dir){
     payload.settings?.format||
     project.settings?.format||
     'native';
+
+  if(isUgc&&!analysis?.transcript?.words?.length){
+    await runUgcVisualOnlyJob(job,media,sourcePath,dir,project,ugcRushIds,'NO_VERIFIABLE_SPEECH_TIMESTAMPS');
+    return;
+  }
 
   // Beta release gate: no invented or untimed captions for paid exports.
   const transcriptAudit=validateTimedTranscript(analysis,Math.round(Number(analysis?.measurable?.durationSec||0)*1000));
@@ -905,6 +925,63 @@ async function runEdit(job,media,sourcePath,dir){
     },
     outputAsset.id
   );
+}
+
+async function runUgcVisualOnlyJob(job,media,sourcePath,dir,project,rushIds,reason){
+  await progress(job,'planning',42,'Montage UGC : sélection des prises disponibles');
+  const rushPaths=[];
+  for(let i=0;i<Math.min(rushIds.length,11);i++){
+    const clip=await one('media_assets',
+      'id,user_id,storage_bucket,storage_path,original_name,mime_type,size_bytes,metadata,status',
+      rushIds[i]);
+    if(!clip||clip.user_id!==job.user_id||clip.storage_bucket!=='viralplus-videos'||
+       !String(clip.mime_type||'').startsWith('video/')){
+      throw tagged('UGC_RUSH_ACCESS_DENIED','Le rush '+(i+1)+' n’est pas disponible dans ce compte.');
+    }
+    const local=path.join(dir,'ugc-source-'+i+extensionFor(clip.mime_type,clip.original_name));
+    await downloadStorageObject({bucket:clip.storage_bucket,storagePath:clip.storage_path,
+      outputPath:local,multipartParts:clip.metadata?.multipart?.parts});
+    rushPaths.push(local);
+    await progress(job,'processing',15+Math.round((i+1)*25/Math.min(rushIds.length,11)),
+      'Téléchargement des rushes UGC ('+(i+1)+'/'+Math.min(rushIds.length,11)+')');
+  }
+  const finalPath=path.join(dir,'ugc-visual-final.mp4');
+  const visual=await renderUgcVisualSequence({
+    sourcePath,rushPaths,workDir:dir,outputPath:finalPath,
+    onProgress:(pct,stage)=>progress(job,'rendering',pct,stage)
+  });
+  const outputPath=job.user_id+'/exports/'+project.id+'/'+job.id+'.mp4';
+  await progress(job,'encoding',95,'Vérification puis enregistrement du MP4 UGC');
+  await uploadStorageObject({bucket:'viralplus-videos',storagePath:outputPath,
+    inputPath:finalPath,mimeType:'video/mp4',upsert:true});
+  const size=await fileSize(finalPath);
+  const {data:asset,error:assetError}=await supabase.from('media_assets').upsert({
+    user_id:job.user_id,module:'editplus',kind:'render',storage_bucket:'viralplus-videos',
+    storage_path:outputPath,original_name:'editplus-ugc-'+project.id+'.mp4',
+    mime_type:'video/mp4',size_bytes:size,duration_ms:visual.durationMs,
+    width:visual.width,height:visual.height,status:'ready',
+    metadata:{style:'ugc_native',job_id:job.id,source_video_id:job.video_id,
+      edit_project_id:project.id,render_policy:'ugc-visual-only-v1',
+      original_voice_preserved:visual.originalAudioPreserved,
+      source_count:visual.sourceCount,skipped_rushes:visual.skippedSources,
+      transcript_verified:false,no_captions_invented:true,reason}
+  },{onConflict:'storage_bucket,storage_path'}).select('id').single();
+  if(assetError||!asset?.id)throw tagged('OUTPUT_ASSET_PERSIST_FAILED',
+    assetError?.message||'Cannot record UGC output media');
+  const {data:exp,error:expError}=await supabase.from('edit_exports').upsert({
+    project_id:project.id,job_id:job.id,user_id:job.user_id,output_video_id:asset.id,
+    preset:visual.width+'x'+visual.height,status:'ready'
+  },{onConflict:'job_id'}).select('id').single();
+  if(expError||!exp?.id)throw tagged('EXPORT_PERSIST_FAILED',expError?.message||'UGC export unavailable');
+  await supabase.from('edit_projects').update({status:'completed',updated_at:new Date().toISOString()})
+    .eq('id',project.id).eq('user_id',job.user_id);
+  await complete(job,{
+    project_id:project.id,export_id:exp.id,output_video_id:asset.id,
+    duration_ms:visual.durationMs,style:'ugc_native',format:'portrait',
+    broll_count:Math.max(0,visual.sourceCount-1),
+    rendering_mode:'VISUAL_ONLY_NO_TIMED_TRANSCRIPT',
+    no_captions_invented:true,original_voice_preserved:visual.originalAudioPreserved
+  },asset.id);
 }
 
 async function loadOrCreateEditProject(
