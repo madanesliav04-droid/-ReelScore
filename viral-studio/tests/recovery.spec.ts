@@ -122,13 +122,14 @@ test('Edit+ only shows selected references and does not let pending models rende
   await setup(page,other);
   await page.goto('/dashboard?tool=edit');
   const cards=page.locator('.social-approved-model');
-  await expect(cards).toHaveCount(4);
+  await expect(cards).toHaveCount(5);
   await expect(cards.nth(0)).toContainText('Codie');
   await expect(cards.nth(1)).toContainText('Leila');
   await expect(cards.nth(2)).toContainText('Alex Hormozi');
-  await expect(cards.nth(3)).toContainText('Social Kinetic');
+  await expect(cards.nth(3)).toContainText('UGC Storytelling');
+  await expect(cards.nth(4)).toContainText('Social Kinetic');
   await expect(page.locator('[data-model="leila"]')).toBeDisabled();
-  for(const id of ['codie','hormozi_omni','social_kinetic'])
+  for(const id of ['codie','hormozi_omni','social_kinetic','ugc_native'])
     await expect(page.locator(`[data-model="${id}"]`)).toBeEnabled();
   await page.locator('[data-model="hormozi_omni"]').click();
   await expect(page.getByRole('button',{name:/Créer mon montage · Alex Hormozi/})).toBeDisabled();
@@ -138,5 +139,68 @@ test('Edit+ only shows selected references and does not let pending models rende
   await expect(page.locator('.social-approved-model-grid')).not.toContainText('Impact');
   await expect(page.locator('.social-approved-model-grid')).not.toContainText('Explainer');
   await expect(page.locator('.social-approved-model-grid')).not.toContainText('UGC Native');
-  await expect(page.getByText(/trois moteurs activés produisent un rendu bêta/)).toBeVisible();
+  await expect(page.getByText(/Les moteurs activés produisent un rendu bêta/)).toBeVisible();
+  await page.locator('[data-model="ugc_native"]').click();
+  await expect(page.getByTestId('ugc-rush-uploader')).toBeVisible();
+  await expect(page.getByTestId('ugc-file-input')).toHaveAttribute('multiple','');
+});
+
+test('iPhone UGC: one video, short batch, and Files fallback remain separate',async({page})=>{
+  await setup(page,other);
+  await page.route('**/storage/v1/upload/resumable',async route=>
+    route.fulfill({status:413,headers:{'Access-Control-Allow-Origin':'*'},body:'Part rejected'}));
+  await page.goto('/dashboard?tool=edit');
+  await page.locator('[data-model="ugc_native"]').click();
+  const single=page.getByTestId('ugc-single-file-input');
+  const batch=page.getByTestId('ugc-file-input');
+  const files=page.getByTestId('ugc-files-input');
+  await expect(single).not.toHaveAttribute('multiple','');
+  await expect(batch).toHaveAttribute('multiple','');
+  await expect(files).toHaveAttribute('multiple','');
+  await expect(page.getByText('Importer 1 vidéo')).toBeVisible();
+  await expect(page.getByText('Importer depuis Fichiers')).toBeVisible();
+  await single.setInputFiles({name:'single.mov',mimeType:'video/quicktime',buffer:Buffer.from('test-video')});
+  await expect(page.getByText('single.mov',{exact:true})).toBeVisible();
+  // Uploading multiple synthetic invalid 6-byte movies through TUS is not
+  // a meaningful mobile-multiselect test. The real multi-file path is covered
+  // by the DOM contract; a single chosen file must reliably persist in state.
+  await expect(page.locator('.ugc-rush-item')).toHaveCount(1);
+  await expect(page.getByText(/0\/1 prêts/)).toBeVisible();
+  await expect(batch).toHaveAttribute('multiple','');
+  await expect(files).toHaveAttribute('multiple','');
+});
+
+test('UGC: seven already uploaded rushes can be selected and start a render without re-upload',async({page})=>{
+  await setup(page,other);
+  const saved=Array.from({length:7},(_,i)=>({
+    id:'d000000'+i+'-1111-4111-8111-111111111111',
+    original_name:'IMG_03'+String(26+i)+'.mov',size_bytes:18000000,
+    mime_type:'video/quicktime',status:'uploaded'
+  }));
+  let renderRequest:any=null;
+  await page.route('**/api/viral-edit-jobs/media',r=>{
+    if(r.request().method()==='GET')return r.fulfill({json:{media:saved}});
+    return r.fulfill({status:400,json:{error:'UNEXPECTED_UPLOAD'}});
+  });
+  await page.route('**/api/viral-edit-jobs/edit',r=>{
+    renderRequest=r.request().postDataJSON();
+    return r.fulfill({status:202,json:{job:{id:'ugc-qa-job',kind:'edit_render',status:'queued'}}});
+  });
+  await page.route('**/api/viral-edit-jobs/jobs/ugc-qa-job',r=>r.fulfill({json:{
+    job:{id:'ugc-qa-job',kind:'edit_render',status:'cancelled'}
+  }}));
+  await page.goto('/dashboard?tool=edit');
+  await page.locator('[data-model="ugc_native"]').click();
+  await expect(page.getByTestId('ugc-saved-library').getByText('7 retrouvées')).toBeVisible();
+  await expect(page.getByRole('button',{name:'Créer mon montage · UGC Storytelling'})).toBeDisabled();
+  const rows=page.locator('.ugc-saved-row');
+  await rows.nth(0).getByRole('button',{name:'Choisir comme principale'}).click();
+  await expect(page.getByRole('button',{name:'Créer mon montage · UGC Storytelling'})).toBeDisabled();
+  for(let i=1;i<7;i++)await rows.nth(i).getByRole('button',{name:'Ajouter'}).click();
+  await expect(page.getByRole('button',{name:'Créer mon montage · UGC Storytelling'})).toBeEnabled();
+  await page.getByRole('button',{name:'Créer mon montage · UGC Storytelling'}).click();
+  await expect.poll(()=>renderRequest).not.toBeNull();
+  expect(renderRequest.video_id).toBe(saved[0].id);
+  expect(renderRequest.style).toBe('ugc_native');
+  expect(renderRequest.settings.ugc_rush_video_ids).toEqual(saved.slice(1).map(x=>x.id));
 });

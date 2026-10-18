@@ -203,3 +203,66 @@
 .viral-calibration-truth>small{display:block;margin-top:12px;font-size:11px;color:#94aaa5;line-height:1.65}
 .safe-scope-note{font-size:11px;color:#accbbf;line-height:1.6}
 @media(max-width:700px){.dashboard-shell .viral-calibration-truth{padding:17px;margin:10px 0 20px}.viral-calibration-intro strong{font-size:14px}.viral-calibration-intro p{font-size:12px}}
+
+/* Edit+ UGC multi-rush workspace: mobile first, no decorative controls. */
+.ugc-multirush-panel{margin-top:18px}
+.ugc-uploader{margin-top:18px;display:grid;gap:14px}
+.ugc-uploader-head{display:flex;align-items:start;justify-content:space-between;gap:14px}
+.ugc-uploader-head strong{font-size:16px;color:#f3f7f8}
+.ugc-uploader-head p{font-size:13px;line-height:1.5;color:#9fb0bd;margin:7px 0 0}
+.ugc-uploader-head>span{white-space:nowrap;flex:none;color:#b9e4d5;font-size:12px;font-weight:700;padding:7px 10px;border:1px solid #86d9ad33;border-radius:20px}
+.ugc-batch-drop{display:flex;align-items:center;gap:13px;position:relative;border:1px dashed #a6d5c455;border-radius:15px;padding:20px;cursor:pointer;background:#a4d4bd08;color:#dce8ef;min-height:90px}
+.ugc-batch-drop:focus-within{outline:2px solid #a7e4c2;outline-offset:2px}
+.ugc-batch-drop input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.ugc-batch-drop:has(input:disabled){opacity:.5;cursor:not-allowed}
+.ugc-batch-drop span{display:grid;gap:5px}
+.ugc-batch-drop strong{font-size:14px;font-weight:750}
+.ugc-batch-drop small{font-size:12px;color:#91a5b1;line-height:1.4}
+.ugc-rush-list{display:grid;gap:8px;max-height:340px;overflow-y:auto;padding-right:4px}
+.ugc-rush-item{display:flex;align-items:center;gap:9px;padding:10px;border-radius:12px;background:#ffffff06;border:1px solid #ffffff12;min-width:0}
+.ugc-rush-item>svg{flex:none;color:#afc9c7}
+.ugc-rush-desc{flex:1;display:grid;gap:4px;min-width:0}
+.ugc-rush-desc strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#eff8f5;font-size:12px}
+.ugc-rush-desc small{font-size:11px;color:#8ea2ad}
+.ugc-rush-bar{height:4px;border-radius:20px;background:#ffffff18;overflow:hidden}
+.ugc-rush-bar i{display:block;background:#a4dfb8;height:100%;transition:width .15s}
+.ugc-rush-state{font-size:11px;color:#b4c4ce;flex:none;max-width:60px}
+.ugc-rush-state.ready{color:#a4e6be}
+.ugc-rush-state.error{color:#f4a99d}
+.ugc-rush-item button{flex:none;border:0;border-radius:7px;background:#ffffff0b;color:#bdc8d1;padding:6px;cursor:pointer}
+.ugc-rush-item button:disabled{opacity:.2;cursor:not-allowed}
+.ugc-rush-item button:not(:disabled):hover{background:#ffffff20}
+.ugc-rush-footnote{font-size:12px;color:#8296a1;line-height:1.5;margin:0}
+@media(max-width:480px){
+  .ugc-rush-item{gap:6px;padding:8px 6px}
+  .ugc-rush-item button{padding:4px}
+  .ugc-uploader-head{flex-wrap:wrap}
+}
+
+/* UGC iPhone picker recovery: give users a single-file option and a Files fallback. */
+.ugc-picker-actions{display:grid;gap:10px}
+.ugc-picker-single{border-style:solid;border-color:#b0e5cc88;background:#8bdbb21a}
+.ugc-picker-files{background:#ffffff06;border-color:#ffffff31}
+.ugc-picker-hint{font-size:12px;line-height:1.55;color:#b5d5c4;margin:0;border-left:2px solid #a8dabe;padding:4px 0 4px 10px}
+.ugc-rush-item button.ugc-rush-retry{display:flex;align-items:center;gap:4px;font-size:11px;background:#7ccda828;padding:7px 8px;color:#ceead9;white-space:nowrap}
+@media(min-width:780px){.ugc-picker-actions{grid-template-columns:repeat(3,minmax(0,1fr))}.ugc-picker-actions .ugc-batch-drop{padding:15px 13px;align-items:flex-start}}
+@media(max-width:480px){.ugc-picker-actions{gap:9px}.ugc-picker-actions .ugc-batch-drop{min-height:76px;padding:14px}.ugc-rush-item button.ugc-rush-retry{font-size:0;padding:6px}.ugc-rush-item button.ugc-rush-retry svg{height:16px;width:16px}}
+
+/* UGC saved rushes can be reused after iPhone refresh, with a deliberate narration source. */
+.ugc-ready-summary{display:grid;gap:6px;background:#94d8b90b;border:1px solid #95cdb63f;padding:14px;border-radius:12px;font-size:13px}
+.ugc-ready-summary strong{font-weight:750;color:#e4f3ea}.ugc-ready-summary span{color:#b8d9c9}.ugc-ready-summary small{font-size:12px;color:#90a99b;line-height:1.5}
+.ugc-saved-library{display:grid;gap:11px;padding-top:8px;min-width:0}
+.ugc-saved-head{display:flex;align-items:center;justify-content:space-between;gap:12px}.ugc-saved-head strong{font-size:15px}.ugc-saved-head small{font-size:12px;color:#9fb4af}
+.ugc-saved-list{display:grid;gap:7px;max-height:370px;overflow:auto}
+.ugc-saved-row{display:flex;align-items:center;gap:9px;padding:9px;background:#ffffff06;border:1px solid #ffffff12;border-radius:11px;min-width:0}
+.ugc-saved-row>div{flex:1;min-width:0;display:grid;gap:4px}
+.ugc-saved-row>div strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:#e6f0ea}
+.ugc-saved-row>div small{font-size:11px;color:#95a99e}
+.ugc-saved-row button{flex:none;padding:8px 10px;border-radius:8px;border:1px solid #ffffff2a;background:#ffffff0c;color:#cbd8d3;cursor:pointer;font-size:11px}
+.ugc-saved-row button.selected,.ugc-saved-row button[aria-pressed="true"]{border-color:#b5ebc077;background:#8fe5ae17;color:#bcebc7}
+.ugc-saved-row button:disabled{opacity:.6;cursor:not-allowed}
+@media(max-width:480px){.ugc-saved-row{gap:5px;padding:8px 6px}.ugc-saved-row button{font-size:10px;padding:7px 6px}.ugc-saved-head{flex-wrap:wrap}}
+
+.ugc-saved-batch-select{width:100%;border-radius:12px;padding:13px 15px;border:1px solid #a2e1ba8a;color:#d6f5df;background:#98dbaf1c;font-weight:750;cursor:pointer;font-size:13px;text-align:center}
+.ugc-saved-batch-select:disabled{opacity:.45;cursor:not-allowed}
+.ugc-saved-batch-select:hover:not(:disabled){background:#98dbaf2c}

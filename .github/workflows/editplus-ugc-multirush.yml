@@ -1,0 +1,39 @@
+name: Edit+ UGC Multi-Rush Quality Gate
+
+on:
+  push:
+    branches: [editplus-ugc-multirush-v1-20261018]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  ugc-worker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Check UGC and worker JavaScript syntax
+        run: |
+          node --check apps/worker/src/index.js
+          node --check apps/worker/src/edit.js
+          node --check apps/worker/src/ugc-rush-compositor.js
+      - name: Run multi-rush timing and audio tests
+        run: node --test apps/worker/tests/ugc-multirush.test.mjs
+  ugc-frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: viral-studio
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Install website dependencies
+        run: npm ci --no-audit --no-fund
+      - name: TypeScript and Next build
+        run: |
+          npx tsc --noEmit
+          npm run build

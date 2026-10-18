@@ -201,6 +201,21 @@ async function route(req:Request){
     return out({quota:{used,limit,remaining:Math.max(0,limit-used),reset_at:resetAt}});
   }
 
+  if(req.method==="GET"&&tail[0]==="media"&&tail.length===1){
+    // Return only the authenticated user's video assets; no storage URLs or private paths.
+    // Recent uploads survive Safari refreshes and can be selected for UGC editing.
+    const {data,error}=await db.from("media_assets")
+      .select("id,original_name,mime_type,size_bytes,status,created_at")
+      .eq("user_id",user.id)
+      .eq("storage_bucket",VIDEO_BUCKET)
+      .like("mime_type","video/%")
+      .is("deleted_at",null)
+      .order("created_at",{ascending:false})
+      .limit(60);
+    if(error)return out({error:"MEDIA_LIST_FAILED"},500);
+    return out({media:(data||[]).filter(x=>x.id&&["uploaded","ready"].includes(String(x.status||"")))}); 
+  }
+
   if(req.method==="POST"&&tail[0]==="media"){
     const body=await req.json().catch(()=>null);
     if(!body)return out({error:"INVALID_BODY"},400);
@@ -253,9 +268,9 @@ async function route(req:Request){
 
     // A focused public beta: exactly five available models for new jobs.
     // Historical exports and projects remain readable and untouched.
-    const allowedStyles=["codie","impact","clean","explainer","ugc_native","creator_clean","business_viral"];
+    const allowedStyles=["codie","impact","clean","explainer","ugc_native","creator_clean","business_viral","hormozi_omni","social_kinetic"];
     const requestedStyle=String(body.style||"clean");
-    if(!allowedStyles.includes(requestedStyle))return out({error:"EDIT_MODEL_NOT_AVAILABLE",available_models:["codie","impact","clean","explainer","ugc_native"]},422);
+    if(!allowedStyles.includes(requestedStyle))return out({error:"EDIT_MODEL_NOT_AVAILABLE",available_models:["codie","impact","clean","explainer","ugc_native","hormozi_omni","social_kinetic"]},422);
     const canonicalStyle={creator_clean:"clean",business_viral:"impact"}[requestedStyle]||requestedStyle;
     const captionByModel={
       codie:"codie",
@@ -266,12 +281,31 @@ async function route(req:Request){
       data:"data",
       ugc_native:"ugc",
       cinematic_story:"cinematic",
-      editorial_breakdown:"editorial"
+      editorial_breakdown:"editorial",
+       hormozi_omni:"impact",
+       social_kinetic:"social_kinetic"
     };
     const caption=captionByModel[canonicalStyle]||"clean";
     const sourceAnalysisId=isUuid(body.analysis_id)?String(body.analysis_id):null;
     const requestId=crypto.randomUUID();
     const format=["native","portrait","landscape"].includes(body.settings?.format)?body.settings.format:"native";
+    const rawRushes=body?.settings?.ugc_rush_video_ids;
+    if(rawRushes!==undefined&&canonicalStyle!=="ugc_native")return out({error:"UGC_RUSHES_REQUIRE_UGC_STYLE"},422);
+    if(rawRushes!==undefined&&!Array.isArray(rawRushes))return out({error:"INVALID_UGC_RUSH_LIST"},422);
+    const rushIds:Array<string>=rawRushes||[];
+    if(rushIds.length>40||new Set(rushIds).size!==rushIds.length||rushIds.some(id=>!isUuid(id)||id===media.id)){
+      return out({error:"INVALID_UGC_RUSH_LIST"},422);
+    }
+    let totalRushBytes=0;
+    for(const id of rushIds){
+      const rush=await ownMedia(db,user.id,id);
+      if(!rush||rush.storage_bucket!==VIDEO_BUCKET||!String(rush.mime_type).startsWith("video/")){
+        return out({error:"UGC_RUSH_NOT_ACCESSIBLE"},403);
+      }
+      totalRushBytes+=Number(rush.size_bytes)||0;
+      if(totalRushBytes>3*1024*1024*1024)return out({error:"UGC_BATCH_TOO_LARGE"},422);
+    }
+    const editSettings={format,model_contract_version:"editplus-ugc-multirush-v1",...(canonicalStyle==="ugc_native"?{ugc_rush_video_ids:rushIds}:{})};
 
     const {data:project,error:projectError}=await db.from("edit_projects")
       .insert({
@@ -282,9 +316,7 @@ async function route(req:Request){
         caption_preset:caption,
         status:"planning",
         settings:{
-          ...(body.settings&&typeof body.settings==="object"?body.settings:{}),
-          format,
-          model_contract_version:"editplus-focus-five-v4"
+          ...editSettings
         }
       })
       .select("*")
@@ -297,7 +329,7 @@ async function route(req:Request){
         source_analysis_id:sourceAnalysisId,
         style:canonicalStyle,
         caption_preset:caption,
-        settings:{format,model_contract_version:"editplus-focus-five-v4"},
+        settings:editSettings,
         requested_at:new Date().toISOString()
       },`edit:${project.id}:${requestId}`);
       return out({project,job},202);

@@ -9,6 +9,10 @@ export const EDIT_STYLES={
     pace:'narrative',silenceThresholdMs:780,maxPunchInsPer30s:4,punchScale:1.10,
     captions:'authority',broll:'reinforce_only',soundDesign:'minimal'
   },
+  ugc_native:{
+    pace:'narrative_fast',silenceThresholdMs:650,maxPunchInsPer30s:3,punchScale:1.045,
+    captions:'ugc',broll:'user_rushes',soundDesign:'natural'
+  },
   business_viral:{
     pace:'fast',silenceThresholdMs:520,maxPunchInsPer30s:8,punchScale:1.12,
     captions:'creator',broll:'contextual',soundDesign:'moderate'
@@ -48,7 +52,7 @@ export const CAPTION_PRESETS={
   ugc:{
     fontFamily:'Inter, Arial, sans-serif',fontWeight:850,fontSize:66,lineHeight:1,
     maxWordsPerLine:6,position:'middle_low',activeWord:true,
-    textColor:'#ffffff',activeColor:'#ff3fbf',stroke:4,shadow:true,background:true
+    textColor:'#ffffff',activeColor:'#dd635e',stroke:3,shadow:true,background:false
   }
 };
 

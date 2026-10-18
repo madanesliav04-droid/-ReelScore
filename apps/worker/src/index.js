@@ -9,6 +9,7 @@ import {randomUUID} from 'node:crypto';
 import {createClient} from '@supabase/supabase-js';
 import {analyzeVideo} from './viral.js';
 import {buildEditTimeline} from './edit.js';
+import {composeUgcRushes} from './ugc-rush-compositor.js';
 import {
   preprocessVideo,
   renderWithRemotion,
@@ -179,11 +180,7 @@ async function processJob(job){
     );
     const sourcePath=path.join(dir,`source${ext}`);
 
-    await downloadStorageObject({
-      bucket:media.storage_bucket,
-      storagePath:media.storage_path,
-      outputPath:sourcePath
-    });
+    await downloadMediaAsset({media,outputPath:sourcePath});
 
     if(job.kind==='viral_analysis'){
       await runViral(job,media,sourcePath);
@@ -348,6 +345,36 @@ async function runEdit(job,media,sourcePath,dir){
     media,
     payload
   );
+  let editingSourcePath=sourcePath;
+  let ugcComposition=null;
+  if((payload.style||project.style)==='ugc_native'){
+    const ids=payload.settings?.ugc_rush_video_ids??project.settings?.ugc_rush_video_ids??[];
+    if(!Array.isArray(ids)||ids.length>40||new Set(ids).size!==ids.length){
+      throw tagged('UGC_INVALID_RUSHES','Invalid UGC source count or duplicates');
+    }
+    const rushPaths=[];
+    for(let index=0;index<ids.length;index++){
+      const item=await one(
+        'media_assets',
+        'id,user_id,storage_bucket,storage_path,original_name,mime_type,size_bytes,metadata,status',
+        ids[index]
+      );
+      if(!item||item.user_id!==job.user_id||item.storage_bucket!=='viralplus-videos'||!String(item.mime_type||'').startsWith('video/')){
+        throw tagged('UGC_RUSH_ACCESS_DENIED','Secondary rush was not owned by the user');
+      }
+      const secondaryPath=path.join(dir,'ugc-raw-'+index+extensionFor(item.mime_type,item.original_name));
+      await downloadMediaAsset({media:item,outputPath:secondaryPath});
+      rushPaths.push(secondaryPath);
+      await progress(job,'processing',8+Math.round(8*(index+1)/Math.max(1,ids.length)),'Import des plans UGC '+(index+1)+'/'+ids.length);
+    }
+    if(rushPaths.length){
+      ugcComposition=await composeUgcRushes({
+        sourcePath,rushPaths,outputPath:path.join(dir,'ugc-composite.mp4'),workDir:dir,
+        onProgress:async(index,total,stage)=>progress(job,'processing',17+Math.round(2*(index+1)/total),stage)
+      });
+      editingSourcePath=ugcComposition.outputPath;
+    }
+  }
 
   let analysis=null;
   if(project.source_analysis_id){
@@ -370,7 +397,7 @@ async function runEdit(job,media,sourcePath,dir){
     );
 
     analysis=await analyzeVideo({
-      filePath:sourcePath,
+      filePath:editingSourcePath,
       mimeType:media.mime_type,
       fileName:media.original_name||'video',
       geminiKey:process.env.GEMINI_API_KEY,
@@ -415,6 +442,8 @@ async function runEdit(job,media,sourcePath,dir){
       project.caption_preset||
       null
   });
+
+  if(ugcComposition)timeline.ugcMultirush={placements:ugcComposition.placements,unusedCount:ugcComposition.unusedCount,voiceSourceId:job.video_id};
 
   const {error:timelineError}=await supabase
     .from('edit_timelines')
@@ -461,7 +490,7 @@ async function runEdit(job,media,sourcePath,dir){
   );
 
   await preprocessVideo({
-    inputPath:sourcePath,
+    inputPath:editingSourcePath,
     outputPath:preparedPath,
     keepRanges:timeline.keepRanges,
     hasAudio:Boolean(analysis?.measurable?.audioCodec),
@@ -691,10 +720,39 @@ async function updateMediaFromAnalysis(media,analysis){
   if(error)throw error;
 }
 
+async function downloadMediaAsset({media,outputPath}){
+  const multipart=media?.metadata?.multipart;
+  if(!multipart){
+    return downloadStorageObject({
+      bucket:media.storage_bucket,storagePath:media.storage_path,outputPath
+    });
+  }
+  const parts=multipart?.parts;
+  if(multipart.version!==1||!Array.isArray(parts)||parts.length<2||parts.length>13){
+    throw tagged('UGC_INVALID_MULTIPART','Invalid multipart source metadata');
+  }
+  let total=0;
+  for(let index=0;index<parts.length;index++){
+    const part=parts[index];
+    const storagePath=String(part?.path||'');
+    const expectedSuffix='-part'+String(index).padStart(3,'0');
+    const base=String(parts[0].path||'').slice(0,-8);
+    if(storagePath!==base+expectedSuffix||!storagePath.startsWith(media.user_id+'/')||!Number.isSafeInteger(Number(part.size))){
+      throw tagged('UGC_INVALID_MULTIPART','Invalid chunk path or size');
+    }
+    total+=Number(part.size);
+    await downloadStorageObject({
+      bucket:media.storage_bucket,storagePath,outputPath,append:index>0
+    });
+  }
+  if(total!==Number(media.size_bytes))throw tagged('UGC_MULTIPART_SIZE_MISMATCH','Invalid assembled file size');
+}
+
 async function downloadStorageObject({
   bucket,
   storagePath,
-  outputPath
+  outputPath,
+  append=false
 }){
   const encoded=encodeStoragePath(storagePath);
   const url=
@@ -717,7 +775,7 @@ async function downloadStorageObject({
 
   await pipeline(
     Readable.fromWeb(response.body),
-    createWriteStream(outputPath)
+    createWriteStream(outputPath,{flags:append?'a':'w'})
   );
 }
 
