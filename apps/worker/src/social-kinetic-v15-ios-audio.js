@@ -136,14 +136,14 @@ export async function renderIOSAudioWithOriginalVoice({
  const chain='[0:a:0]aresample=48000,asetpts=PTS-STARTPTS[voice];'
     +setup+filters+'[voice]'+inputs+
     'amix=inputs='+(n+1)+':duration=first:dropout_transition=0:normalize=0,'
-    +'alimiter=limit=0.85:level=0[a]';
+    +'alimiter=limit=0.85:level=0:latency=1[a]';
  await run('ffmpeg',['-nostdin','-hide_banner','-loglevel','error','-y',
   '-i',postCutsSourceVideo,'-i',approvedSoundAssetPath,
   '-filter_complex',chain,'-map','[a]','-vn','-c:a','aac',
   '-b:a','224k','-ar','48000','-ac','2',
   '-t',String(durationMs/1000),outputAudioFile]);
  return {outputAudioFile,model:'ios-sent-v16-preroll-105ms-corrected',
-  voice:'original post-cuts only',addedSounds:n,
+  voice:'original post-cuts only',addedSounds:n,limiterLatencyCompensated:true,
   soundSource:'caller-supplied external asset',soundAttackTrimMs:105,
   licensedForCommercial:soundRightsVerified,
   privatePreviewOnly:!soundRightsVerified,
