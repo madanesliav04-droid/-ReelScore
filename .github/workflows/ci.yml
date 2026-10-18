@@ -428,3 +428,39 @@ jobs:
           name: editplus-social-kinetic-v16-genuine-hyperframes
           path: ${{ runner.temp }}/editplus-social-kinetic-v16-overlay.webm
           retention-days: 7
+
+  social-kinetic-v17-premium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PUPPETEER_SKIP_DOWNLOAD: '1'
+      HYPERFRAMES_BROWSER_PATH: /usr/bin/chromium
+      PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium
+      CHROME_PATH: /usr/bin/chromium
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Chromium + HyperFrames CLI
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq chromium ffmpeg fonts-dejavu fonts-liberation
+          cd apps/worker && npm install --no-audit --no-fund
+      - name: Render all 42 sec of V17 with official HyperFrames
+        run: |
+          set -euo pipefail
+          cd apps/worker/hyperframes/social-kinetic-v17-premium-b
+          "$GITHUB_WORKSPACE/apps/worker/node_modules/.bin/hyperframes" lint .
+          "$GITHUB_WORKSPACE/apps/worker/node_modules/.bin/hyperframes" render \
+            --format webm --quality draft --workers 2 --fps 30 \
+            --output "$RUNNER_TEMP/SocialKinetic_V17_HyperFrames_Overlay.webm"
+          ffprobe -v error -show_entries stream=codec_type,width,height -show_entries format=duration \
+            -of json "$RUNNER_TEMP/SocialKinetic_V17_HyperFrames_Overlay.webm"
+          ffmpeg -nostdin -v error -xerror -i "$RUNNER_TEMP/SocialKinetic_V17_HyperFrames_Overlay.webm" -f null -
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: social-kinetic-v17-full-hyperframes
+          path: ${{ runner.temp }}/SocialKinetic_V17_HyperFrames_Overlay.webm
+          retention-days: 7
