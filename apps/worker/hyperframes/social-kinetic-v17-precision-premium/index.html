@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><style>
+@font-face{font-family:"Arial Narrow";src:local("DejaVu Sans Condensed");font-weight:100 900}
+@font-face{font-family:"DejaVu Sans Condensed";src:local("DejaVu Sans Condensed");font-weight:100 900}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;width:910px;height:512px;background:transparent!important;overflow:hidden}
+#root{position:relative;width:910px;height:512px;overflow:hidden;background:transparent!important;font-family:"Arial Narrow","DejaVu Sans Condensed",Arial,sans-serif;-webkit-font-smoothing:antialiased;isolation:isolate}
+#shade{position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,rgba(3,10,12,.28),rgba(3,10,12,.09) 36%,transparent 50%);opacity:.85}
+.stage{position:absolute;opacity:0;pointer-events:none;will-change:transform,filter,opacity}
+.phrase{left:34px;top:304px;width:376px;color:#FDFEFF;font-family:"DejaVu Sans Condensed",Arial,sans-serif;font-weight:900;font-size:32px;line-height:1.13;letter-spacing:-.028em;-webkit-text-stroke:.43px #fff;text-shadow:0 2px 9px #000c,0 1px 3px #000c}
+.phrase.t1{top:304px;left:34px}.phrase.t2{top:304px;left:34px}.phrase.right,.phrase.right.t1,.phrase.right.t2{top:291px;left:618px;width:273px;font-size:29px;line-height:1.13}
+.phrase .word{display:inline-block;white-space:nowrap;opacity:0;margin-right:.18em;will-change:transform,opacity}
+.hero{left:22px;top:96px;width:372px;text-align:left}
+.hero .pre{font-size:28px;font-weight:800;color:#FBFBFC;text-shadow:0 2px 9px #000b;letter-spacing:-.04em;line-height:1;opacity:0}
+.hero .big{font-family:Arial,"DejaVu Sans Condensed",sans-serif;font-size:70px;font-weight:900;letter-spacing:-.056em;line-height:.90;color:#214C29;paint-order:stroke fill;-webkit-text-stroke:.45px #CEDFC9;text-shadow:0 3px 3px #0003,0 1px 2px #dceeca4c;opacity:0;margin-top:6px}
+.hero .big.long{font-size:54px;line-height:1.01;letter-spacing:-.045em}
+/* The speaker's raised left hand collides with hero #2 in V16/V17a.
+   Place that point in the empty right wall, reference-style. */
+.hero.hero1{left:620px;top:92px;width:269px}
+.hero.hero1 .pre{font-size:22px;line-height:1.12}
+.hero.hero1 .big,.hero.hero1 .big.long{font-size:44px;line-height:1.0;letter-spacing:-.049em}
+
+/* Authentic iMessage-style outgoing bubbles: thin, centered, 1-2 concise lines.
+   Not decorative chat. Each payload is a grounded enumeration / benefit. */
+.imsg{position:absolute;left:604px;width:270px;min-height:62px;max-height:108px;
+  padding:11px 15px 12px;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:4px;color:#fff;background:#0879F9;
+  border-radius:20px 20px 7px 20px;border:1px solid #ffffff19;
+  box-shadow:0 5px 13px #061a3040;opacity:0;overflow:visible;
+  font-family:Arial,sans-serif;text-align:center;line-height:1.15;}
+.imsg::after{content:"";position:absolute;right:-5px;bottom:-1px;width:15px;height:16px;
+  background:#0879F9;border-radius:0 0 13px 1px;transform:skewX(-19deg);z-index:-1}
+.imsg .imsg-index{font-weight:700;font-size:13px;letter-spacing:.085em;color:#D9EAFF;line-height:1}
+.imsg .imsg-copy{font-weight:600;font-size:20px;letter-spacing:-.026em;color:#fff;
+  line-height:1.14;overflow-wrap:break-word;max-width:240px;text-align:center;}
+.imsg.point0{top:202px}.imsg.point1{top:310px}
+/* A single useful benefit at a time, placed in verified empty upper-left wall. */
+.imsg.benefit0,.imsg.benefit1,.imsg.benefit2{
+ left:36px;top:60px;width:306px;min-height:72px;max-height:92px;
+}
+.imsg.benefit .imsg-copy{font-size:22px}
+.imsg.benefit .imsg-index{font-size:13px;letter-spacing:.06em}
+</style></head>
+<body><div id="root" data-composition-id="editplus-sk-v17-precision-premium-b" data-start="0" data-duration="42.030000" data-width="910" data-height="512" data-fps="30"><div id="shade"></div><div id="dynamic"></div></div>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script><script>
+const M={"duration":42.03,"sourceRanges":[[0,4.04],[5.16,14.64],[15.48,17.24],[17.75,44.5]],"captions":[{"a":0.56,"b":1.1196274685325562,"words":[{"text":"TU","t":0.56},{"text":"NE","t":0.7128642689458311},{"text":"FAIS","t":0.8657285378916622}]},{"a":1.1196274685325562,"b":1.8698327465675064,"words":[{"text":"PAS","t":1.1196274685325562},{"text":"D'ARGENT","t":1.321910414462771},{"text":"ET","t":1.7169684776216754}]},{"a":1.8698327465675064,"b":2.527824525056118,"words":[{"text":"TU","t":1.8698327465675064},{"text":"N'EN","t":2.0226970155133372},{"text":"SERAS","t":2.2249799614435517}]},{"a":2.527824525056118,"b":3.637717054069785,"words":[{"text":"PROBABLEMENT","t":2.527824525056118},{"text":"PAS","t":3.132589544527004},{"text":"PARCE","t":3.3348724904572187}]},{"a":3.637717054069785,"b":3.84,"words":[{"text":"QUE","t":3.637717054069785}]},{"a":4.24,"b":4.904549118479498,"words":[{"text":"TU","t":4.24},{"text":"TE","t":4.406924589542115},{"text":"POSES","t":4.573849179084229}]},{"a":4.904549118479498,"b":6.03025355601163,"words":[{"text":"LA","t":4.904549118479498},{"text":"MAUVAISE","t":5.071473708021614},{"text":"QUESTION","t":5.550863632016622}]},{"a":6.03025355601163,"b":6.800000000000001,"words":[{"text":"DÈS","t":6.03025355601163},{"text":"LE","t":6.251142308848539},{"text":"DÉPART.","t":6.418066898390656}]},{"a":7.120000000000001,"b":7.925410701830682,"words":[{"text":"COMMENT","t":7.120000000000001},{"text":"FAIRE","t":7.454296565743938},{"text":"POUR","t":7.710562434007407}]},{"a":7.925410701830682,"b":8.685027855879586,"words":[{"text":"GAGNER","t":7.925410701830682},{"text":"DE","t":8.221378152207176},{"text":"L'ARGENT","t":8.350731290135649}]},{"a":8.685027855879586,"b":9.2,"words":[{"text":"EN","t":8.685027855879586},{"text":"LIGNE","t":8.814380993808058},{"text":"?","t":9.070646862071527}]},{"a":9.600000000000001,"b":10.055097547523637,"words":[{"text":"TOUT","t":9.600000000000001},{"text":"LE","t":9.762834718905257},{"text":"MONDE","t":9.860872194689897}]},{"a":10.055097547523637,"b":10.540285148967495,"words":[{"text":"VEUT","t":10.055097547523637},{"text":"GAGNER","t":10.217932266428896},{"text":"DE","t":10.442247673182855}]},{"a":10.540285148967495,"b":11.150710481061687,"words":[{"text":"L'ARGENT,","t":10.540285148967495},{"text":"MAIS","t":10.793650409322687},{"text":"EST-CE","t":10.956485128227946}]},{"a":11.150710481061687,"b":11.541314165981689,"words":[{"text":"QUE","t":11.150710481061687},{"text":"TU","t":11.280441971291793},{"text":"SAIS","t":11.378479447076433}]},{"a":11.541314165981689,"b":12.05555162102678,"words":[{"text":"COMMENT","t":11.541314165981689},{"text":"ON","t":11.794679426336884},{"text":"FAIT","t":11.89271690212152}]},{"a":12.05555162102678,"b":12.540739222470634,"words":[{"text":"POUR","t":12.05555162102678},{"text":"GAGNER","t":12.218386339932035},{"text":"DE","t":12.442701746685998}]},{"a":12.540739222470634,"b":13.280000000000001,"words":[{"text":"L'ARGENT","t":12.540739222470634},{"text":"CONCRÈTEMENT","t":12.79410448282583},{"text":"?","t":13.181962524215361}]},{"a":13.735,"b":14.57544577125348,"words":[{"text":"EST-CE","t":13.735},{"text":"QUE","t":14.12182008067019},{"text":"TU","t":14.38019389636474}]},{"a":14.57544577125348,"b":15.094999999999999,"words":[{"text":"SAIS","t":14.57544577125348},{"text":"?","t":14.899748125111255}]},{"a":15.464999999999996,"b":15.89585184682096,"words":[{"text":"NON,","t":15.464999999999996},{"text":"JE","t":15.636559076142802},{"text":"NE","t":15.766205461481889}]},{"a":15.89585184682096,"b":16.53959308880782,"words":[{"text":"SAIS","t":15.89585184682096},{"text":"PAS.","t":16.111187182056923},{"text":"PARCE","t":16.28274625819973}]},{"a":16.53959308880782,"b":17.099910144618818,"words":[{"text":"QU'EN","t":16.53959308880782},{"text":"FAIT,","t":16.754928424043783},{"text":"TA","t":16.97026375927973}]},{"a":17.099910144618818,"b":17.77344643515599,"words":[{"text":"QUESTION","t":17.099910144618818},{"text":"DÈS","t":17.472240973674104},{"text":"LE","t":17.64380004981691}]},{"a":17.77344643515599,"b":18.45697926392323,"words":[{"text":"DÉPART","t":17.77344643515599},{"text":"N'EST","t":18.07008485254447},{"text":"PAS","t":18.285420187780424}]},{"a":18.45697926392323,"b":19.17852690587077,"words":[{"text":"BONNE.","t":18.45697926392323},{"text":"COMMENT","t":18.713826094531328},{"text":"ON","t":19.048880520531682}]},{"a":19.17852690587077,"b":19.90583599373116,"words":[{"text":"FAIT","t":19.17852690587077},{"text":"POUR","t":19.393862241106717},{"text":"GAGNER","t":19.60919757634268}]},{"a":19.90583599373116,"b":20.500183190409672,"words":[{"text":"DE","t":19.90583599373116},{"text":"L'ARGENT","t":20.03548237907023},{"text":"?","t":20.370536805070593}]},{"a":20.500183190409672,"b":20.974811296323786,"words":[{"text":"JE","t":20.500183190409672},{"text":"VAIS","t":20.62982957574875},{"text":"TE","t":20.845164910984707}]},{"a":20.974811296323786,"b":21.4494394022379,"words":[{"text":"LE","t":20.974811296323786},{"text":"DIRE.","t":21.104457681662865},{"text":"ON","t":21.31979301689882}]},{"a":21.4494394022379,"b":22.408467859832726,"words":[{"text":"AIDE","t":21.4494394022379},{"text":"D'AUTRES","t":21.664774737473856},{"text":"PERSONNES","t":21.999829163474217}]},{"a":22.408467859832726,"b":22.964399047899363,"words":[{"text":"À","t":22.408467859832726},{"text":"GAGNER","t":22.538114245171798},{"text":"DE","t":22.834752662560277}]},{"a":22.964399047899363,"b":23.685946689846887,"words":[{"text":"L'ARGENT.","t":22.964399047899363},{"text":"QUAND","t":23.299453473899717},{"text":"TU","t":23.556300304507815}]},{"a":23.685946689846887,"b":24.329687931833746,"words":[{"text":"AIDES","t":23.685946689846887},{"text":"LES","t":23.942793520454984},{"text":"GENS","t":24.114352596597797}]},{"a":24.329687931833746,"b":24.927531810704117,"words":[{"text":"AUTOUR","t":24.329687931833746},{"text":"DE","t":24.626326349222225},{"text":"TOI","t":24.75597273456131}]},{"a":24.927531810704117,"b":25.483462998770754,"words":[{"text":"À","t":24.927531810704117},{"text":"GAGNER","t":25.057178196043196},{"text":"DE","t":25.353816613431675}]},{"a":25.483462998770754,"b":26.119722886253,"words":[{"text":"L'ARGENT,","t":25.483462998770754},{"text":"TU","t":25.818517424771116},{"text":"VAS","t":25.948163810110188}]},{"a":26.119722886253,"b":26.825000000000003,"words":[{"text":"FORCÉMENT","t":26.119722886253},{"text":"GAGNER.","t":26.52836158261151}]},{"a":27.200000000000003,"b":27.546807886524505,"words":[{"text":"OK","t":27.200000000000003},{"text":"?","t":27.373403943262247}]},{"a":27.546807886524505,"b":28.181629944488904,"words":[{"text":"ÇA","t":27.546807886524505},{"text":"C'EST","t":27.72021182978675},{"text":"LE","t":28.008226001226653}]},{"a":28.181629944488904,"b":28.98125490726889,"words":[{"text":"1ER","t":28.181629944488904},{"text":"DES","t":28.355033887751155},{"text":"POINTS.","t":28.584496670132523}]},{"a":28.98125490726889,"b":29.780879870048892,"words":[{"text":"2E","t":28.98125490726889},{"text":"DES","t":29.15465885053115},{"text":"POINTS,","t":29.38412163291251}]},{"a":29.780879870048892,"b":30.788858238882185,"words":[{"text":"TU","t":29.780879870048892},{"text":"DOIS","t":29.954283813311136},{"text":"APPRENDRE","t":30.242297984751048}]},{"a":30.788858238882185,"b":31.809997639546012,"words":[{"text":"QUELQUE","t":30.788858238882185},{"text":"CHOSE","t":31.236998451383883},{"text":"QUE","t":31.580534857164636}]},{"a":31.809997639546012,"b":33.08401862476667,"words":[{"text":"LES","t":31.809997639546012},{"text":"PERSONNES","t":32.03946042192737},{"text":"SERAIENT","t":32.58602067605851}]},{"a":33.08401862476667,"b":33.827584748427554,"words":[{"text":"PRÊTES","t":33.08401862476667},{"text":"À","t":33.48077686190305},{"text":"TE","t":33.654180805165296}]},{"a":33.827584748427554,"b":34.68859810802958,"words":[{"text":"PAYER","t":33.827584748427554},{"text":"POUR","t":34.17112115420831},{"text":"QUE","t":34.45913532564822}]},{"a":34.68859810802958,"b":35.36,"words":[{"text":"TU","t":34.68859810802958},{"text":"RÉSOLVES,","t":34.86200205129184}]},{"a":35.36,"b":36.08177604913661,"words":[{"text":"POUR","t":35.36},{"text":"LEUR","t":35.586065354353835},{"text":"FAIRE","t":35.81213070870767}]},{"a":36.08177604913661,"b":36.79894768560361,"words":[{"text":"GAGNER","t":36.08177604913661},{"text":"DU","t":36.39319576512705},{"text":"TEMPS,","t":36.52930234517467}]},{"a":36.79894768560361,"b":37.520723734740216,"words":[{"text":"POUR","t":36.79894768560361},{"text":"LEUR","t":37.02501303995744},{"text":"FAIRE","t":37.25107839431128}]},{"a":37.520723734740216,"b":38.31999999999999,"words":[{"text":"GAGNER","t":37.520723734740216},{"text":"DE","t":37.832143450730655},{"text":"L'ARGENT,","t":37.96825003077828}]},{"a":38.64,"b":39.53482123425309,"words":[{"text":"POUR","t":38.64},{"text":"RÉSOUDRE","t":38.90862297411839},{"text":"UN","t":39.37309209873838}]},{"a":39.53482123425309,"b":40.42731773505811,"words":[{"text":"PROBLÈME","t":39.53482123425309},{"text":"QUI","t":39.99929035887308},{"text":"QUI","t":40.213304046965604}]},{"a":40.42731773505811,"b":41.28,"words":[{"text":"RÉSIDE","t":40.42731773505811},{"text":"CHEZ","t":40.79736333778909},{"text":"EUX.","t":41.06598631190748}]}],"heroes":[{"a":0.6,"b":3.25,"one":"PAS D'ARGENT","two":"TU NE FAIS"},{"a":4.27,"b":6.77,"one":"MAUVAISE QUESTION","two":"TU TE POSES LA"},{"a":20.53,"b":23.729999999999997,"one":"ON AIDE","two":"D'AUTRES PERSONNES"},{"a":38.33,"b":41.28,"one":"UN PROBLÈME","two":"POUR RÉSOUDRE"}],"bubbles":[{"a":13.79,"b":19.479999999999997,"text":"EST-CE QUE TU SAIS ?"},{"a":15.599999999999994,"b":19.479999999999997,"text":"NON, JE NE SAIS PAS. PARCE QU\u0027EN FAIT"},{"a":16.959999999999994,"b":19.479999999999997,"text":"TA QUESTION DÈS LE DÉPART N'EST PAS BONNE"}],"steps":[{"a":27.369999999999997,"b":30.429999999999993,"one":"1","two":"1ER DES POINTS"},{"a":30.659999999999997,"b":34.33,"one":"2","two":"2E DES POINTS"}]};
+// Semantic cue policy v14. UI bubbles are not fictional chat messages.
+// The two numbered steps are stated by the speaker; the last three items
+// repeat three actual enumerated benefits. No iMessage bubble at a random question.
+M.bubbles=[];
+M.steps=[];
+M.heroes=M.heroes.filter((x)=>x.one!=="UN PROBLÈME");
+M.keypoints=[
+ {a:28.12,b:34.86,type:"point",index:"01 · PREMIER POINT",text:"AIDER LES AUTRES À GAGNER",source:"ça c'est le 1er des points",reason:"point_1_explicit"},
+ {a:29.00,b:34.86,type:"point",index:"02 · DEUXIÈME POINT",text:"APPRENDRE UNE COMPÉTENCE UTILE",source:"2e des points, tu dois apprendre quelque chose",reason:"point_2_explicit"},
+ {a:36.08,b:37.47,type:"benefit",index:"01 / 03",text:"GAGNER DU TEMPS",source:"leur faire gagner du temps",reason:"benefit_1_enumeration"},
+ {a:37.52,b:38.87,type:"benefit",index:"02 / 03",text:"GAGNER DE L’ARGENT",source:"leur faire gagner de l'argent",reason:"benefit_2_enumeration"},
+ {a:39.18,b:40.38,type:"benefit",index:"03 / 03",text:"RÉSOUDRE UN PROBLÈME",source:"résoudre un problème",reason:"benefit_3_enumeration"}
+];
+const root=document.getElementById('dynamic');const tl=gsap.timeline({paused:true});
+function add(cls,id,kind,a,b,text){
+ const el=document.createElement('div');el.className='stage '+cls;el.id=id;el.dataset.start=a.toFixed(3);el.dataset.duration=(b-a).toFixed(3);el.dataset.trackIndex='3';root.append(el);if(text)el.textContent=text;return el;
+}
+const heroIntervals=M.heroes.map(x=>[x.a,x.b]);
+const messageIntervals=M.keypoints.filter(p=>p.type==="point").map(x=>[x.a,x.b]);
+const stepIntervals=[];
+const withheld=(a,b,list)=>list.some(([x,y])=>b>x+.01&&a<y-.01);
+
+// Caption pacing V16: combine rapid three-word flashes into stable
+// 0.9-1.6sec readable semantic phrases. Original word times here are
+// sentence-interpolated; NEVER assert forced alignment from these estimates.
+function meaningfulCaptions(chunks){
+ const all=chunks.flatMap(c=>c.words||[]).filter(w=>Number.isFinite(w.t));
+ const groups=[],buf=[];let lastTime=0;
+ function flush(){
+  if(!buf.length)return;
+  const words=buf.splice(0,buf.length),a=words[0].t;
+  const b=Math.max(a+.42,Math.min(a+1.8,lastTime+.19));
+  groups.push({a,b,words});
+ }
+ for(let i=0;i<all.length;i++){
+  const w=all[i],prev=buf[buf.length-1];
+  if(prev && (w.t-prev.t>.53 || w.t-buf[0].t>1.36 ||
+      buf.length>=6 || buf.map(z=>z.text).join(' ').length+w.text.length>40))flush();
+  buf.push(w);lastTime=w.t;
+  const punctuation=/[?!]$/.test(w.text)||(w.text.endsWith('.')&&buf.length>=3);
+  if(punctuation)flush();
+ }
+ flush();
+ return groups;
+}
+M.captionAlignment={verified:false,method:'sentence_segment_interpolation',commercialWordSyncApproved:false};
+M.captions=meaningfulCaptions(M.captions);
+let count=0;
+for(const c of M.captions){
+ if(withheld(c.a,c.b,heroIntervals)||false||withheld(c.a,c.b,stepIntervals))continue;
+ const isRight=c.a>=7.1&&c.a<20.45;
+ const el=add('phrase t'+(count%3)+(isRight?' right':''),'phrase'+count,'caption',c.a,c.b);count++;
+ // Phrase-level reveal is intentionally used until TRUE provider word timing exists.
+ // V16's word.t values were sentence-interpolated. Animating each as precisely timed
+ // "spoken" was misleading. Do not pretend the phonemes have been verified.
+ c.words.forEach(word=>{const sp=document.createElement('span');sp.className='word';
+  sp.textContent=word.text;sp.style.opacity='1';el.append(sp);});
+ el.dataset.timingProvenance='segment_interpolated_not_certified';
+ el.dataset.wordSyncApproved='false';
+ tl.fromTo(el,{opacity:0,y:7,filter:'blur(1.5px)'},{opacity:1,y:0,filter:'blur(0px)',duration:.20,ease:'power2.out',immediateRender:false},c.a);
+ tl.to(el,{opacity:0,y:-3,duration:.16,ease:'power2.in'},Math.max(c.a+.25,c.b-.15));
+}
+for(let i=0;i<M.heroes.length;i++){
+ const h=M.heroes[i],el=add('hero hero'+i,'hero'+i,'impact',h.a,h.b);
+ const pre=document.createElement('div');pre.className='pre';pre.textContent=h.two;
+ const big=document.createElement('div');big.className='big'+(h.one.length>13?' long':'');big.textContent=h.one;
+ el.append(pre,big);
+ tl.fromTo(el,{opacity:0,x:-15},{opacity:1,x:0,duration:.20,ease:'power3.out',immediateRender:false},h.a);
+ tl.fromTo(pre,{opacity:0,y:8,filter:'blur(3px)'},{opacity:1,y:0,filter:'blur(0px)',duration:.22,ease:'power3.out',immediateRender:false},h.a+.05);
+ const audioLandmark=[1.21,5.02,21.41][i]??h.a+.20;
+ tl.fromTo(big,{opacity:0,y:15,scale:.96,filter:'blur(4px)'},{opacity:1,y:0,scale:1,filter:'blur(0px)',duration:.29,ease:'power3.out',immediateRender:false},audioLandmark);
+ tl.to(el,{opacity:0,x:8,duration:.18,ease:'power2.in'},h.b-.17);
+}
+// True iMessage bubbles only for actual enumerations, with centered text.
+for(let i=0;i<M.keypoints.length;i++){
+ const p=M.keypoints[i],isPoint=p.type==='point';
+ const seq=isPoint?i:i-2;
+ const e=add('imsg '+p.type+seq,'imsg'+i,'semantic-point',p.a,p.b);
+ e.dataset.reason=p.reason;e.dataset.sourcePhrase=p.source;
+ if(p.index){
+  const ix=document.createElement('div');ix.className='imsg-index';ix.textContent=p.index;e.append(ix);
+ }
+ const t=document.createElement('div');t.className='imsg-copy';t.textContent=p.text;e.append(t);
+ // Soft 220ms spring-free iOS-like incoming movement; fade on leave.
+ tl.fromTo(e,{opacity:0,x:13,y:6},
+   {opacity:1,x:0,y:0,duration:.18,ease:'power2.out',immediateRender:false},p.a);
+ tl.to(e,{opacity:0,y:-2,duration:.18,ease:'power2.in'},p.b-.18);
+}
+const clock={t:0};tl.to(clock,{t:M.duration,duration:M.duration,ease:'none'},0);
+window.__timelines=window.__timelines||{};window.__timelines['editplus-sk-v17-precision-premium-b']=tl;
+</script></body></html>
