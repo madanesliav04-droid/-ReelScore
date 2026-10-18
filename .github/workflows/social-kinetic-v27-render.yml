@@ -1,0 +1,45 @@
+name: EditPlus V27 — Official HyperFrames strict quality render
+on:
+  push:
+    branches: [editplus-social-kinetic-v27-motion-rebuild-20261018]
+  pull_request:
+    paths:
+      - apps/worker/hyperframes/social-kinetic-v27-reference-motion/**
+      - .github/workflows/social-kinetic-v27-render.yml
+jobs:
+  render-v27:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      PUPPETEER_SKIP_DOWNLOAD: '1'
+      HYPERFRAMES_BROWSER_PATH: /usr/bin/chromium
+      PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium
+      CHROME_PATH: /usr/bin/chromium
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install browser and pinned HyperFrames
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq chromium ffmpeg fonts-dejavu-core
+          cd apps/worker
+          npm install --no-audit --no-fund
+      - name: Official full V27 alpha render
+        run: |
+          set -euo pipefail
+          cd apps/worker/hyperframes/social-kinetic-v27-reference-motion
+          "$GITHUB_WORKSPACE/apps/worker/node_modules/.bin/hyperframes" lint .
+          "$GITHUB_WORKSPACE/apps/worker/node_modules/.bin/hyperframes" render \
+            --format webm --quality draft --workers 2 --fps 30 \
+            --output "$RUNNER_TEMP/editplus-v27-official-overlay.webm"
+          ffprobe -v error -show_entries stream=codec_type,codec_name,width,height -show_entries format=duration \
+            -of json "$RUNNER_TEMP/editplus-v27-official-overlay.webm"
+          ffmpeg -nostdin -v error -xerror -i "$RUNNER_TEMP/editplus-v27-official-overlay.webm" -f null -
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: social-kinetic-v27-official-hyperframes-overlay
+          path: ${{ runner.temp }}/editplus-v27-official-overlay.webm
+          retention-days: 7
