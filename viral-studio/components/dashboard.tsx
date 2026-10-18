@@ -3,6 +3,7 @@
 import {useEffect,useMemo,useRef,useState} from "react";
 import {BarChart3,Clapperboard,LogOut,Scissors,Upload,Zap,Check,Link2,ArrowRight,FileVideo,ShieldCheck} from "lucide-react";
 import * as tus from "tus-js-client";
+import {UgcRushUploader} from "./ugc-rush-uploader";
 import {functionUrl,supabase,SUPABASE_PROJECT_REF,VIDEO_BUCKET} from "@/lib/supabase";
 import {authMessage} from "@/lib/auth-message";
 import {MAX_VIDEO_UPLOAD_MIB,uploadParts,videoUploadPreflight,videoUploadErrorMessage} from "@/lib/upload-limits";
@@ -81,6 +82,23 @@ const EDIT_MODELS:EditModel[]=[
     "never": "Pas de recadrage horizontal, doublage ou superposition.",
     "available": true,
     "state": "BÊTA · MOTEUR CONNECTÉ"
+  },
+  {
+    "id": "ugc_native",
+    "name": "UGC Storytelling",
+    "category": "Storytelling immersif · plusieurs rushes",
+    "preview": "UGC",
+    "meta": "Référence UGC 28 secondes · import multi-rush et moteur de composition à vérifier sur vrais fichiers",
+    "goal": "Faire une histoire : découverte, présentation, expérience, résultat. Plans pertinents et voix originale.",
+    "actions": [
+      "Rush principal avec la voix ; jusqu’à 40 plans secondaires importés par lots.",
+      "Cuts narratifs, plans de produits, détails, ambiance, portraits et résultats.",
+      "Titres cinétiques, texte blanc et accent contextuel ; animations justifiées.",
+      "Couper les blancs sans couper des mots, préserver le son original et le format pertinent."
+    ],
+    "never": "Pas d'images inventées, pas de doublage, pas de rushes placés sans cohérence narrative.",
+    "available": true,
+    "state": "BÊTA · MULTI-RUSH"
   },
   {
     "id": "social_kinetic",
@@ -170,6 +188,8 @@ export function Dashboard(){
   const [clipMedia,setClipMedia]=useState<Media|null>(null);
   const [clipUploadPct,setClipUploadPct]=useState(0);
   const [editModel,setEditModel]=useState("codie");
+  const [ugcRushIds,setUgcRushIds]=useState<string[]>([]);
+  const [ugcRushPending,setUgcRushPending]=useState(false);
   const [format,setFormat]=useState("native");
   const [sourceUrl,setSourceUrl]=useState("");
   const sourceRef=useRef<HTMLVideoElement|null>(null);
@@ -200,6 +220,7 @@ export function Dashboard(){
     void uploadRef.current?.abort();
     uploadRef.current=null;uploadLocked.current=false;setUploading(false);
     setBusy(false);setJob(null);setMedia(null);setFile(null);setSourceUrl("");
+    setUgcRushIds([]);setUgcRushPending(false);
     setAnalysis(null);setClipMedia(null);setClipFile(null);setClipProject(null);
     setEditExportUrl("");setEditOutputMediaId("");setError("");
     setViralQuota(null);
@@ -442,7 +463,9 @@ export function Dashboard(){
   async function startEdit(autoFix=false){
     if(busy||uploadLocked.current)return;if(!media)return setError("Importe d’abord une vidéo.");
     const modelToUse=autoFix?"codie":editModel;
-    if(!["codie","hormozi_omni","social_kinetic"].includes(modelToUse))return setError("Ce modèle n’est pas encore raccordé au moteur. Aucun preset de remplacement ne sera lancé.");
+    if(!["codie","hormozi_omni","social_kinetic","ugc_native"].includes(modelToUse))return setError("Ce modèle n’est pas encore raccordé au moteur. Aucun preset de remplacement ne sera lancé.");
+
+    if(modelToUse==="ugc_native"&&ugcRushPending)return setError("Attends la fin de l’import des rushes secondaires.");
 
     if(autoFix){
       const before=Number(score);
@@ -459,7 +482,7 @@ export function Dashboard(){
         video_id:media.id,
         analysis_id:analysis?.analysis_id||analysis?.id||null,
         style:modelToUse,
-        settings:{format}
+        settings:{format,...(modelToUse==="ugc_native"?{ugc_rush_video_ids:ugcRushIds}: {})}
       })});
       setJob(body.job);await watchJob(body.job.id);
     }catch(e:any){setError(e.message);setBusy(false)}
@@ -580,13 +603,27 @@ export function Dashboard(){
           {sourceUrl?<video ref={sourceRef} className="source-preview" src={sourceUrl} controls playsInline/>:<BackendState media={media} job={job}/>}
         </div>
 
+        {editModel==="ugc_native"&&<section className="panel ugc-multirush-panel">
+          <small className="eyebrow">UGC / 02 · PLANS SECONDAIRES</small>
+          <h3>Ajoute tes rushes d’illustration.</h3>
+          <p className="social-panel-explainer">Le premier import ci-dessus est la voix principale. Ajoute ensuite toutes les prises d’ambiance, plans de produit, détails et résultats. Une seule piste voix sera conservée.</p>
+          <UgcRushUploader key={userId} ownerId={userId} disabled={busy}
+            register={async details=>{
+              const response=await api(functionUrl("viral-edit-jobs","media"),token,{method:"POST",body:JSON.stringify(details)});
+              return response.media;
+            }}
+            onChange={(ids,pending)=>{setUgcRushIds(ids);setUgcRushPending(pending);}}
+            onError={message=>setError(message)}
+          />
+        </section>}
+
         <section className="model-library">
-          <div className="section-heading"><small>4 RÉFÉRENCES RETENUES</small><h2>Choisis ton modèle de montage.</h2><p>Les moteurs Codie, Alex Hormozi et Social Kinetic sont raccordés en bêta. Leila n’est pas encore disponible. Les rendus complets restent à comparer aux références avant validation finale.</p></div>
+          <div className="section-heading"><small>5 RÉFÉRENCES RETENUES</small><h2>Choisis ton modèle de montage.</h2><p>Les moteurs Codie, Alex Hormozi, Social Kinetic et UGC sont raccordés en bêta. Leila n’est pas encore disponible. Les rendus complets restent à comparer aux références avant validation finale.</p></div>
           <div className="model-grid social-approved-model-grid">{EDIT_MODELS.map(model=><button type="button" key={model.id} disabled={!model.available||busy||uploading} aria-label={`${model.name} — ${model.state}`} className={`model-card social-approved-model ${editModel===model.id?"selected":""} ${model.available?"is-available":"is-pending"}`} data-model={model.id} onClick={()=>{if(model.available){setEditModel(model.id);if(model.id==="hormozi_omni")setFormat("native")}}}>
               <div className="social-model-identity"><span>EDIT+ / {model.preview}</span><small className={`social-model-state ${model.available?"beta":"pending"}`}>{model.state}</small><strong>{model.name}</strong><p>{model.goal}</p></div>
               <div className="model-copy"><div><strong>{model.name}</strong><span>{model.category}</span></div>{editModel===model.id&&<Check size={18}/>}<p>{model.meta}</p></div>
             </button>)}</div>
-          <p className="social-model-truth" role="note">Les trois moteurs activés produisent un rendu bêta, sans garantie de reproduction fidèle des vidéos de référence. Leila reste désactivé. Aucun modèle non reconnu n’est remplacé silencieusement.</p>
+          <p className="social-model-truth" role="note">Les moteurs activés produisent un rendu bêta, sans garantie de reproduction fidèle des vidéos de référence. Leila reste désactivé. Le modèle UGC accepte des plans supplémentaires ; le montage final demande encore validation humaine. Aucun modèle non reconnu n’est remplacé silencieusement.</p>
           <section className="model-action-contract" data-testid="edit-model-action-contract" aria-live="polite">
             <div className="contract-head"><span>CONTRAT DE MONTAGE · {selectedModel.name.toUpperCase()}</span><h3>{selectedModel.goal}</h3></div>
             <p className="contract-notice">Le contrat décrit la référence de montage souhaitée. Le moteur historique disponible ne garantit pas encore la fidélité à la V60.</p>
@@ -594,7 +631,7 @@ export function Dashboard(){
             <div className="contract-avoid"><strong>À éviter</strong><p>{selectedModel.never}</p></div>
           </section>
           <label className="format-picker">Format de sortie {selectedModel.id==="hormozi_omni"&&<small>· Format natif obligatoire pour préserver le cadrage</small>} <select className="field" value={selectedModel.id==="hormozi_omni"?"native":format} onChange={e=>setFormat(e.target.value)} disabled={busy||selectedModel.id==="hormozi_omni"}><option value="native">Natif — conserver le format source</option><option value="portrait">Portrait — 1080 × 1920</option><option value="landscape">Paysage — 1920 × 1080</option></select></label>
-          <button className="btn primary create-edit" onClick={()=>void startEdit(false)} disabled={!media||busy||uploading||!selectedModel.available}><Clapperboard size={17}/> {busy&&job?.kind==="edit_render"?"Montage en cours…":`Créer mon montage · ${selectedModel.name}`}</button>
+          <button className="btn primary create-edit" onClick={()=>void startEdit(false)} disabled={!media||busy||uploading||ugcRushPending||!selectedModel.available}><Clapperboard size={17}/> {busy&&job?.kind==="edit_render"?"Montage en cours…":`Créer mon montage · ${selectedModel.name}`}</button>
           <p className="social-model-truth" role="note">{selectedModel.id==="hormozi_omni"?"Hormozi conserve obligatoirement le cadrage et le format de la source. Les animations fondées sur des preuves peuvent être absentes si l’analyse n’en fournit pas.":selectedModel.id==="social_kinetic"?"Social Kinetic : les animations n’apparaissent que si leurs mots, leurs timings et leur emplacement sont vérifiés.":"Codie bêta : le rendu V60 reste à comparer et à valider."}</p>
           <InlineJobState job={job?.kind==="edit_render"?job:null}/>
         </section>
