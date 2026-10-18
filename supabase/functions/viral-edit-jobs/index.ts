@@ -201,6 +201,21 @@ async function route(req:Request){
     return out({quota:{used,limit,remaining:Math.max(0,limit-used),reset_at:resetAt}});
   }
 
+  if(req.method==="GET"&&tail[0]==="media"&&tail.length===1){
+    // Return only the authenticated user's video assets; no storage URLs or private paths.
+    // Recent uploads survive Safari refreshes and can be selected for UGC editing.
+    const {data,error}=await db.from("media_assets")
+      .select("id,original_name,mime_type,size_bytes,status,created_at")
+      .eq("user_id",user.id)
+      .eq("storage_bucket",VIDEO_BUCKET)
+      .like("mime_type","video/%")
+      .is("deleted_at",null)
+      .order("created_at",{ascending:false})
+      .limit(60);
+    if(error)return out({error:"MEDIA_LIST_FAILED"},500);
+    return out({media:(data||[]).filter(x=>x.id&&["uploaded","ready"].includes(String(x.status||"")))}); 
+  }
+
   if(req.method==="POST"&&tail[0]==="media"){
     const body=await req.json().catch(()=>null);
     if(!body)return out({error:"INVALID_BODY"},400);
