@@ -1,0 +1,47 @@
+name: EditPlus Social Kinetic V23 — HyperFrames reference proof
+on:
+  push:
+    branches:
+      - editplus-social-kinetic-v23-reference-fidelity-20261018
+  pull_request:
+    paths:
+      - apps/worker/hyperframes/social-kinetic-v23-reference-fidelity/**
+      - .github/workflows/social-kinetic-v23-reference-proof.yml
+jobs:
+  hyperframes-v23-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      PUPPETEER_SKIP_DOWNLOAD: '1'
+      HYPERFRAMES_BROWSER_PATH: /usr/bin/chromium
+      PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium
+      CHROME_PATH: /usr/bin/chromium
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned HyperFrames and browser
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq chromium ffmpeg fonts-dejavu-core
+          cd apps/worker
+          npm install --no-audit --no-fund
+      - name: Render full V23 with real HyperFrames CLI
+        run: |
+          set -euo pipefail
+          cd apps/worker/hyperframes/social-kinetic-v23-reference-fidelity
+          "$GITHUB_WORKSPACE/apps/worker/node_modules/.bin/hyperframes" lint .
+          "$GITHUB_WORKSPACE/apps/worker/node_modules/.bin/hyperframes" render \
+            --format webm --quality draft --workers 2 --fps 30 \
+            --output "$RUNNER_TEMP/social-kinetic-v23-hyperframes-alpha.webm"
+          ffprobe -v error -show_entries stream=codec_type,width,height,codec_name -show_entries format=duration -of json \
+            "$RUNNER_TEMP/social-kinetic-v23-hyperframes-alpha.webm"
+          ffmpeg -nostdin -v error -xerror -i "$RUNNER_TEMP/social-kinetic-v23-hyperframes-alpha.webm" -f null -
+      - name: Archive official V23 HyperFrames alpha overlay
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: editplus-v23-real-hyperframes-alpha-overlay
+          path: ${{ runner.temp }}/social-kinetic-v23-hyperframes-alpha.webm
+          retention-days: 7
