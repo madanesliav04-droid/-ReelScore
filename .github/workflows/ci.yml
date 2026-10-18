@@ -390,3 +390,28 @@ jobs:
           name: social-kinetic-v14-ios-actual-hyperframes
           path: ${{ runner.temp }}/social-kinetic-v14-ios.webm
           retention-days: 7
+
+  ios-real-sent-received-audio-reference:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Get both actual system sound files for private comparison
+        run: |
+          set -euo pipefail
+          mkdir -p ios-audio-references
+          for kind in SentMessage ReceivedMessage; do
+            curl --retry 3 --fail -L --connect-timeout 20 \
+              "https://raw.githubusercontent.com/extratone/iOSSystemSounds/main/m4a/$kind.m4a" \
+              -o "ios-audio-references/$kind.m4a"
+            ffprobe -v error -show_entries format=duration,size -of json \
+              "ios-audio-references/$kind.m4a"
+            ffmpeg -nostdin -y -hide_banner -loglevel error \
+              -i "ios-audio-references/$kind.m4a" -ar 48000 -ac 2 -c:a pcm_s16le \
+              "ios-audio-references/$kind.wav"
+          done
+          printf 'Private audio comparison only. Apple system-file licensing for commercial use not established.\n' > ios-audio-references/NOTICE.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios-real-sent-vs-received-reference
+          path: ios-audio-references/
+          retention-days: 1
