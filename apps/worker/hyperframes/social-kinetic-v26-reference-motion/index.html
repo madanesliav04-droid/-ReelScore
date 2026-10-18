@@ -88,7 +88,7 @@ let captions=0;
 for(let i=0;i<groups.length;i++){
  const c=groups[i],next=groups[i+1];const b=Math.min(c.b,next?next.a-.025:c.b);
  if(b-c.a<.28||overlap(c.a,b,IMPACTS.map(h=>[h.a,h.b])))continue;
- const chatPhase=c.a>=32.10&&c.a<=40.35, right=c.a>=7&&c.a<20.3;
+ const chatPhase=c.a>=rt(28.05)&&c.a<=rt(35.85), right=c.a>=7&&c.a<20.3;
  const e=stage('micro'+(chatPhase?' during-chat':right?' right':''),'cap'+captions,c.a,b,'spoken-caption');
  const words=c.words.map(w=>w.text);const full=words.join(' ').replace(/\s+([?!.;,])/g,'$1');if(!full.trim()||full.length>(right?39:44)){e.remove();continue}
  for(let j=0;j<c.words.length;j++){
@@ -103,12 +103,12 @@ for(let i=0;i<groups.length;i++){
 // True reference choreography: new card bottom, older cards reflow upwards; card 1
 // is evicted after card 4, remaining 3 persist temporarily and leave together.
 const C=[
- {a:rt(32.06),label:'LES PERSONNES',id:1},
- {a:rt(33.77),label:'PRÊTES À TE PAYER',id:2},
- {a:rt(36.08),label:'GAGNER DU TEMPS',id:3},
- {a:rt(37.52),label:"GAGNER DE L'ARGENT",id:4}
+ {a:rt(28.18),label:'1ER DES POINTS',id:1},
+ {a:rt(28.98),label:'2E DES POINTS',id:2},
+ {a:rt(30.08),label:'APPRENDRE QUELQUE CHOSE',id:3},
+ {a:rt(33.10),label:'PRÊTES À TE PAYER',id:4}
 ];
-const teardown=rt(41.05),evict=C[3].a+.23;
+const teardown=rt(35.85),evict=C[3].a+.23;
 const els=C.map((c,i)=>{
  const el=stage('chat id'+c.id,'bubble'+c.id,c.a,teardown,'semantic-chat-stack',c.label);
  el.dataset.sourceStatement='verbatim_or_excerpt';return el;
