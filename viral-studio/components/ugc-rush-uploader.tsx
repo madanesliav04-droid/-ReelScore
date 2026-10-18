@@ -1,7 +1,7 @@
 "use client";
 
 import {useEffect,useRef,useState} from "react";
-import {ArrowDown,ArrowUp,Check,Film,Trash2,UploadCloud} from "lucide-react";
+import {ArrowDown,ArrowUp,Check,Film,Trash2,UploadCloud,RotateCcw} from "lucide-react";
 import * as tus from "tus-js-client";
 import {SUPABASE_PROJECT_REF,VIDEO_BUCKET} from "@/lib/supabase";
 import {uploadParts,videoUploadPreflight,videoUploadErrorMessage} from "@/lib/upload-limits";
@@ -24,6 +24,7 @@ export function UgcRushUploader({ownerId,disabled,register,onChange,onError}:{
   const processing=useRef(false);
   const pending=useRef<Array<{key:string;file:File}>>([]);
   const filesRef=useRef<Map<string,File>>(new Map());
+  const [pickerHint,setPickerHint]=useState("");
 
   function update(next:UgcRush[]){
     listRef.current=next;
@@ -75,7 +76,12 @@ export function UgcRushUploader({ownerId,disabled,register,onChange,onError}:{
             request.setHeader("authorization","Bearer "+data.session.access_token);
           },
           onProgress:(sent)=>{if(!stopped.current)patch(key,{progress:Math.min(99,Math.round((part.start+sent)/file.size*100))});},
-          onError:(err)=>reject(new Error(videoUploadErrorMessage(Number((err as any)?.originalResponse?.getStatus?.()||0)))),
+          onError:(err)=>{
+            const status=Number((err as any)?.originalResponse?.getStatus?.()||0);
+            const detail=String(err?.message||"").slice(0,160);
+            reject(new Error(videoUploadErrorMessage(status)+(status?" (HTTP "+status+")":"")+
+              (status===0&&detail?" · "+detail:"")));
+          },
           onSuccess:()=>resolve()
         });
         activeUpload.current=upload;
@@ -114,6 +120,7 @@ export function UgcRushUploader({ownerId,disabled,register,onChange,onError}:{
     }finally{processing.current=false}
   }
   function addFiles(input:FileList|File[]|null){
+    setPickerHint("");
     if(!input||disabled)return;
     const newFiles=Array.from(input);
     const existing=new Set(listRef.current.map(x=>x.name+"-"+x.size+"-"+filesRef.current.get(x.id)?.lastModified));
@@ -135,6 +142,15 @@ export function UgcRushUploader({ownerId,disabled,register,onChange,onError}:{
     pending.current.push(...accepted);
     void drain();
   }
+  function retry(key:string){
+    if(disabled||processing.current&&listRef.current.find(x=>x.id===key)?.status==="uploading")return;
+    const rush=listRef.current.find(x=>x.id===key);
+    const file=filesRef.current.get(key);
+    if(!rush||rush.status!=="error"||!file)return;
+    patch(key,{status:"waiting",progress:0,message:"Nouvelle tentative…"});
+    pending.current.push({key,file});
+    void drain();
+  }
   function remove(key:string){
     if(listRef.current.find(x=>x.id===key)?.status==="uploading"){onError("Attends la fin de l’import en cours avant de supprimer ce rush.");return;}
     filesRef.current.delete(key);
@@ -151,14 +167,31 @@ export function UgcRushUploader({ownerId,disabled,register,onChange,onError}:{
   const ready=rushes.filter(x=>x.status==="ready").length;
   return <div className="ugc-uploader" data-testid="ugc-rush-uploader">
     <div className="ugc-uploader-head"><div><strong>Bibliothèque de rushes UGC</strong><p>Ajoute les plans de détails, d’ambiance, de produit et de résultat. Le rush principal reste séparé.</p></div><span>{ready}/{rushes.length} prêts</span></div>
-    <label className="ugc-batch-drop" onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();addFiles(e.dataTransfer.files);}}>
-      <input data-testid="ugc-file-input" type="file" multiple disabled={disabled} accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" onChange={e=>{addFiles(e.currentTarget.files);e.currentTarget.value="";}}/>
-      <UploadCloud size={22}/><span><strong>Ajouter plusieurs rushes</strong><small>Jusqu’à 40 vidéos · MP4, MOV, WebM · 500 Mo par vidéo</small></span>
-    </label>
+    <div className="ugc-picker-actions">
+      <label className="ugc-batch-drop ugc-picker-single" onClick={()=>setPickerHint("Choisis UNE vidéo dans Photos. Si 20 vidéos bloquent la photothèque, utilise ce mode plusieurs fois.")}>
+        <input data-testid="ugc-single-file-input" type="file" disabled={disabled}
+          accept="video/*,.mp4,.mov,.webm"
+          onChange={e=>{const files=e.currentTarget.files;addFiles(files);e.currentTarget.value="";}}/>
+        <UploadCloud size={22}/><span><strong>Importer 1 vidéo</strong><small>Le plus fiable sur iPhone · tu peux répéter l’opération</small></span>
+      </label>
+      <label className="ugc-batch-drop ugc-picker-batch" onClick={()=>setPickerHint("Sur iPhone, sélectionne 3 à 5 vidéos maximum dans Photos, ou utilise « Choisir un fichier » / Fichiers.")} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();addFiles(e.dataTransfer.files);}}>
+        <input data-testid="ugc-file-input" type="file" multiple disabled={disabled}
+          accept="video/*,.mp4,.mov,.webm"
+          onChange={e=>{addFiles(e.currentTarget.files);e.currentTarget.value="";}}/>
+        <UploadCloud size={22}/><span><strong>Importer un lot</strong><small>3–5 vidéos à la fois sur iPhone · jusqu’à 40 au total</small></span>
+      </label>
+      <label className="ugc-batch-drop ugc-picker-files" onClick={()=>setPickerHint("Choisis « Fichiers » dans le sélecteur iOS. Les fichiers doivent être enregistrés sur l’iPhone ou iCloud Drive.")} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();addFiles(e.dataTransfer.files);}}>
+        <input data-testid="ugc-files-input" type="file" multiple disabled={disabled}
+          onChange={e=>{addFiles(e.currentTarget.files);e.currentTarget.value="";}}/>
+        <UploadCloud size={22}/><span><strong>Importer depuis Fichiers</strong><small>Alternative si Photos se bloque · MP4, MOV, WebM</small></span>
+      </label>
+    </div>
+    {pickerHint&&<p role="status" className="ugc-picker-hint">{pickerHint}</p>}
     {rushes.length>0&&<div className="ugc-rush-list" role="list" aria-label="Rushes importés">
       {rushes.map((rush,i)=><div className="ugc-rush-item" role="listitem" key={rush.id}>
         <Film size={17}/><div className="ugc-rush-desc"><strong title={rush.name}>{rush.name}</strong><small>{(rush.size/1048576).toFixed(1)} Mo · {rush.message}</small>{rush.status==="uploading"&&<div className="ugc-rush-bar"><i style={{width:rush.progress+"%"}}/></div>}</div>
         <span className={"ugc-rush-state "+rush.status}>{rush.status==="ready"?<Check size={15}/>:rush.status==="uploading"?rush.progress+"%":rush.status==="error"?"Erreur":"…"}</span>
+        {rush.status==="error"&&<button type="button" className="ugc-rush-retry" title="Réessayer ce rush" onClick={()=>retry(rush.id)} disabled={disabled}><RotateCcw size={15}/> Réessayer</button>}
         <button type="button" title="Monter" disabled={disabled||i===0} onClick={()=>move(rush.id,-1)}><ArrowUp size={15}/></button>
         <button type="button" title="Descendre" disabled={disabled||i===rushes.length-1} onClick={()=>move(rush.id,1)}><ArrowDown size={15}/></button>
         <button type="button" title="Retirer" disabled={disabled||rush.status==="uploading"} onClick={()=>remove(rush.id)}><Trash2 size={15}/></button>
