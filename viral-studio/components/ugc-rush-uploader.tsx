@@ -25,6 +25,7 @@ export function UgcRushUploader({ownerId,disabled,register,onChange,onError}:{
   const pending=useRef<Array<{key:string;file:File}>>([]);
   const filesRef=useRef<Map<string,File>>(new Map());
   const [pickerHint,setPickerHint]=useState("");
+  const previousOwner=useRef(ownerId);
 
   function update(next:UgcRush[]){
     listRef.current=next;
@@ -39,10 +40,13 @@ export function UgcRushUploader({ownerId,disabled,register,onChange,onError}:{
     return ()=>{stopped.current=true;void activeUpload.current?.abort();};
   },[]);
   useEffect(()=>{
+    // A new user already starts with empty lists. Never clear rushes after the
+    // first file-selection event on Safari/Playwright just because mount effects run.
+    if(previousOwner.current===ownerId)return;
+    previousOwner.current=ownerId;
     pending.current=[];
     filesRef.current.clear();
     update([]);
-  // Reset only on account switch; never mix uploads between owners.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[ownerId]);
 
