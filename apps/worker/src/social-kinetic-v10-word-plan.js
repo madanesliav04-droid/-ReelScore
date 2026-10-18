@@ -18,7 +18,7 @@ function safeRect(proof,a,b) {
  const frames=(proof.frames||[]).filter(f=>finite(f.ms)&&f.ms>=a-160&&f.ms<=b+160)
   .sort((x,y)=>x.ms-y.ms);
  if(frames.length<3||frames[0].ms>a+250||frames.at(-1).ms<b-250)return null;
- if(frames.some((f,i)=>!(f.confidence>=.92)||f.subjectOverlap!==false||(i&&f.ms-frames[i-1].ms>600)))return null;
+ if(frames.some((f,i)=>!(f.confidence>=.92)||f.subjectOverlap!==false||f.protectedContentOverlap!==false||(i&&f.ms-frames[i-1].ms>600)))return null;
  return r;
 }
 function approvedMatches(words,phrase,sourceDuration){
