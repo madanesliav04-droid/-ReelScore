@@ -144,3 +144,27 @@ test('Edit+ only shows selected references and does not let pending models rende
   await expect(page.getByTestId('ugc-rush-uploader')).toBeVisible();
   await expect(page.getByTestId('ugc-file-input')).toHaveAttribute('multiple','');
 });
+
+test('iPhone UGC: one video, short batch, and Files fallback remain separate',async({page})=>{
+  await setup(page,other);
+  await page.route('**/storage/v1/upload/resumable',async route=>
+    route.fulfill({status:413,headers:{'Access-Control-Allow-Origin':'*'},body:'Part rejected'}));
+  await page.goto('/dashboard?tool=edit');
+  await page.locator('[data-model="ugc_native"]').click();
+  const single=page.getByTestId('ugc-single-file-input');
+  const batch=page.getByTestId('ugc-file-input');
+  const files=page.getByTestId('ugc-files-input');
+  await expect(single).not.toHaveAttribute('multiple','');
+  await expect(batch).toHaveAttribute('multiple','');
+  await expect(files).toHaveAttribute('multiple','');
+  await expect(page.getByText('Importer 1 vidéo')).toBeVisible();
+  await expect(page.getByText('Importer depuis Fichiers')).toBeVisible();
+  await single.setInputFiles({name:'single.mov',mimeType:'video/quicktime',buffer:Buffer.from('test-video')});
+  await expect(page.getByText('single.mov',{exact:true})).toBeVisible();
+  await batch.setInputFiles([
+    {name:'rush-1.mov',mimeType:'video/quicktime',buffer:Buffer.from('rush-1')},
+    {name:'rush-2.mp4',mimeType:'video/mp4',buffer:Buffer.from('rush-2')}
+  ]);
+  await expect(page.locator('.ugc-rush-item')).toHaveCount(3);
+  await expect(page.getByText(/0\/3 prêts/)).toBeVisible();
+});
