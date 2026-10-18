@@ -253,9 +253,13 @@ async function route(req:Request){
 
     // A focused public beta: exactly five available models for new jobs.
     // Historical exports and projects remain readable and untouched.
-    const allowedStyles=["codie","impact","clean","explainer","ugc_native","creator_clean","business_viral","hormozi_omni","social_kinetic"];
+    const allowedStyles=["codie","impact","clean","explainer","ugc_native","creator_clean","business_viral","hormozi_omni","social_kinetic","social_kinetic_v28"];
     const requestedStyle=String(body.style||"clean");
-    if(!allowedStyles.includes(requestedStyle))return out({error:"EDIT_MODEL_NOT_AVAILABLE",available_models:["codie","impact","clean","explainer","ugc_native","hormozi_omni","social_kinetic"]},422);
+    if(!allowedStyles.includes(requestedStyle))return out({error:"EDIT_MODEL_NOT_AVAILABLE",available_models:["codie","impact","clean","explainer","ugc_native","hormozi_omni","social_kinetic","social_kinetic_v28"]},422);
+    // A real model entry, but no public paid job while timing/face proof is unverified.
+    if(requestedStyle==="social_kinetic_v28"&&Deno.env.get("ENABLE_SOCIAL_KINETIC_V28")!=="staging")
+      return out({error:"EDIT_V28_AWAITING_VALIDATION",model:"social_kinetic_v28",
+        detail:"Montage V28 présent; rendu sur nouveaux rushes réservé aux tests avec paroles et placements vérifiés."},423);
     const canonicalStyle={creator_clean:"clean",business_viral:"impact"}[requestedStyle]||requestedStyle;
     const captionByModel={
       codie:"codie",
@@ -268,7 +272,8 @@ async function route(req:Request){
       cinematic_story:"cinematic",
       editorial_breakdown:"editorial",
        hormozi_omni:"impact",
-       social_kinetic:"social_kinetic"
+       social_kinetic:"social_kinetic",
+       social_kinetic_v28:"social_kinetic"
     };
     const caption=captionByModel[canonicalStyle]||"clean";
     const sourceAnalysisId=isUuid(body.analysis_id)?String(body.analysis_id):null;
