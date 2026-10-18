@@ -22,7 +22,7 @@ function proof(a,b){
  return {source:'independent_frame_sampler',verified:true,
   rect:{x:.58,y:.25,w:.35,h:.35},
   frames:Array.from({length:Math.ceil((b-a)/350)+2},(_,i)=>({
-    ms:a-100+i*350,confidence:.98,subjectOverlap:false
+    ms:a-100+i*350,confidence:.98,subjectOverlap:false,protectedContentOverlap:false
   }))};
 }
 const evidence={};
@@ -75,4 +75,17 @@ test('no reused trim offsets: cuts must be sorted and source word end must be in
  const bad={...timeline,keepRanges:[{startMs:2250,endMs:5000},{startMs:0,endMs:2050}]};
  const p=plan({timeline:bad});
  assert.equal(p.status,'blocked');
+});
+
+test('V10 holds graphics when a whiteboard or its handwriting would be covered',()=>{
+ const blockedFrames=Object.fromEntries(Object.entries(evidence).map(([id,p])=>
+   [id,{...p,frames:p.frames.map(f=>({...f,protectedContentOverlap:true}))}]));
+ const p=plan({frameProof:blockedFrames});
+ assert.equal(p.status,'blocked');
+ assert.ok(p.held.some(x=>x.reason==='INDEPENDENT_FACE_HAND_SAFE_ZONE_MISSING'));
+});
+test('V10 holds all captions on videos where board overlap has not been measured',()=>{
+ const unmeasuredFrames=Object.fromEntries(Object.entries(evidence).map(([id,p])=>
+   [id,{...p,frames:p.frames.map(f=>({...f,protectedContentOverlap:undefined}))}]));
+ assert.equal(plan({frameProof:unmeasuredFrames}).status,'blocked');
 });
