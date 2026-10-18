@@ -122,13 +122,14 @@ test('Edit+ only shows selected references and does not let pending models rende
   await setup(page,other);
   await page.goto('/dashboard?tool=edit');
   const cards=page.locator('.social-approved-model');
-  await expect(cards).toHaveCount(4);
+  await expect(cards).toHaveCount(5);
   await expect(cards.nth(0)).toContainText('Codie');
   await expect(cards.nth(1)).toContainText('Leila');
   await expect(cards.nth(2)).toContainText('Alex Hormozi');
-  await expect(cards.nth(3)).toContainText('Social Kinetic');
+  await expect(cards.nth(3)).toContainText('UGC Storytelling');
+  await expect(cards.nth(4)).toContainText('Social Kinetic');
   await expect(page.locator('[data-model="leila"]')).toBeDisabled();
-  for(const id of ['codie','hormozi_omni','social_kinetic'])
+  for(const id of ['codie','hormozi_omni','social_kinetic','ugc_native'])
     await expect(page.locator(`[data-model="${id}"]`)).toBeEnabled();
   await page.locator('[data-model="hormozi_omni"]').click();
   await expect(page.getByRole('button',{name:/Créer mon montage · Alex Hormozi/})).toBeDisabled();
@@ -138,5 +139,8 @@ test('Edit+ only shows selected references and does not let pending models rende
   await expect(page.locator('.social-approved-model-grid')).not.toContainText('Impact');
   await expect(page.locator('.social-approved-model-grid')).not.toContainText('Explainer');
   await expect(page.locator('.social-approved-model-grid')).not.toContainText('UGC Native');
-  await expect(page.getByText(/trois moteurs activés produisent un rendu bêta/)).toBeVisible();
+  await expect(page.getByText(/Les moteurs activés produisent un rendu bêta/)).toBeVisible();
+  await page.locator('[data-model="ugc_native"]').click();
+  await expect(page.getByTestId('ugc-rush-uploader')).toBeVisible();
+  await expect(page.getByTestId('ugc-file-input')).toHaveAttribute('multiple','');
 });
