@@ -110,20 +110,42 @@ function run(command,args){
  });
 }
 /** Mix from the untouched original voice in a video; never from a prior edited output. */
+/**
+ * V15 user-selected outgoing iMessage sound.
+ * A caller-provided reference sound may be used for PRIVATE PREVIEW only.
+ * Paid delivery requires rights verification for the supplied audio asset.
+ * No synthetic fallback: the user rejected the previous "bloup".
+ */
 export async function renderIOSAudioWithOriginalVoice({
-  postCutsSourceVideo,outputAudioFile,plan,durationMs,workDir
+ postCutsSourceVideo,outputAudioFile,plan,durationMs,
+ approvedSoundAssetPath,soundRightsVerified=false,privatePreviewOnly=false
 }={}){
- if(!postCutsSourceVideo||!outputAudioFile||!workDir)throw Error('IOS_SFX_BAD_ARGS');
- const sfxPath=path.join(workDir,'v15-ios-only-sfx.wav');
- await writeIOSBubbleSfxTrack({filePath:sfxPath,plan,durationMs});
+ if(!postCutsSourceVideo||!outputAudioFile||!plan?.cues?.length||
+    !Number.isFinite(durationMs)||durationMs<500)throw Error('IOS_SFX_BAD_ARGS');
+ if(!approvedSoundAssetPath)throw Error('IOS_SELECTED_SOUND_REQUIRED_NO_SYNTHETIC_FALLBACK');
+ if(!soundRightsVerified&&!privatePreviewOnly)
+   throw Error('IOS_SFX_COMMERCIAL_RIGHTS_NOT_VERIFIED');
+ const n=plan.cues.length;
+ const split=Array.from({length:n},(_,i)=>'[srcfx'+i+']').join('');
+ const setup='[1:a:0]aresample=48000,asetpts=PTS-STARTPTS,asplit='+n+split+';';
+ const filters=plan.cues.map((cue,i)=>{
+  const ms=Math.round(cue.timestampMs);
+  return '[srcfx'+i+']volume=0.65,adelay='+ms+'|'+ms+'[sound'+i+'];';
+ }).join('');
+ const inputs=plan.cues.map((_,i)=>'[sound'+i+']').join('');
+ const chain='[0:a:0]aresample=48000,asetpts=PTS-STARTPTS[voice];'
+    +setup+filters+'[voice]'+inputs+
+    'amix=inputs='+(n+1)+':duration=first:dropout_transition=0:normalize=0,'
+    +'alimiter=limit=0.85:level=0[a]';
  await run('ffmpeg',['-nostdin','-hide_banner','-loglevel','error','-y',
-  '-i',postCutsSourceVideo,'-i',sfxPath,
-  '-filter_complex','[0:a:0]aresample=48000,asetpts=PTS-STARTPTS[voice];'+
-   '[voice][1:a:0]amix=inputs=2:duration=first:dropout_transition=0:normalize=0,'+
-   'loudnorm=I=-16:TP=-1.2:LRA=9[a]',
-  '-map','[a]','-vn','-c:a','aac','-b:a','224k','-ar','48000',
+  '-i',postCutsSourceVideo,'-i',approvedSoundAssetPath,
+  '-filter_complex',chain,'-map','[a]','-vn','-c:a','aac',
+  '-b:a','224k','-ar','48000','-ac','2',
   '-t',String(durationMs/1000),outputAudioFile]);
- return {outputAudioFile,model:plan.version,voice:'original post-cuts only',
-  addedSounds:plan.cues.length,officialAppleAsset:false,
-  readyForCommercialUse:false};
+ return {outputAudioFile,model:'ios-sent-user-selection-v15',
+  voice:'original post-cuts only',addedSounds:n,
+  soundSource:'caller-supplied external asset',
+  licensedForCommercial:soundRightsVerified,
+  privatePreviewOnly:!soundRightsVerified,
+  readyForCommercialUse:soundRightsVerified};
 }
