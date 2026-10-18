@@ -53,10 +53,26 @@ export function assessSocialKineticV10CommercialRelease({
  fail('REFERENCE_VISUAL_REVIEW_NOT_APPROVED',
    review.humanReferenceComparison===true&&review.mobileReviewPassed===true&&
    review.sfxListeningApproved===true&&review.userApproved===true);
+ // Three different source hashes and three full, independently reviewed actual
+ // HyperFrames exports are required. Short remux/transcode smoke clips cannot
+ // be mislabelled as complete end-to-end premium video regressions.
+ const samples=Array.isArray(regression.sampleEvidence)?regression.sampleEvidence:[];
+ const uniques=new Set(samples.map(x=>String(x?.sha256||'').toLowerCase()));
+ const verifiedSamples=samples.length>=V10_MINIMUMS.minimumRealRushes&&
+   uniques.size===samples.length&&
+   samples.every(x=>/^[0-9a-f]{64}$/i.test(x?.sha256||'')&&
+     Number(x?.sourceWidth)>=320&&Number(x?.sourceHeight)>=240&&
+     x?.sourceFullDecodePassed===true&&x?.hyperframesFullEditPassed===true&&
+     x?.wordTimingAudioReviewed===true&&
+     x?.frameSafeVisualReviewed===true&&x?.finalAudioReviewed===true&&
+     x?.finalFullDecodePassed===true&&x?.mobileReviewPassed===true);
  fail('REAL_RUSH_REGRESSION_NOT_PROVEN',
    regression.realRushCount>=V10_MINIMUMS.minimumRealRushes&&
    regression.allPassed===true&&regression.failureCount===0&&
-   regression.portraitPassed===true&&regression.landscapePassed===true);
+   regression.portraitPassed===true&&regression.landscapePassed===true&&
+   verifiedSamples&&
+   samples.some(x=>x.sourceWidth>x.sourceHeight)&&
+   samples.some(x=>x.sourceHeight>x.sourceWidth));
  return {
   model:'social_kinetic_v10',
   admission:blocked.length?'BLOCKED':'APPROVED_FOR_PAID_DELIVERY',
