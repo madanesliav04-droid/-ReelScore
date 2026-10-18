@@ -168,3 +168,37 @@ test('iPhone UGC: one video, short batch, and Files fallback remain separate',as
   await expect(page.locator('.ugc-rush-item')).toHaveCount(3);
   await expect(page.getByText(/0\/3 prêts/)).toBeVisible();
 });
+
+test('UGC: seven already uploaded rushes can be selected and start a render without re-upload',async({page})=>{
+  await setup(page,other);
+  const saved=Array.from({length:7},(_,i)=>({
+    id:'d000000'+i+'-1111-4111-8111-111111111111',
+    original_name:'IMG_03'+String(26+i)+'.mov',size_bytes:18000000,
+    mime_type:'video/quicktime',status:'uploaded'
+  }));
+  let renderRequest:any=null;
+  await page.route('**/api/viral-edit-jobs/media',r=>{
+    if(r.request().method()==='GET')return r.fulfill({json:{media:saved}});
+    return r.fulfill({status:400,json:{error:'UNEXPECTED_UPLOAD'}});
+  });
+  await page.route('**/api/viral-edit-jobs/edit',r=>{
+    renderRequest=r.request().postDataJSON();
+    return r.fulfill({status:202,json:{job:{id:'ugc-qa-job',kind:'edit_render',status:'queued'}}});
+  });
+  await page.route('**/api/viral-edit-jobs/jobs/ugc-qa-job',r=>r.fulfill({json:{
+    job:{id:'ugc-qa-job',kind:'edit_render',status:'cancelled'}
+  }}));
+  await page.goto('/dashboard?tool=edit');
+  await page.locator('[data-model="ugc_native"]').click();
+  await expect(page.getByTestId('ugc-saved-library').getByText('7 retrouvées')).toBeVisible();
+  await expect(page.getByRole('button',{name:'Créer mon montage · UGC Storytelling'})).toBeDisabled();
+  const rows=page.locator('.ugc-saved-row');
+  await rows.nth(0).getByRole('button',{name:'Voix principale'}).click();
+  for(let i=1;i<7;i++)await rows.nth(i).getByRole('button',{name:'Ajouter'}).click();
+  await expect(page.getByRole('button',{name:'Créer mon montage · UGC Storytelling'})).toBeEnabled();
+  await page.getByRole('button',{name:'Créer mon montage · UGC Storytelling'}).click();
+  await expect.poll(()=>renderRequest).not.toBeNull();
+  expect(renderRequest.video_id).toBe(saved[0].id);
+  expect(renderRequest.style).toBe('ugc_native');
+  expect(renderRequest.settings.ugc_rush_video_ids).toEqual(saved.slice(1).map(x=>x.id));
+});
