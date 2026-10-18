@@ -1,0 +1,190 @@
+{
+  "title": "Social Kinetic source reconstruction V25",
+  "version": "25.0.0",
+  "caution": "Measured from compressed reference screenshot; never assert original authored keyframes. Adapt typography and semantic content to target. Source 55.1667s vs target 41.1s.",
+  "source": {
+    "width": 512,
+    "height": 288,
+    "fps": 30,
+    "frames": 1655,
+    "sourceCaptureCrop": {
+      "x": 0,
+      "y": 359,
+      "w": 512,
+      "h": 288
+    }
+  },
+  "target": {
+    "width": 910,
+    "height": 512,
+    "fps": 30,
+    "frames": 1233
+  },
+  "geometry": {
+    "xScale": 1.77734375,
+    "yScale": 1.7777777777777777,
+    "coordinates": "original cropped video, not Instagram UI"
+  },
+  "chat": {
+    "sourceFrames": {
+      "blueStarts": 308,
+      "blueLastVisible": 528,
+      "cleanupAt": 529
+    },
+    "stateOrder": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      3,
+      0
+    ],
+    "sampledBboxes": [
+      {
+        "f": 315,
+        "visible": 1,
+        "xywh": [
+          [
+            332,
+            193,
+            136,
+            36
+          ]
+        ]
+      },
+      {
+        "f": 369,
+        "visible": 2,
+        "xywh": [
+          [
+            334,
+            155,
+            134,
+            36
+          ],
+          [
+            352,
+            195,
+            116,
+            34
+          ]
+        ]
+      },
+      {
+        "f": 414,
+        "visible": 3,
+        "xywh": [
+          [
+            318,
+            101,
+            150,
+            36
+          ],
+          [
+            352,
+            141,
+            116,
+            36
+          ],
+          [
+            336,
+            183,
+            132,
+            46
+          ]
+        ]
+      },
+      {
+        "f": 486,
+        "visible": 4,
+        "xywh": [
+          [
+            316,
+            63,
+            152,
+            36
+          ],
+          [
+            317,
+            103,
+            151,
+            36
+          ],
+          [
+            336,
+            145,
+            132,
+            48
+          ],
+          [
+            350,
+            197,
+            118,
+            34
+          ]
+        ]
+      },
+      {
+        "f": 496,
+        "visible": 3,
+        "xywh": [
+          [
+            317,
+            101,
+            151,
+            36
+          ],
+          [
+            336,
+            143,
+            132,
+            46
+          ],
+          [
+            346,
+            195,
+            122,
+            36
+          ]
+        ]
+      }
+    ],
+    "criticalNote": "Fourth coexists ~9 frames then first exits. Reflow existing cards vertically; do not simply show four static bubbles. Coordinates are HSV-observed boxes, not true alpha vectors.",
+    "algorithm": "precompile deterministic FLIP states; seek(frame/30) must render identical result regardless evaluation order"
+  },
+  "greenRoughIntervals": [
+    [
+      0,
+      22
+    ],
+    [
+      30,
+      96
+    ],
+    [
+      729,
+      790
+    ],
+    [
+      862,
+      901
+    ]
+  ],
+  "targetGuards": {
+    "neverCopyReferenceNumericAmountsUnlessSpoken": true,
+    "metricModuleDisabledUnlessAmountsVerified": true,
+    "captionWordAlignmentRequiredForKaraoke": true,
+    "avoidFaceAndHands": true,
+    "audioSingleOriginalVoice": true
+  },
+  "sourceProof": "CAHIER_DES_CHARGES_SOCIAL_KINETIC_V25_MASTER.pdf + reference_motion_contract_v25.json in project archive",
+  "confidence": {
+    "blueGeometry": "measured",
+    "greenIntervals": "measured color-masked",
+    "fontFamily": "unverified",
+    "easing": "reconstructed",
+    "originalSFX": "unverified"
+  },
+  "release": "NOT COMMERCIALLY VERIFIED; QA final render and 3 Edit+ E2E rushes needed"
+}
