@@ -1,7 +1,7 @@
 name: EditPlus V27 — Official HyperFrames strict quality render
 on:
   push:
-    branches: [editplus-social-kinetic-v27-motion-rebuild-20261018]
+    branches: [editplus-social-kinetic-v27-strict-one-pass-20261018]
   pull_request:
     paths:
       - apps/worker/hyperframes/social-kinetic-v27-reference-motion/**
