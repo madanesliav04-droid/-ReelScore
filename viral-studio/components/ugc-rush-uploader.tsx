@@ -14,7 +14,7 @@ const mimeFor=(name:string)=>({mp4:"video/mp4",mov:"video/quicktime",webm:"video
 export function UgcRushUploader({ownerId,disabled,register,onChange,onError}:{
   ownerId:string;disabled:boolean;
   register:(details:{storage_path:string;mime_type:string;size_bytes:number;original_name:string;metadata?:any})=>Promise<{id:string}>;
-  onChange:(ids:string[])=>void;
+  onChange:(ids:string[],pending:boolean)=>void;
   onError:(reason:string)=>void;
 }){
   const [rushes,setRushes]=useState<UgcRush[]>([]);
@@ -28,7 +28,7 @@ export function UgcRushUploader({ownerId,disabled,register,onChange,onError}:{
   function update(next:UgcRush[]){
     listRef.current=next;
     setRushes(next);
-    onChange(next.filter(x=>x.status==="ready"&&x.mediaId).map(x=>x.mediaId!));
+    onChange(next.filter(x=>x.status==="ready"&&x.mediaId).map(x=>x.mediaId!),next.some(x=>x.status==="waiting"||x.status==="uploading"));
   }
   function patch(key:string,changes:Partial<UgcRush>){
     update(listRef.current.map(x=>x.id===key?{...x,...changes}:x));
