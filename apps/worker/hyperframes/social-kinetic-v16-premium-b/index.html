@@ -87,7 +87,7 @@ M.captions=meaningfulCaptions(M.captions);
 let count=0;
 for(const c of M.captions){
  if(withheld(c.a,c.b,heroIntervals)||false||withheld(c.a,c.b,stepIntervals))continue;
- const isRight=c.a>=7.1&&c.a<27.2;
+ const isRight=c.a>=7.1&&c.a<20.45;
  const el=add('phrase t'+(count%3)+(isRight?' right':''),'phrase'+count,'caption',c.a,c.b);count++;
  c.words.forEach((word,i)=>{const sp=document.createElement('span');sp.className='word';sp.textContent=word.text;el.append(sp);
    const a=Math.max(c.a,word.t);tl.fromTo(sp,{opacity:0,y:5},{opacity:1,y:0,duration:.18,ease:'power2.out',immediateRender:false},a);
