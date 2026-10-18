@@ -15,7 +15,15 @@ function passing(){
   review:{humanReferenceComparison:true,mobileReviewPassed:true,
     sfxListeningApproved:true,userApproved:true},
   regression:{realRushCount:3,allPassed:true,failureCount:0,portraitPassed:true,
-    landscapePassed:true}
+    landscapePassed:true,
+    // Artificial unit-test proofs, never production receipts.
+    sampleEvidence:[
+      {sha256:'a'.repeat(64),sourceWidth:512,sourceHeight:910},
+      {sha256:'b'.repeat(64),sourceWidth:910,sourceHeight:512},
+      {sha256:'c'.repeat(64),sourceWidth:910,sourceHeight:512}
+    ].map(x=>({...x,sourceFullDecodePassed:true,hyperframesFullEditPassed:true,
+      wordTimingAudioReviewed:true,frameSafeVisualReviewed:true,
+      finalAudioReviewed:true,finalFullDecodePassed:true,mobileReviewPassed:true}))}
  };
 }
 test('V10 commercial admission is blocked by default',()=>{
@@ -48,5 +56,25 @@ test('Commercial gate accepts original mono as well as original stereo when ever
  const x=passing();x.audio.sourceChannels=1;x.audio.channels=1;
  assert.equal(assessSocialKineticV10CommercialRelease(x).ready,true);
  x.audio.channels=2;
+ assert.equal(assessSocialKineticV10CommercialRelease(x).ready,false);
+});
+
+test('A third independent raw source does NOT count as 3 full autonomous HyperFrames edits',()=>{
+ const x=passing();
+ x.regression.sampleEvidence[2].hyperframesFullEditPassed=false;
+ assert.equal(assessSocialKineticV10CommercialRelease(x).ready,false);
+});
+test('Duplicate raw sources cannot inflate 3-rush regression count',()=>{
+ const x=passing();
+ x.regression.sampleEvidence[2].sha256=x.regression.sampleEvidence[1].sha256;
+ assert.equal(assessSocialKineticV10CommercialRelease(x).ready,false);
+});
+test('New whiteboard original smoke-pass with no word timestamps is still blocked',()=>{
+ const x=passing();
+ x.regression.sampleEvidence[2]={sha256:'5b05ad6e25080291a89a87ab6ad2f3e566787a7276994d6ed02949647e9f5bd9',
+   sourceWidth:910,sourceHeight:512,sourceFullDecodePassed:true,
+   pipelineSmokePassed:true,hyperframesFullEditPassed:false,
+   wordTimingAudioReviewed:false,frameSafeVisualReviewed:false,
+   finalAudioReviewed:false,finalFullDecodePassed:false,mobileReviewPassed:false};
  assert.equal(assessSocialKineticV10CommercialRelease(x).ready,false);
 });
