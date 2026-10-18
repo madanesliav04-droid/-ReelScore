@@ -10,7 +10,7 @@ import {MAX_VIDEO_UPLOAD_MIB,uploadParts,videoUploadPreflight,videoUploadErrorMe
 
 type Module="viral"|"edit"|"clip";
 type Job={id:string;kind?:string;status:string;progress?:number;stage?:string;result?:any;error?:any;error_code?:string;clip_project_id?:string|null};
-type Media={id:string;storage_path:string;mime_type:string;size_bytes:number;original_name?:string};
+type Media={id:string;storage_path?:string;mime_type:string;size_bytes:number;original_name?:string;status?:string;created_at?:string};
 type EditModel={id:string;name:string;category:string;preview:string;meta:string;goal:string;actions:string[];never:string;available:boolean;state:string};
 
 const VIRAL_METRICS=[
@@ -190,6 +190,11 @@ export function Dashboard(){
   const [editModel,setEditModel]=useState("codie");
   const [ugcRushIds,setUgcRushIds]=useState<string[]>([]);
   const [ugcRushPending,setUgcRushPending]=useState(false);
+  const [ugcLibrary,setUgcLibrary]=useState<Media[]>([]);
+  const [ugcLibraryIds,setUgcLibraryIds]=useState<string[]>([]);
+  const [ugcPrimaryMedia,setUgcPrimaryMedia]=useState<Media|null>(null);
+  const [ugcLibraryError,setUgcLibraryError]=useState("");
+  const [ugcLibraryLoading,setUgcLibraryLoading]=useState(false);
   const [format,setFormat]=useState("native");
   const [sourceUrl,setSourceUrl]=useState("");
   const sourceRef=useRef<HTMLVideoElement|null>(null);
@@ -220,7 +225,7 @@ export function Dashboard(){
     void uploadRef.current?.abort();
     uploadRef.current=null;uploadLocked.current=false;setUploading(false);
     setBusy(false);setJob(null);setMedia(null);setFile(null);setSourceUrl("");
-    setUgcRushIds([]);setUgcRushPending(false);
+    setUgcRushIds([]);setUgcRushPending(false);setUgcLibrary([]);setUgcLibraryIds([]);setUgcPrimaryMedia(null);
     setAnalysis(null);setClipMedia(null);setClipFile(null);setClipProject(null);
     setEditExportUrl("");setEditOutputMediaId("");setError("");
     setViralQuota(null);
@@ -244,9 +249,24 @@ export function Dashboard(){
     if(sourceUrl.startsWith("blob:"))URL.revokeObjectURL(sourceUrl);
   },[sourceUrl]);
 
+  useEffect(()=>{
+    if(!session?.user?.id||editModel!=="ugc_native")return;
+    let cancelled=false;
+    setUgcLibraryLoading(true);setUgcLibraryError("");
+    void api(functionUrl("viral-edit-jobs","media"),"")
+      .then(result=>{if(!cancelled)setUgcLibrary(Array.isArray(result?.media)?result.media:[])})
+      .catch(()=>{if(!cancelled)setUgcLibraryError("Impossible de retrouver les anciens rushes. Recharge cette page.")})
+      .finally(()=>{if(!cancelled)setUgcLibraryLoading(false)});
+    return ()=>{cancelled=true};
+  },[session?.user?.id,editModel]);
+
   const token=session?.access_token||"";
   const userId=session?.user?.id||"";
   const selectedModel=EDIT_MODELS.find(x=>x.id===editModel)||EDIT_MODELS[0];
+  const ugcReadyIds=Array.from(new Set([...ugcRushIds,...ugcLibraryIds]));
+  const ugcPrimaryId=media?.id||ugcPrimaryMedia?.id||ugcReadyIds[0]||"";
+  const ugcSecondaryIds=ugcReadyIds.filter(id=>id!==ugcPrimaryId);
+  const canCreateEdit=Boolean((editModel==="ugc_native"?ugcPrimaryId:media?.id)&&!busy&&!uploading&&!ugcRushPending&&selectedModel.available);
   const score=useMemo(()=>analysis?.final_score??analysis?.score??null,[analysis]);
   const safeZone=analysis?.safe_zone||null;
 
@@ -262,6 +282,8 @@ export function Dashboard(){
   function displayJobError(current:Job){
     const code=String(current?.error_code||"");
     if(code==="NO_CLIPS_FOUND")return "Aucun passage suffisamment fort n’a été détecté dans cette vidéo.";
+    if(code==="ASR_TIMING_INVALID")return "Les paroles n’ont pas pu être synchronisées avec fiabilité. Choisis un rush principal contenant une voix clairement audible.";
+    if(code.startsWith("UGC_"))return "Montage UGC interrompu : "+code+". Tes vidéos sont conservées. Vérifie le choix de la vidéo principale.";
     if(["YOUTUBE_EGRESS_REQUIRED","YOUTUBE_IMPORT_FAILED","YOUTUBE_UNAVAILABLE","IMPORT_CONFIGURATION_ERROR"].includes(code))return "YouTube bloque l’import automatique de cette source. Importe le fichier vidéo ci-dessous : Clip+ reprendra exactement le même pipeline de génération.";
     return "Le traitement n’a pas pu aboutir. Réessaie avec cette vidéo ou importe un autre fichier.";
   }
@@ -461,8 +483,12 @@ export function Dashboard(){
   }
 
   async function startEdit(autoFix=false){
-    if(busy||uploadLocked.current)return;if(!media)return setError("Importe d’abord une vidéo.");
+    if(busy||uploadLocked.current)return;
     const modelToUse=autoFix?"codie":editModel;
+    const videoId=modelToUse==="ugc_native"?ugcPrimaryId:media?.id;
+    if(!videoId)return setError(modelToUse==="ugc_native"?
+      "Importe au moins un rush, ou sélectionne une vidéo déjà stockée ci-dessous.":
+      "Importe d’abord une vidéo.");
     if(!["codie","hormozi_omni","social_kinetic","ugc_native"].includes(modelToUse))return setError("Ce modèle n’est pas encore raccordé au moteur. Aucun preset de remplacement ne sera lancé.");
 
     if(modelToUse==="ugc_native"&&ugcRushPending)return setError("Attends la fin de l’import des rushes secondaires.");
@@ -479,10 +505,10 @@ export function Dashboard(){
     setError("");setEditExportUrl("");setEditOutputMediaId("");setBusy(true);
     try{
       const body=await api(functionUrl("viral-edit-jobs","edit"),token,{method:"POST",body:JSON.stringify({
-        video_id:media.id,
-        analysis_id:analysis?.analysis_id||analysis?.id||null,
+        video_id:videoId,
+        analysis_id:media?.id===videoId?(analysis?.analysis_id||analysis?.id||null):null,
         style:modelToUse,
-        settings:{format,...(modelToUse==="ugc_native"?{ugc_rush_video_ids:ugcRushIds}: {})}
+        settings:{format,...(modelToUse==="ugc_native"?{ugc_rush_video_ids:ugcSecondaryIds}: {})}
       })});
       setJob(body.job);await watchJob(body.job.id);
     }catch(e:any){setError(e.message);setBusy(false)}
@@ -615,6 +641,38 @@ export function Dashboard(){
             onChange={(ids,pending)=>{setUgcRushIds(ids);setUgcRushPending(pending);}}
             onError={message=>setError(message)}
           />
+
+          <div className="ugc-ready-summary" role="status">
+            <strong>{ugcReadyIds.length} rush{ugcReadyIds.length!==1?"es":""} sélectionnés</strong>
+            <span>{ugcPrimaryId?"Vidéo principale choisie · "+ugcSecondaryIds.length+" plans secondaires":"Ajoute un rush ou réutilise une vidéo déjà importée."}</span>
+            <small>Sans vidéo principale distincte, le premier rush sélectionné fournira la voix. Place une vidéo avec des paroles audibles en premier.</small>
+          </div>
+          <div className="ugc-saved-library" data-testid="ugc-saved-library">
+            <div className="ugc-saved-head">
+              <strong>Vidéos déjà importées</strong>
+              <small>{ugcLibraryLoading?"Chargement…":ugcLibrary.length+" retrouvées"}</small>
+            </div>
+            {ugcLibraryError&&<p role="alert">{ugcLibraryError}</p>}
+            {!ugcLibraryLoading&&ugcLibrary.length===0&&<p>Aucun ancien rush retrouvé. Utilise les imports ci-dessus.</p>}
+            <div className="ugc-saved-list">
+              {ugcLibrary.slice(0,25).map(item=>{
+                const selected=ugcLibraryIds.includes(item.id);
+                const isPrimary=(ugcPrimaryMedia?.id===item.id||media?.id===item.id);
+                const alreadyAdded=ugcRushIds.includes(item.id);
+                return <div className="ugc-saved-row" key={item.id}>
+                  <div><strong>{item.original_name||"Vidéo"}</strong><small>{(Number(item.size_bytes||0)/1048576).toFixed(1)} Mo</small></div>
+                  <button type="button" disabled={busy} aria-pressed={isPrimary} className={isPrimary?"selected":""}
+                    onClick={()=>{setUgcPrimaryMedia(item);setUgcLibraryIds(ids=>ids.filter(x=>x!==item.id));setError("");}}>
+                    {isPrimary?"Principale ✓":"Voix principale"}
+                  </button>
+                  <button type="button" disabled={busy||alreadyAdded} aria-pressed={selected||alreadyAdded}
+                    onClick={()=>setUgcLibraryIds(ids=>selected?ids.filter(x=>x!==item.id):[...ids,item.id])}>
+                    {selected||alreadyAdded?"Ajouté ✓":"Ajouter"}
+                  </button>
+                </div>;
+              })}
+            </div>
+          </div>
         </section>}
 
         <section className="model-library">
@@ -631,8 +689,8 @@ export function Dashboard(){
             <div className="contract-avoid"><strong>À éviter</strong><p>{selectedModel.never}</p></div>
           </section>
           <label className="format-picker">Format de sortie {selectedModel.id==="hormozi_omni"&&<small>· Format natif obligatoire pour préserver le cadrage</small>} <select className="field" value={selectedModel.id==="hormozi_omni"?"native":format} onChange={e=>setFormat(e.target.value)} disabled={busy||selectedModel.id==="hormozi_omni"}><option value="native">Natif — conserver le format source</option><option value="portrait">Portrait — 1080 × 1920</option><option value="landscape">Paysage — 1920 × 1080</option></select></label>
-          <button className="btn primary create-edit" onClick={()=>void startEdit(false)} disabled={!media||busy||uploading||ugcRushPending||!selectedModel.available}><Clapperboard size={17}/> {busy&&job?.kind==="edit_render"?"Montage en cours…":`Créer mon montage · ${selectedModel.name}`}</button>
-          <p className="social-model-truth" role="note">{selectedModel.id==="hormozi_omni"?"Hormozi conserve obligatoirement le cadrage et le format de la source. Les animations fondées sur des preuves peuvent être absentes si l’analyse n’en fournit pas.":selectedModel.id==="social_kinetic"?"Social Kinetic : les animations n’apparaissent que si leurs mots, leurs timings et leur emplacement sont vérifiés.":"Codie bêta : le rendu V60 reste à comparer et à valider."}</p>
+          <button className="btn primary create-edit" onClick={()=>void startEdit(false)} disabled={!canCreateEdit}><Clapperboard size={17}/> {busy&&job?.kind==="edit_render"?"Montage en cours…":`Créer mon montage · ${selectedModel.name}`}</button>
+          <p className="social-model-truth" role="note">{selectedModel.id==="ugc_native"?"UGC : choisis une vidéo avec une voix dans « Voix principale ». Les autres rushes servent aux illustrations.":selectedModel.id==="hormozi_omni"?"Hormozi conserve obligatoirement le cadrage et le format de la source. Les animations fondées sur des preuves peuvent être absentes si l’analyse n’en fournit pas.":selectedModel.id==="social_kinetic"?"Social Kinetic : les animations n’apparaissent que si leurs mots, leurs timings et leur emplacement sont vérifiés.":"Codie bêta : le rendu V60 reste à comparer et à valider."}</p>
           <InlineJobState job={job?.kind==="edit_render"?job:null}/>
         </section>
       </>}
