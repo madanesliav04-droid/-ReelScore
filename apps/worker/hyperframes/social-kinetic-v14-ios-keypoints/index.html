@@ -28,7 +28,10 @@ html,body{margin:0;padding:0;width:910px;height:512px;background:transparent!imp
 .imsg .imsg-copy{font-weight:600;font-size:20px;letter-spacing:-.026em;color:#fff;
   line-height:1.14;overflow-wrap:break-word;max-width:240px;text-align:center;}
 .imsg.point0{top:202px}.imsg.point1{top:310px}
-.imsg.benefit0{top:170px}.imsg.benefit1{top:245px}.imsg.benefit2{top:320px}
+.imsg.benefit0{left:704px;top:182px;width:172px;min-height:62px;max-height:72px}
+.imsg.benefit1{left:704px;top:256px;width:172px;min-height:62px;max-height:72px}
+.imsg.benefit2{left:704px;top:330px;width:172px;min-height:62px;max-height:72px}
+.imsg.benefit .imsg-copy{font-size:18px}
 </style></head>
 <body><div id="root" data-composition-id="editplus-sk-v14-ios-keypoints-b" data-start="0" data-duration="42.030000" data-width="910" data-height="512" data-fps="30"><div id="shade"></div><div id="dynamic"></div></div>
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script><script>
@@ -42,9 +45,9 @@ M.heroes=M.heroes.filter((x)=>x.one!=="UN PROBLÈME");
 M.keypoints=[
  {a:27.57,b:32.34,type:"point",index:"01 · PREMIER POINT",text:"AIDER LES AUTRES À GAGNER",source:"ça c'est le 1er des points",reason:"point_1_explicit"},
  {a:30.17,b:35.21,type:"point",index:"02 · DEUXIÈME POINT",text:"APPRENDRE UNE COMPÉTENCE UTILE",source:"2e des points, tu dois apprendre quelque chose",reason:"point_2_explicit"},
- {a:36.08,b:41.23,type:"benefit",index:"",text:"FAIRE GAGNER DU TEMPS",source:"leur faire gagner du temps",reason:"benefit_1_enumeration"},
- {a:37.52,b:41.23,type:"benefit",index:"",text:"FAIRE GAGNER DE L’ARGENT",source:"leur faire gagner de l'argent",reason:"benefit_2_enumeration"},
- {a:39.53,b:41.23,type:"benefit",index:"",text:"RÉSOUDRE UN PROBLÈME",source:"résoudre un problème",reason:"benefit_3_enumeration"}
+ {a:36.08,b:40.17,type:"benefit",index:"",text:"GAGNER DU TEMPS",source:"leur faire gagner du temps",reason:"benefit_1_enumeration"},
+ {a:37.52,b:40.17,type:"benefit",index:"",text:"GAGNER DE L’ARGENT",source:"leur faire gagner de l'argent",reason:"benefit_2_enumeration"},
+ {a:39.53,b:40.17,type:"benefit",index:"",text:"RÉSOUDRE UN PROBLÈME",source:"résoudre un problème",reason:"benefit_3_enumeration"}
 ];
 const root=document.getElementById('dynamic');const tl=gsap.timeline({paused:true});
 function add(cls,id,kind,a,b,text){
