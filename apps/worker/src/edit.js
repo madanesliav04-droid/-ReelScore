@@ -52,7 +52,7 @@ export const CAPTION_PRESETS={
   ugc:{
     fontFamily:'Inter, Arial, sans-serif',fontWeight:850,fontSize:66,lineHeight:1,
     maxWordsPerLine:6,position:'middle_low',activeWord:true,
-    textColor:'#ffffff',activeColor:'#ff3fbf',stroke:4,shadow:true,background:true
+    textColor:'#ffffff',activeColor:'#dd635e',stroke:3,shadow:true,background:false
   }
 };
 
