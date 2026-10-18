@@ -127,7 +127,7 @@ export async function renderIOSAudioWithOriginalVoice({
    throw Error('IOS_SFX_COMMERCIAL_RIGHTS_NOT_VERIFIED');
  const n=plan.cues.length;
  const split=Array.from({length:n},(_,i)=>'[srcfx'+i+']').join('');
- const setup='[1:a:0]aresample=48000,asetpts=PTS-STARTPTS,asplit='+n+split+';';
+ const setup='[1:a:0]aresample=48000,atrim=start=0.105,asetpts=PTS-STARTPTS,afade=t=in:st=0:d=0.004,asplit='+n+split+';';
  const filters=plan.cues.map((cue,i)=>{
   const ms=Math.round(cue.timestampMs);
   return '[srcfx'+i+']volume=0.65,adelay='+ms+'|'+ms+'[sound'+i+'];';
@@ -142,9 +142,9 @@ export async function renderIOSAudioWithOriginalVoice({
   '-filter_complex',chain,'-map','[a]','-vn','-c:a','aac',
   '-b:a','224k','-ar','48000','-ac','2',
   '-t',String(durationMs/1000),outputAudioFile]);
- return {outputAudioFile,model:'ios-sent-user-selection-v15',
+ return {outputAudioFile,model:'ios-sent-v16-preroll-105ms-corrected',
   voice:'original post-cuts only',addedSounds:n,
-  soundSource:'caller-supplied external asset',
+  soundSource:'caller-supplied external asset',soundAttackTrimMs:105,
   licensedForCommercial:soundRightsVerified,
   privatePreviewOnly:!soundRightsVerified,
   readyForCommercialUse:soundRightsVerified};
