@@ -1,0 +1,54 @@
+name: Edit+ Social Kinetic V28 — integration proof
+on:
+  push:
+    branches: [editplus-integrate-social-kinetic-v28-20261018]
+  pull_request:
+    paths:
+      - apps/worker/src/social-kinetic-v28-*.js
+      - apps/worker/src/index.js
+      - apps/worker/src/edit.js
+      - apps/worker/tests/social-kinetic-v28-integration.test.mjs
+      - apps/worker/tests/fixtures/social-kinetic-v28-scene.mjs
+      - supabase/functions/viral-edit-jobs/index.ts
+      - .github/workflows/editplus-v28-integration.yml
+jobs:
+  v28-real-hyperframes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PUPPETEER_SKIP_DOWNLOAD: '1'
+      HYPERFRAMES_BROWSER_PATH: /usr/bin/chromium
+      PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium
+      CHROME_PATH: /usr/bin/chromium
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq chromium ffmpeg fonts-dejavu-core
+      - name: Install pinned worker dependencies
+        run: cd apps/worker && npm install --no-audit --no-fund
+      - name: Verify real V28 model and no-spoof QA
+        run: |
+          cd apps/worker
+          node --check src/index.js
+          node --check src/edit.js
+          node --check src/social-kinetic-v28-engine.js
+          node --check src/social-kinetic-v28-runtime.js
+          node --test tests/social-kinetic-v28-integration.test.mjs
+      - name: Build scene from independent sample words
+        run: node apps/worker/tests/fixtures/social-kinetic-v28-scene.mjs "$RUNNER_TEMP/v28-scene"
+      - name: Real HyperFrames lint and 5s render
+        run: |
+          cd "$RUNNER_TEMP/v28-scene"
+          "$GITHUB_WORKSPACE/apps/worker/node_modules/.bin/hyperframes" lint .
+          "$GITHUB_WORKSPACE/apps/worker/node_modules/.bin/hyperframes" render \
+            --format webm --quality draft --workers 2 --fps 30 \
+            --output "$RUNNER_TEMP/v28-synthetic-verified-scene.webm"
+          ffmpeg -nostdin -v error -xerror -i "$RUNNER_TEMP/v28-synthetic-verified-scene.webm" -f null -
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: editplus-v28-generalized-hyperframes-proof
+          path: ${{ runner.temp }}/v28-synthetic-verified-scene.webm
+          retention-days: 7

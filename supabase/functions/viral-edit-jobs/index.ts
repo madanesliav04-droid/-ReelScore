@@ -245,6 +245,22 @@ async function route(req:Request){
     }
   }
 
+  // Model catalog for the real Edit+ selector. V28 is not advertised as
+  // production-ready until verified end-to-end on three independent uploads.
+  if(req.method==="GET"&&tail[0]==="edit"&&tail[1]==="models"){
+    const v28Stage=Deno.env.get("ENABLE_SOCIAL_KINETIC_V28")==="staging";
+    return out({models:[
+      {id:"codie",label:"Codie",status:"available"},
+      {id:"hormozi_omni",label:"Hormozi OMNI",status:"available"},
+      {id:"ugc_native",label:"UGC Native",status:"available"},
+      {id:"social_kinetic",label:"Social Kinetic (historique)",status:"available"},
+      {id:"social_kinetic_v28",label:"Social Kinetic V28",
+        description:"Sous-titres V16 · animations vertes · bulles iOS liées aux paroles",
+        status:v28Stage?"staging":"verification_required",
+        can_render:v28Stage,requires:"verified_word_timestamps_and_independent_face_hand_safe_zones"}
+    ]});
+  }
+
   if(req.method==="POST"&&tail[0]==="edit"){
     const body=await req.json().catch(()=>null);
     if(!body||!isUuid(body.video_id))return out({error:"VIDEO_ID_REQUIRED"},400);
@@ -253,10 +269,16 @@ async function route(req:Request){
 
     // A focused public beta: exactly five available models for new jobs.
     // Historical exports and projects remain readable and untouched.
-    const allowedStyles=["codie","impact","clean","explainer","ugc_native","creator_clean","business_viral","hormozi_omni","social_kinetic"];
+    const allowedStyles=["codie","impact","clean","explainer","ugc_native","creator_clean","business_viral","hormozi_omni","social_kinetic","social_kinetic_v28"];
     const requestedStyle=String(body.style||"clean");
-    if(!allowedStyles.includes(requestedStyle))return out({error:"EDIT_MODEL_NOT_AVAILABLE",available_models:["codie","impact","clean","explainer","ugc_native","hormozi_omni","social_kinetic"]},422);
-    const canonicalStyle={creator_clean:"clean",business_viral:"impact"}[requestedStyle]||requestedStyle;
+    if(!allowedStyles.includes(requestedStyle))return out({error:"EDIT_MODEL_NOT_AVAILABLE",available_models:["codie","impact","clean","explainer","ugc_native","hormozi_omni","social_kinetic","social_kinetic_v28"]},422);
+    // A real model entry, but no public paid job while timing/face proof is unverified.
+    if(requestedStyle==="social_kinetic_v28"&&Deno.env.get("ENABLE_SOCIAL_KINETIC_V28")!=="staging")
+      return out({error:"EDIT_V28_AWAITING_VALIDATION",model:"social_kinetic_v28",
+        detail:"Montage V28 présent; rendu sur nouveaux rushes réservé aux tests avec paroles et placements vérifiés."},423);
+    // Keep the stable DB style; V28 is a job-level variant, not a new SQL enum value.
+    const canonicalStyle=requestedStyle==="social_kinetic_v28"?"social_kinetic":
+      ({creator_clean:"clean",business_viral:"impact"}[requestedStyle]||requestedStyle);
     const captionByModel={
       codie:"codie",
       impact:"impact",
@@ -268,7 +290,8 @@ async function route(req:Request){
       cinematic_story:"cinematic",
       editorial_breakdown:"editorial",
        hormozi_omni:"impact",
-       social_kinetic:"social_kinetic"
+       social_kinetic:"social_kinetic",
+       social_kinetic_v28:"social_kinetic"
     };
     const caption=captionByModel[canonicalStyle]||"clean";
     const sourceAnalysisId=isUuid(body.analysis_id)?String(body.analysis_id):null;
@@ -286,7 +309,8 @@ async function route(req:Request){
         settings:{
           ...(body.settings&&typeof body.settings==="object"?body.settings:{}),
           format,
-          model_contract_version:"editplus-focus-five-v4"
+          model_contract_version:"editplus-focus-five-v4",
+          ...(requestedStyle==="social_kinetic_v28"?{model_variant:"v28_verified_speech"}:{})
         }
       })
       .select("*")
@@ -297,9 +321,10 @@ async function route(req:Request){
       const job=await createJob(userDb,"edit_render",media.id,{
         edit_project_id:project.id,
         source_analysis_id:sourceAnalysisId,
-        style:canonicalStyle,
+        style:requestedStyle==="social_kinetic_v28"?"social_kinetic_v28":canonicalStyle,
         caption_preset:caption,
-        settings:{format,model_contract_version:"editplus-focus-five-v4"},
+        settings:{format,model_contract_version:"editplus-focus-five-v4",
+          ...(requestedStyle==="social_kinetic_v28"?{model_variant:"v28_verified_speech"}:{})},
         requested_at:new Date().toISOString()
       },`edit:${project.id}:${requestId}`);
       return out({project,job},202);

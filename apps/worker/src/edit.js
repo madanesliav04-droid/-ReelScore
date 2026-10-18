@@ -34,6 +34,13 @@ export const EDIT_STYLES={
   },
   creator_clean:null,business_viral:null,podcast_authority:null
 };
+// V28 is a versioned model, not a silent replacement of the legacy Social Kinetic.
+EDIT_STYLES.social_kinetic_v28={...EDIT_STYLES.social_kinetic,
+ label:'Social Kinetic V28',
+ promise:'Facecam native · sous-titres blancs V16 · impacts verts · bulles iOS sur paroles vérifiées',
+ captions:'social_kinetic',broll:{...EDIT_STYLES.social_kinetic.broll},
+ visualSignature:{...EDIT_STYLES.social_kinetic.visualSignature,mode:'social_kinetic_v28',accent:'#2E5F34'}
+};
 EDIT_STYLES.creator_clean=EDIT_STYLES.clean;
 EDIT_STYLES.business_viral=EDIT_STYLES.impact;
 EDIT_STYLES.podcast_authority=EDIT_STYLES.authority;
@@ -48,6 +55,7 @@ const GRAPHIC_TRIGGERS={
   ugc_native:'none: preserve natural phone-native video',
   cinematic_story:'none: rely on shots and timing, not auto-generated quote cards',
   social_kinetic:'verbatim-speech-only typography, exact spoken numbers, blue quote bubbles; independent safe-zone proof mandatory',
+  social_kinetic_v28:'V28 verified word timestamps, face/hand safe zones; blue iOS bullet on spoken phrase only; no hard-coded demonstrations',
   hormozi_omni:'evidence: real timed numbers, verified steps, sourced charts and comparisons; no invented graph or unsupported proof',
   editorial_breakdown:'editorial serif metrics, equations and comparison only when directly supported by spoken numbers; no fake data or decorative stock imagery'
 };
@@ -174,7 +182,7 @@ export const PREMIUM_MODEL_CONTRACTS=Object.freeze({
 });
 
 export function premiumModelContract(style){
-  const alias={creator_clean:'clean',business_viral:'impact'};
+  const alias={creator_clean:'clean',business_viral:'impact',social_kinetic_v28:'social_kinetic'};
   return PREMIUM_MODEL_CONTRACTS[alias[style]||style]||null;
 }
 
