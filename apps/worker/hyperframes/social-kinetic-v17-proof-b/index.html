@@ -9,6 +9,8 @@ html,body{margin:0;padding:0;width:910px;height:512px;background:transparent!imp
 .stage{position:absolute;opacity:0;pointer-events:none;will-change:transform,filter,opacity}
 .phrase{left:27px;top:304px;width:410px;color:#FFFFFF;font-family:"DejaVu Sans Condensed",Arial,sans-serif;font-weight:900;font-size:38px;line-height:1.07;letter-spacing:-.038em;-webkit-text-stroke:.82px #fff;text-shadow:0 2px 12px #000e,0 0 4px #000d}
 .phrase.t1{top:304px;left:27px}.phrase.t2{top:304px;left:27px}.phrase.right,.phrase.right.t1,.phrase.right.t2{top:286px;left:616px;width:275px;font-size:34px;line-height:1.11}
+.phrase.points,.phrase.points.t1,.phrase.points.t2{left:20px;top:318px;width:302px;font-size:33px;line-height:1.10}
+.phrase.benefits,.phrase.benefits.t1,.phrase.benefits.t2{left:22px;top:331px;width:308px;font-size:33px;line-height:1.10}
 .phrase .word{display:inline-block;white-space:nowrap;opacity:0;margin-right:.18em;will-change:transform,opacity}
 .hero{left:22px;top:96px;width:372px;text-align:left}
 .hero .pre{font-size:28px;font-weight:800;color:#FBFBFC;text-shadow:0 2px 9px #000b;letter-spacing:-.04em;line-height:1;opacity:0}
@@ -91,7 +93,9 @@ let count=0;
 for(const c of M.captions){
  if(withheld(c.a,c.b,heroIntervals)||withheld(c.a,c.b,stepIntervals))continue;
  const isRight=c.a>=7.1&&c.a<20.45;
- const el=add('phrase t'+(count%3)+(isRight?' right':''),'phrase'+count,'caption',c.a,c.b);count++;
+ const inPoints=c.a>=27.2&&c.a<35.35;
+ const inBenefits=c.a>=35.35&&c.a<41.35;
+ const el=add('phrase t'+(count%3)+(isRight?' right':inPoints?' points':inBenefits?' benefits':''),'phrase'+count,'caption',c.a,c.b);count++;
  // A word-level animation is allowed only when actual provider timestamps
  // were verified. This V17 has interpolated timings, so make the whole phrase
  // visible at once; false karaoke synchronisation is worse than honest captions.
