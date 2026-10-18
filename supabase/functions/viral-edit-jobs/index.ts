@@ -268,9 +268,9 @@ async function route(req:Request){
 
     // A focused public beta: exactly five available models for new jobs.
     // Historical exports and projects remain readable and untouched.
-    const allowedStyles=["codie","impact","clean","explainer","ugc_native","creator_clean","business_viral","hormozi_omni","social_kinetic"];
+    const allowedStyles=["codie","impact","clean","explainer","ugc_native","creator_clean","business_viral","hormozi_omni","social_kinetic","leila"];
     const requestedStyle=String(body.style||"clean");
-    if(!allowedStyles.includes(requestedStyle))return out({error:"EDIT_MODEL_NOT_AVAILABLE",available_models:["codie","impact","clean","explainer","ugc_native","hormozi_omni","social_kinetic"]},422);
+    if(!allowedStyles.includes(requestedStyle))return out({error:"EDIT_MODEL_NOT_AVAILABLE",available_models:["codie","impact","clean","explainer","ugc_native","hormozi_omni","social_kinetic","leila"]},422);
     const canonicalStyle={creator_clean:"clean",business_viral:"impact"}[requestedStyle]||requestedStyle;
     const captionByModel={
       codie:"codie",
@@ -283,7 +283,8 @@ async function route(req:Request){
       cinematic_story:"cinematic",
       editorial_breakdown:"editorial",
        hormozi_omni:"impact",
-       social_kinetic:"social_kinetic"
+       social_kinetic:"social_kinetic",
+       leila:"leila_editorial"
     };
     const caption=captionByModel[canonicalStyle]||"clean";
     const sourceAnalysisId=isUuid(body.analysis_id)?String(body.analysis_id):null;
