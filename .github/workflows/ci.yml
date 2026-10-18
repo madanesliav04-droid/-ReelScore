@@ -51,6 +51,7 @@ jobs:
           node --check src/social-kinetic-reference-v4.js
           node --check src/social-kinetic-v4-runtime.js
           node --check src/social-kinetic-v10-release.js
+          node --check src/social-kinetic-v15-ios-audio.js
           node --check src/social-kinetic-v10-score.js
           node --check src/social-kinetic-v10-word-plan.js
           node --check src/social-kinetic-v10-runtime.js
@@ -58,7 +59,7 @@ jobs:
       - name: ASR timings and no-premature-reveal regression tests
         working-directory: apps/worker
         run: |
-          node --test test/alex-v7-audio-captions.test.js test/hyperframes-speech-sync.test.js test/hyperframes-story-first-gate.test.js test/alex-v8-release.test.js test/social-kinetic-reference-v4.test.js test/social-kinetic-v10-release.test.js test/social-kinetic-v10-score.test.js test/social-kinetic-v10-word-plan.test.js
+          node --test test/alex-v7-audio-captions.test.js test/hyperframes-speech-sync.test.js test/hyperframes-story-first-gate.test.js test/alex-v8-release.test.js test/social-kinetic-reference-v4.test.js test/social-kinetic-v10-release.test.js test/social-kinetic-v10-score.test.js test/social-kinetic-v15-ios-audio.test.js test/social-kinetic-v10-word-plan.test.js
 
   alex-v7-hyperframes-visual-proof:
     runs-on: ubuntu-latest
@@ -389,3 +390,4 @@ jobs:
           name: social-kinetic-v14-ios-actual-hyperframes
           path: ${{ runner.temp }}/social-kinetic-v14-ios.webm
           retention-days: 7
+
