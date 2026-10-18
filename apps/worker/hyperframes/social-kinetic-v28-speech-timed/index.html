@@ -26,7 +26,7 @@ html,body{margin:0;width:910px;height:512px;overflow:hidden;background:transpare
 .chat.id1{width:232px;left:625px;min-height:55px}
 .chat.id2{width:224px;left:633px;min-height:55px}
 .chat.id3{width:245px;left:612px;min-height:61px}
-.chat.id4{width:225px;left:632px;min-height:57px}
+.chat.id4{width:208px;left:678px;min-height:57px}
 .checklist{left:31px;top:67px;width:312px;font:800 22px/1.25 "DejaVu Sans Condensed",Arial,sans-serif;color:#f9faf9;text-shadow:0 2px 8px #000c}
 .checklist .checkline{display:block;margin:0 0 9px;opacity:0;white-space:nowrap}
 .checklist .tick{color:#F9F9F9;padding-right:9px;font-size:20px}
@@ -110,39 +110,35 @@ for(let i=0;i<groups.length;i++){
  captions++;
 }
 // Spatial no-overlap contract: existing stack reflows 220-240ms before each arrival.
-// Exactly four message cards. Source user actually says these four statements.
-// True reference choreography: new card bottom, older cards reflow upwards; card 1
-// is evicted after card 4, remaining 3 persist temporarily and leave together.
+// V28 strict content and timing: two short semantic sequences, NOT 4 stacked
+// in front of the speaker's face. Only bubble graphics are changed.
 const C=[
- {a:rt(29.78),label:'APPRENDRE QUELQUE CHOSE',id:1},
+ {a:rt(30.2423),label:'APPRENDRE QUELQUE CHOSE',id:1},
  {a:rt(33.08),label:'PRÊTES À TE PAYER',id:2},
  {a:rt(36.08),label:'GAGNER DU TEMPS',id:3},
  {a:rt(37.52),label:"GAGNER DE L'ARGENT",id:4}
 ];
-// Remove cards before the subject's final face lean.
-const teardown=rt(38.00),evict=C[3].a+.18;
 const els=C.map((c,i)=>{
- const el=stage('chat id'+c.id,'bubble'+c.id,c.a,teardown,'semantic-chat-stack',c.label);
- el.dataset.sourceStatement='verbatim_or_excerpt';return el;
+ const endTime=i<2?C[2].a-.1:(i===2?C[3].a-.02:rt(38.4));
+ const el=stage('chat id'+c.id,'bubble'+c.id,c.a,endTime,'spoken-semantic-bubble',c.label);
+ el.dataset.sourceStatement='verified_token_in_historical_transcript';
+ return el;
 });
-function send(i,at,finalY) {
- tl.fromTo(els[i],{opacity:0,x:11,y:finalY-345+12,scale:.965,filter:'blur(1px)'},{opacity:1,x:0,y:finalY-345,scale:1,filter:'blur(0px)',duration:.23,ease:'power2.out',immediateRender:false},at);
+function send(i,at,finalY){
+ tl.fromTo(els[i],{opacity:0,x:11,y:finalY-345+11,scale:.965,filter:'blur(1px)'},
+ {opacity:1,x:0,y:finalY-345,scale:1,filter:'blur(0px)',duration:.23,ease:'power2.out',immediateRender:false},at);
 }
 send(0,C[0].a,345);
+// First two related ideas are stacked to reference-style 1→2.
 tl.to(els[0],{y:270-345,duration:.22,ease:'power2.inOut'},C[1].a-.22);
 send(1,C[1].a,350);
-tl.to(els[0],{y:197-345,duration:.24,ease:'power2.inOut'},C[2].a-.24);
-tl.to(els[1],{y:273-345,duration:.24,ease:'power2.inOut'},C[2].a-.24);
-send(2,C[2].a,349);
-tl.to(els[0],{y:115-345,duration:.24,ease:'power2.inOut'},C[3].a-.24);
-tl.to(els[1],{y:191-345,duration:.24,ease:'power2.inOut'},C[3].a-.24);
-tl.to(els[2],{y:270-345,duration:.24,ease:'power2.inOut'},C[3].a-.24);
-send(3,C[3].a,350);
-// Uppermost card exits, remaining stack reflows like the reference 4→3.
-tl.to(els[0],{opacity:0,x:-9,duration:.14,ease:'power2.in'},evict);
-tl.to(els[1],{y:202-345,duration:.28,ease:'power2.inOut'},evict);
-tl.to(els[2],{y:274-345,duration:.28,ease:'power2.inOut'},evict);
-for(let i=1;i<4;i++)tl.to(els[i],{opacity:0,y:'-=8',duration:.20,ease:'power2.in'},Math.max(C[3].a+.55,teardown-.42));
+for(const i of [0,1])tl.to(els[i],{opacity:0,y:'-=6',duration:.20,ease:'power2.in'},C[2].a-.32);
+// Later spoken benefits: one message at a time, below the face.
+// Keeping four visible simultaneously would cover the user's face at 35.6–36.9s.
+send(2,C[2].a,365);
+tl.to(els[2],{opacity:0,y:'-=7',duration:.18,ease:'power2.in'},C[3].a-.22);
+send(3,C[3].a,375);
+tl.to(els[3],{opacity:0,y:'-=7',duration:.18,ease:'power2.in'},rt(38.40)-.18);
 // V27: distinct two-line checklist, only after corresponding concepts are SPOKEN.
 // Placed above and to the left of the speaker, far from the chat stack and face.
 const checklistStart=rt(36.08),checklistSecond=rt(37.52),checklistEnd=rt(38.42);
