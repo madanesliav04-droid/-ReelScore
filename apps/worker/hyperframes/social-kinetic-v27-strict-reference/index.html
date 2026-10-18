@@ -109,6 +109,7 @@ for(let i=0;i<groups.length;i++){
  tl.to(e,{opacity:0,y:-3,duration:.12,ease:'power2.in'},Math.max(c.a+.23,b-.12));
  captions++;
 }
+// Spatial no-overlap contract: existing stack reflows 220-240ms before each arrival.
 // Exactly four message cards. Source user actually says these four statements.
 // True reference choreography: new card bottom, older cards reflow upwards; card 1
 // is evicted after card 4, remaining 3 persist temporarily and leave together.
@@ -127,14 +128,14 @@ function send(i,at,finalY) {
  tl.fromTo(els[i],{opacity:0,x:11,y:finalY-345+12,scale:.965,filter:'blur(1px)'},{opacity:1,x:0,y:finalY-345,scale:1,filter:'blur(0px)',duration:.23,ease:'power2.out',immediateRender:false},at);
 }
 send(0,C[0].a,345);
-tl.to(els[0],{y:270-345,duration:.29,ease:'power2.inOut'},C[1].a);
+tl.to(els[0],{y:270-345,duration:.22,ease:'power2.inOut'},C[1].a-.22);
 send(1,C[1].a,350);
-tl.to(els[0],{y:197-345,duration:.30,ease:'power2.inOut'},C[2].a);
-tl.to(els[1],{y:273-345,duration:.30,ease:'power2.inOut'},C[2].a);
+tl.to(els[0],{y:197-345,duration:.24,ease:'power2.inOut'},C[2].a-.24);
+tl.to(els[1],{y:273-345,duration:.24,ease:'power2.inOut'},C[2].a-.24);
 send(2,C[2].a,349);
-tl.to(els[0],{y:115-345,duration:.27,ease:'power2.inOut'},C[3].a);
-tl.to(els[1],{y:191-345,duration:.27,ease:'power2.inOut'},C[3].a);
-tl.to(els[2],{y:270-345,duration:.27,ease:'power2.inOut'},C[3].a);
+tl.to(els[0],{y:115-345,duration:.24,ease:'power2.inOut'},C[3].a-.24);
+tl.to(els[1],{y:191-345,duration:.24,ease:'power2.inOut'},C[3].a-.24);
+tl.to(els[2],{y:270-345,duration:.24,ease:'power2.inOut'},C[3].a-.24);
 send(3,C[3].a,350);
 // Uppermost card exits, remaining stack reflows like the reference 4→3.
 tl.to(els[0],{opacity:0,x:-9,duration:.14,ease:'power2.in'},evict);
