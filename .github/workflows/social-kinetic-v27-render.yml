@@ -4,7 +4,7 @@ on:
     branches: [editplus-social-kinetic-v27-strict-one-pass-20261018]
   pull_request:
     paths:
-      - apps/worker/hyperframes/social-kinetic-v27-reference-motion/**
+      - apps/worker/hyperframes/social-kinetic-v27-strict-reference/**
       - .github/workflows/social-kinetic-v27-render.yml
 jobs:
   render-v27:
@@ -29,7 +29,7 @@ jobs:
       - name: Official full V27 alpha render
         run: |
           set -euo pipefail
-          cd apps/worker/hyperframes/social-kinetic-v27-reference-motion
+          cd apps/worker/hyperframes/social-kinetic-v27-strict-reference
           "$GITHUB_WORKSPACE/apps/worker/node_modules/.bin/hyperframes" lint .
           "$GITHUB_WORKSPACE/apps/worker/node_modules/.bin/hyperframes" render \
             --format webm --quality draft --workers 2 --fps 30 \
