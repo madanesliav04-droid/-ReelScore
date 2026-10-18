@@ -9,6 +9,10 @@ export const EDIT_STYLES={
     pace:'narrative',silenceThresholdMs:780,maxPunchInsPer30s:4,punchScale:1.10,
     captions:'authority',broll:'reinforce_only',soundDesign:'minimal'
   },
+  leila:{
+    pace:'editorial',silenceThresholdMs:999999,maxPunchInsPer30s:0,punchScale:1,
+    captions:'leila_editorial',broll:'none',soundDesign:'minimal'
+  },
   ugc_native:{
     pace:'narrative_fast',silenceThresholdMs:650,maxPunchInsPer30s:3,punchScale:1.045,
     captions:'ugc',broll:'user_rushes',soundDesign:'natural'
@@ -49,6 +53,11 @@ export const CAPTION_PRESETS={
     maxWordsPerLine:7,position:'lower_third',activeWord:true,
     textColor:'#ffffff',activeColor:'#ff9b45',stroke:4,shadow:true,background:false
   },
+  leila_editorial:{
+    fontFamily:'Georgia, Times New Roman, serif',fontWeight:500,fontSize:40,lineHeight:1.12,
+    maxWordsPerLine:6,position:'lower_third',activeWord:true,
+    textColor:'#f8f5ef',activeColor:'#f8f5ef',stroke:0,shadow:true,background:false
+  },
   ugc:{
     fontFamily:'Inter, Arial, sans-serif',fontWeight:850,fontSize:66,lineHeight:1,
     maxWordsPerLine:6,position:'middle_low',activeWord:true,
@@ -71,7 +80,7 @@ export function buildEditTimeline({
   const words=Array.isArray(analysis?.transcript?.words)?analysis.transcript.words:[];
   const silences=Array.isArray(analysis?.measurable?.silenceWindows)?analysis.measurable.silenceWindows:[];
 
-  const removals=[
+  const removals=style==='leila'?[]:[
     ...silenceRemovalWindows(silences,styleCfg.silenceThresholdMs,durationMs),
     ...fillerRemovalWindows(words,durationMs)
   ];
@@ -83,6 +92,16 @@ export function buildEditTimeline({
     .map(w=>mapWord(w,keepRanges))
     .filter(Boolean);
   const captions=groupCaptions(mappedWords,captionCfg.maxWordsPerLine);
+  if(style==='leila'&&mappedWords.length<3){
+    throw new Error('LEILA_TRANSCRIPT_REQUIRED: transcription mot à mot indisponible, montage interrompu sans texte inventé.');
+  }
+  const sourceWidth=Number(analysis?.measurable?.width)||1080;
+  const sourceHeight=Number(analysis?.measurable?.height)||1920;
+  const sourceLong=Math.max(sourceWidth,sourceHeight);
+  const factor=Math.min(1,1920/sourceLong);
+  const nativeWidth=Math.max(2,Math.round(sourceWidth*factor/2)*2);
+  const nativeHeight=Math.max(2,Math.round(sourceHeight*factor/2)*2);
+  const leilaScenes=style==='leila'?buildLeilaScenes(mappedWords,outputDurationMs):[];
 
   const punchIns=buildPunchIns({
     editorialTimeline:Array.isArray(analysis?.timeline)?analysis.timeline:[],
@@ -115,15 +134,46 @@ export function buildEditTimeline({
     captions,
     punchIns,
     brollCues,
+    leilaScenes,
     audio:{
       normalize:true,
-      targetLufs:-14,
+      targetLufs:style==='leila'?-16:-14,
       limiterDb:-1
     },
     export:{
-      width:1080,height:1920,fps:30,codec:'h264',pixelFormat:'yuv420p'
+      width:style==='leila'?nativeWidth:1080,height:style==='leila'?nativeHeight:1920,fps:30,codec:'h264',pixelFormat:'yuv420p'
     }
   };
+}
+
+// Only spoken, word-timed excerpts may become editorial glass panels.
+export function buildLeilaScenes(words,durationMs){
+  const items=(words||[]).filter(w=>Number.isFinite(w.startMs)&&Number.isFinite(w.endMs)&&w.endMs>w.startMs&&String(w.text||'').trim());
+  const normalize=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9€$]/g,'');
+  const candidates=[];
+  const triggers=[
+    {test:/^(question|pourquoi|comment|probleme|erreur|wrong|why|how)$/,kind:'QUESTION'},
+    {test:/^(aider|aide|aidons|help|helps|helping|solution|resoudre)$/,kind:'SOLUTION'},
+    {test:/^(apprendre|apprends|apprentissage|learn|learning|competence|skill)$/,kind:'MÉTHODE'},
+    {test:/^(argent|gagner|euros|dollars|temps|minutes|heures|money|time|hours|profit)$/,kind:'VALEUR'}
+  ];
+  for(let i=0;i<items.length;i++){
+    const token=normalize(items[i].text);
+    const match=triggers.find(t=>t.test.test(token));
+    if(!match)continue;
+    const first=Math.max(0,i-2),last=Math.min(items.length,i+5);
+    const span=items.slice(first,last).filter((w,j,a)=>j===0||w.startMs-a[j-1].endMs<600);
+    if(!span.length)continue;
+    const start=Math.max(0,items[i].startMs-90);
+    const end=Math.min(durationMs,Math.max(start+1300,Math.min(start+2850,span.at(-1).endMs+350)));
+    if(candidates.some(x=>Math.abs(x.startMs-start)<2200))continue;
+    candidates.push({startMs:start,endMs:end,label:match.kind,lines:[
+      items.slice(i,Math.min(items.length,i+3)).map(w=>w.text).join(' ').trim(),
+      span.map(w=>w.text).join(' ').trim()
+    ].filter(Boolean)});
+    if(candidates.length>=Math.ceil(durationMs/6500))break;
+  }
+  return candidates.filter(s=>s.startMs+350<durationMs);
 }
 
 function silenceRemovalWindows(silences,thresholdMs,durationMs){
