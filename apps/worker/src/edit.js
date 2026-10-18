@@ -9,6 +9,10 @@ export const EDIT_STYLES={
     pace:'narrative',silenceThresholdMs:780,maxPunchInsPer30s:4,punchScale:1.10,
     captions:'authority',broll:'reinforce_only',soundDesign:'minimal'
   },
+  ugc_native:{
+    pace:'narrative_fast',silenceThresholdMs:650,maxPunchInsPer30s:3,punchScale:1.045,
+    captions:'ugc',broll:'user_rushes',soundDesign:'natural'
+  },
   business_viral:{
     pace:'fast',silenceThresholdMs:520,maxPunchInsPer30s:8,punchScale:1.12,
     captions:'creator',broll:'contextual',soundDesign:'moderate'
