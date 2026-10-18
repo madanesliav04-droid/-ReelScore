@@ -262,3 +262,7 @@
 .ugc-saved-row button.selected,.ugc-saved-row button[aria-pressed="true"]{border-color:#b5ebc077;background:#8fe5ae17;color:#bcebc7}
 .ugc-saved-row button:disabled{opacity:.6;cursor:not-allowed}
 @media(max-width:480px){.ugc-saved-row{gap:5px;padding:8px 6px}.ugc-saved-row button{font-size:10px;padding:7px 6px}.ugc-saved-head{flex-wrap:wrap}}
+
+.ugc-saved-batch-select{width:100%;border-radius:12px;padding:13px 15px;border:1px solid #a2e1ba8a;color:#d6f5df;background:#98dbaf1c;font-weight:750;cursor:pointer;font-size:13px;text-align:center}
+.ugc-saved-batch-select:disabled{opacity:.45;cursor:not-allowed}
+.ugc-saved-batch-select:hover:not(:disabled){background:#98dbaf2c}
