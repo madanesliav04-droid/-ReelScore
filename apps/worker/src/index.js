@@ -10,6 +10,7 @@ import {createClient} from '@supabase/supabase-js';
 import {analyzeVideo,SCORE_VERSION} from './viral.js';
 import {decodedSourceFingerprint,probeFingerprintSource} from './viral-fingerprint.js';
 import {buildEditTimeline} from './edit.js';
+import {composeUgcRushes} from './ugc-rush-compositor.js';
 import {buildAlexV7AudioPlan} from './alex-v7-audio-captions.js';
 import {buildAlexV8ReleasePlan,assertAlexV8Deployment} from './alex-v8-release.js';
 import {buildSocialKineticReferenceV4Plan} from './social-kinetic-reference-v4.js';
@@ -596,6 +597,45 @@ async function runEdit(job,media,sourcePath,dir){
   }
   const timelineAudit=validateEditTimeline(timeline);
   timeline.releaseGate={policy:'editplus-beta-gates-v1',transcript:transcriptAudit,timeline:timelineAudit,brollRejected:mediaRights.rejected};
+  let ugcEditingSourcePath=sourcePath;
+  if(selectedStyle==='ugc_native'){
+    const ids=payload.settings?.ugc_rush_video_ids??project.settings?.ugc_rush_video_ids??[];
+    if(!Array.isArray(ids)||ids.length>40||new Set(ids).size!==ids.length||
+       ids.some(x=>typeof x!=='string'||x===job.video_id)){
+      throw tagged('UGC_INVALID_RUSH_LIST','Invalid or repeated UGC source IDs');
+    }
+    const rushPaths=[];
+    for(let i=0;i<ids.length;i++){
+      const item=await one('media_assets',
+        'id,user_id,storage_bucket,storage_path,original_name,mime_type,size_bytes,metadata,status',ids[i]);
+      if(!item||item.user_id!==job.user_id||
+        item.storage_bucket!=='viralplus-videos'||
+        !String(item.mime_type||'').startsWith('video/')){
+        throw tagged('UGC_RUSH_ACCESS_DENIED','Rush owner or format mismatch');
+      }
+      const local=path.join(dir,'ugc-source-'+i+extensionFor(item.mime_type,item.original_name));
+      await downloadStorageObject({
+        bucket:item.storage_bucket,storagePath:item.storage_path,outputPath:local,
+        multipartParts:item.metadata?.multipart?.parts
+      });
+      rushPaths.push(local);
+      await progress(job,'processing',10+Math.round(10*(i+1)/Math.max(1,ids.length)),
+        'Import du rush UGC '+(i+1)+'/'+ids.length);
+    }
+    if(rushPaths.length>0){
+      const composition=await composeUgcRushes({
+        sourcePath,rushPaths,outputPath:path.join(dir,'ugc-composite.mp4'),workDir:dir,
+        onProgress:async(i,total,stage)=>progress(job,'processing',
+          22+Math.round(3*(i+1)/Math.max(1,total)),stage)
+      });
+      ugcEditingSourcePath=composition.outputPath;
+      timeline.ugcMultirush={
+        voiceSourceId:job.video_id,secondaryMediaIds:ids,placements:composition.placements,
+        unusedCount:composition.unusedCount,timingPolicy:'rhythm_and_user_priority_v1',
+        semanticShotSelectionVerified:false
+      };
+    }
+  }
   const {error:timelineError}=await supabase
     .from('edit_timelines')
     .upsert({
@@ -641,7 +681,7 @@ async function runEdit(job,media,sourcePath,dir){
   );
 
   await preprocessVideo({
-    inputPath:sourcePath,
+    inputPath:ugcEditingSourcePath,
     outputPath:preparedPath,
     keepRanges:timeline.keepRanges,
     sourceDurationMs:
