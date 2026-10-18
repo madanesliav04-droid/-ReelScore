@@ -193,7 +193,8 @@ test('UGC: seven already uploaded rushes can be selected and start a render with
   await expect(page.getByTestId('ugc-saved-library').getByText('7 retrouvées')).toBeVisible();
   await expect(page.getByRole('button',{name:'Créer mon montage · UGC Storytelling'})).toBeDisabled();
   const rows=page.locator('.ugc-saved-row');
-  await rows.nth(0).getByRole('button',{name:'Voix principale'}).click();
+  await rows.nth(0).getByRole('button',{name:'Choisir comme principale'}).click();
+  await expect(page.getByRole('button',{name:'Créer mon montage · UGC Storytelling'})).toBeDisabled();
   for(let i=1;i<7;i++)await rows.nth(i).getByRole('button',{name:'Ajouter'}).click();
   await expect(page.getByRole('button',{name:'Créer mon montage · UGC Storytelling'})).toBeEnabled();
   await page.getByRole('button',{name:'Créer mon montage · UGC Storytelling'}).click();
