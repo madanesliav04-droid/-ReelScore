@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import {planUsefulIOSBloopSounds,synthIOSLikeBloop,writeIOSBubbleSfxTrack} from '../src/social-kinetic-v15-ios-audio.js';
+import {planUsefulIOSBloopSounds,synthIOSLikeBloop,writeIOSBubbleSfxTrack,renderIOSAudioWithOriginalVoice} from '../src/social-kinetic-v15-ios-audio.js';
 const events=[
  [27570,'point_1_explicit','1er des points'],
  [30170,'point_2_explicit','2e des points'],
@@ -63,4 +63,21 @@ test('Five bubble cues yield a real stereo WAV with silence outside meaningful m
   const onset=44+Math.round(27.625*48000)*4;
   assert.notEqual(raw.readInt16LE(onset),0);
  }finally{await fs.rm(dir,{recursive:true,force:true})}
+});
+
+test('Selected genuine-sound mode forbids silent fallback to rejected synthetic bloup',async()=>{
+ const plan=planUsefulIOSBloopSounds({durationMs:42030,events});
+ await assert.rejects(
+  renderIOSAudioWithOriginalVoice({
+   postCutsSourceVideo:'original.mp4',outputAudioFile:'test.aac',
+   plan,durationMs:42030,privatePreviewOnly:true
+  }),/IOS_SELECTED_SOUND_REQUIRED_NO_SYNTHETIC_FALLBACK/);
+});
+test('Unlicensed authentic sound cannot be included in paid exports',async()=>{
+ const plan=planUsefulIOSBloopSounds({durationMs:42030,events});
+ await assert.rejects(
+  renderIOSAudioWithOriginalVoice({
+   postCutsSourceVideo:'original.mp4',outputAudioFile:'test.aac',
+   plan,durationMs:42030,approvedSoundAssetPath:'apple-system.m4a'
+  }),/IOS_SFX_COMMERCIAL_RIGHTS_NOT_VERIFIED/);
 });
