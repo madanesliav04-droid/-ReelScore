@@ -14,6 +14,12 @@ html,body{margin:0;padding:0;width:910px;height:512px;background:transparent!imp
 .hero .pre{font-size:28px;font-weight:800;color:#FBFBFC;text-shadow:0 2px 9px #000b;letter-spacing:-.04em;line-height:1;opacity:0}
 .hero .big{font-family:Arial,"DejaVu Sans Condensed",sans-serif;font-size:70px;font-weight:900;letter-spacing:-.056em;line-height:.90;color:#214C29;paint-order:stroke fill;-webkit-text-stroke:.45px #CEDFC9;text-shadow:0 3px 3px #0003,0 1px 2px #dceeca4c;opacity:0;margin-top:6px}
 .hero .big.long{font-size:54px;line-height:1.01;letter-spacing:-.045em}
+/* The speaker's raised left hand collides with hero #2 in V16/V17a.
+   Place that point in the empty right wall, reference-style. */
+.hero.hero1{left:620px;top:92px;width:269px}
+.hero.hero1 .pre{font-size:22px;line-height:1.12}
+.hero.hero1 .big,.hero.hero1 .big.long{font-size:44px;line-height:1.0;letter-spacing:-.049em}
+
 /* Authentic iMessage-style outgoing bubbles: thin, centered, 1-2 concise lines.
    Not decorative chat. Each payload is a grounded enumeration / benefit. */
 .imsg{position:absolute;left:604px;width:270px;min-height:62px;max-height:108px;
@@ -101,7 +107,7 @@ for(const c of M.captions){
  tl.to(el,{opacity:0,y:-3,duration:.16,ease:'power2.in'},Math.max(c.a+.25,c.b-.15));
 }
 for(let i=0;i<M.heroes.length;i++){
- const h=M.heroes[i],el=add('hero','hero'+i,'impact',h.a,h.b);
+ const h=M.heroes[i],el=add('hero hero'+i,'hero'+i,'impact',h.a,h.b);
  const pre=document.createElement('div');pre.className='pre';pre.textContent=h.two;
  const big=document.createElement('div');big.className='big'+(h.one.length>13?' long':'');big.textContent=h.one;
  el.append(pre,big);
