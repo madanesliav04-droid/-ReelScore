@@ -247,3 +247,18 @@
 .ugc-rush-item button.ugc-rush-retry{display:flex;align-items:center;gap:4px;font-size:11px;background:#7ccda828;padding:7px 8px;color:#ceead9;white-space:nowrap}
 @media(min-width:780px){.ugc-picker-actions{grid-template-columns:repeat(3,minmax(0,1fr))}.ugc-picker-actions .ugc-batch-drop{padding:15px 13px;align-items:flex-start}}
 @media(max-width:480px){.ugc-picker-actions{gap:9px}.ugc-picker-actions .ugc-batch-drop{min-height:76px;padding:14px}.ugc-rush-item button.ugc-rush-retry{font-size:0;padding:6px}.ugc-rush-item button.ugc-rush-retry svg{height:16px;width:16px}}
+
+/* UGC saved rushes can be reused after iPhone refresh, with a deliberate narration source. */
+.ugc-ready-summary{display:grid;gap:6px;background:#94d8b90b;border:1px solid #95cdb63f;padding:14px;border-radius:12px;font-size:13px}
+.ugc-ready-summary strong{font-weight:750;color:#e4f3ea}.ugc-ready-summary span{color:#b8d9c9}.ugc-ready-summary small{font-size:12px;color:#90a99b;line-height:1.5}
+.ugc-saved-library{display:grid;gap:11px;padding-top:8px;min-width:0}
+.ugc-saved-head{display:flex;align-items:center;justify-content:space-between;gap:12px}.ugc-saved-head strong{font-size:15px}.ugc-saved-head small{font-size:12px;color:#9fb4af}
+.ugc-saved-list{display:grid;gap:7px;max-height:370px;overflow:auto}
+.ugc-saved-row{display:flex;align-items:center;gap:9px;padding:9px;background:#ffffff06;border:1px solid #ffffff12;border-radius:11px;min-width:0}
+.ugc-saved-row>div{flex:1;min-width:0;display:grid;gap:4px}
+.ugc-saved-row>div strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:#e6f0ea}
+.ugc-saved-row>div small{font-size:11px;color:#95a99e}
+.ugc-saved-row button{flex:none;padding:8px 10px;border-radius:8px;border:1px solid #ffffff2a;background:#ffffff0c;color:#cbd8d3;cursor:pointer;font-size:11px}
+.ugc-saved-row button.selected,.ugc-saved-row button[aria-pressed="true"]{border-color:#b5ebc077;background:#8fe5ae17;color:#bcebc7}
+.ugc-saved-row button:disabled{opacity:.6;cursor:not-allowed}
+@media(max-width:480px){.ugc-saved-row{gap:5px;padding:8px 6px}.ugc-saved-row button{font-size:10px;padding:7px 6px}.ugc-saved-head{flex-wrap:wrap}}
