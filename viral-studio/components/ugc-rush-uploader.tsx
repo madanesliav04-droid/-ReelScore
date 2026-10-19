@@ -4,7 +4,7 @@ import {useEffect,useRef,useState} from "react";
 import {ArrowDown,ArrowUp,Check,Film,Trash2,UploadCloud,RotateCcw} from "lucide-react";
 import * as tus from "tus-js-client";
 import {SUPABASE_PROJECT_REF,VIDEO_BUCKET} from "@/lib/supabase";
-import {uploadParts,videoUploadPreflight,videoUploadErrorMessage} from "@/lib/upload-limits";
+import {MAX_VIDEO_UPLOAD_MB,uploadParts,videoUploadPreflight,videoUploadErrorMessage} from "@/lib/upload-limits";
 
 export type UgcRush={id:string;name:string;size:number;mediaId:string|null;status:"waiting"|"uploading"|"ready"|"error";progress:number;message:string};
 const MAX_RUSHES=40;
@@ -176,13 +176,13 @@ export function UgcRushUploader({ownerId,disabled,register,onChange,onError}:{
         <input data-testid="ugc-single-file-input" type="file" disabled={disabled}
           accept="video/*,.mp4,.mov,.webm"
           onChange={e=>{const files=e.currentTarget.files;addFiles(files);e.currentTarget.value="";}}/>
-        <UploadCloud size={22}/><span><strong>Importer 1 vidéo</strong><small>Le plus fiable sur iPhone · tu peux répéter l’opération</small></span>
+        <UploadCloud size={22}/><span><strong>Importer 1 vidéo</strong><small>Max {MAX_VIDEO_UPLOAD_MB} Mo par vidéo · tu peux répéter l’opération</small></span>
       </label>
       <label className="ugc-batch-drop ugc-picker-batch" onClick={()=>setPickerHint("Sur iPhone, sélectionne 3 à 5 vidéos maximum dans Photos, ou utilise « Choisir un fichier » / Fichiers.")} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();addFiles(e.dataTransfer.files);}}>
         <input data-testid="ugc-file-input" type="file" multiple disabled={disabled}
           accept="video/*,.mp4,.mov,.webm"
           onChange={e=>{addFiles(e.currentTarget.files);e.currentTarget.value="";}}/>
-        <UploadCloud size={22}/><span><strong>Importer un lot</strong><small>3–5 vidéos à la fois sur iPhone · jusqu’à 40 au total</small></span>
+        <UploadCloud size={22}/><span><strong>Importer un lot</strong><small>3–5 vidéos à la fois · {MAX_VIDEO_UPLOAD_MB} Mo max chacune · jusqu’à 40 au total</small></span>
       </label>
       <label className="ugc-batch-drop ugc-picker-files" onClick={()=>setPickerHint("Choisis « Fichiers » dans le sélecteur iOS. Les fichiers doivent être enregistrés sur l’iPhone ou iCloud Drive.")} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();addFiles(e.dataTransfer.files);}}>
         <input data-testid="ugc-files-input" type="file" multiple disabled={disabled}
