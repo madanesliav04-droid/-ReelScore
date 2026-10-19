@@ -114,7 +114,7 @@ export function buildEditTimeline({
     .filter(Boolean);
   const captions=groupCaptions(mappedWords,captionCfg.maxWordsPerLine);
   if((style==='leila'||style==='cinematic_story')&&mappedWords.length<3){
-    throw new Error('LEILA_TRANSCRIPT_REQUIRED: transcription mot à mot indisponible, montage interrompu sans texte inventé.');
+    throw new Error('EDIT_TRANSCRIPT_REQUIRED: transcription mot à mot indisponible, montage interrompu sans texte inventé.');
   }
   const sourceWidth=Number(analysis?.measurable?.width)||1080;
   const sourceHeight=Number(analysis?.measurable?.height)||1920;
