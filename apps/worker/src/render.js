@@ -7,6 +7,31 @@ import {spawn} from 'node:child_process';
 import {bundle} from '@remotion/bundler';
 import {renderMedia,selectComposition} from '@remotion/renderer';
 
+// Sample background regions, not the whole frame, to keep captions readable.
+export function captionColorForLuma(luma){
+  if(!Number.isFinite(Number(luma)))return {ink:'#f8f5ef',mode:'light',confidence:'unknown'};
+  return Number(luma)>=145
+    ?{ink:'#292522',mode:'dark',confidence:'sampled'}
+    :{ink:'#f8f5ef',mode:'light',confidence:'sampled'};
+}
+export async function sampleBackgroundLuma(inputPath,atSeconds=3){
+  const result=async(side)=>{
+    const vf=side==='left'
+      ?'crop=iw*0.24:ih*0.48:0:ih*0.20,scale=1:1:flags=area,format=gray'
+      :'crop=iw*0.24:ih*0.48:iw*0.76:ih*0.20,scale=1:1:flags=area,format=gray';
+    return new Promise(resolve=>{
+      const p=spawn('ffmpeg',['-v','error','-ss',String(atSeconds),'-i',inputPath,
+        '-vf',vf,'-frames:v','1','-f','rawvideo','pipe:1'],{stdio:['ignore','pipe','pipe']});
+      let data=Buffer.alloc(0);
+      p.stdout.on('data',b=>{if(data.length<4)data=Buffer.concat([data,b]).subarray(0,4);});
+      p.on('error',()=>resolve(null));
+      p.on('close',code=>resolve(code===0&&data.length>0?data[0]:null));
+    });
+  };
+  const [left,right]=await Promise.all([result('left'),result('right')]);
+  return {left,right};
+}
+
 const here=path.dirname(fileURLToPath(import.meta.url));
 const entryPoint=path.resolve(here,'../remotion/index.jsx');
 let bundlePromise=null;
