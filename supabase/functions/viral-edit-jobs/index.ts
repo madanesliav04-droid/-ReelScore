@@ -266,11 +266,11 @@ async function route(req:Request){
     const media=await ownMedia(db,user.id,String(body.video_id));
     if(!media)return out({error:"MEDIA_NOT_FOUND"},404);
 
-    // A focused public beta: exactly five available models for new jobs.
+    // Allow only explicitly connected beta models. Historical projects remain readable.
     // Historical exports and projects remain readable and untouched.
-    const allowedStyles=["codie","impact","clean","explainer","ugc_native","creator_clean","business_viral","hormozi_omni","social_kinetic","leila"];
+    const allowedStyles=["codie","impact","clean","explainer","ugc_native","creator_clean","business_viral","hormozi_omni","social_kinetic","leila","cinematic_story"];
     const requestedStyle=String(body.style||"clean");
-    if(!allowedStyles.includes(requestedStyle))return out({error:"EDIT_MODEL_NOT_AVAILABLE",available_models:["codie","impact","clean","explainer","ugc_native","hormozi_omni","social_kinetic","leila"]},422);
+    if(!allowedStyles.includes(requestedStyle))return out({error:"EDIT_MODEL_NOT_AVAILABLE",available_models:["codie","impact","clean","explainer","ugc_native","hormozi_omni","social_kinetic","leila","cinematic_story"]},422);
     const canonicalStyle={creator_clean:"clean",business_viral:"impact"}[requestedStyle]||requestedStyle;
     const captionByModel={
       codie:"codie",
@@ -289,7 +289,8 @@ async function route(req:Request){
     const caption=captionByModel[canonicalStyle]||"clean";
     const sourceAnalysisId=isUuid(body.analysis_id)?String(body.analysis_id):null;
     const requestId=crypto.randomUUID();
-    const format=["native","portrait","landscape"].includes(body.settings?.format)?body.settings.format:"native";
+    const format=canonicalStyle==="cinematic_story"?"native":
+      ["native","portrait","landscape"].includes(body.settings?.format)?body.settings.format:"native";
     const rawRushes=body?.settings?.ugc_rush_video_ids;
     if(rawRushes!==undefined&&canonicalStyle!=="ugc_native")return out({error:"UGC_RUSHES_REQUIRE_UGC_STYLE"},422);
     if(rawRushes!==undefined&&!Array.isArray(rawRushes))return out({error:"INVALID_UGC_RUSH_LIST"},422);
@@ -306,7 +307,7 @@ async function route(req:Request){
       totalRushBytes+=Number(rush.size_bytes)||0;
       if(totalRushBytes>3*1024*1024*1024)return out({error:"UGC_BATCH_TOO_LARGE"},422);
     }
-    const editSettings={format,model_contract_version:"editplus-ugc-multirush-v1",...(canonicalStyle==="ugc_native"?{ugc_rush_video_ids:rushIds}:{})};
+    const editSettings={format,model_contract_version:canonicalStyle==="cinematic_story"?"editplus-cinematic-evidence-v1":"editplus-ugc-multirush-v1",...(canonicalStyle==="ugc_native"?{ugc_rush_video_ids:rushIds}:{})};
 
     const {data:project,error:projectError}=await db.from("edit_projects")
       .insert({
