@@ -3,7 +3,8 @@
 import {useEffect,useRef,useState} from "react";
 import {ArrowDown,ArrowUp,Check,Film,Trash2,UploadCloud,RotateCcw} from "lucide-react";
 import * as tus from "tus-js-client";
-import {SUPABASE_PROJECT_REF,VIDEO_BUCKET} from "@/lib/supabase";
+import {SUPABASE_PROJECT_REF,VIDEO_BUCKET,supabase,functionUrl} from "@/lib/supabase";
+import {uploadToR2} from "@/lib/r2-upload";
 import {MAX_VIDEO_UPLOAD_MB,uploadParts,videoUploadPreflight,videoUploadErrorMessage} from "@/lib/upload-limits";
 
 export type UgcRush={id:string;name:string;size:number;mediaId:string|null;status:"waiting"|"uploading"|"ready"|"error";progress:number;message:string};
@@ -13,13 +14,14 @@ const mimeFor=(name:string)=>({mp4:"video/mp4",mov:"video/quicktime",webm:"video
 
 export function UgcRushUploader({ownerId,disabled,register,onChange,onError}:{
   ownerId:string;disabled:boolean;
-  register:(details:{storage_path:string;mime_type:string;size_bytes:number;original_name:string;metadata?:any})=>Promise<{id:string}>;
+  register:(details:{storage_path:string;mime_type:string;size_bytes:number;original_name:string;storage_provider?:string;metadata?:any})=>Promise<{id:string}>;
   onChange:(ids:string[],pending:boolean)=>void;
   onError:(reason:string)=>void;
 }){
   const [rushes,setRushes]=useState<UgcRush[]>([]);
   const listRef=useRef<UgcRush[]>([]);
   const activeUpload=useRef<tus.Upload|null>(null);
+  const activeR2Upload=useRef<XMLHttpRequest|null>(null);
   const stopped=useRef(false);
   const processing=useRef(false);
   const pending=useRef<Array<{key:string;file:File}>>([]);
@@ -37,7 +39,7 @@ export function UgcRushUploader({ownerId,disabled,register,onChange,onError}:{
   }
   useEffect(()=>{
     stopped.current=false;
-    return ()=>{stopped.current=true;void activeUpload.current?.abort();};
+    return ()=>{stopped.current=true;void activeUpload.current?.abort();activeR2Upload.current?.abort();};
   },[]);
   useEffect(()=>{
     // A new user already starts with empty lists. Never clear rushes after the
@@ -50,9 +52,45 @@ export function UgcRushUploader({ownerId,disabled,register,onChange,onError}:{
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[ownerId]);
 
+  async function r2Api(route:string,data?:object){
+    const {data:sessionData,error}=await supabase.auth.getSession();
+    const token=sessionData.session?.access_token;
+    if(error||!token||sessionData.session?.user.id!==ownerId)throw new Error("Session expirée.");
+    const response=await fetch(functionUrl("viral-edit-jobs",route),{
+      method:data?"POST":"GET",
+      headers:{Authorization:"Bearer "+token,...(data?{"Content-Type":"application/json"}:{})},
+      ...(data?{body:JSON.stringify(data)}:{})
+    });
+    const result=await response.json().catch(()=>({}));
+    if(!response.ok)throw new Error(String(result.error||"R2_NOT_AVAILABLE"));
+    return result;
+  }
   async function uploadOne(key:string,file:File){
     const mime=mimeFor(file.name);
     if(!mime)throw new Error("Format vidéo non reconnu.");
+    const storage=await r2Api("storage-config");
+    if(storage.provider==="r2"){
+      patch(key,{status:"uploading",progress:0,message:"Import R2 en cours"});
+      const ticket=await r2Api("r2-upload-ticket",{
+        size_bytes:file.size,mime_type:mime,original_name:file.name
+      });
+      if(!ticket?.storage_path||!ticket?.signed_upload_url)throw new Error("Autorisation R2 indisponible.");
+      await uploadToR2({
+        url:ticket.signed_upload_url,file,mime,
+        onRequest:xhr=>{activeR2Upload.current=xhr;},
+        onProgress:p=>{if(!stopped.current)patch(key,{progress:p});}
+      });
+      activeR2Upload.current=null;
+      if(stopped.current||!listRef.current.some(x=>x.id===key))return;
+      patch(key,{progress:99,message:"Vérification R2"});
+      const result=await register({
+        storage_provider:"r2",storage_path:ticket.storage_path,
+        mime_type:mime,size_bytes:file.size,original_name:file.name
+      });
+      if(!result?.id)throw new Error("Enregistrement R2 impossible.");
+      patch(key,{status:"ready",progress:100,mediaId:result.id,message:"Prêt"});
+      return;
+    }
     const parts=uploadParts(file.size);
     const multipart=parts.length>1;
     const safeName=file.name.replace(/[^a-zA-Z0-9._-]+/g,"-").slice(-100);
@@ -119,7 +157,7 @@ export function UgcRushUploader({ownerId,disabled,register,onChange,onError}:{
           const msg=String(e?.message||"Import interrompu.");
           patch(next.key,{status:"error",message:msg});
           onError(next.file.name+" : "+msg);
-        }finally{activeUpload.current=null}
+        }finally{activeUpload.current=null;activeR2Upload.current=null}
       }
     }finally{processing.current=false}
   }

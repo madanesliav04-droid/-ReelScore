@@ -9,6 +9,7 @@ import {randomUUID} from 'node:crypto';
 import {createClient} from '@supabase/supabase-js';
 import {analyzeVideo} from './viral.js';
 import {buildEditTimeline} from './edit.js';
+import {r2Settings,r2Presign} from './r2-sign.js';
 import {validateTimedWords} from './word-timing.js';
 import {composeUgcRushes} from './ugc-rush-compositor.js';
 import {
@@ -362,7 +363,7 @@ async function runEdit(job,media,sourcePath,dir){
         'id,user_id,storage_bucket,storage_path,original_name,mime_type,size_bytes,metadata,status',
         ids[index]
       );
-      if(!item||item.user_id!==job.user_id||item.storage_bucket!=='viralplus-videos'||!String(item.mime_type||'').startsWith('video/')){
+      if(!item||item.user_id!==job.user_id||!['viralplus-videos','socialplus-r2'].includes(item.storage_bucket)||!String(item.mime_type||'').startsWith('video/')){
         throw tagged('UGC_RUSH_ACCESS_DENIED','Secondary rush was not owned by the user');
       }
       const secondaryPath=path.join(dir,'ugc-raw-'+index+extensionFor(item.mime_type,item.original_name));
@@ -550,8 +551,9 @@ async function runEdit(job,media,sourcePath,dir){
     'Enregistrement de l’export'
   );
 
+  const exportBucket=r2Settings(name=>process.env[name])?'socialplus-r2':'viralplus-videos';
   await uploadStorageObject({
-    bucket:'viralplus-videos',
+    bucket:exportBucket,
     storagePath:outputStoragePath,
     inputPath:finalPath,
     mimeType:'video/mp4',
@@ -566,7 +568,7 @@ async function runEdit(job,media,sourcePath,dir){
       user_id:job.user_id,
       module:'editplus',
       kind:'render',
-      storage_bucket:'viralplus-videos',
+      storage_bucket:exportBucket,
       storage_path:outputStoragePath,
       original_name:
         `editplus-${project.id}.mp4`,
@@ -773,9 +775,18 @@ async function downloadStorageObject({
   outputPath,
   append=false
 }){
+  if(bucket==='socialplus-r2'){
+    const config=r2Settings(name=>process.env[name]);
+    if(!config)throw tagged('R2_NOT_CONFIGURED','R2 credentials missing');
+    const url=await r2Presign(config,'GET',storagePath,600);
+    const response=await fetch(url);
+    if(!response.ok||!response.body)throw tagged('R2_READ_FAILED','R2 read status '+response.status);
+    await pipeline(Readable.fromWeb(response.body),
+      createWriteStream(outputPath,{flags:append?'a':'w'}));
+    return;
+  }
   const encoded=encodeStoragePath(storagePath);
-  const url=
-    `${process.env.SUPABASE_URL}/storage/v1/object/authenticated/${encodeURIComponent(bucket)}/${encoded}`;
+  const url=`${process.env.SUPABASE_URL}/storage/v1/object/authenticated/${encodeURIComponent(bucket)}/${encoded}`;
 
   const response=await fetch(url,{
     headers:{
@@ -806,9 +817,20 @@ async function uploadStorageObject({
   upsert=false
 }){
   const info=await stat(inputPath);
+  if(bucket==='socialplus-r2'){
+    const config=r2Settings(name=>process.env[name]);
+    if(!config)throw tagged('R2_NOT_CONFIGURED','R2 credentials missing');
+    const url=await r2Presign(config,'PUT',storagePath,600);
+    const response=await fetch(url,{
+      method:'PUT',headers:{'Content-Type':mimeType,'Content-Length':String(info.size)},
+      body:createReadStream(inputPath),duplex:'half'
+    });
+    if(!response.ok)throw tagged('R2_WRITE_FAILED',
+      'R2 upload '+response.status+': '+(await response.text()).slice(0,350));
+    return;
+  }
   const encoded=encodeStoragePath(storagePath);
-  const url=
-    `${process.env.SUPABASE_URL}/storage/v1/object/${encodeURIComponent(bucket)}/${encoded}`;
+  const url=`${process.env.SUPABASE_URL}/storage/v1/object/${encodeURIComponent(bucket)}/${encoded}`;
 
   const response=await fetch(url,{
     method:'POST',
