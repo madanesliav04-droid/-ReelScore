@@ -450,13 +450,7 @@ async function runEdit(job,media,sourcePath,dir){
     const left=captionColorForLuma(backdrop.left);
     const right=captionColorForLuma(backdrop.right);
     timeline.leilaTheme={left,right};
-    // Lower-third captions cover the centre/bottom: when background evidence
-    // is conflicting, preserve the lighter colour with legibility shadow.
-    if(left.mode===right.mode){
-      timeline.captionConfig={...timeline.captionConfig,
-        textColor:left.ink,activeColor:left.ink};
-    }
-  }
+    // Caption contrast is handled separately: a bright side wall does not prove\n    // that the centre over the speaker's clothing is bright.\n  }
 
   if(ugcComposition)timeline.ugcMultirush={placements:ugcComposition.placements,unusedCount:ugcComposition.unusedCount,voiceSourceId:job.video_id};
 
