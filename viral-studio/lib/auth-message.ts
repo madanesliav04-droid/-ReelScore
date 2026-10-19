@@ -3,6 +3,8 @@ export function authMessage(error: unknown): string {
   const value = error && typeof error === "object" ? error as {code?: string; status?: number} : {};
   if (value.status === 429 || value.code?.startsWith("over_"))
     return "Trop de tentatives. Patiente quelques minutes, puis réessaie.";
+  if (value.status === 402)
+    return "Social+ est momentanément indisponible : le stockage Supabase a dépassé son quota. Le compte est conservé, mais la connexion est bloquée jusqu'à la levée de la restriction.";
   if (value.status === 503 || value.status === 502 || value.status === 504)
     return "Le service de connexion est temporairement indisponible. Réessaie dans un instant.";
   if (value.code === "auth_service_unreachable")
