@@ -75,12 +75,12 @@ export async function preprocessVideo({inputPath,outputPath,keepRanges,hasAudio=
   await run('ffmpeg',args);
 }
 
-export async function finalEncode({inputPath,outputPath,leilaAudio=false,onProgress=async()=>{}}){
+export async function finalEncode({inputPath,outputPath,leilaAudio=false,cinematicAudio=false,onProgress=async()=>{}}){
   await onProgress(94,'Encodage final');
   await run('ffmpeg',[
     '-hide_banner','-loglevel','error','-y','-i',inputPath,
     '-c:v','libx264','-preset','medium','-crf','19','-pix_fmt','yuv420p',
-    ...(leilaAudio?['-af','loudnorm=I=-16:TP=-1.3:LRA=11:linear=true']:[]),
+    ...(cinematicAudio?['-af','loudnorm=I=-16:TP=-1:LRA=11:linear=true']:(leilaAudio?['-af','loudnorm=I=-16:TP=-1.3:LRA=11:linear=true']:[])),
     '-c:a','aac','-b:a','192k','-movflags','+faststart',
     outputPath
   ]);
