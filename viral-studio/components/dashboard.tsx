@@ -7,6 +7,7 @@ import {UgcRushUploader} from "./ugc-rush-uploader";
 import {functionUrl,supabase,SUPABASE_PROJECT_REF,VIDEO_BUCKET} from "@/lib/supabase";
 import {authMessage} from "@/lib/auth-message";
 import {MAX_VIDEO_UPLOAD_MB,uploadParts,videoUploadPreflight,videoUploadErrorMessage} from "@/lib/upload-limits";
+import {uploadToR2} from "@/lib/r2-upload";
 
 type Module="viral"|"edit"|"clip";
 type Job={id:string;kind?:string;status:string;progress?:number;stage?:string;result?:any;error?:any;error_code?:string;clip_project_id?:string|null};
@@ -229,6 +230,7 @@ export function Dashboard(){
   const pollRef=useRef<ReturnType<typeof setTimeout>|null>(null);
   const pollGeneration=useRef(0);
   const uploadRef=useRef<tus.Upload|null>(null);
+  const r2UploadRef=useRef<XMLHttpRequest|null>(null);
   const uploadLocked=useRef(false);
   const [uploading,setUploading]=useState(false);
 
@@ -258,6 +260,7 @@ export function Dashboard(){
     pollGeneration.current++;
     if(pollRef.current)clearTimeout(pollRef.current);
     void uploadRef.current?.abort();
+    r2UploadRef.current?.abort();r2UploadRef.current=null;
     uploadRef.current=null;uploadLocked.current=false;setUploading(false);
     setBusy(false);setJob(null);setMedia(null);setFile(null);setSourceUrl("");
     setUgcRushIds([]);setUgcRushPending(false);setUgcLibrary([]);setUgcLibraryIds([]);setUgcPrimaryMedia(null);
@@ -278,6 +281,7 @@ export function Dashboard(){
       pollGeneration.current++;
       if(pollRef.current)clearTimeout(pollRef.current);
       void uploadRef.current?.abort();
+      r2UploadRef.current?.abort();
     };
   },[session?.user?.id]);
   useEffect(()=>()=>{
@@ -391,7 +395,7 @@ export function Dashboard(){
     const mime=({mp4:"video/mp4",mov:"video/quicktime",webm:"video/webm"} as Record<string,string>)[ext||""];
     if(!mime)return setError("Choisis une vidéo MP4, MOV ou WebM.");
     uploadLocked.current=true;setUploading(true);setError("");
-    const release=()=>{uploadLocked.current=false;setUploading(false);uploadRef.current=null};
+    const release=()=>{uploadLocked.current=false;setUploading(false);uploadRef.current=null;r2UploadRef.current=null};
     try{
       const liveSession=await freshSession();
       const owner=liveSession.user.id;
@@ -407,6 +411,38 @@ export function Dashboard(){
         setAnalysis(null);setUploadPct(0);setEditExportUrl("");setEditOutputMediaId("");setPreFixScore(null);setPreFixVersion(null);
       }
       setJob(null);
+      const storage=await api(functionUrl("viral-edit-jobs","storage-config"),token);
+      if(storage?.provider==="r2"){
+        try{
+          const ticket=await api(functionUrl("viral-edit-jobs","r2-upload-ticket"),token,{
+            method:"POST",body:JSON.stringify({
+              size_bytes:selected.size,mime_type:mime,original_name:selected.name
+            })
+          });
+          if(!ticket?.signed_upload_url||!ticket?.storage_path)throw new Error("Autorisation d’import R2 indisponible.");
+          await uploadToR2({
+            url:ticket.signed_upload_url,file:selected,mime,
+            onRequest:xhr=>{r2UploadRef.current=xhr;},
+            onProgress:p=>{if(alive())(isClip?setClipUploadPct:setUploadPct)(p);}
+          });
+          if(!alive())return;
+          const result=await api(functionUrl("viral-edit-jobs","media"),token,{
+            method:"POST",body:JSON.stringify({
+              storage_provider:"r2",storage_path:ticket.storage_path,
+              mime_type:mime,size_bytes:selected.size,original_name:selected.name
+            })
+          });
+          if(!result?.media?.id)throw new Error("Enregistrement R2 impossible.");
+          if(alive()){
+            (isClip?setClipMedia:setMedia)(result.media);
+            (isClip?setClipUploadPct:setUploadPct)(100);
+            if(!isClip)void api(functionUrl("viral-edit-jobs","quota"),"").then(q=>setViralQuota(q.quota||null)).catch(()=>{});
+          }
+        }catch(e:any){
+          if(alive())setError(String(e?.message||"Import R2 interrompu."));
+        }finally{release();}
+        return;
+      }
       const sendPart=async(partIndex:number):Promise<void>=>{
         if(!alive())return;
         const part=parts[partIndex];
