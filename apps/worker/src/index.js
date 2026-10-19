@@ -9,6 +9,7 @@ import {randomUUID} from 'node:crypto';
 import {createClient} from '@supabase/supabase-js';
 import {analyzeVideo} from './viral.js';
 import {buildEditTimeline} from './edit.js';
+import {validateTimedWords} from './word-timing.js';
 import {composeUgcRushes} from './ugc-rush-compositor.js';
 import {
   preprocessVideo,
@@ -390,7 +391,13 @@ async function runEdit(job,media,sourcePath,dir){
     analysis=data?.result_json||null;
   }
 
-  if(!analysis?.transcript?.words?.length){
+  const targetStyle=payload.style||project.style||'creator_clean';
+  const priorWords=analysis?.transcript?.words;
+  const timingCheck=validateTimedWords(priorWords,
+    Math.round(Number(analysis?.measurable?.durationSec||0)*1000));
+  // A cached Viral+ transcript that merely contains words may still have
+  // invalid timecodes. Reanalyze instead of exporting desynchronized captions.
+  if(!priorWords?.length||(targetStyle==='leila'&&!timingCheck.ok)){
     await progress(
       job,
       'transcribing',
