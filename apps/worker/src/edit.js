@@ -1,4 +1,5 @@
 import {planLeilaVisuals} from './leila-intent.js';
+import {validateTimedWords} from './word-timing.js';
 const FILLERS=new Set(['euh','heu','uh','um','erm','hmm','hum']);
 
 export const EDIT_STYLES={
@@ -80,6 +81,15 @@ export function buildEditTimeline({
   const durationMs=Math.max(1,Math.round(Number(analysis?.measurable?.durationSec||0)*1000));
   const words=Array.isArray(analysis?.transcript?.words)?analysis.transcript.words:[];
   const silences=Array.isArray(analysis?.measurable?.silenceWindows)?analysis.measurable.silenceWindows:[];
+  // Legacy Viral+ analyses may contain words but invalid/shifted timecodes.
+  // Never render word-by-word captions from such data.
+  if(style==='leila'){
+    const checked=validateTimedWords(words,durationMs);
+    if(!checked.ok){
+      throw new Error(checked.reason+': montage Leila bloqué tant que les mots ne sont pas correctement horodatés.');
+    }
+  }
+
 
   const removals=style==='leila'?[]:[
     ...silenceRemovalWindows(silences,styleCfg.silenceThresholdMs,durationMs),
