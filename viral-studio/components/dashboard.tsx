@@ -59,12 +59,12 @@ const EDIT_MODELS:EditModel[]=[
     "goal": "Comprendre chaque réel avant de choisir les mouvements et les visuels, sans tableau systématique.",
     "actions": [
       "Analyser le sens du discours et sélectionner des visuels adaptés, ou n'en afficher aucun.",
-      "Sous-titres conformes aux paroles et voix d'origine préservée.",
+      "Sous-titres révélés mot à mot ; montage bloqué si les horodatages sont incohérents.",
       "Tableau uniquement pour une vraie comparaison, chiffres seulement s'ils sont prononcés."
     ],
     "never": "Ne jamais forcer un tableau, inventer une donnée ou masquer le visage.",
     "available": true,
-    "state": "MOTEUR CONTEXTUEL · V18"
+    "state": "MOTEUR CONTEXTUEL · V22"
   },
   {
     "id": "hormozi_omni",
@@ -695,7 +695,7 @@ export function Dashboard(){
         </section>}
 
         <section className="model-library">
-          <div className="section-heading"><small>5 RÉFÉRENCES RETENUES</small><h2>Choisis ton modèle de montage.</h2><p>Les moteurs Codie, Alex Hormozi, Social Kinetic et UGC sont raccordés en bêta. Leila adapte désormais ses insertions au discours. Un tableau n’apparaît que pour une comparaison réellement exprimée. Vérifie chaque export avant publication.</p></div>
+          <div className="section-heading"><small>5 RÉFÉRENCES RETENUES</small><h2>Choisis ton modèle de montage.</h2><p>Les moteurs Codie, Alex Hormozi, Social Kinetic et UGC sont raccordés en bêta. Leila V22 adapte ses animations aux mots réellement prononcés. Les sous-titres se révèlent mot par mot, et les timecodes sont contrôlés. Vérifie chaque export avant publication.</p></div>
           <div className="model-grid social-approved-model-grid">{EDIT_MODELS.map(model=><button type="button" key={model.id} disabled={!model.available||busy||uploading} aria-label={`${model.name} — ${model.state}`} className={`model-card social-approved-model ${editModel===model.id?"selected":""} ${model.available?"is-available":"is-pending"}`} data-model={model.id} onClick={()=>{if(model.available){setEditModel(model.id);if(model.id==="hormozi_omni"||model.id==="leila")setFormat("native")}}}>
               <div className="social-model-identity"><span>EDIT+ / {model.preview}</span><small className={`social-model-state ${model.available?"beta":"pending"}`}>{model.state}</small><strong>{model.name}</strong><p>{model.goal}</p></div>
               <div className="model-copy"><div><strong>{model.name}</strong><span>{model.category}</span></div>{editModel===model.id&&<Check size={18}/>}<p>{model.meta}</p></div>
