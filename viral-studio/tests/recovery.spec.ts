@@ -118,33 +118,30 @@ test('Social+ exposes exactly Edit+ and Viral+ and no Clip+ workflow',async({pag
 });
 
 
-test('Edit+ only shows selected references and does not let pending models render as legacy presets',async({page})=>{
+test('Edit+ lists Cinematic Storytelling as a real sixth beta model',async({page})=>{
   await setup(page,other);
   await page.goto('/dashboard?tool=edit');
   const cards=page.locator('.social-approved-model');
-  await expect(cards).toHaveCount(5);
+  await expect(cards).toHaveCount(6);
+  for(const id of ['codie','leila','hormozi_omni','cinematic_story','ugc_native','social_kinetic'])
+    await expect(page.locator(`[data-model="${id}"]`)).toBeEnabled();
   await expect(cards.nth(0)).toContainText('Codie');
   await expect(cards.nth(1)).toContainText('Leila');
   await expect(cards.nth(2)).toContainText('Alex Hormozi');
-  await expect(cards.nth(3)).toContainText('UGC Storytelling');
-  await expect(cards.nth(4)).toContainText('Social Kinetic');
-  await expect(page.locator('[data-model="leila"]')).toBeDisabled();
-  for(const id of ['codie','hormozi_omni','social_kinetic','ugc_native'])
-    await expect(page.locator(`[data-model="${id}"]`)).toBeEnabled();
-  await page.locator('[data-model="hormozi_omni"]').click();
-  await expect(page.getByRole('button',{name:/Créer mon montage · Alex Hormozi/})).toBeDisabled();
-  await expect(page.getByText(/Format natif obligatoire/)).toBeVisible();
-  await page.locator('[data-model="social_kinetic"]').click();
-  await expect(page.getByText(/les animations n’apparaissent que si/)).toBeVisible();
-  await expect(page.locator('.social-approved-model-grid')).not.toContainText('Impact');
+  await expect(cards.nth(3)).toContainText('Cinematic Storytelling');
+  await expect(cards.nth(4)).toContainText('UGC Storytelling');
+  await expect(cards.nth(5)).toContainText('Social Kinetic');
+  await page.locator('[data-model="cinematic_story"]').click();
+  await expect(page.getByText(/STORYBOARD CONTEXTUEL/)).toBeVisible();
+  await expect(page.getByRole('button',{name:/Créer mon montage · Cinematic Storytelling/})).toBeDisabled();
+  await expect(page.locator('.format-picker select')).toHaveValue('native');
+  await expect(page.locator('.format-picker select')).toBeDisabled();
   await expect(page.locator('.social-approved-model-grid')).not.toContainText('Explainer');
-  await expect(page.locator('.social-approved-model-grid')).not.toContainText('UGC Native');
   await expect(page.getByText(/Les moteurs activés produisent un rendu bêta/)).toBeVisible();
   await page.locator('[data-model="ugc_native"]').click();
   await expect(page.getByTestId('ugc-rush-uploader')).toBeVisible();
   await expect(page.getByTestId('ugc-file-input')).toHaveAttribute('multiple','');
 });
-
 test('iPhone UGC: one video, short batch, and Files fallback remain separate',async({page})=>{
   await setup(page,other);
   await page.route('**/storage/v1/upload/resumable',async route=>

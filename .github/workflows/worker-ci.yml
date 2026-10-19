@@ -2,9 +2,9 @@ name: Viral+ Edit+ Worker CI
 
 on:
   push:
-    branches: [viral-edit-worker-v1]
+    branches: [viral-edit-worker-v1, editplus-cinematic-story-v1-20261019]
   pull_request:
-    branches: [viral-edit-core]
+    branches: [viral-edit-core, socialplus-auth-same-origin-20261019]
   workflow_dispatch:
 
 permissions:
@@ -22,5 +22,9 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Syntax checks
         run: npm run check
+      - name: Install FFmpeg for media tests
+        run: sudo apt-get update -qq && sudo apt-get install -y ffmpeg
+      - name: Run worker unit tests
+        run: npm test
       - name: Build worker image
         run: docker build -t viral-edit-worker-ci .

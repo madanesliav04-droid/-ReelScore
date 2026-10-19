@@ -88,6 +88,39 @@ const LeilaVisual=({scene,ms,portrait,theme})=>{
   </div>;
 };
 
+// Cinematic typography is deliberately evidence-only. It never creates
+// an illustrative image or a statistic that the source does not contain.
+const CinematicVisual=({scene,ms,portrait,width,height})=>{
+  const t=ms-scene.startMs,remaining=scene.endMs-ms;
+  const enter=ease(t/420),leave=ease(remaining/340);
+  const visible=Math.min(enter,leave);
+  const isTurn=scene.kind==='turn'||scene.kind==='resolution';
+  const displacement=(1-enter)*24;
+  const maxWidth=portrait?'79%':'47%';
+  const fontSize=portrait?Math.min(48,width*.045):Math.min(39,width*.034);
+  return <div style={{
+    position:'absolute',left:portrait?'9%':'6%',top:portrait?'15%':'13%',
+    width:maxWidth,zIndex:4,pointerEvents:'none',color:'#f7f2e9',
+    opacity:visible,transform:`translate3d(${displacement}px,${-displacement*.35}px,0)`
+  }}>
+    <div style={{position:'absolute',left:0,top:-10,width:'80%',height:'100%',
+      opacity:.2*enter,filter:'blur(15px)',transform:'translate3d(10px,8px,0)',
+      fontFamily:'Georgia,serif',fontSize:fontSize*1.05,letterSpacing:'-.035em',
+      lineHeight:1.15,overflowWrap:'break-word'}}>{scene.quote}</div>
+    <div style={{height:2,width:isTurn?'56%':'33%',marginBottom:16,
+      background:'linear-gradient(90deg,#f7f2e9,rgba(247,242,233,0))',
+      transformOrigin:'left',transform:`scaleX(${ease(t/520)})`}}/>
+    <div style={{
+      position:'relative',fontFamily:'Georgia,Times New Roman,serif',
+      fontWeight:500,fontSize,lineHeight:1.14,letterSpacing:'-.035em',
+      textShadow:'0 4px 22px rgba(0,0,0,.9),0 1px 4px rgba(0,0,0,.9)',
+      overflowWrap:'break-word'
+    }}>{scene.quote}</div>
+    <div style={{width:'36%',height:1,background:'rgba(250,245,232,.44)',
+      marginTop:18,transformOrigin:'left',
+      transform:`scaleX(${ease((t-180)/600)})`}}/>
+  </div>;
+};
 const POSITIONS={
   lower_middle:{bottom:280,left:70,right:70},
   lower_third:{bottom:220,left:68,right:68},
@@ -98,6 +131,7 @@ export const EditPlusVideo=({sourceUrl,durationMs,timeline})=>{
   const frame=useCurrentFrame();
   const {fps,width,height}=useVideoConfig();
   const leila=timeline?.style==='leila';
+  const cinematic=timeline?.style==='cinematic_story';
   const portrait=height>width;
   const ms=frame/fps*1000;
   const punch=(timeline?.punchIns||[]).find(p=>ms>=p.startMs&&ms<=p.endMs);
@@ -114,7 +148,7 @@ export const EditPlusVideo=({sourceUrl,durationMs,timeline})=>{
       <OffthreadVideo
         src={sourceUrl}
         style={{
-          width:'100%',height:'100%',objectFit:leila?'contain':'cover',
+          width:'100%',height:'100%',objectFit:(leila||cinematic)?'contain':'cover',
           transform:`scale(${scale})`,
           transformOrigin:'50% 44%'
         }}
@@ -126,11 +160,12 @@ export const EditPlusVideo=({sourceUrl,durationMs,timeline})=>{
       }}/>
 
       {leila?(timeline?.leilaScenes||[]).filter(s=>ms>=s.startMs&&ms<=s.endMs).map((s,i)=><LeilaVisual key={s.startMs+'-'+i} scene={s} ms={ms} portrait={portrait} theme={timeline.leilaTheme}/>):null}
+      {cinematic?(timeline?.cinematicScenes||[]).filter(s=>ms>=s.startMs&&ms<=s.endMs).map((s,i)=><CinematicVisual key={s.startMs+'-'+i} scene={s} ms={ms} portrait={portrait} width={width} height={height}/>):null}
 
       {caption?(
         <div style={{
           position:'absolute',
-          ...(leila?{bottom:portrait?'8%':'5%',left:portrait?'8%':'21%',right:portrait?'8%':'21%'}:(POSITIONS[cfg.position]||POSITIONS.lower_middle)),
+          ...((leila||cinematic)?{bottom:portrait?'8%':'5%',left:portrait?'8%':'21%',right:portrait?'8%':'21%'}:(POSITIONS[cfg.position]||POSITIONS.lower_middle)),
           display:'flex',justifyContent:'center',
           textAlign:'center',pointerEvents:'none'
         }}>
@@ -144,23 +179,23 @@ export const EditPlusVideo=({sourceUrl,durationMs,timeline})=>{
             backdropFilter:cfg.background?'blur(10px)':'none',
             fontFamily:cfg.fontFamily||'Inter,Arial,sans-serif',
             fontWeight:cfg.fontWeight||900,
-            fontSize:leila?(portrait?Math.min(48,width*.052):Math.min(40,width*.032)):(cfg.fontSize||72),
+            fontSize:(leila||cinematic)?(portrait?Math.min(48,width*.052):Math.min(40,width*.032)):(cfg.fontSize||72),
             lineHeight:cfg.lineHeight||1,
             letterSpacing:'-0.045em',
             textTransform:'none'
           }}>
             {(caption.words||[]).map((word,i)=>{
-              const wordState=leila?revealTimedWord(ms,word):null;
-              const active=leila?wordState.active:(cfg.activeWord&&ms>=word.startMs&&ms<=word.endMs);
+              const wordState=(leila||cinematic)?revealTimedWord(ms,word):null;
+              const active=(leila||cinematic)?wordState.active:(cfg.activeWord&&ms>=word.startMs&&ms<=word.endMs);
               return (
                 <span key={i} style={{
                   display:'inline-block',
-                  opacity:leila?wordState.opacity:1,
+                  opacity:(leila||cinematic)?wordState.opacity:1,
                   color:active?(cfg.activeColor||'#ff6a00'):(cfg.textColor||'#fff'),
                   WebkitTextStroke:`${cfg.stroke||0}px rgba(5,5,7,.92)`,
                   paintOrder:'stroke fill',
                   textShadow:cfg.shadow?'0 5px 17px rgba(0,0,0,.84)':'none',
-                  transform:leila?'scale('+wordState.scale+')':active?'scale(1.055)':'scale(1)',
+                  transform:(leila||cinematic)?'scale('+wordState.scale+')':active?'scale(1.055)':'scale(1)',
                   transformOrigin:'50% 70%'
                 }}>{word.text}</span>
               );

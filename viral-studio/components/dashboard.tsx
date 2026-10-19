@@ -84,6 +84,23 @@ const EDIT_MODELS:EditModel[]=[
     "state": "BÊTA · MOTEUR CONNECTÉ"
   },
   {
+    "id": "cinematic_story",
+    "name": "Cinematic Storytelling",
+    "category": "Mini-documentaire narratif",
+    "preview": "CINEMA",
+    "meta": "Moteur narratif vérifié V1 · animation documentaire expérimentale",
+    "goal": "Transformer les paroles en scènes cinématographiques cohérentes, sans effet décoratif systématique.",
+    "actions": [
+      "Détecter les changements narratifs dans la transcription horodatée.",
+      "Afficher uniquement les éléments réellement justifiés par les mots prononcés.",
+      "Sous-titres synchronisés et transitions documentaires, export au format natif.",
+      "Les véritables B-rolls et compositions 2.5D avancées restent à intégrer et à tester."
+    ],
+    "never": "Pas de chiffres inventés, de plans fictifs ni de timeline identique sur toutes les vidéos.",
+    "available": true,
+    "state": "BÊTA · STORYBOARD CONTEXTUEL"
+  },
+  {
     "id": "ugc_native",
     "name": "UGC Storytelling",
     "category": "Storytelling immersif · plusieurs rushes",
@@ -552,7 +569,7 @@ export function Dashboard(){
     if(!videoId)return setError(modelToUse==="ugc_native"?
       "Importe au moins un rush, ou sélectionne une vidéo déjà stockée ci-dessous.":
       "Importe d’abord une vidéo.");
-    if(!["codie","leila","hormozi_omni","social_kinetic","ugc_native"].includes(modelToUse))return setError("Ce modèle n’est pas encore raccordé au moteur. Aucun preset de remplacement ne sera lancé.");
+    if(!["codie","leila","hormozi_omni","social_kinetic","ugc_native","cinematic_story"].includes(modelToUse))return setError("Ce modèle n’est pas encore raccordé au moteur. Aucun preset de remplacement ne sera lancé.");
 
     if(modelToUse==="ugc_native"&&ugcRushPending)return setError("Attends la fin de l’import des rushes secondaires.");
     if(modelToUse==="ugc_native"&&ugcSecondaryIds.length<1)return setError("Ajoute au moins un plan secondaire. Un montage UGC nécessite plusieurs vidéos.");
@@ -700,7 +717,7 @@ export function Dashboard(){
         <div className="workspace-grid">
           <section className="panel">
             <small className="eyebrow">EDIT+ / MONTER</small><h3>Un montage construit autour de tes paroles.</h3><p className="social-panel-explainer">Importe un rush, sélectionne un style puis génère un export. L'original reste intact.</p>
-            <label className="upload-zone"><input type="file" disabled={busy||uploading} accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" onChange={e=>{const f=e.currentTarget.files?.[0];e.currentTarget.value="";if(f)void uploadVideo(f)}}/><div><Upload size={30}/><b>{file?file.name:media?"Vidéo importée, prête à monter":"Choisir une vidéo à monter"}</b><span>MP4 · MOV · WebM · max {MAX_VIDEO_UPLOAD_MIB} Mo · 5 modèles de montage</span></div></label>
+            <label className="upload-zone"><input type="file" disabled={busy||uploading} accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" onChange={e=>{const f=e.currentTarget.files?.[0];e.currentTarget.value="";if(f)void uploadVideo(f)}}/><div><Upload size={30}/><b>{file?file.name:media?"Vidéo importée, prête à monter":"Choisir une vidéo à monter"}</b><span>MP4 · MOV · WebM · max {MAX_VIDEO_UPLOAD_MIB} Mo · {EDIT_MODELS.length} modèles de montage</span></div></label>
             {file&&<div className="social-upload-status" role="status" aria-live="polite"><span>{uploading?"Import en cours":media?"Import terminé":"Préparation du fichier"}</span><strong>{uploadPct}%</strong><div className="progress"><i style={{width:`${uploadPct}%`}}/></div></div>}
             {error&&<div role="alert" className="job-card error">{error}</div>}
             <div className="status-row"><span>Fichier vidéo</span><span className="status-pill">{media?"Prêt":file?`${uploadPct}%`:"En attente"}</span></div>
@@ -762,19 +779,19 @@ export function Dashboard(){
         </section>}
 
         <section className="model-library">
-          <div className="section-heading"><small>5 RÉFÉRENCES RETENUES</small><h2>Choisis ton modèle de montage.</h2><p>Les moteurs Codie, Alex Hormozi, Social Kinetic et UGC sont raccordés en bêta. Leila V22 adapte ses animations aux mots réellement prononcés. Les sous-titres se révèlent mot par mot, et les timecodes sont contrôlés. Vérifie chaque export avant publication.</p></div>
-          <div className="model-grid social-approved-model-grid">{EDIT_MODELS.map(model=><button type="button" key={model.id} disabled={!model.available||busy||uploading} aria-label={`${model.name} — ${model.state}`} className={`model-card social-approved-model ${editModel===model.id?"selected":""} ${model.available?"is-available":"is-pending"}`} data-model={model.id} onClick={()=>{if(model.available){setEditModel(model.id);if(model.id==="hormozi_omni"||model.id==="leila")setFormat("native")}}}>
+          <div className="section-heading"><small>{EDIT_MODELS.length} MODÈLES DISPONIBLES</small><h2>Choisis ton modèle de montage.</h2><p>Les moteurs Codie, Alex Hormozi, Social Kinetic et UGC sont raccordés en bêta. Leila V22 adapte ses animations aux mots réellement prononcés. Les sous-titres se révèlent mot par mot, et les timecodes sont contrôlés. Vérifie chaque export avant publication.</p></div>
+          <div className="model-grid social-approved-model-grid">{EDIT_MODELS.map(model=><button type="button" key={model.id} disabled={!model.available||busy||uploading} aria-label={`${model.name} — ${model.state}`} className={`model-card social-approved-model ${editModel===model.id?"selected":""} ${model.available?"is-available":"is-pending"}`} data-model={model.id} onClick={()=>{if(model.available){setEditModel(model.id);if(["hormozi_omni","leila","cinematic_story"].includes(model.id))setFormat("native")}}}>
               <div className="social-model-identity"><span>EDIT+ / {model.preview}</span><small className={`social-model-state ${model.available?"beta":"pending"}`}>{model.state}</small><strong>{model.name}</strong><p>{model.goal}</p></div>
               <div className="model-copy"><div><strong>{model.name}</strong><span>{model.category}</span></div>{editModel===model.id&&<Check size={18}/>}<p>{model.meta}</p></div>
             </button>)}</div>
           <p className="social-model-truth" role="note">Les moteurs activés produisent un rendu bêta, sans garantie de reproduction fidèle des vidéos de référence. Leila utilise les mots horodatés : si la transcription échoue, l'export est interrompu plutôt que d'inventer des sous-titres. Le modèle UGC accepte des plans supplémentaires ; le montage final demande encore validation humaine. Aucun modèle non reconnu n’est remplacé silencieusement.</p>
           <section className="model-action-contract" data-testid="edit-model-action-contract" aria-live="polite">
             <div className="contract-head"><span>CONTRAT DE MONTAGE · {selectedModel.name.toUpperCase()}</span><h3>{selectedModel.goal}</h3></div>
-            <p className="contract-notice">Le contrat décrit la référence de montage souhaitée. Le moteur historique disponible ne garantit pas encore la fidélité à la V60.</p>
+            <p className="contract-notice">{selectedModel.id==="cinematic_story"?"Version bêta : la narration et les titres animés sont raccordés. Aucun B-roll généré ni résultat 100/100 garanti avant tests réels.":"Le contrat décrit la référence de montage souhaitée. Le moteur historique disponible ne garantit pas encore la fidélité à la V60."}</p>
             <ol>{selectedModel.actions.map((action,i)=><li key={i}><span>{String(i+1).padStart(2,"0")}</span><p>{action}</p></li>)}</ol>
             <div className="contract-avoid"><strong>À éviter</strong><p>{selectedModel.never}</p></div>
           </section>
-          <label className="format-picker">Format de sortie {(selectedModel.id==="hormozi_omni"||selectedModel.id==="leila")&&<small>· Format natif obligatoire pour préserver le cadrage</small>} <select className="field" value={selectedModel.id==="hormozi_omni"?"native":format} onChange={e=>setFormat(e.target.value)} disabled={busy||selectedModel.id==="hormozi_omni"}><option value="native">Natif — conserver le format source</option><option value="portrait">Portrait — 1080 × 1920</option><option value="landscape">Paysage — 1920 × 1080</option></select></label>
+          <label className="format-picker">Format de sortie {["hormozi_omni","leila","cinematic_story"].includes(selectedModel.id)&&<small>· Format natif obligatoire pour préserver le cadrage</small>} <select className="field" value={["hormozi_omni","cinematic_story"].includes(selectedModel.id)?"native":format} onChange={e=>setFormat(e.target.value)} disabled={busy||["hormozi_omni","cinematic_story"].includes(selectedModel.id)}><option value="native">Natif — conserver le format source</option><option value="portrait">Portrait — 1080 × 1920</option><option value="landscape">Paysage — 1920 × 1080</option></select></label>
           <button className="btn primary create-edit" onClick={()=>void startEdit(false)} disabled={!canCreateEdit}><Clapperboard size={17}/> {busy&&job?.kind==="edit_render"?"Montage en cours…":`Créer mon montage · ${selectedModel.name}`}</button>
           <p className="social-model-truth" role="note">{selectedModel.id==="ugc_native"?"UGC : choisis une vidéo principale et au moins un rush supplémentaire. Sans paroles détectées, le rendu sera visuel uniquement.":selectedModel.id==="hormozi_omni"?"Hormozi conserve obligatoirement le cadrage et le format de la source. Les animations fondées sur des preuves peuvent être absentes si l’analyse n’en fournit pas.":selectedModel.id==="leila"?"Leila : montage contextuel. Pas de tableau sans comparaison. Insertion refusée si les paroles ne la confirment pas. Relecture recommandée avant publication.":selectedModel.id==="social_kinetic"?"Social Kinetic : les animations n’apparaissent que si leurs mots, leurs timings et leur emplacement sont vérifiés.":"Codie bêta : le rendu V60 reste à comparer et à valider."}</p>
           <InlineJobState job={job?.kind==="edit_render"?job:null}/>
