@@ -84,26 +84,26 @@ const candidatesFromSpeech=words=>{
       if(compare){
         cues.push({type:'comparison',startMs:words[Math.max(0,i-2)].startMs,
           endMs:Math.min(words.at(-1).endMs,words[i].startMs+2800),
-          items:compare,reason:'spoken_explicit_contrast'});
+          items:compare,itemStartMs:[words[Math.max(0,i-1)].startMs,words[Math.min(words.length-1,i+1)].startMs],reason:'spoken_explicit_contrast'});
       }
     }
     const steps=stepPair(words,i,end);
     if(steps&&steps.first===i)cues.push({type:'steps',startMs:words[i].startMs,
       endMs:Math.min(words[steps.second].endMs+2300,words[end].endMs+500),
-      items:steps.items,reason:'two_spoken_step_markers'});
+      items:steps.items,itemStartMs:[words[steps.first].startMs,words[steps.second].startMs],reason:'two_spoken_step_markers'});
     const flow=flowPair(words,i,end);
     if(flow&&flow.first===i)cues.push({type:'flow',startMs:words[i].startMs,
       endMs:Math.min(words[flow.second].endMs+2300,words[end].endMs+500),
-      items:flow.items,reason:'spoken_cause_effect'});
+      items:flow.items,itemStartMs:[words[flow.first].startMs,words[flow.second].startMs],reason:'spoken_cause_effect'});
     const metric=metricAt(words,i,i+1<words.length?i+1:i);
     if(metric&&metric.at===i)cues.push({type:'metric',startMs:words[i].startMs,
-      endMs:words[i].endMs+1700,items:[metric.value],reason:'measured_unit_spoken'});
+      endMs:words[i].endMs+1700,items:[metric.value],itemStartMs:[words[i].startMs],reason:'measured_unit_spoken'});
     if(/^(pourquoi|comment)$/.test(t[i])&&i+3<words.length){
       const endIndex=Math.min(words.length-1,i+9);
       const text=joined(words.slice(i,endIndex+1));
       if(/[?]/.test(text))cues.push({type:'emphasis',startMs:words[i].startMs,
         endMs:Math.min(words[endIndex].endMs+350,words[i].startMs+2500),
-        items:[joined(words.slice(i,Math.min(words.length,i+6)))],reason:'spoken_question'});
+        items:[joined(words.slice(i,Math.min(words.length,i+6)))],itemStartMs:[words[i].startMs],reason:'spoken_question'});
     }
   }
   return cues;
@@ -131,9 +131,17 @@ function fromSemantic(words,intent){
   // The proposed time must overlap the actual timed words, not just fit a duration.
   const proposed=seconds(intent.start_sec);
   if(Number.isFinite(proposed)&&Math.abs(proposed-words[first].startMs)>1600)return null;
+  let itemStartMs=[words[first].startMs];
+  if(type==='comparison'){
+    const vsIndex=words.findIndex((w,i)=>i>=first&&i<=last&&['vs','versus'].includes(normalization(w.text)));
+    if(vsIndex>=0)itemStartMs=[words[Math.max(first,vsIndex-1)].startMs,words[Math.min(last,vsIndex+1)].startMs];
+  }else if(type==='steps'&&step)itemStartMs=[words[step.first].startMs,words[step.second].startMs];
+  else if(type==='flow'&&flow)itemStartMs=[words[flow.first].startMs,words[flow.second].startMs];
+  else if(type==='metric'&&metric)itemStartMs=[words[metric.at].startMs];
   return {type,startMs:words[first].startMs,
     endMs:Math.min(words[last].endMs+650,words[first].startMs+3400),
-    placement:placement(intent.placement),items,reason:'semantic_intent_verified_by_spoken_evidence'};
+    placement:placement(intent.placement),items,itemStartMs,
+    reason:'semantic_intent_verified_by_spoken_evidence'};
 }
 export function planLeilaVisuals(rawWords,durationMs,intents=null){
   if(!Number.isFinite(durationMs)||durationMs<=0)return [];
