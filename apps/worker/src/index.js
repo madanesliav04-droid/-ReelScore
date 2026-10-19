@@ -451,7 +451,8 @@ async function runEdit(job,media,sourcePath,dir){
     const right=captionColorForLuma(backdrop.right);
     timeline.leilaTheme={left,right};
     // Caption contrast is handled separately: a bright side wall does not prove
-    // that the centre over the speaker's clothing is bright.\n  }
+    // that the centre over the speaker's clothing is bright.
+  }
 
   if(ugcComposition)timeline.ugcMultirush={placements:ugcComposition.placements,unusedCount:ugcComposition.unusedCount,voiceSourceId:job.video_id};
 
