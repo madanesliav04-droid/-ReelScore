@@ -19,8 +19,9 @@ Status: R2 adapter code prepared. **Do not activate until bucket/CORS/lifecycle/
    - R2_ACCOUNT_ID (32 hex chars)
    - R2_ACCESS_KEY_ID
    - R2_SECRET_ACCESS_KEY
+   - R2_ENABLED (set to `true` only after both API and worker are fully configured)
    - R2_BUCKET_NAME
-6. Deploy updated viral-edit-jobs Edge Function including r2-sign.js. Deploy the worker and frontend from this tested branch.
+6. Deploy updated viral-edit-jobs Edge Function including r2-sign.js. Deploy the worker and frontend from this tested branch. Keep `R2_ENABLED` unset until rollout checks pass on a test environment.
 7. Verify upload, transcription, Edit+ render, signed preview, signed export and expiry with a real video. Then activate for users.
 
 ### Example CORS policy
