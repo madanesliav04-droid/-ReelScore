@@ -94,8 +94,8 @@ const CinematicVisual=({scene,ms,portrait,width,height})=>{
   const t=ms-scene.startMs,remaining=scene.endMs-ms;
   const enter=ease(t/450),leave=ease(remaining/390);
   const visible=Math.min(enter,leave);
-  const narrativeText=String(scene.quote||'').trim();
-  if(!narrativeText)return null;
+  const titleWords=Array.isArray(scene.wordTimings)?scene.wordTimings.filter(w=>Number.isFinite(w.startMs)&&w.text):[];
+  if(!titleWords.length)return null;
   // Pure typography: no fake statistics, stock B-roll or subject cutouts.
   // Depth is typographic only until actual licensed, relevant media is supplied.
   const fontSize=portrait?Math.min(41,width*.039):Math.min(34,width*.030);
@@ -126,7 +126,14 @@ const CinematicVisual=({scene,ms,portrait,width,height})=>{
       overflowWrap:'break-word',textWrap:'balance',
       textShadow:'0 3px 16px rgba(0,0,0,.65)',
       transform:`translate3d(0,${(1-enter)*4}px,0)`
-    }}>{narrativeText}</div>
+    }}>{titleWords.map((w,i)=>{
+      const progress=ease((ms-w.startMs)/115);
+      return <span key={i} style={{
+        display:'inline-block',opacity:progress,
+        transform:`translate3d(0,${(1-progress)*5}px,0)`,
+        marginRight:'.23em'
+      }}>{w.text}</span>;
+    })}</div>
   </div>;
 };
 const POSITIONS={
