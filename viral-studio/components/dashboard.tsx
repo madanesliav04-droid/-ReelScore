@@ -55,16 +55,16 @@ const EDIT_MODELS:EditModel[]=[
     "name": "Leila",
     "category": "Montage narratif",
     "preview": "LEILA",
-    "meta": "Montage Leila · tableaux translucides fins, animations éditoriales et sous-titres horodatés",
-    "goal": "Un montage de référence Leila, adaptable au discours et au décor.",
+    "meta": "Leila contextuel · comparaison seulement si justifiée, animations adaptées au discours",
+    "goal": "Comprendre chaque réel avant de choisir les mouvements et les visuels, sans tableau systématique.",
     "actions": [
-      "Montage rythmé en fonction du sens, sans effet gratuit.",
+      "Analyser le sens du discours et sélectionner des visuels adaptés, ou n'en afficher aucun.",
       "Sous-titres conformes aux paroles et voix d'origine préservée.",
-      "Preuves visuelles réelles, pas de B-roll générique."
+      "Tableau uniquement pour une vraie comparaison, chiffres seulement s'ils sont prononcés."
     ],
-    "never": "Ne pas substituer un preset historique au modèle Leila.",
+    "never": "Ne jamais forcer un tableau, inventer une donnée ou masquer le visage.",
     "available": true,
-    "state": "MOTEUR LEILA · V15"
+    "state": "MOTEUR CONTEXTUEL · V18"
   },
   {
     "id": "hormozi_omni",
@@ -695,7 +695,7 @@ export function Dashboard(){
         </section>}
 
         <section className="model-library">
-          <div className="section-heading"><small>5 RÉFÉRENCES RETENUES</small><h2>Choisis ton modèle de montage.</h2><p>Les moteurs Codie, Alex Hormozi, Social Kinetic et UGC sont raccordés en bêta. Leila dispose désormais d’un moteur de tableaux translucides et de captions mot à mot. Vérifie chaque export avant publication.</p></div>
+          <div className="section-heading"><small>5 RÉFÉRENCES RETENUES</small><h2>Choisis ton modèle de montage.</h2><p>Les moteurs Codie, Alex Hormozi, Social Kinetic et UGC sont raccordés en bêta. Leila adapte désormais ses insertions au discours. Un tableau n’apparaît que pour une comparaison réellement exprimée. Vérifie chaque export avant publication.</p></div>
           <div className="model-grid social-approved-model-grid">{EDIT_MODELS.map(model=><button type="button" key={model.id} disabled={!model.available||busy||uploading} aria-label={`${model.name} — ${model.state}`} className={`model-card social-approved-model ${editModel===model.id?"selected":""} ${model.available?"is-available":"is-pending"}`} data-model={model.id} onClick={()=>{if(model.available){setEditModel(model.id);if(model.id==="hormozi_omni"||model.id==="leila")setFormat("native")}}}>
               <div className="social-model-identity"><span>EDIT+ / {model.preview}</span><small className={`social-model-state ${model.available?"beta":"pending"}`}>{model.state}</small><strong>{model.name}</strong><p>{model.goal}</p></div>
               <div className="model-copy"><div><strong>{model.name}</strong><span>{model.category}</span></div>{editModel===model.id&&<Check size={18}/>}<p>{model.meta}</p></div>
@@ -709,7 +709,7 @@ export function Dashboard(){
           </section>
           <label className="format-picker">Format de sortie {(selectedModel.id==="hormozi_omni"||selectedModel.id==="leila")&&<small>· Format natif obligatoire pour préserver le cadrage</small>} <select className="field" value={selectedModel.id==="hormozi_omni"?"native":format} onChange={e=>setFormat(e.target.value)} disabled={busy||selectedModel.id==="hormozi_omni"}><option value="native">Natif — conserver le format source</option><option value="portrait">Portrait — 1080 × 1920</option><option value="landscape">Paysage — 1920 × 1080</option></select></label>
           <button className="btn primary create-edit" onClick={()=>void startEdit(false)} disabled={!canCreateEdit}><Clapperboard size={17}/> {busy&&job?.kind==="edit_render"?"Montage en cours…":`Créer mon montage · ${selectedModel.name}`}</button>
-          <p className="social-model-truth" role="note">{selectedModel.id==="ugc_native"?"UGC : choisis une vidéo principale et au moins un rush supplémentaire. Sans paroles détectées, le rendu sera visuel uniquement.":selectedModel.id==="hormozi_omni"?"Hormozi conserve obligatoirement le cadrage et le format de la source. Les animations fondées sur des preuves peuvent être absentes si l’analyse n’en fournit pas.":selectedModel.id==="leila"?"Leila : panneaux semi-transparents et finesse éditoriale. Sous-titres basés uniquement sur les mots horodatés. Écoute et relecture recommandées avant publication.":selectedModel.id==="social_kinetic"?"Social Kinetic : les animations n’apparaissent que si leurs mots, leurs timings et leur emplacement sont vérifiés.":"Codie bêta : le rendu V60 reste à comparer et à valider."}</p>
+          <p className="social-model-truth" role="note">{selectedModel.id==="ugc_native"?"UGC : choisis une vidéo principale et au moins un rush supplémentaire. Sans paroles détectées, le rendu sera visuel uniquement.":selectedModel.id==="hormozi_omni"?"Hormozi conserve obligatoirement le cadrage et le format de la source. Les animations fondées sur des preuves peuvent être absentes si l’analyse n’en fournit pas.":selectedModel.id==="leila"?"Leila : montage contextuel. Pas de tableau sans comparaison. Insertion refusée si les paroles ne la confirment pas. Relecture recommandée avant publication.":selectedModel.id==="social_kinetic"?"Social Kinetic : les animations n’apparaissent que si leurs mots, leurs timings et leur emplacement sont vérifiés.":"Codie bêta : le rendu V60 reste à comparer et à valider."}</p>
           <InlineJobState job={job?.kind==="edit_render"?job:null}/>
         </section>
       </>}
