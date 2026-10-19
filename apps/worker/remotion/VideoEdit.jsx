@@ -4,7 +4,7 @@ import {AbsoluteFill,OffthreadVideo,interpolate,spring,useCurrentFrame,useVideoC
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const ease=t=>1-Math.pow(1-clamp(t,0,1),3);
 /** No overlay unless the story actually calls for that visual. */
-const LeilaVisual=({scene,ms,portrait})=>{
+const LeilaVisual=({scene,ms,portrait,theme})=>{
   const t=ms-scene.startMs,remain=scene.endMs-ms;
   const opacity=Math.min(ease(t/330),ease(remain/300));
   const lift=(1-ease(t/470))*11;
@@ -15,13 +15,14 @@ const LeilaVisual=({scene,ms,portrait})=>{
   const emphasis=scene.type==='emphasis'&&items.length===1;
   if(!(comparison||sequence||metric||emphasis))return null;
   const place=scene.placement==='right'?'right':'left';
+  const ink=theme?.[place]?.ink||'#f8f5ef';
   const position={
     position:'absolute',top:portrait?'13%':'15%',
     [place]:portrait?'7%':'4%',zIndex:4,
     width:portrait?'86%':comparison?'42%':'35%',
     pointerEvents:'none',opacity,
     transform:'translate3d(0,'+lift+'px,0)',
-    color:'#faf6ef',fontFamily:'Arial,sans-serif',boxSizing:'border-box'
+    color:ink,fontFamily:'Arial,sans-serif',boxSizing:'border-box'
   };
   const glass={
     background:'linear-gradient(150deg,rgba(28,30,33,.40),rgba(19,20,24,.23))',
@@ -35,7 +36,7 @@ const LeilaVisual=({scene,ms,portrait})=>{
     letterSpacing:'-.022em',lineHeight:1.17,overflowWrap:'anywhere'
   };
   if(comparison)return <div style={position}>
-    <div style={glass}>
+    <div style={{...glass,color:'#faf6ef'}}>
       <div style={{padding:portrait?'15px 19px':'11px 16px',
         borderBottom:'1px solid rgba(243,239,231,.15)',
         fontSize:portrait?13:10,letterSpacing:'.16em',
@@ -58,7 +59,7 @@ const LeilaVisual=({scene,ms,portrait})=>{
           fontSize:portrait?23:19,opacity:ease((t-280)/350)}}>→</div>}
         <div style={{
           flex:1,minWidth:0,padding:portrait?'16px 17px':'12px 14px',
-          ...glass,opacity:ease((t-90-i*220)/380),
+          ...glass,color:'#faf6ef',opacity:ease((t-90-i*220)/380),
           ...fineText,fontSize:portrait?23:Math.max(16,item.length>26?16:21)
         }}>{item}</div>
       </React.Fragment>)}
@@ -67,7 +68,7 @@ const LeilaVisual=({scene,ms,portrait})=>{
   if(metric)return <div style={position}>
     <div style={{display:'inline-flex',flexDirection:'column',alignItems:'flex-start',
       gap:portrait?11:8,padding:portrait?'10px 6px':'7px 5px',
-      textShadow:'0 3px 19px rgba(0,0,0,.6)'}}>
+      textShadow:ink==='#292522'?'0 2px 12px rgba(255,255,255,.55)':'0 3px 19px rgba(0,0,0,.6)'}}>
       <span style={{...fineText,fontSize:portrait?49:36,
         opacity:ease((t-90)/390)}}>{items[0]}</span>
       <span style={{height:1,width:'75%',background:'rgba(253,246,233,.71)',
@@ -77,7 +78,7 @@ const LeilaVisual=({scene,ms,portrait})=>{
   return <div style={position}>
     <div style={{display:'inline-block',maxWidth:'100%',padding:portrait?'8px':'6px',
       ...fineText,fontSize:portrait?35:29,
-      fontStyle:'italic',textShadow:'0 5px 24px rgba(0,0,0,.7)'}}>
+      fontStyle:'italic',textShadow:ink==='#292522'?'0 2px 12px rgba(255,255,255,.55)':'0 5px 24px rgba(0,0,0,.7)'}}>
       {items[0]}
     </div>
   </div>;
@@ -120,7 +121,7 @@ export const EditPlusVideo=({sourceUrl,durationMs,timeline})=>{
         pointerEvents:'none'
       }}/>
 
-      {leila?(timeline?.leilaScenes||[]).filter(s=>ms>=s.startMs&&ms<=s.endMs).map((s,i)=><LeilaVisual key={s.startMs+'-'+i} scene={s} ms={ms} portrait={portrait}/>):null}
+      {leila?(timeline?.leilaScenes||[]).filter(s=>ms>=s.startMs&&ms<=s.endMs).map((s,i)=><LeilaVisual key={s.startMs+'-'+i} scene={s} ms={ms} portrait={portrait} theme={timeline.leilaTheme}/>):null}
 
       {caption?(
         <div style={{
