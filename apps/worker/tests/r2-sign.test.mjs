@@ -8,7 +8,7 @@ test('R2 credentials remain disabled until all settings exist',()=>{
   assert.equal(r2Settings(k=>k==='R2_ACCOUNT_ID'?cfg.accountId:null),null);
   assert.deepEqual(r2Settings(k=>({
     R2_ACCOUNT_ID:cfg.accountId,R2_ACCESS_KEY_ID:cfg.accessKeyId,
-    R2_SECRET_ACCESS_KEY:cfg.secretAccessKey,R2_BUCKET_NAME:cfg.bucket
+    R2_SECRET_ACCESS_KEY:cfg.secretAccessKey,R2_BUCKET_NAME:cfg.bucket,R2_ENABLED:'true'
   })[k]),cfg);
 });
 test('R2 presigned URL stays private and includes expiry and SigV4 query',async()=>{
