@@ -3,80 +3,83 @@ import {AbsoluteFill,OffthreadVideo,interpolate,spring,useCurrentFrame,useVideoC
 
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const ease=t=>1-Math.pow(1-clamp(t,0,1),3);
-const LeilaGlass=({scene,ms,portrait})=>{
+/** No overlay unless the story actually calls for that visual. */
+const LeilaVisual=({scene,ms,portrait})=>{
   const t=ms-scene.startMs,remain=scene.endMs-ms;
-  const alpha=Math.min(ease(t/380),ease(remain/340));
-  const dy=(1-ease(t/500))*14;
-  const headline=String(scene.lines?.[0]||'').slice(0,90);
-  const detail=String(scene.lines?.[1]||'').slice(0,160);
-  return <div style={{
-    position:'absolute',
-    zIndex:3,
-    top:portrait?'54%':'14%',
-    left:portrait?'5%':'3%',
-    width:portrait?'90%':'30%',
-    minHeight:portrait?185:178,
-    boxSizing:'border-box',
-    opacity:alpha,
-    transform:`translate3d(0,${dy}px,0)`,
-    border:'1px solid rgba(246,241,232,0.22)',
-    background:'linear-gradient(145deg,rgba(43,43,42,.54),rgba(39,38,38,.35))',
-    backdropFilter:'blur(11px)',
-    WebkitBackdropFilter:'blur(11px)',
-    borderRadius:portrait?17:13,
-    boxShadow:'0 12px 36px rgba(0,0,0,.11),inset 0 1px rgba(255,255,255,.09)',
-    overflow:'hidden',
-    pointerEvents:'none'
-  }}>
-    <div style={{
-      display:'flex',alignItems:'center',justifyContent:'space-between',
-      borderBottom:'1px solid rgba(246,241,232,.16)',
-      padding:portrait?'19px 24px 14px':'14px 20px 10px',
-      fontFamily:'Arial,sans-serif',fontWeight:500,
-      letterSpacing:'0.17em',fontSize:portrait?17:11,color:'rgba(253,249,240,.79)'
-    }}>
-      <span>{scene.label}</span>
-      <span style={{fontVariantNumeric:'tabular-nums',opacity:.45}}>PAROLES</span>
+  const opacity=Math.min(ease(t/330),ease(remain/300));
+  const lift=(1-ease(t/470))*11;
+  const items=(scene.items||[]).map(s=>String(s||'').slice(0,110));
+  const comparison=scene.type==='comparison'&&items.length===2;
+  const sequence=(scene.type==='steps'||scene.type==='flow')&&items.length===2;
+  const metric=scene.type==='metric'&&items.length===1;
+  const emphasis=scene.type==='emphasis'&&items.length===1;
+  if(!(comparison||sequence||metric||emphasis))return null;
+  const place=scene.placement==='right'?'right':'left';
+  const position={
+    position:'absolute',top:portrait?'13%':'15%',
+    [place]:portrait?'7%':'4%',zIndex:4,
+    width:portrait?'86%':comparison?'42%':'35%',
+    pointerEvents:'none',opacity,
+    transform:'translate3d(0,'+lift+'px,0)',
+    color:'#faf6ef',fontFamily:'Arial,sans-serif',boxSizing:'border-box'
+  };
+  const glass={
+    background:'linear-gradient(150deg,rgba(28,30,33,.40),rgba(19,20,24,.23))',
+    border:'1px solid rgba(246,243,236,.20)',
+    borderRadius:portrait?18:13,overflow:'hidden',
+    boxShadow:'0 14px 32px rgba(0,0,0,.13),inset 0 1px rgba(255,255,255,.10)',
+    backdropFilter:'blur(9px)',WebkitBackdropFilter:'blur(9px)'
+  };
+  const fineText={
+    fontFamily:'Georgia,Times New Roman,serif',fontWeight:400,
+    letterSpacing:'-.022em',lineHeight:1.17,overflowWrap:'anywhere'
+  };
+  if(comparison)return <div style={position}>
+    <div style={glass}>
+      <div style={{padding:portrait?'15px 19px':'11px 16px',
+        borderBottom:'1px solid rgba(243,239,231,.15)',
+        fontSize:portrait?13:10,letterSpacing:'.16em',
+        color:'rgba(249,246,237,.64)'}}>COMPARAISON</div>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr'}}>
+        {items.map((item,i)=><div key={i} style={{
+          padding:portrait?'21px 16px 25px':'20px 15px 24px',
+          minHeight:portrait?100:74,
+          borderRight:i===0?'1px solid rgba(245,241,230,.19)':'none',
+          opacity:ease((t-160-i*140)/370),
+          ...fineText,fontSize:portrait?28:Math.max(18,item.length>22?19:26)
+        }}>{item}</div>)}
+      </div>
     </div>
-    <div style={{
-      display:'grid',gridTemplateColumns:'minmax(75px,30%) 1fr',
-      backgroundImage:'linear-gradient(rgba(247,241,232,.045) 1px,transparent 1px)',
-      backgroundSize:'100% 43px'
-    }}>
-      <div style={{
-        borderRight:'1px solid rgba(247,241,232,.15)',
-        borderBottom:'1px solid rgba(247,241,232,.13)',
-        padding:portrait?'18px 11px 18px 22px':'17px 9px 16px 17px',
-        fontFamily:'Arial,sans-serif',fontSize:portrait?13:10,
-        fontWeight:500,letterSpacing:'0.13em',color:'rgba(247,241,232,.58)'
-      }}>MOT CLÉ</div>
-      <div style={{
-        borderBottom:'1px solid rgba(247,241,232,.13)',
-        padding:portrait?'15px 18px':'13px 15px',
-        fontFamily:'Georgia,Times New Roman,serif',fontWeight:400,
-        fontSize:portrait?32:Math.max(19,headline.length>22?20:26),
-        lineHeight:1.17,letterSpacing:'-.025em',color:'#faf7f0',
-        opacity:ease((t-75)/390),transform:`translateY(${(1-ease((t-100)/410))*7}px)`
-      }}>{headline}</div>
-      <div style={{
-        borderRight:'1px solid rgba(247,241,232,.15)',
-        padding:portrait?'19px 11px 22px 22px':'16px 9px 20px 17px',
-        fontFamily:'Arial,sans-serif',fontSize:portrait?13:10,
-        fontWeight:500,letterSpacing:'0.13em',color:'rgba(247,241,232,.58)'
-      }}>CONTEXTE</div>
-      <div style={{
-        padding:portrait?'16px 18px 22px':'13px 15px 20px',
-        fontFamily:'Arial,sans-serif',fontWeight:400,
-        fontSize:portrait?19:14,lineHeight:1.42,
-        color:'rgba(248,244,237,.82)',
-        opacity:ease((t-210)/380)
-      }}>{detail}</div>
+  </div>;
+  if(sequence)return <div style={position}>
+    <div style={{display:'flex',alignItems:'stretch',gap:portrait?12:9}}>
+      {items.map((item,i)=><React.Fragment key={i}>
+        {i>0&&<div style={{alignSelf:'center',color:'rgba(246,241,230,.72)',
+          fontSize:portrait?23:19,opacity:ease((t-280)/350)}}>→</div>}
+        <div style={{
+          flex:1,minWidth:0,padding:portrait?'16px 17px':'12px 14px',
+          ...glass,opacity:ease((t-90-i*220)/380),
+          ...fineText,fontSize:portrait?23:Math.max(16,item.length>26?16:21)
+        }}>{item}</div>
+      </React.Fragment>)}
     </div>
-    <div style={{
-      position:'absolute',width:'34%',height:1,bottom:0,left:0,
-      background:'rgba(250,245,233,.56)',
-      transformOrigin:'left',transform:`scaleX(${ease(t/500)})`
-    }}/>
+  </div>;
+  if(metric)return <div style={position}>
+    <div style={{display:'inline-flex',flexDirection:'column',alignItems:'flex-start',
+      gap:portrait?11:8,padding:portrait?'10px 6px':'7px 5px',
+      textShadow:'0 3px 19px rgba(0,0,0,.6)'}}>
+      <span style={{...fineText,fontSize:portrait?49:36,
+        opacity:ease((t-90)/390)}}>{items[0]}</span>
+      <span style={{height:1,width:'75%',background:'rgba(253,246,233,.71)',
+        transformOrigin:'left',transform:'scaleX('+ease((t-160)/410)+')'}}/>
+    </div>
+  </div>;
+  return <div style={position}>
+    <div style={{display:'inline-block',maxWidth:'100%',padding:portrait?'8px':'6px',
+      ...fineText,fontSize:portrait?35:29,
+      fontStyle:'italic',textShadow:'0 5px 24px rgba(0,0,0,.7)'}}>
+      {items[0]}
+    </div>
   </div>;
 };
 
@@ -117,7 +120,7 @@ export const EditPlusVideo=({sourceUrl,durationMs,timeline})=>{
         pointerEvents:'none'
       }}/>
 
-      {leila?(timeline?.leilaScenes||[]).filter(s=>ms>=s.startMs&&ms<=s.endMs).map((s,i)=><LeilaGlass key={s.startMs+'-'+i} scene={s} ms={ms} portrait={portrait}/>):null}
+      {leila?(timeline?.leilaScenes||[]).filter(s=>ms>=s.startMs&&ms<=s.endMs).map((s,i)=><LeilaVisual key={s.startMs+'-'+i} scene={s} ms={ms} portrait={portrait}/>):null}
 
       {caption?(
         <div style={{
