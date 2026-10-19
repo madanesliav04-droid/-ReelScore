@@ -12,6 +12,7 @@ async function mac(key,message){
   return new Uint8Array(await crypto.subtle.sign('HMAC',imported,bytes(message)));
 }
 export function r2Settings(env){
+  if(env('R2_ENABLED')!=='true')return null;
   const accountId=env('R2_ACCOUNT_ID')||'';
   const accessKeyId=env('R2_ACCESS_KEY_ID')||'';
   const secretAccessKey=env('R2_SECRET_ACCESS_KEY')||'';
