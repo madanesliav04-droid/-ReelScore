@@ -104,6 +104,9 @@ export async function analyzeVideo({
     recommended_title:String(semantic.recommended_title||''),
     recommended_cta:String(semantic.recommended_cta||''),
     timeline,
+    edit_visual_intents:Array.isArray(semantic.edit_visual_intents)
+      ?semantic.edit_visual_intents.filter(x=>x&&typeof x==='object').slice(0,6)
+      :[],
     action_items:Array.isArray(semantic.action_items)
       ?semantic.action_items.slice(0,8)
       :[],
@@ -384,6 +387,16 @@ Schéma:
       "broll_query":""
     }
   ],
+  "edit_visual_intents":[
+    {
+      "type":"comparison|steps|flow|metric|emphasis",
+      "evidence_quote":"extrait EXACT des paroles transcrites",
+      "start_sec":0,
+      "end_sec":2,
+      "placement":"left|right|top",
+      "confidence":0.0
+    }
+  ],
   "action_items":["","",""],
   "confidence":{"audio":0,"visual":0,"text":0}
 }
@@ -396,6 +409,14 @@ Règles:
 - distingue ce qui est réellement visible/audible de ce qui est une estimation;
 - si un élément est absent ou impossible à lire, écris INDETECTABLE;
 - pour les hooks proposés, conserve le sens réel du contenu mais rends-les plus spécifiques;
+- edit_visual_intents est un PLAN DE MONTAGE OPTIONNEL et doit être [] si aucun visuel n'apporte de compréhension;
+- propose une comparaison UNIQUEMENT si la vidéo compare réellement deux éléments identifiés et prononcés (jamais sur un simple mot-clé);
+- propose steps seulement si deux étapes distinctes sont dites; flow seulement pour une vraie causalité;
+- metric uniquement pour un nombre et son unité réellement prononcés; emphasis pour une phrase réellement prononcée;
+- chaque evidence_quote doit reprendre plusieurs mots CONSÉCUTIFS de la transcription originale, sans réécriture ni donnée inventée;
+- choisis un placement hors visage en fonction des images réelles. Si la zone libre ne peut être déterminée, préfère [] ou une insertion minimale;
+- maximum 3 suggestions pour 30 secondes, mais 0 est une excellente décision quand le récit se suffit à lui-même;
+- n'ajoute pas de graphique, de tableau, de faux chiffre, de preuve ou de B-roll sans raison narrative explicite;
 - broll_query doit être vide si aucun B-roll n'est utile.`;
 
   let lastError;
