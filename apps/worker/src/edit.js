@@ -1,3 +1,4 @@
+import {planLeilaVisuals} from './leila-intent.js';
 const FILLERS=new Set(['euh','heu','uh','um','erm','hmm','hum']);
 
 export const EDIT_STYLES={
@@ -101,7 +102,8 @@ export function buildEditTimeline({
   const factor=Math.min(1,1920/sourceLong);
   const nativeWidth=Math.max(2,Math.round(sourceWidth*factor/2)*2);
   const nativeHeight=Math.max(2,Math.round(sourceHeight*factor/2)*2);
-  const leilaScenes=style==='leila'?buildLeilaScenes(mappedWords,outputDurationMs):[];
+  const leilaScenes=style==='leila'
+    ?planLeilaVisuals(mappedWords,outputDurationMs,analysis?.edit_visual_intents??null):[];
 
   const punchIns=buildPunchIns({
     editorialTimeline:Array.isArray(analysis?.timeline)?analysis.timeline:[],
@@ -118,8 +120,8 @@ export function buildEditTimeline({
   });
 
   return {
-    version:1,
-    engine:'editplus-timeline-v1',
+    version:style==='leila'?2:1,
+    engine:style==='leila'?'editplus-leila-intent-v2':'editplus-timeline-v1',
     fps:30,
     width:1080,
     height:1920,
@@ -146,37 +148,7 @@ export function buildEditTimeline({
   };
 }
 
-// Only spoken, word-timed excerpts may become editorial glass panels.
-export function buildLeilaScenes(words,durationMs){
-  const items=(words||[]).filter(w=>Number.isFinite(w.startMs)&&Number.isFinite(w.endMs)&&w.endMs>w.startMs&&String(w.text||'').trim());
-  const normalize=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9€$]/g,'');
-  const candidates=[];
-  const triggers=[
-    {test:/^(question|pourquoi|comment|probleme|erreur|wrong|why|how)$/,kind:'QUESTION'},
-    {test:/^(aider|aide|aidons|help|helps|helping|solution|resoudre)$/,kind:'SOLUTION'},
-    {test:/^(apprendre|apprends|apprentissage|learn|learning|competence|skill)$/,kind:'MÉTHODE'},
-    {test:/^(argent|gagner|euros|dollars|temps|minutes|heures|money|time|hours|profit)$/,kind:'VALEUR'}
-  ];
-  for(let i=0;i<items.length;i++){
-    const token=normalize(items[i].text);
-    const match=triggers.find(t=>t.test.test(token));
-    if(!match)continue;
-    const first=Math.max(0,i-2),last=Math.min(items.length,i+5);
-    const span=items.slice(first,last).filter((w,j,a)=>j===0||w.startMs-a[j-1].endMs<600);
-    if(!span.length)continue;
-    const start=Math.max(0,items[i].startMs-90);
-    const end=Math.min(durationMs,Math.max(start+1300,Math.min(start+2850,span.at(-1).endMs+350)));
-    if(candidates.some(x=>Math.abs(x.startMs-start)<2200))continue;
-    candidates.push({startMs:start,endMs:end,label:match.kind,lines:[
-      items.slice(i,Math.min(items.length,i+3)).map(w=>w.text).join(' ').trim(),
-      span.map(w=>w.text).join(' ').trim()
-    ].filter(Boolean)});
-    if(candidates.length>=Math.ceil(durationMs/6500))break;
-  }
-  return candidates.filter(s=>s.startMs+350<durationMs);
-}
-
-function silenceRemovalWindows(silences,thresholdMs,durationMs){
+// Legacy export retained for backwards compatibility; no forced tables.\nexport const buildLeilaScenes=planLeilaVisuals;\n\nfunction silenceRemovalWindows(silences,thresholdMs,durationMs){
   const out=[];
   for(const s of silences){
     const start=Math.max(0,Math.round(Number(s.start||0)*1000));
