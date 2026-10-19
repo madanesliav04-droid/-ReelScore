@@ -92,33 +92,41 @@ const LeilaVisual=({scene,ms,portrait,theme})=>{
 // an illustrative image or a statistic that the source does not contain.
 const CinematicVisual=({scene,ms,portrait,width,height})=>{
   const t=ms-scene.startMs,remaining=scene.endMs-ms;
-  const enter=ease(t/420),leave=ease(remaining/340);
+  const enter=ease(t/450),leave=ease(remaining/390);
   const visible=Math.min(enter,leave);
-  const isTurn=scene.kind==='turn'||scene.kind==='resolution';
-  const displacement=(1-enter)*24;
-  const maxWidth=portrait?'79%':'47%';
-  const fontSize=portrait?Math.min(48,width*.045):Math.min(39,width*.034);
+  const narrativeText=String(scene.quote||'').trim();
+  if(!narrativeText)return null;
+  // Pure typography: no fake statistics, stock B-roll or subject cutouts.
+  // Depth is typographic only until actual licensed, relevant media is supplied.
+  const fontSize=portrait?Math.min(41,width*.039):Math.min(34,width*.030);
+  const maxWidth=portrait?'76%':'39%';
+  const move=(1-enter)*16;
+  const float=(1-enter)*10-(1-leave)*5;
+  const accent=scene.kind==='turn'||scene.kind==='resolution'?'#f4d9ae':'#f2eee5';
   return <div style={{
-    position:'absolute',left:portrait?'9%':'6%',top:portrait?'15%':'13%',
-    width:maxWidth,zIndex:4,pointerEvents:'none',color:'#f7f2e9',
-    opacity:visible,transform:`translate3d(${displacement}px,${-displacement*.35}px,0)`
+    position:'absolute',left:portrait?'9%':'7%',top:portrait?'12%':'11%',
+    width:maxWidth,zIndex:4,pointerEvents:'none',opacity:visible,
+    color:'#f8f4ea',isolation:'isolate',
+    transform:`translate3d(${move}px,${float}px,0)`
   }}>
-    <div style={{position:'absolute',left:0,top:-10,width:'80%',height:'100%',
-      opacity:.2*enter,filter:'blur(15px)',transform:'translate3d(10px,8px,0)',
-      fontFamily:'Georgia,serif',fontSize:fontSize*1.05,letterSpacing:'-.035em',
-      lineHeight:1.15,overflowWrap:'break-word'}}>{scene.quote}</div>
-    <div style={{height:2,width:isTurn?'56%':'33%',marginBottom:16,
-      background:'linear-gradient(90deg,#f7f2e9,rgba(247,242,233,0))',
-      transformOrigin:'left',transform:`scaleX(${ease(t/520)})`}}/>
     <div style={{
-      position:'relative',fontFamily:'Georgia,Times New Roman,serif',
-      fontWeight:500,fontSize,lineHeight:1.14,letterSpacing:'-.035em',
-      textShadow:'0 4px 22px rgba(0,0,0,.9),0 1px 4px rgba(0,0,0,.9)',
-      overflowWrap:'break-word'
-    }}>{scene.quote}</div>
-    <div style={{width:'36%',height:1,background:'rgba(250,245,232,.44)',
-      marginTop:18,transformOrigin:'left',
-      transform:`scaleX(${ease((t-180)/600)})`}}/>
+      position:'absolute',inset:'-20px -23px -25px -20px',
+      background:'linear-gradient(95deg,rgba(2,8,15,.54),rgba(2,8,15,.08) 90%)',
+      filter:'blur(17px)',zIndex:-1,
+      opacity:.85*visible,transform:`translate3d(${-(1-enter)*5}px,0,0)`
+    }}/>
+    <div style={{
+      width:portrait?51:38,height:2,marginBottom:portrait?13:9,
+      background:accent,transformOrigin:'left',
+      transform:`scaleX(${ease(t/590)})`,opacity:.86
+    }}/>
+    <div style={{
+      fontFamily:'Georgia,Times New Roman,serif',fontSize,
+      lineHeight:1.14,fontWeight:500,letterSpacing:'-.028em',
+      overflowWrap:'break-word',textWrap:'balance',
+      textShadow:'0 3px 16px rgba(0,0,0,.65)',
+      transform:`translate3d(0,${(1-enter)*4}px,0)`
+    }}>{narrativeText}</div>
   </div>;
 };
 const POSITIONS={
@@ -140,6 +148,12 @@ export const EditPlusVideo=({sourceUrl,durationMs,timeline})=>{
   const local=Math.max(0,frame-punchStart);
   const ramp=punch?spring({fps,frame:local,config:{damping:18,stiffness:180,mass:.7}}):0;
   const scale=punch?interpolate(ramp,[0,1],[1,baseScale],{extrapolateRight:'clamp'}):1;
+  // Cinematic framing moves only at validated narrative beats, never on a timer.
+  const shot=cinematic?(timeline?.cinematicMotion||[]).find(c=>ms>=c.startMs&&ms<c.endMs):null;
+  const movement=shot?Math.min(ease((ms-shot.startMs)/560),ease((shot.endMs-ms)/620)):0;
+  const cameraScale=shot?1+(shot.scale-1)*movement:1;
+  const cameraX=shot?(shot.translateX||0)*movement:0;
+  const cameraY=shot?(shot.translateY||0)*movement:0;
   const caption=(timeline?.captions||[]).find(c=>ms>=c.startMs&&ms<=c.endMs);
   const cfg=timeline?.captionConfig||{};
 
@@ -149,7 +163,9 @@ export const EditPlusVideo=({sourceUrl,durationMs,timeline})=>{
         src={sourceUrl}
         style={{
           width:'100%',height:'100%',objectFit:(leila||cinematic)?'contain':'cover',
-          transform:`scale(${scale})`,
+          transform:cinematic
+            ?`translate3d(${cameraX}%,${cameraY}%,0) scale(${cameraScale})`
+            :`scale(${scale})`,
           transformOrigin:'50% 44%'
         }}
       />
