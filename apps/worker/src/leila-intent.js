@@ -34,17 +34,17 @@ const seconds=v=>Number.isFinite(Number(v))?Number(v)*1000:NaN;
 function explicitCompare(words,first,last){
   const toks=lexemes(words.slice(first,last+1));
   const p=toks.findIndex(x=>x==='vs'||x==='versus');
-  if(p<2||p>toks.length-3)return null;
+  if(p<1||p>toks.length-2)return null;
   const idx=first+p;
-  const left=joined(words.slice(Math.max(first,idx-3),idx));
-  const right=joined(words.slice(idx+1,Math.min(last+1,idx+4)));
+  const left=joined(words.slice(Math.max(first,idx-1),idx));
+  const right=joined(words.slice(idx+1,Math.min(last+1,idx+2)));
   if(normalization(left).split(' ').length<1||normalization(right).split(' ').length<1)return null;
   return [left,right];
 }
 function stepPair(words,first,last){
   const tokens=lexemes(words);
   let a=-1,b=-1;
-  const firstRe=/^(premier|premiere|premierement|1er|1ere|1|dabord)$/;
+  const firstRe=/^(premier|premiere|premierement|1er|1ere|1|dabord|d abord)$/;
   const secondRe=/^(deuxieme|second|deuxiemement|ensuite|2e|2eme|2)$/;
   for(let i=first;i<=last;i++){
     if(a<0&&firstRe.test(tokens[i]))a=i;
