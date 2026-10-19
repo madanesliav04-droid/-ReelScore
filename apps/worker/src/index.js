@@ -536,7 +536,8 @@ async function runEdit(job,media,sourcePath,dir){
   await finalEncode({
     inputPath:renderedPath,
     outputPath:finalPath,
-    leilaAudio:timeline.style==='leila'||timeline.style==='cinematic_story',
+    leilaAudio:timeline.style==='leila',
+    cinematicAudio:timeline.style==='cinematic_story',
     onProgress:(pct,stage)=>
       progress(job,'encoding',pct,stage)
   });
