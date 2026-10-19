@@ -47,7 +47,8 @@ const LeilaVisual=({scene,ms,portrait,theme})=>{
           padding:portrait?'21px 16px 25px':'20px 15px 24px',
           minHeight:portrait?100:74,
           borderRight:i===0?'1px solid rgba(245,241,230,.19)':'none',
-          opacity:ease((t-160-i*140)/370),
+          opacity:ease((ms-(scene.itemStartMs?.[i]??(scene.startMs+i*220)))/280),
+          transform:'translateY('+(1-ease((ms-(scene.itemStartMs?.[i]??(scene.startMs+i*220)))/410))*10+'px)',
           ...fineText,fontSize:portrait?28:Math.max(18,item.length>22?19:26)
         }}>{item}</div>)}
       </div>
@@ -57,10 +58,11 @@ const LeilaVisual=({scene,ms,portrait,theme})=>{
     <div style={{display:'flex',alignItems:'stretch',gap:portrait?12:9}}>
       {items.map((item,i)=><React.Fragment key={i}>
         {i>0&&<div style={{alignSelf:'center',color:'rgba(246,241,230,.72)',
-          fontSize:portrait?23:19,opacity:ease((t-280)/350)}}>→</div>}
+          fontSize:portrait?23:19,opacity:ease((ms-(scene.itemStartMs?.[1]??scene.startMs+280))/250)}}>→</div>}
         <div style={{
           flex:1,minWidth:0,padding:portrait?'16px 17px':'12px 14px',
-          ...glass,color:'#faf6ef',opacity:ease((t-90-i*220)/380),
+          ...glass,color:'#faf6ef',opacity:ease((ms-(scene.itemStartMs?.[i]??(scene.startMs+i*250)))/340),
+          transform:'translateY('+(1-ease((ms-(scene.itemStartMs?.[i]??(scene.startMs+i*250)))/470))*9+'px)',
           ...fineText,fontSize:portrait?23:Math.max(16,item.length>26?16:21)
         }}>{item}</div>
       </React.Fragment>)}
@@ -79,7 +81,8 @@ const LeilaVisual=({scene,ms,portrait,theme})=>{
   return <div style={position}>
     <div style={{display:'inline-block',maxWidth:'100%',padding:portrait?'8px':'6px',
       ...fineText,fontSize:portrait?35:29,
-      fontStyle:'italic',textShadow:ink==='#292522'?'0 2px 12px rgba(255,255,255,.55)':'0 5px 24px rgba(0,0,0,.7)'}}>
+      fontStyle:'italic',textShadow:ink==='#292522'?'0 2px 12px rgba(255,255,255,.55)':'0 5px 24px rgba(0,0,0,.7)',
+      transform:'translateY('+(1-ease((ms-(scene.itemStartMs?.[0]??scene.startMs))/380))*11+'px)'}}>
       {items[0]}
     </div>
   </div>;
