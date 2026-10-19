@@ -171,7 +171,8 @@ export function Dashboard(){
   const [authReady,setAuthReady]=useState(false);
   const [email,setEmail]=useState("");
   const [password,setPassword]=useState("");
-  const [authMode,setAuthMode]=useState<"login"|"signup">("login");
+  const [authMode,setAuthMode]=useState<"login"|"signup"|"forgot"|"recovery">("login");
+  const [showPassword,setShowPassword]=useState(false);
   const [authError,setAuthError]=useState("");
   const [authPending,setAuthPending]=useState(false);
   const authLock=useRef(false);
@@ -218,9 +219,22 @@ export function Dashboard(){
     const requested=new URLSearchParams(window.location.search).get("tool");
     if(requested==="viral"||requested==="edit")setActive(requested);
     else if(requested==="clip"){setActive("viral");history.replaceState(null,"","/dashboard?tool=viral");}
-    supabase.auth.getSession().then(({data})=>setSession(data.session)).catch(()=>setSession(null)).finally(()=>setAuthReady(true));
-    const {data}=supabase.auth.onAuthStateChange((_event,next)=>{setSession(next);setAuthReady(true)});
-    return ()=>data.subscription.unsubscribe();
+    // Do not trap an iPhone on the loading screen if storage/network stalls.
+    let active=true;
+    const bootstrapTimer=window.setTimeout(()=>{if(active)setAuthReady(true)},9000);
+    supabase.auth.getSession().then(({data})=>{
+      if(active)setSession(data.session);
+    }).catch(()=>{
+      if(active)setSession(null);
+    }).finally(()=>{
+      if(active){window.clearTimeout(bootstrapTimer);setAuthReady(true)}
+    });
+    const {data}=supabase.auth.onAuthStateChange((event,next)=>{
+      if(!active)return;
+      setSession(next);setAuthReady(true);
+      if(event==="PASSWORD_RECOVERY"){setAuthMode("recovery");setAuthError("");setAuthNotice("");}
+    });
+    return ()=>{active=false;window.clearTimeout(bootstrapTimer);data.subscription.unsubscribe()};
   },[]);
   useEffect(()=>{
     const owner=session?.user?.id;
@@ -300,15 +314,53 @@ export function Dashboard(){
   }
 
   async function authenticate(e:React.FormEvent){
-    e.preventDefault();if(authLock.current)return;
+    e.preventDefault();
+    if(authLock.current)return;
     authLock.current=true;setAuthPending(true);setAuthError("");setAuthNotice("");
+    let timeout:ReturnType<typeof setTimeout>|undefined;
+    // A hung browser request must not leave the form disabled forever.
+    async function withDeadline<T>(request:PromiseLike<T>):Promise<T>{
+      try{
+        return await Promise.race([
+          Promise.resolve(request),
+          new Promise<T>((_,reject)=>{
+            timeout=setTimeout(()=>reject(new Error("AUTH_REQUEST_TIMEOUT")),15000);
+          })
+        ]);
+      }finally{if(timeout)clearTimeout(timeout)}
+    }
     try{
-      const credentials={email:email.trim(),password};
-      const {data,error}=await (authMode==="login"?supabase.auth.signInWithPassword(credentials):supabase.auth.signUp(credentials));
-      if(error)setAuthError(authMessage(error));
-      else if(authMode==="signup"&&!data.session)setAuthNotice("Consulte tes emails pour confirmer ton compte, puis connecte-toi.");
-    }catch(error){setAuthError(authMessage(error))}
-    finally{authLock.current=false;setAuthPending(false)}
+      const normalizedEmail=email.trim().toLowerCase();
+      if(authMode==="forgot"){
+        const {error}=await withDeadline(supabase.auth.resetPasswordForEmail(normalizedEmail,{
+          redirectTo:window.location.origin+"/dashboard?tool=edit"
+        }));
+        if(error)setAuthError(authMessage(error));
+        else setAuthNotice("Si ce compte existe, un lien de réinitialisation a été envoyé. Vérifie aussi les indésirables.");
+      }else if(authMode==="recovery"){
+        const {error}=await withDeadline(supabase.auth.updateUser({password}));
+        if(error)setAuthError(authMessage(error));
+        else{
+          setPassword("");setShowPassword(false);setAuthMode("login");
+          setAuthNotice("Mot de passe mis à jour. Tu es connecté.");
+        }
+      }else{
+        const credentials={email:normalizedEmail,password};
+        const {data,error}=await withDeadline(authMode==="login"
+          ?supabase.auth.signInWithPassword(credentials)
+          :supabase.auth.signUp(credentials));
+        if(error)setAuthError(authMessage(error));
+        else if(authMode==="signup"&&!data.session)
+          setAuthNotice("Compte créé. Consulte tes emails pour confirmer ton adresse, puis connecte-toi.");
+        else if(authMode==="login"&&!data.session)
+          setAuthError("Connexion non finalisée. Vérifie ton email et réessaie.");
+      }
+    }catch(error){
+      const message=error instanceof Error?error.message:"";
+      setAuthError(message==="AUTH_REQUEST_TIMEOUT"
+        ?"Le serveur ne répond pas. Vérifie ta connexion puis réessaie, le bouton est débloqué."
+        :authMessage(error));
+    }finally{authLock.current=false;setAuthPending(false)}
   }
 
   async function uploadVideo(selected:File){return uploadSource(selected,false)}
@@ -591,12 +643,27 @@ export function Dashboard(){
 
   if(!authReady)return <main className="social-loading" role="status" aria-live="polite"><div className="social-loading-icon">S+</div><p>Ouverture de Social+…</p></main>;
 
-  if(!session)return <main className="auth-screen"><div className="auth-orb"/><section className="auth-box">
+  if(!session||authMode==="recovery")return <main className="auth-screen"><div className="auth-orb"/><section className="auth-box">
     <div className="side-brand big">SOCIAL <span>+</span></div>
-    <h1>{authMode==="login"?"Bon retour.":"Bienvenue sur Social+."}</h1><p>Montage intelligent avec Edit+. Analyse éditoriale avec Viral+.</p>
-    <form onSubmit={authenticate} aria-busy={authPending}><input className="field" type="email" autoComplete="email" disabled={authPending} value={email} onChange={e=>setEmail(e.target.value)} placeholder="Email" required/><input className="field" type="password" autoComplete={authMode==="login"?"current-password":"new-password"} disabled={authPending} value={password} onChange={e=>setPassword(e.target.value)} placeholder="Password" minLength={6} required/><button type="submit" disabled={authPending} className="btn primary auth-submit">{authPending?"Connexion…":authMode==="login"?"Se connecter":"Créer mon compte"}</button></form>
-    {authError&&<div role="alert" className="error auth-error">{authError}</div>}{authNotice&&<p role="status">{authNotice}</p>}
-    <button className="auth-switch" disabled={authPending} onClick={()=>{setAuthError("");setAuthNotice("");setAuthMode(authMode==="login"?"signup":"login")}}>{authMode==="login"?"Créer un compte":"Déjà inscrit ? Se connecter"}</button>
+    <h1>{authMode==="login"?"Bon retour.":authMode==="signup"?"Bienvenue sur Social+.":authMode==="forgot"?"Retrouver mon compte.":"Nouveau mot de passe."}</h1>
+    <p>{authMode==="forgot"?"Entre ton email pour recevoir un lien de réinitialisation.":authMode==="recovery"?"Choisis un nouveau mot de passe pour retrouver Edit+ et Viral+.":"Montage intelligent avec Edit+. Analyse éditoriale avec Viral+."}</p>
+    <form onSubmit={authenticate} aria-busy={authPending} aria-label="Connexion Social+">
+      {authMode!=="recovery"&&<input className="field" type="email" inputMode="email" autoCapitalize="none" autoComplete="email" disabled={authPending} value={email} onChange={e=>setEmail(e.target.value)} placeholder="Adresse email" aria-label="Adresse email" required/>}
+      {authMode!=="forgot"&&<div className="auth-password-field">
+        <input className="field" type={showPassword?"text":"password"} autoComplete={authMode==="login"?"current-password":"new-password"} disabled={authPending} value={password} onChange={e=>setPassword(e.target.value)} placeholder="Mot de passe" aria-label="Mot de passe" minLength={6} required/>
+        <button type="button" className="auth-password-toggle" disabled={authPending} onClick={()=>setShowPassword(v=>!v)} aria-label={showPassword?"Masquer le mot de passe":"Afficher le mot de passe"}>{showPassword?"Masquer":"Afficher"}</button>
+      </div>}
+      <button type="submit" disabled={authPending} className="btn primary auth-submit">
+        {authPending?"Vérification…":authMode==="forgot"?"Recevoir mon lien":authMode==="recovery"?"Enregistrer le nouveau mot de passe":authMode==="login"?"Se connecter":"Créer mon compte"}
+      </button>
+    </form>
+    {authError&&<div role="alert" className="error auth-error" aria-live="assertive">{authError}</div>}
+    {authNotice&&<p className="auth-notice" role="status">{authNotice}</p>}
+    {authMode==="login"&&<button type="button" className="auth-link" disabled={authPending} onClick={()=>{setAuthError("");setAuthNotice("");setAuthMode("forgot")}}>Mot de passe oublié ?</button>}
+    <button type="button" className="auth-switch" disabled={authPending} onClick={()=>{
+      setAuthError("");setAuthNotice("");setPassword("");setShowPassword(false);
+      setAuthMode(authMode==="login"?"signup":"login");
+    }}>{authMode==="login"?"Créer un compte":authMode==="signup"?"Déjà inscrit ? Se connecter":"Retour à la connexion"}</button>
   </section></main>;
 
   return <main className="dashboard-shell">
