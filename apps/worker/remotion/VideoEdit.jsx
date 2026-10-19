@@ -12,19 +12,19 @@ const LeilaGlass=({scene,ms,portrait})=>{
   return <div style={{
     position:'absolute',
     zIndex:3,
-    top:portrait?'52%':'12%',
-    right:portrait?'5%':'3.5%',
-    width:portrait?'90%':'36%',
-    minHeight:portrait?185:122,
+    top:portrait?'54%':'14%',
+    left:portrait?'5%':'3%',
+    width:portrait?'90%':'30%',
+    minHeight:portrait?185:178,
     boxSizing:'border-box',
     opacity:alpha,
     transform:`translate3d(0,${dy}px,0)`,
     border:'1px solid rgba(246,241,232,0.22)',
-    background:'linear-gradient(135deg,rgba(29,31,36,.39),rgba(23,24,29,.19))',
+    background:'linear-gradient(145deg,rgba(43,43,42,.54),rgba(39,38,38,.35))',
     backdropFilter:'blur(11px)',
     WebkitBackdropFilter:'blur(11px)',
-    borderRadius:portrait?19:14,
-    boxShadow:'0 14px 42px rgba(0,0,0,.14),inset 0 1px rgba(255,255,255,.12)',
+    borderRadius:portrait?17:13,
+    boxShadow:'0 12px 36px rgba(0,0,0,.11),inset 0 1px rgba(255,255,255,.09)',
     overflow:'hidden',
     pointerEvents:'none'
   }}>
@@ -36,12 +36,12 @@ const LeilaGlass=({scene,ms,portrait})=>{
       letterSpacing:'0.17em',fontSize:portrait?17:11,color:'rgba(253,249,240,.79)'
     }}>
       <span>{scene.label}</span>
-      <span style={{fontVariantNumeric:'tabular-nums',opacity:.45}}>EDIT / 03</span>
+      <span style={{fontVariantNumeric:'tabular-nums',opacity:.45}}>PAROLES</span>
     </div>
     <div style={{
       display:'grid',gridTemplateColumns:'minmax(75px,30%) 1fr',
-      backgroundImage:'linear-gradient(rgba(247,241,232,.032) 1px,transparent 1px)',
-      backgroundSize:'100% 28px'
+      backgroundImage:'linear-gradient(rgba(247,241,232,.045) 1px,transparent 1px)',
+      backgroundSize:'100% 43px'
     }}>
       <div style={{
         borderRight:'1px solid rgba(247,241,232,.15)',
@@ -54,7 +54,7 @@ const LeilaGlass=({scene,ms,portrait})=>{
         borderBottom:'1px solid rgba(247,241,232,.13)',
         padding:portrait?'15px 18px':'13px 15px',
         fontFamily:'Georgia,Times New Roman,serif',fontWeight:400,
-        fontSize:portrait?32:Math.max(21,headline.length>22?22:28),
+        fontSize:portrait?32:Math.max(19,headline.length>22?20:26),
         lineHeight:1.17,letterSpacing:'-.025em',color:'#faf7f0',
         opacity:ease((t-75)/390),transform:`translateY(${(1-ease((t-100)/410))*7}px)`
       }}>{headline}</div>
