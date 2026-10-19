@@ -79,11 +79,13 @@ const candidatesFromSpeech=words=>{
   const cues=[],t=lexemes(words);
   for(let i=0;i<words.length;i++){
     const end=Math.min(words.length-1,i+17);
-    const compare=explicitCompare(words,i,end);
-    if(compare&&i===0||compare&&i>0&&!explicitCompare(words,i-1,end)){
-      const idx=t.findIndex((x,j)=>j>=i&&j<=end&&(x==='vs'||x==='versus'));
-      cues.push({type:'comparison',startMs:words[Math.max(i,idx-2)].startMs,
-        endMs:Math.min(words[end].endMs,words[idx].startMs+2800),items:compare,reason:'spoken_explicit_contrast'});
+    if(t[i]==='vs'||t[i]==='versus'){
+      const compare=explicitCompare(words,Math.max(0,i-4),Math.min(words.length-1,i+4));
+      if(compare){
+        cues.push({type:'comparison',startMs:words[Math.max(0,i-2)].startMs,
+          endMs:Math.min(words.at(-1).endMs,words[i].startMs+2800),
+          items:compare,reason:'spoken_explicit_contrast'});
+      }
     }
     const steps=stepPair(words,i,end);
     if(steps&&steps.first===i)cues.push({type:'steps',startMs:words[i].startMs,
