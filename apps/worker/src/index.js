@@ -14,7 +14,9 @@ import {
   preprocessVideo,
   renderWithRemotion,
   finalEncode,
-  fileSize
+  fileSize,
+  sampleBackgroundLuma,
+  captionColorForLuma
 } from './render.js';
 
 const required=[
@@ -442,6 +444,19 @@ async function runEdit(job,media,sourcePath,dir){
       project.caption_preset||
       null
   });
+
+  if(timeline.style==='leila'){
+    const backdrop=await sampleBackgroundLuma(editingSourcePath,Math.min(3,Math.max(.2,timeline.sourceDurationMs/3000)));
+    const left=captionColorForLuma(backdrop.left);
+    const right=captionColorForLuma(backdrop.right);
+    timeline.leilaTheme={left,right};
+    // Lower-third captions cover the centre/bottom: when background evidence
+    // is conflicting, preserve the lighter colour with legibility shadow.
+    if(left.mode===right.mode){
+      timeline.captionConfig={...timeline.captionConfig,
+        textColor:left.ink,activeColor:left.ink};
+    }
+  }
 
   if(ugcComposition)timeline.ugcMultirush={placements:ugcComposition.placements,unusedCount:ugcComposition.unusedCount,voiceSourceId:job.video_id};
 
