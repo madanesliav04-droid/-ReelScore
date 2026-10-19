@@ -86,7 +86,7 @@ export function buildEditTimeline({
   if(style==='leila'){
     const checked=validateTimedWords(words,durationMs);
     if(!checked.ok){
-      throw new Error(checked.reason+': montage Leila bloqué tant que les mots ne sont pas correctement horodatés.');
+      throw new Error((checked.reason==='ASR_NOT_READY'?'LEILA_TRANSCRIPT_REQUIRED':checked.reason)+': montage Leila bloqué tant que les mots ne sont pas correctement horodatés.');
     }
   }
 
