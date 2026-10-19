@@ -1,10 +1,13 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {createClient} from "https://esm.sh/@supabase/supabase-js@2";
+import {r2Settings,r2Presign} from "./r2-sign.js";
 
 const SUPABASE_URL=Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ALLOWED_ORIGIN=Deno.env.get("ALLOWED_ORIGIN")||"https://madanesliav04-droid.github.io";
 const VIDEO_BUCKET="viralplus-videos";
+const R2_BUCKET="socialplus-r2";
+const MAX_VIDEO_BYTES=200_000_000;
 
 const CORS={
   "Access-Control-Allow-Origin":ALLOWED_ORIGIN,
@@ -79,7 +82,28 @@ async function registerMedia(db:ReturnType<typeof admin>,userId:string,body:any)
   const size=Number(body?.size_bytes||0);
   if(!path||!path.startsWith(userId+"/"))throw new Error("INVALID_STORAGE_PATH");
   if(!mime.startsWith("video/"))throw new Error("INVALID_VIDEO_TYPE");
-  if(!Number.isFinite(size)||size<=0||size>200*1000*1000)throw new Error("INVALID_VIDEO_SIZE");
+  if(!Number.isSafeInteger(size)||size<=0||size>MAX_VIDEO_BYTES)throw new Error("INVALID_VIDEO_SIZE");
+  const useR2=body?.storage_provider==="r2";
+  if(body?.storage_provider&&!useR2)throw new Error("INVALID_STORAGE_PROVIDER");
+  if(useR2){
+    const config=r2Settings((name)=>Deno.env.get(name));
+    if(!config)throw new Error("R2_NOT_CONFIGURED");
+    if(!path.startsWith(userId+"/r2-uploads/")||body?.metadata?.multipart)throw new Error("INVALID_R2_STORAGE_PATH");
+    const check=await fetch(await r2Presign(config,"HEAD",path,60),{method:"HEAD"});
+    if(!check.ok)throw new Error("R2_OBJECT_NOT_FOUND");
+    if(Number(check.headers.get("content-length"))!==size)throw new Error("R2_OBJECT_SIZE_MISMATCH");
+    const row={
+      user_id:userId,module:"viralplus",kind:"source",storage_bucket:R2_BUCKET,
+      storage_path:path,original_name:String(body?.original_name||"video").slice(0,240),
+      mime_type:mime,size_bytes:size,duration_ms:null,width:null,height:null,
+      sha256:sha(body?.sha256),status:"uploaded",
+      metadata:{expires_at:new Date(Date.now()+24*3600000).toISOString(),provider:"r2"}
+    };
+    const {data,error}=await db.from("media_assets")
+      .upsert(row,{onConflict:"storage_bucket,storage_path"}).select("*").single();
+    if(error)throw error;
+    return data;
+  }
 
   const {data:list,error:listError}=await db.storage.from(VIDEO_BUCKET).list(
     path.split("/").slice(0,-1).join("/"),
@@ -186,6 +210,24 @@ async function route(req:Request){
   const db=admin();
   const userDb=asUser(req);
 
+  if(req.method==="GET"&&tail[0]==="storage-config"){
+    return out({provider:r2Settings((name)=>Deno.env.get(name))?"r2":"supabase",
+      max_file_bytes:MAX_VIDEO_BYTES,retention_hours:24});
+  }
+  if(req.method==="POST"&&tail[0]==="r2-upload-ticket"){
+    const config=r2Settings((name)=>Deno.env.get(name));
+    if(!config)return out({error:"R2_NOT_CONFIGURED"},503);
+    const payload=await req.json().catch(()=>null);
+    const size=Number(payload?.size_bytes);
+    const mime=String(payload?.mime_type||"");
+    const name=String(payload?.original_name||"video").replace(/[^a-zA-Z0-9._-]/g,"-").slice(-95);
+    if(!Number.isSafeInteger(size)||size<1||size>MAX_VIDEO_BYTES)return out({error:"INVALID_VIDEO_SIZE"},422);
+    if(!["video/mp4","video/quicktime","video/webm"].includes(mime))return out({error:"INVALID_VIDEO_TYPE"},422);
+    const key=user.id+"/r2-uploads/"+crypto.randomUUID()+"-"+name;
+    try{return out({storage_provider:"r2",storage_path:key,
+      signed_upload_url:await r2Presign(config,"PUT",key,600),expires_in:600},201);}
+    catch{return out({error:"R2_UPLOAD_TICKET_FAILED"},500);}
+  }
   if(req.method==="GET"&&tail[0]==="quota"){
     const {data:profile,error}=await db.from("viralplus_profiles")
       .select("analyses_used,analysis_limit,period_start")
@@ -207,7 +249,7 @@ async function route(req:Request){
     const {data,error}=await db.from("media_assets")
       .select("id,original_name,mime_type,size_bytes,status,created_at")
       .eq("user_id",user.id)
-      .eq("storage_bucket",VIDEO_BUCKET)
+      .in("storage_bucket",[VIDEO_BUCKET,R2_BUCKET])
       .like("mime_type","video/%")
       .is("deleted_at",null)
       .order("created_at",{ascending:false})
@@ -301,7 +343,7 @@ async function route(req:Request){
     let totalRushBytes=0;
     for(const id of rushIds){
       const rush=await ownMedia(db,user.id,id);
-      if(!rush||rush.storage_bucket!==VIDEO_BUCKET||!String(rush.mime_type).startsWith("video/")){
+      if(!rush||![VIDEO_BUCKET,R2_BUCKET].includes(rush.storage_bucket)||!String(rush.mime_type).startsWith("video/")){
         return out({error:"UGC_RUSH_NOT_ACCESSIBLE"},403);
       }
       totalRushBytes+=Number(rush.size_bytes)||0;
@@ -357,12 +399,16 @@ async function route(req:Request){
     const media=await ownMedia(db,user.id,String(tail[1]));
     if(!media)return out({error:"MEDIA_NOT_FOUND"},404);
 
-    const {data,error}=await db.storage
-      .from(media.storage_bucket)
-      .createSignedUrl(media.storage_path,600);
-
-    if(error||!data?.signedUrl){
-      return out({error:error?.message||"SIGNED_URL_FAILED"},500);
+    let signedUrl="";
+    if(media.storage_bucket===R2_BUCKET){
+      const config=r2Settings((name)=>Deno.env.get(name));
+      if(!config)return out({error:"R2_NOT_CONFIGURED"},503);
+      signedUrl=await r2Presign(config,"GET",media.storage_path,600);
+    }else{
+      const {data,error}=await db.storage.from(media.storage_bucket)
+        .createSignedUrl(media.storage_path,600);
+      if(error||!data?.signedUrl)return out({error:error?.message||"SIGNED_URL_FAILED"},500);
+      signedUrl=data.signedUrl;
     }
 
     return out({
@@ -372,7 +418,7 @@ async function route(req:Request){
         size_bytes:media.size_bytes,
         status:media.status
       },
-      signed_url:data.signedUrl,
+      signed_url:signedUrl,
       expires_in:600
     });
   }
@@ -392,12 +438,16 @@ async function route(req:Request){
     const media=await ownMedia(db,user.id,String(exportRow.output_video_id));
     if(!media)return out({error:"OUTPUT_MEDIA_NOT_FOUND"},404);
 
-    const {data,error}=await db.storage
-      .from(media.storage_bucket)
-      .createSignedUrl(media.storage_path,600);
-
-    if(error||!data?.signedUrl){
-      return out({error:error?.message||"SIGNED_URL_FAILED"},500);
+    let signedUrl="";
+    if(media.storage_bucket===R2_BUCKET){
+      const config=r2Settings((name)=>Deno.env.get(name));
+      if(!config)return out({error:"R2_NOT_CONFIGURED"},503);
+      signedUrl=await r2Presign(config,"GET",media.storage_path,600);
+    }else{
+      const {data,error}=await db.storage.from(media.storage_bucket)
+        .createSignedUrl(media.storage_path,600);
+      if(error||!data?.signedUrl)return out({error:error?.message||"SIGNED_URL_FAILED"},500);
+      signedUrl=data.signedUrl;
     }
 
     return out({
@@ -408,7 +458,7 @@ async function route(req:Request){
         size_bytes:media.size_bytes,
         status:media.status
       },
-      signed_url:data.signedUrl,
+      signed_url:signedUrl,
       expires_in:600
     });
   }
