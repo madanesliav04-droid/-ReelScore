@@ -96,7 +96,10 @@ export function buildEditTimeline({
   if(style==='leila'||style==='cinematic_story'){
     const checked=validateTimedWords(words,durationMs);
     if(!checked.ok){
-      throw new Error((checked.reason==='ASR_NOT_READY'?'EDIT_TRANSCRIPT_REQUIRED':checked.reason)+': horodatage mot à mot obligatoire pour ce montage.');
+      const code=checked.reason==='ASR_NOT_READY'
+        ?(style==='leila'?'LEILA_TRANSCRIPT_REQUIRED':'CINEMATIC_TRANSCRIPT_REQUIRED')
+        :checked.reason;
+      throw new Error(code+': horodatage mot à mot obligatoire pour ce montage.');
     }
   }
 
@@ -114,7 +117,7 @@ export function buildEditTimeline({
     .filter(Boolean);
   const captions=groupCaptions(mappedWords,captionCfg.maxWordsPerLine);
   if((style==='leila'||style==='cinematic_story')&&mappedWords.length<3){
-    throw new Error('EDIT_TRANSCRIPT_REQUIRED: transcription mot à mot indisponible, montage interrompu sans texte inventé.');
+    throw new Error((style==='leila'?'LEILA_TRANSCRIPT_REQUIRED':'CINEMATIC_TRANSCRIPT_REQUIRED')+': transcription mot à mot indisponible, montage interrompu sans texte inventé.');
   }
   const sourceWidth=Number(analysis?.measurable?.width)||1080;
   const sourceHeight=Number(analysis?.measurable?.height)||1920;
