@@ -573,8 +573,8 @@ async function runEdit(job,media,sourcePath,dir){
       mime_type:'video/mp4',
       size_bytes:sizeBytes,
       duration_ms:timeline.outputDurationMs,
-      width:1080,
-      height:1920,
+      width:timeline.export?.width||1080,
+      height:timeline.export?.height||1920,
       status:'ready',
       metadata:{
         source_video_id:job.video_id,
@@ -604,7 +604,7 @@ async function runEdit(job,media,sourcePath,dir){
       job_id:job.id,
       user_id:job.user_id,
       output_video_id:outputAsset.id,
-      preset:'1080x1920',
+      preset:`${timeline.export?.width||1080}x${timeline.export?.height||1920}`,
       status:'ready'
     },{
       onConflict:'job_id'
