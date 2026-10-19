@@ -40,7 +40,7 @@ test('Numbers are never made up and must carry a spoken unit',()=>{
   assert.match(cues[0].items[0],/200 vues/);
 });
 test('An explicit spoken question gets light typography, not a table',()=>{
-  const cues=auto("Comment gagner de argent en ligne ?");
+  const cues=auto("Comment gagner de argent en ligne?");
   assert.equal(cues[0]?.type,'emphasis');
   assert.ok(cues.every(c=>c.type!=='comparison'));
 });
