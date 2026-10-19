@@ -74,6 +74,7 @@ test('expired session returns to sign-in and preserves job',async({page})=>{
 });
 test('resumed upload registers original storage object and locks concurrent uploads',async({page})=>{
   await setup(page,other);
+  await page.route('**/api/viral-edit-jobs/storage-config',r=>r.fulfill({json:{provider:'supabase',max_file_bytes:200000000,retention_hours:24}}));
   const original=`${owner}/original-source.mov`;
   let registered='';let patchResolve:(()=>void)|undefined;
   await page.route('**/storage/v1/upload/resumable/qa',async r=>{
