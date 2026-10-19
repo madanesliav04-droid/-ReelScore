@@ -397,7 +397,7 @@ async function runEdit(job,media,sourcePath,dir){
     Math.round(Number(analysis?.measurable?.durationSec||0)*1000));
   // A cached Viral+ transcript that merely contains words may still have
   // invalid timecodes. Reanalyze instead of exporting desynchronized captions.
-  if(!priorWords?.length||(targetStyle==='leila'&&!timingCheck.ok)){
+  if(!priorWords?.length||(['leila','cinematic_story'].includes(targetStyle)&&!timingCheck.ok)){
     await progress(
       job,
       'transcribing',
@@ -452,7 +452,7 @@ async function runEdit(job,media,sourcePath,dir){
       null
   });
 
-  if(timeline.style==='leila'){
+  if(timeline.style==='leila'||timeline.style==='cinematic_story'){
     const backdrop=await sampleBackgroundLuma(editingSourcePath,Math.min(3,Math.max(.2,timeline.sourceDurationMs/3000)));
     const left=captionColorForLuma(backdrop.left);
     const right=captionColorForLuma(backdrop.right);
@@ -471,7 +471,7 @@ async function runEdit(job,media,sourcePath,dir){
       version:1,
       duration_ms:timeline.outputDurationMs,
       timeline_json:timeline,
-      decision_model:'editplus-timeline-v1'
+      decision_model:timeline.engine
     },{
       onConflict:'project_id,version'
     });
@@ -535,7 +535,7 @@ async function runEdit(job,media,sourcePath,dir){
   await finalEncode({
     inputPath:renderedPath,
     outputPath:finalPath,
-    leilaAudio:timeline.style==='leila',
+    leilaAudio:timeline.style==='leila'||timeline.style==='cinematic_story',
     onProgress:(pct,stage)=>
       progress(job,'encoding',pct,stage)
   });
