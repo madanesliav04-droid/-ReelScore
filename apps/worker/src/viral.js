@@ -1,3 +1,4 @@
+import {extractAsrWordAnnotations,validateTimedWords,semanticMatchesWords} from './word-timing.js';
 import {createReadStream} from 'node:fs';
 import {stat} from 'node:fs/promises';
 import {spawn} from 'node:child_process';
@@ -39,7 +40,7 @@ export async function analyzeVideo({
     await onProgress('transcribing',28,'Transcription horodatée');
     try{
       transcript=await transcribeFromVideo({
-        filePath,fileName,geminiKey,model:transcribeModel
+        filePath,fileName,geminiKey,model:transcribeModel,durationMs:Math.round(measurable.durationSec*1000)
       });
     }catch(error){
       transcript={
@@ -195,7 +196,7 @@ export async function extractMeasurableSignals(filePath){
 }
 
 async function transcribeFromVideo({
-  filePath,fileName,geminiKey,model
+  filePath,fileName,geminiKey,model,durationMs
 }){
   const audioPath=`${filePath}.audio.mp3`;
   await run('ffmpeg',[
@@ -254,27 +255,22 @@ async function transcribeFromVideo({
       contents.map(x=>x.text||'').join(' ')
     ).trim();
 
-    const words=contents
-      .flatMap(x=>x.annotations||[])
-      .filter(x=>x?.type==='word_info'&&x.text)
-      .map(x=>({
-        text:String(x.text),
-        startMs:offsetToMs(x.start_offset),
-        endMs:offsetToMs(x.end_offset),
-        speaker:x.speaker||null
-      }))
-      .filter(x=>
-        Number.isFinite(x.startMs)&&
-        Number.isFinite(x.endMs)&&
-        x.endMs>=x.startMs
-      );
-
+    const rawWords=extractAsrWordAnnotations(body);
+    const checked=validateTimedWords(rawWords,durationMs);
+    if(!checked.ok)throw new Error(
+      checked.reason+': '+rawWords.length+' mots, durée '+durationMs+'ms'
+    );
+    if(text&&!semanticMatchesWords(text,checked.words)){
+      throw new Error('ASR_TEXT_MISMATCH: transcription et horodatage discordants');
+    }
     return {
-      text,
-      words,
-      captions:wordsToCaptions(words),
+      text:text||checked.words.map(w=>w.text).join(' '),
+      words:checked.words,
+      captions:wordsToCaptions(checked.words),
       error:null,
-      model
+      model,
+      word_timing_validated:true,
+      timed_word_count:checked.count
     };
   }finally{
     if(uploaded?.name){
