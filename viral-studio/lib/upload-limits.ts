@@ -22,8 +22,8 @@ export function videoUploadPreflight(file:{name:string;size:number}):string|null
   if(!file.size)return "Ce fichier est vide. Choisis une vidéo.";
   if(!/\.(mp4|mov|webm)$/i.test(file.name))return "Choisis une vidéo MP4, MOV ou WebM.";
   if(!Number.isSafeInteger(file.size)||file.size>MAX_VIDEO_UPLOAD_BYTES){
-    const sizeMiB=(file.size/(1024*1024)).toFixed(1).replace(".",",");
-    return `Cette vidéo fait ${sizeMiB} Mo : la limite par vidéo est de ${MAX_VIDEO_UPLOAD_MB} Mo.`;
+    const sizeMB=(file.size/1000000).toFixed(1).replace(".",",");
+    return `Cette vidéo fait ${sizeMB} Mo : la limite par vidéo est de ${MAX_VIDEO_UPLOAD_MB} Mo.`;
   }
   return null;
 }
