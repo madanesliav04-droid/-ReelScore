@@ -78,3 +78,18 @@ test('Missing timed transcript fails closed instead of inventing text',()=>{
     transcript:{words:[]}
   }}),/LEILA_TRANSCRIPT_REQUIRED/);
 });
+
+test('Comparison objects enter on the words that actually name them',()=>{
+  const cues=auto('Je préfère YouTube versus TikTok pour publier');
+  const comp=cues.find(c=>c.type==='comparison');
+  assert.ok(comp);
+  assert.equal(comp.itemStartMs.length,2);
+  assert.ok(comp.itemStartMs[1]>comp.itemStartMs[0]);
+});
+test('A step or causal arrow is not scheduled before second spoken element',()=>{
+  for(const speech of ["D'abord on filme ensuite on ajoute", "Si on apprend alors on réussit"]){
+    const cue=auto(speech)[0];
+    assert.ok(['steps','flow'].includes(cue.type));
+    assert.ok(cue.itemStartMs[1]>cue.itemStartMs[0]);
+  }
+});
