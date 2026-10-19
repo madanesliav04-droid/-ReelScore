@@ -37,8 +37,11 @@ const entryPoint=path.resolve(here,'../remotion/index.jsx');
 let bundlePromise=null;
 
 export async function preprocessVideo({inputPath,outputPath,keepRanges,hasAudio=true,onProgress=async()=>{}}){
-  const ranges=(keepRanges||[]).filter(r=>r.endMs-r.startMs>=100).slice(0,80);
+  const ranges=(keepRanges||[]).filter(r=>r.endMs-r.startMs>=100);
   if(!ranges.length)throw new Error('Aucun segment vidéo à conserver.');
+  // Never silently truncate the end of a long edit because there were >80 cuts.
+  // Stop explicitly instead of exporting an apparently successful incomplete video.
+  if(ranges.length>80)throw new Error('TOO_MANY_EDIT_RANGES: montage interrompu pour protéger la fin du rush.');
 
   await onProgress(48,'Suppression des blancs et hésitations');
 
