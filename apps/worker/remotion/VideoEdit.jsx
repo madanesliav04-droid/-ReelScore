@@ -1,4 +1,5 @@
 import React from 'react';
+import {revealTimedWord} from './word-reveal.js';
 import {AbsoluteFill,OffthreadVideo,interpolate,spring,useCurrentFrame,useVideoConfig} from 'remotion';
 
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
@@ -140,21 +141,24 @@ export const EditPlusVideo=({sourceUrl,durationMs,timeline})=>{
             backdropFilter:cfg.background?'blur(10px)':'none',
             fontFamily:cfg.fontFamily||'Inter,Arial,sans-serif',
             fontWeight:cfg.fontWeight||900,
-            fontSize:leila?(portrait?Math.min(46,width*.044):Math.min(27,width*.026)):(cfg.fontSize||72),
+            fontSize:leila?(portrait?Math.min(48,width*.052):Math.min(40,width*.032)):(cfg.fontSize||72),
             lineHeight:cfg.lineHeight||1,
             letterSpacing:'-0.045em',
             textTransform:'none'
           }}>
             {(caption.words||[]).map((word,i)=>{
-              const active=cfg.activeWord&&ms>=word.startMs&&ms<=word.endMs;
+              const wordState=leila?revealTimedWord(ms,word):null;
+              const active=leila?wordState.active:(cfg.activeWord&&ms>=word.startMs&&ms<=word.endMs);
               return (
                 <span key={i} style={{
+                  display:'inline-block',
+                  opacity:leila?wordState.opacity:1,
                   color:active?(cfg.activeColor||'#ff6a00'):(cfg.textColor||'#fff'),
                   WebkitTextStroke:`${cfg.stroke||0}px rgba(5,5,7,.92)`,
                   paintOrder:'stroke fill',
-                  textShadow:cfg.shadow?'0 6px 22px rgba(0,0,0,.55)':'none',
-                  transform:leila?'scale(1)':active?'scale(1.055)':'scale(1)',
-                  transition:'transform 80ms linear'
+                  textShadow:cfg.shadow?'0 5px 17px rgba(0,0,0,.84)':'none',
+                  transform:leila?'scale('+wordState.scale+')':active?'scale(1.055)':'scale(1)',
+                  transformOrigin:'50% 70%'
                 }}>{word.text}</span>
               );
             })}
