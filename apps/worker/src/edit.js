@@ -148,7 +148,10 @@ export function buildEditTimeline({
   };
 }
 
-// Legacy export retained for backwards compatibility; no forced tables.\nexport const buildLeilaScenes=planLeilaVisuals;\n\nfunction silenceRemovalWindows(silences,thresholdMs,durationMs){
+// Legacy export retained for backwards compatibility; no forced tables.
+export const buildLeilaScenes=planLeilaVisuals;
+
+function silenceRemovalWindows(silences,thresholdMs,durationMs){
   const out=[];
   for(const s of silences){
     const start=Math.max(0,Math.round(Number(s.start||0)*1000));
