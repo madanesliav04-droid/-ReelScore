@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "node src/index.js",
-    "check": "node --check src/index.js && node --check src/viral.js && node --check src/edit.js && node --check src/render.js && node --check src/leila-intent.js && node --check src/r2-sign.js && node --check src/cinematic-intent.js && node --check src/word-timing.js && node --check remotion/word-reveal.js",
+    "check": "node --check src/index.js && node --check src/viral.js && node --check src/edit.js && node --check src/render.js && node --check src/leila-intent.js && node --check src/r2-sign.js && node --check src/cinematic-intent.js && node --check src/cinematic-motion.js && node --check src/word-timing.js && node --check remotion/word-reveal.js",
     "test": "node --test tests/*.test.mjs"
   },
   "dependencies": {

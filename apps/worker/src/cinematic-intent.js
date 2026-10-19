@@ -15,9 +15,9 @@ const MARKERS={
   question:{tokens:new Set(['pourquoi','comment']),weight:2}
 };
 function evidence(words,index){
-  const from=Math.max(0,index-1),to=Math.min(words.length,index+6);
+  const from=index,to=Math.min(words.length,index+6);
   const segment=words.slice(from,to);
-  return {quote:quote(segment).slice(0,116),startMs:words[index].startMs,
+  return {quote:quote(segment).slice(0,116),wordTimings:segment.map(w=>({...w})),startMs:words[index].startMs,
     endMs:Math.min(words.at(-1).endMs,words[Math.min(words.length-1,index+5)].endMs+550)};
 }
 function semanticCandidates(words,intents){
@@ -39,7 +39,7 @@ function semanticCandidates(words,intents){
       type==='emphasis'?'chapter':null;
     if(!kind)continue;
     const segment=words.slice(index,index+actual.length);
-    candidates.push({kind,quote:quote(segment).slice(0,116),
+    candidates.push({kind,quote:quote(segment).slice(0,116),wordTimings:segment.map(w=>({...w})),
       startMs:segment[0].startMs,
       endMs:Math.min(words.at(-1).endMs,segment.at(-1).endMs+1400),
       reason:'verified_semantic_quote',weight:6});
@@ -78,7 +78,7 @@ export function planCinematicStoryboard(rawWords,durationMs,intents=null){
     if(endMs-startMs<900)continue;
     if(accepted.some(x=>startMs<x.endMs+2100&&endMs>x.startMs-2100))continue;
     accepted.push({
-      kind:scene.kind,quote:scene.quote,startMs,endMs,
+      kind:scene.kind,quote:scene.quote,wordTimings:scene.wordTimings||[],startMs,endMs,
       evidence:'transcript',reason:scene.reason,depth:1.5
     });
   }
