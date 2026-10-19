@@ -7,13 +7,15 @@ test("allows 72 MiB MOV through multiple 40 MiB upload objects",()=>{
   expect(parts[0].start).toBe(0);
   expect(parts[1].start).toBe(parts[0].end);
 });
-test("supports entire 500 MiB video and no oversized storage objects",()=>{
+test("accepts exactly 200 Mo and rejects one byte beyond (Edit+, Viral+, UGC)",()=>{
+  expect(MAX_VIDEO_UPLOAD_BYTES).toBe(200_000_000);
   expect(videoUploadPreflight({name:"example.mov",size:MAX_VIDEO_UPLOAD_BYTES})).toBeNull();
   const parts=uploadParts(MAX_VIDEO_UPLOAD_BYTES);
-  expect(parts.length).toBe(13);
+  expect(parts.length).toBe(5);
   expect(parts.reduce((a,b)=>a+b.size,0)).toBe(MAX_VIDEO_UPLOAD_BYTES);
   expect(parts.every(p=>p.size<=UPLOAD_PART_BYTES)).toBe(true);
-  expect(videoUploadPreflight({name:"too-large.mov",size:MAX_VIDEO_UPLOAD_BYTES+1})).toContain("500 Mo");
+  expect(videoUploadPreflight({name:"too-large.mov",size:MAX_VIDEO_UPLOAD_BYTES+1})).toContain("200 Mo");
+  expect(()=>uploadParts(MAX_VIDEO_UPLOAD_BYTES+1)).toThrow("INVALID_VIDEO_SIZE");
 });
 test("rejects empty, illegal extensions and impossible sizes",()=>{
   expect(videoUploadPreflight({name:"example.mp4",size:0})).toContain("vide");

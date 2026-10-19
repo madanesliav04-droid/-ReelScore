@@ -79,7 +79,7 @@ async function registerMedia(db:ReturnType<typeof admin>,userId:string,body:any)
   const size=Number(body?.size_bytes||0);
   if(!path||!path.startsWith(userId+"/"))throw new Error("INVALID_STORAGE_PATH");
   if(!mime.startsWith("video/"))throw new Error("INVALID_VIDEO_TYPE");
-  if(!Number.isFinite(size)||size<=0||size>500*1024*1024)throw new Error("INVALID_VIDEO_SIZE");
+  if(!Number.isFinite(size)||size<=0||size>200*1000*1000)throw new Error("INVALID_VIDEO_SIZE");
 
   const {data:list,error:listError}=await db.storage.from(VIDEO_BUCKET).list(
     path.split("/").slice(0,-1).join("/"),
@@ -90,7 +90,7 @@ async function registerMedia(db:ReturnType<typeof admin>,userId:string,body:any)
   const exists=(list||[]).some(x=>x.name===name);
   if(!exists)throw new Error("STORAGE_OBJECT_NOT_FOUND");
 
-  // A 500 MiB source is stored as <=40 MiB user-owned objects. Validate every
+  // A 200 MB source is stored as <=40 MiB user-owned objects. Validate every
   // part against the actual Storage metadata before accepting any manifest.
   const submitted=body?.metadata?.multipart;
   let trustedMetadata=body?.metadata&&typeof body.metadata==="object"?body.metadata:{};

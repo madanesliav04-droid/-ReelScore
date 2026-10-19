@@ -1,9 +1,9 @@
-/** Free-project Storage allows up to 50 MiB per *object*.
- * Multi-part uploads split one client video into <=40 MiB objects then the
- * processing worker reassembles them in source order. Per-video maximum 500 MiB.
+/** Single video cap: exactly 200 decimal MB (Mo), across Edit+, Viral+ and UGC.
+ * Supabase Free Storage still limits individual objects to 50 MiB: uploads
+ * are split into at most 40 MiB objects and reassembled by the worker.
  */
-export const MAX_VIDEO_UPLOAD_MIB=500;
-export const MAX_VIDEO_UPLOAD_BYTES=MAX_VIDEO_UPLOAD_MIB*1024*1024;
+export const MAX_VIDEO_UPLOAD_MB=200;
+export const MAX_VIDEO_UPLOAD_BYTES=MAX_VIDEO_UPLOAD_MB*1000*1000;
 export const UPLOAD_PART_MIB=40;
 export const UPLOAD_PART_BYTES=UPLOAD_PART_MIB*1024*1024;
 export type UploadPart={index:number;start:number;end:number;size:number};
@@ -22,8 +22,8 @@ export function videoUploadPreflight(file:{name:string;size:number}):string|null
   if(!file.size)return "Ce fichier est vide. Choisis une vidéo.";
   if(!/\.(mp4|mov|webm)$/i.test(file.name))return "Choisis une vidéo MP4, MOV ou WebM.";
   if(!Number.isSafeInteger(file.size)||file.size>MAX_VIDEO_UPLOAD_BYTES){
-    const sizeMiB=(file.size/(1024*1024)).toFixed(1).replace(".",",");
-    return `Cette vidéo fait ${sizeMiB} Mo : la limite par vidéo est de ${MAX_VIDEO_UPLOAD_MIB} Mo.`;
+    const sizeMB=(file.size/1000000).toFixed(1).replace(".",",");
+    return `Cette vidéo fait ${sizeMB} Mo : la limite par vidéo est de ${MAX_VIDEO_UPLOAD_MB} Mo.`;
   }
   return null;
 }
