@@ -6,7 +6,7 @@ import * as tus from "tus-js-client";
 import {UgcRushUploader} from "./ugc-rush-uploader";
 import {functionUrl,supabase,SUPABASE_PROJECT_REF,VIDEO_BUCKET} from "@/lib/supabase";
 import {authMessage} from "@/lib/auth-message";
-import {MAX_VIDEO_UPLOAD_MIB,uploadParts,videoUploadPreflight,videoUploadErrorMessage} from "@/lib/upload-limits";
+import {MAX_VIDEO_UPLOAD_MB,uploadParts,videoUploadPreflight,videoUploadErrorMessage} from "@/lib/upload-limits";
 
 type Module="viral"|"edit"|"clip";
 type Job={id:string;kind?:string;status:string;progress?:number;stage?:string;result?:any;error?:any;error_code?:string;clip_project_id?:string|null};
@@ -704,7 +704,7 @@ export function Dashboard(){
         <section className="panel">
           <small className="eyebrow">VIRAL+ / ANALYSER</small><h3>Comprends les forces et les faiblesses de ta vidéo.</h3><p className="social-panel-explainer">Ajoute ton rush. Viral+ examine le hook, la clarté, le rythme et les passages à revoir, sans inventer de données Instagram.</p>
           {viralQuota&&<p role="status" className="quota-status" data-testid="viral-monthly-quota">Analyses ce mois : <strong>{viralQuota.used}/{viralQuota.limit}</strong> · {viralQuota.remaining} disponibles · renouvellement le {new Date(viralQuota.reset_at).toLocaleDateString("fr-FR",{day:"numeric",month:"long"})}</p>}
-          <label className="upload-zone"><input type="file" disabled={busy||uploading} accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" onChange={e=>{const f=e.currentTarget.files?.[0];e.currentTarget.value="";if(f)void uploadVideo(f)}}/><div><Upload size={30}/><b>{file?file.name:media?"Vidéo importée, prête à analyser":"Choisir une vidéo à analyser"}</b><span>MP4 · MOV · WebM · max {MAX_VIDEO_UPLOAD_MIB} Mo</span></div></label>
+          <label className="upload-zone"><input type="file" disabled={busy||uploading} accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" onChange={e=>{const f=e.currentTarget.files?.[0];e.currentTarget.value="";if(f)void uploadVideo(f)}}/><div><Upload size={30}/><b>{file?file.name:media?"Vidéo importée, prête à analyser":"Choisir une vidéo à analyser"}</b><span>MP4 · MOV · WebM · max {MAX_VIDEO_UPLOAD_MB} Mo</span></div></label>
           {file&&<div className="social-upload-status" role="status" aria-live="polite"><span>{uploading?"Import en cours":media?"Import terminé":"Préparation du fichier"}</span><strong>{uploadPct}%</strong><div className="progress"><i style={{width:`${uploadPct}%`}}/></div></div>}
           <button className="btn primary full" onClick={startAnalysis} disabled={!media||busy||uploading}><Zap size={16}/> {busy&&job?.kind==="viral_analysis"?"Analyse en cours…":uploading?"Import en cours…":"Analyser ma vidéo"}</button>
           <InlineJobState job={job?.kind==="viral_analysis"?job:null}/>
@@ -717,7 +717,7 @@ export function Dashboard(){
         <div className="workspace-grid">
           <section className="panel">
             <small className="eyebrow">EDIT+ / MONTER</small><h3>Un montage construit autour de tes paroles.</h3><p className="social-panel-explainer">Importe un rush, sélectionne un style puis génère un export. L'original reste intact.</p>
-            <label className="upload-zone"><input type="file" disabled={busy||uploading} accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" onChange={e=>{const f=e.currentTarget.files?.[0];e.currentTarget.value="";if(f)void uploadVideo(f)}}/><div><Upload size={30}/><b>{file?file.name:media?"Vidéo importée, prête à monter":"Choisir une vidéo à monter"}</b><span>MP4 · MOV · WebM · max {MAX_VIDEO_UPLOAD_MIB} Mo · {EDIT_MODELS.length} modèles de montage</span></div></label>
+            <label className="upload-zone"><input type="file" disabled={busy||uploading} accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" onChange={e=>{const f=e.currentTarget.files?.[0];e.currentTarget.value="";if(f)void uploadVideo(f)}}/><div><Upload size={30}/><b>{file?file.name:media?"Vidéo importée, prête à monter":"Choisir une vidéo à monter"}</b><span>MP4 · MOV · WebM · max {MAX_VIDEO_UPLOAD_MB} Mo · {EDIT_MODELS.length} modèles de montage</span></div></label>
             {file&&<div className="social-upload-status" role="status" aria-live="polite"><span>{uploading?"Import en cours":media?"Import terminé":"Préparation du fichier"}</span><strong>{uploadPct}%</strong><div className="progress"><i style={{width:`${uploadPct}%`}}/></div></div>}
             {error&&<div role="alert" className="job-card error">{error}</div>}
             <div className="status-row"><span>Fichier vidéo</span><span className="status-pill">{media?"Prêt":file?`${uploadPct}%`:"En attente"}</span></div>
