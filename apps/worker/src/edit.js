@@ -1,4 +1,5 @@
 import {planLeilaVisuals} from './leila-intent.js';
+import {planCinematicStoryboard} from './cinematic-intent.js';
 import {validateTimedWords} from './word-timing.js';
 const FILLERS=new Set(['euh','heu','uh','um','erm','hmm','hum']);
 
@@ -14,6 +15,10 @@ export const EDIT_STYLES={
   leila:{
     pace:'editorial',silenceThresholdMs:999999,maxPunchInsPer30s:0,punchScale:1,
     captions:'leila_editorial',broll:'none',soundDesign:'minimal'
+  },
+  cinematic_story:{
+    pace:'cinematic_narrative',silenceThresholdMs:820,maxPunchInsPer30s:0,punchScale:1,
+    captions:'cinematic',broll:'evidence_only',soundDesign:'subtle'
   },
   ugc_native:{
     pace:'narrative_fast',silenceThresholdMs:650,maxPunchInsPer30s:3,punchScale:1.045,
@@ -60,6 +65,11 @@ export const CAPTION_PRESETS={
     maxWordsPerLine:6,position:'lower_third',activeWord:true,
     textColor:'#f8f5ef',activeColor:'#f8f5ef',stroke:0,shadow:true,background:false
   },
+  cinematic:{
+    fontFamily:'Georgia, Times New Roman, serif',fontWeight:650,fontSize:46,lineHeight:1.1,
+    maxWordsPerLine:5,position:'lower_third',activeWord:true,
+    textColor:'#f8f5ee',activeColor:'#f8f5ee',stroke:0,shadow:true,background:false
+  },
   ugc:{
     fontFamily:'Inter, Arial, sans-serif',fontWeight:850,fontSize:66,lineHeight:1,
     maxWordsPerLine:6,position:'middle_low',activeWord:true,
@@ -83,17 +93,17 @@ export function buildEditTimeline({
   const silences=Array.isArray(analysis?.measurable?.silenceWindows)?analysis.measurable.silenceWindows:[];
   // Legacy Viral+ analyses may contain words but invalid/shifted timecodes.
   // Never render word-by-word captions from such data.
-  if(style==='leila'){
+  if(style==='leila'||style==='cinematic_story'){
     const checked=validateTimedWords(words,durationMs);
     if(!checked.ok){
-      throw new Error((checked.reason==='ASR_NOT_READY'?'LEILA_TRANSCRIPT_REQUIRED':checked.reason)+': montage Leila bloqué tant que les mots ne sont pas correctement horodatés.');
+      throw new Error((checked.reason==='ASR_NOT_READY'?'EDIT_TRANSCRIPT_REQUIRED':checked.reason)+': horodatage mot à mot obligatoire pour ce montage.');
     }
   }
 
 
   const removals=style==='leila'?[]:[
     ...silenceRemovalWindows(silences,styleCfg.silenceThresholdMs,durationMs),
-    ...fillerRemovalWindows(words,durationMs)
+    ...(style==='cinematic_story'?[]:fillerRemovalWindows(words,durationMs))
   ];
   const mergedRemovals=mergeRanges(removals,80,durationMs);
   const keepRanges=invertRanges(mergedRemovals,durationMs,150);
@@ -103,7 +113,7 @@ export function buildEditTimeline({
     .map(w=>mapWord(w,keepRanges))
     .filter(Boolean);
   const captions=groupCaptions(mappedWords,captionCfg.maxWordsPerLine);
-  if(style==='leila'&&mappedWords.length<3){
+  if((style==='leila'||style==='cinematic_story')&&mappedWords.length<3){
     throw new Error('LEILA_TRANSCRIPT_REQUIRED: transcription mot à mot indisponible, montage interrompu sans texte inventé.');
   }
   const sourceWidth=Number(analysis?.measurable?.width)||1080;
@@ -114,8 +124,10 @@ export function buildEditTimeline({
   const nativeHeight=Math.max(2,Math.round(sourceHeight*factor/2)*2);
   const leilaScenes=style==='leila'
     ?planLeilaVisuals(mappedWords,outputDurationMs,analysis?.edit_visual_intents??null):[];
+  const cinematicScenes=style==='cinematic_story'
+    ?planCinematicStoryboard(mappedWords,outputDurationMs,analysis?.edit_visual_intents??null):[];
 
-  const punchIns=buildPunchIns({
+  const punchIns=style==='cinematic_story'?[]:buildPunchIns({
     editorialTimeline:Array.isArray(analysis?.timeline)?analysis.timeline:[],
     keepRanges,
     outputDurationMs,
@@ -123,15 +135,15 @@ export function buildEditTimeline({
     styleCfg
   });
 
-  const brollCues=buildBrollCues({
+  const brollCues=style==='cinematic_story'?[]:buildBrollCues({
     editorialTimeline:Array.isArray(analysis?.timeline)?analysis.timeline:[],
     keepRanges,
     style
   });
 
   return {
-    version:style==='leila'?2:1,
-    engine:style==='leila'?'editplus-leila-intent-v2':'editplus-timeline-v1',
+    version:style==='cinematic_story'?3:style==='leila'?2:1,
+    engine:style==='cinematic_story'?'editplus-cinematic-evidence-v1':style==='leila'?'editplus-leila-intent-v2':'editplus-timeline-v1',
     fps:30,
     width:1080,
     height:1920,
@@ -147,13 +159,14 @@ export function buildEditTimeline({
     punchIns,
     brollCues,
     leilaScenes,
+    cinematicScenes,
     audio:{
       normalize:true,
-      targetLufs:style==='leila'?-16:-14,
+      targetLufs:(style==='leila'||style==='cinematic_story')?-16:-14,
       limiterDb:-1
     },
     export:{
-      width:style==='leila'?nativeWidth:1080,height:style==='leila'?nativeHeight:1920,fps:30,codec:'h264',pixelFormat:'yuv420p'
+      width:(style==='leila'||style==='cinematic_story')?nativeWidth:1080,height:(style==='leila'||style==='cinematic_story')?nativeHeight:1920,fps:30,codec:'h264',pixelFormat:'yuv420p'
     }
   };
 }
