@@ -266,3 +266,16 @@
 .ugc-saved-batch-select{width:100%;border-radius:12px;padding:13px 15px;border:1px solid #a2e1ba8a;color:#d6f5df;background:#98dbaf1c;font-weight:750;cursor:pointer;font-size:13px;text-align:center}
 .ugc-saved-batch-select:disabled{opacity:.45;cursor:not-allowed}
 .ugc-saved-batch-select:hover:not(:disabled){background:#98dbaf2c}
+
+
+/* Auth recovery: accessible controls and mobile Safari touch targets. */
+.auth-password-field{position:relative;min-width:0}
+.auth-password-field .field{padding-right:94px}
+.auth-password-toggle{position:absolute;right:6px;top:50%;transform:translateY(-50%);min-height:40px;padding:0 9px;border:0;border-radius:8px;background:rgba(255,255,255,.06);color:#e5e8f1;font-size:13px;cursor:pointer}
+.auth-password-toggle:focus-visible,.auth-link:focus-visible,.auth-switch:focus-visible{outline:2px solid #9183ff;outline-offset:3px}
+.auth-link{display:block;margin:14px 0 0 auto;border:0;background:transparent;color:#c9befd;font-size:14px;cursor:pointer;padding:9px 3px;min-height:44px}
+.auth-notice{margin-top:14px!important;color:#b7f8d2!important;font-size:14px;line-height:1.5}
+.auth-box .field{min-height:48px;font-size:16px}
+.auth-box .auth-submit{min-height:48px}
+.auth-box .auth-switch{min-height:44px}
+@media(max-width:480px){.auth-screen{padding:14px}.auth-box{padding:23px 18px}.auth-box h1{font-size:31px;margin-top:26px}.auth-box form{gap:12px}}
