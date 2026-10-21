@@ -1,0 +1,787 @@
+{
+  "project": "Social+",
+  "specification_version": "V18_PRIVATE_V1_CINEMATIC_V7_FINAL",
+  "created_on": "2026-10-22",
+  "status": "specification_only_not_executed",
+  "blocking_policy": "ALL blocking tests must pass in real staging before commercialization",
+  "tests": [
+    {
+      "id": "BRAND-001",
+      "area": "branding",
+      "scenario": "Inspecter menu principal, pages clients, paywall, emails, exports",
+      "expected_result": "Marque unique Social+ ; 3 onglets Accueil, Montage, Stratégie ; noms historiques non visibles dans la navigation ; aucun paywall en V1.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "BRAND-002",
+      "area": "navigation",
+      "scenario": "Ouvrir Social+ sur Safari iPhone et Chrome PC",
+      "expected_result": "Interface site responsive app iOS premium, 3 onglets, Safari iPhone et navigateur PC, fonctionnalités réelles.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "DATA-001",
+      "area": "import",
+      "scenario": "CSV sans champ partages importé",
+      "expected_result": "Partages non disponible, aucune substitution par zéro.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "DATA-002",
+      "area": "import",
+      "scenario": "Deux imports du même CSV",
+      "expected_result": "Données non dupliquées ; opération idempotente.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "DATA-003",
+      "area": "import",
+      "scenario": "Colonne portée égale à zéro",
+      "expected_result": "Taux de partage non évaluable ; aucune division par zéro.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "DATA-004",
+      "area": "import",
+      "scenario": "CSV erroné, dates aberrantes et valeur négative",
+      "expected_result": "Lignes incorrectes rejetées/rapportées ; aucune statistique inventée.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "DATA-005",
+      "area": "import",
+      "scenario": "Import français virgules décimales et accents",
+      "expected_result": "Parsing conforme à la locale et contrôle aperçu avant validation.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "DATA-006",
+      "area": "privacy",
+      "scenario": "Utilisateur A tente de lire les métriques de B en modifiant une URL",
+      "expected_result": "Refus 403/404 sans fuite de métadonnées.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "DATA-007",
+      "area": "metrics",
+      "scenario": "Comparer données de vues Youtube 2026 à une série d’avant changement de définition",
+      "expected_result": "Avertissement de rupture de définition ; pas de comparaison trompeuse.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "DATA-008",
+      "area": "metrics",
+      "scenario": "Rapport likes+comments présent mais saves et shares absents",
+      "expected_result": "Engagement complet non évaluable, ou formule partielle explicitement distincte.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "DATA-009",
+      "area": "metrics",
+      "scenario": "Données vues/portée de périodes ou réseaux non équivalents",
+      "expected_result": "Comparaison refusée ou fortement qualifiée.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "DATA-010",
+      "area": "metrics",
+      "scenario": "Follows et visites de profil sur une période sans attribution directe",
+      "expected_result": "Afficher ratio de période uniquement ; ne pas déclarer une conversion attribuée.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "DATA-011",
+      "area": "metrics",
+      "scenario": "Ratio watchtime supérieur à 100 % pour contenu rejoué",
+      "expected_result": "Ne pas tronquer artificiellement ; expliquer les relectures possibles.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "DIAG-001",
+      "area": "engine",
+      "scenario": "Deux runs identiques même snapshot/version/objectif",
+      "expected_result": "Diagnostics, priorités et score identiques ; sortie reproductible.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "DIAG-002",
+      "area": "engine",
+      "scenario": "Même compte mais objectif notoriété versus prospects",
+      "expected_result": "Priorités différentes et reliées aux KPI pertinents.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "DIAG-003",
+      "area": "engine",
+      "scenario": "Moins de cinq contenus comparables",
+      "expected_result": "Aucune conclusion catégorique, proposer mission de collecte/validation.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "DIAG-004",
+      "area": "engine",
+      "scenario": "Méthode M04 désactivée en admin",
+      "expected_result": "Aucune nouvelle mission ne référence M04 inactive.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "DIAG-005",
+      "area": "engine",
+      "scenario": "Dix anomalies candidates sur un compte",
+      "expected_result": "Afficher maximum trois missions, sans doublon, ordre stable.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "DIAG-006",
+      "area": "engine",
+      "scenario": "Absence de source pour une recommandation",
+      "expected_result": "La recommandation est rejetée ou indiquée comme non sourcée à compléter ; pas publiée comme officielle.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "DIAG-007",
+      "area": "engine",
+      "scenario": "Ancien diagnostic associé à méthode v1, nouvelle méthode v2 publiée",
+      "expected_result": "L’ancien diagnostic garde la référence à v1 ; nouveaux diagnostics utilisent v2.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "DIAG-008",
+      "area": "engine",
+      "scenario": "Niche confuse mais mesures insuffisantes",
+      "expected_result": "Conseil formulé en hypothèse qualitative sans donnée chiffrée fabriquée.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "DIAG-009",
+      "area": "engine",
+      "scenario": "Données de preuve factuelle incohérentes",
+      "expected_result": "Aucune priorité finale fondée sur preuves contradictoires non résolues.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "VIDEO-001",
+      "area": "video",
+      "scenario": "Même fichier + contexte + version analysé deux fois",
+      "expected_result": "Même score, sous-scores et exclusions.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "VIDEO-002",
+      "area": "video",
+      "scenario": "Audio absent ou transcription indisponible",
+      "expected_result": "Critères sémantiques non évaluables et transparence du score/couverture.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "VIDEO-003",
+      "area": "video",
+      "scenario": "Couverture de critères inférieure au seuil défini",
+      "expected_result": "Ne pas produire de faux score global ; montrer couverture et raisons.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "VIDEO-004",
+      "area": "video",
+      "scenario": "Fichier vertical et horizontal d’origine",
+      "expected_result": "Maintenir ratio natif ; pas de letterboxing imposé.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "VIDEO-005",
+      "area": "video",
+      "scenario": "Vidéo contenant plusieurs pistes audio ou effets",
+      "expected_result": "Export Studio fidèle à piste originale unique attendue ; pas de doublage.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "VIDEO-006",
+      "area": "video",
+      "scenario": "Cuts intelligents dans vidéo parlée",
+      "expected_result": "Aucune phrase coupée ; audio, captions, effets et motion resynchronisés.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "VIDEO-007",
+      "area": "video",
+      "scenario": "Sous-titre et coche visuelle simultanés",
+      "expected_result": "Zéro chevauchement, mots alignés et lisibles dans la safe-zone.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "VIDEO-008",
+      "area": "video",
+      "scenario": "Safari iPhone incapable de décoder un format vidéo",
+      "expected_result": "Erreur exploitable ou fallback prévu, pas de « analyse réussie » trompeuse.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "VIDEO-009",
+      "area": "video",
+      "scenario": "Annotation timestamp 00:02",
+      "expected_result": "Le défaut pointé est effectivement observable à ce timecode.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "VIDEO-010",
+      "area": "video",
+      "scenario": "Vidéo avec score pré-publication puis données après publication",
+      "expected_result": "Score historique inchangé ; résultats réels conservés séparément.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "PAY-001",
+      "area": "billing",
+      "scenario": "Utilisateur revient depuis success_url sans webhook payé",
+      "expected_result": "Accès payant non accordé sans preuve serveur Stripe.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "PAY-002",
+      "area": "billing",
+      "scenario": "Événement webhook dupliqué 2 fois",
+      "expected_result": "Un seul effet sur l’état d’abonnement ; idempotence sur stripe_event_id.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "PAY-003",
+      "area": "billing",
+      "scenario": "Webhook modifié ou signature invalide",
+      "expected_result": "Rejet de l’événement, aucun droit accordé.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "PAY-004",
+      "area": "billing",
+      "scenario": "Webhooks arrivent hors ordre",
+      "expected_result": "État final réconcilié avec statut Stripe actuel.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "PAY-005",
+      "area": "billing",
+      "scenario": "Abonnement valide annulé en fin de période",
+      "expected_result": "Accès conservé jusqu’à échéance si payé, arrêté au bon moment.",
+      "severity": "deferred_v1",
+      "execution_status": "deferred_until_commercialization"
+    },
+    {
+      "id": "PAY-006",
+      "area": "billing",
+      "scenario": "Remise Stripe de 50 %",
+      "expected_result": "Prix affiché et montant facture Stripe concordent ; durée indiquée.",
+      "severity": "deferred_v1",
+      "execution_status": "deferred_until_commercialization"
+    },
+    {
+      "id": "PAY-007",
+      "area": "billing",
+      "scenario": "Paiement échoué / past_due",
+      "expected_result": "Accès traité selon politique configurée ; aucun droit permanent implicite.",
+      "severity": "deferred_v1",
+      "execution_status": "deferred_until_commercialization"
+    },
+    {
+      "id": "PAY-008",
+      "area": "billing",
+      "scenario": "Utilisateur lance résiliation depuis espace client",
+      "expected_result": "Parcours simple, confirmation de prise en compte et date de fin.",
+      "severity": "deferred_v1",
+      "execution_status": "deferred_until_commercialization"
+    },
+    {
+      "id": "GIFT-001",
+      "area": "gift",
+      "scenario": "Activer code gratuit 30 jours sans carte",
+      "expected_result": "Accès pour 30 jours depuis instant de rédemption, aucun abonnement créé.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "GIFT-002",
+      "area": "gift",
+      "scenario": "Réutiliser même code par même membre",
+      "expected_result": "Rédemption idempotente, ne prolonge pas le cadeau à l’infini.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "GIFT-003",
+      "area": "gift",
+      "scenario": "Deux personnes utilisent simultanément le dernier usage",
+      "expected_result": "Une seule rédemption réussit ; transaction atomique.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "GIFT-004",
+      "area": "gift",
+      "scenario": "Code d’accès expiré/révoqué",
+      "expected_result": "Accès refusé avec message clair sans énumération sensible.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "GIFT-005",
+      "area": "gift",
+      "scenario": "Code d’accès permanent révoqué par propriétaire",
+      "expected_result": "Droit supprimé immédiatement et action auditée.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "GIFT-006",
+      "area": "gift",
+      "scenario": "Membre avec cadeau actif et abonnement payant résilié",
+      "expected_result": "Le cadeau actif continue à accorder les droits sans déclencher de facturation.",
+      "severity": "deferred_v1",
+      "execution_status": "deferred_until_commercialization"
+    },
+    {
+      "id": "ADMIN-001",
+      "area": "admin",
+      "scenario": "Membre normal appelle endpoint admin directement",
+      "expected_result": "Refus côté serveur ; aucune information sensible exposée.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "ADMIN-002",
+      "area": "admin",
+      "scenario": "Propriétaire sans MFA tente action sensible",
+      "expected_result": "Nouvelle vérification exigée si politique MFA requise.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "ADMIN-003",
+      "area": "admin",
+      "scenario": "Admin modifie la méthode M03 ou désactive un code",
+      "expected_result": "Modification horodatée et traçable dans admin_audit_logs.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "ADMIN-004",
+      "area": "admin",
+      "scenario": "User change role dans payload de requête",
+      "expected_result": "Le rôle est ignoré et vérifié sur le serveur.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "ADMIN-005",
+      "area": "admin",
+      "scenario": "Bruteforce codes invitations",
+      "expected_result": "Rate-limit/contrôle anti-abus et réponses non révélatrices.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "RES-001",
+      "area": "resilience",
+      "scenario": "Quota Workers AI quotidien épuisé",
+      "expected_result": "Diagnostic déterministe disponible, IA facultative en erreur claire.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "RES-002",
+      "area": "resilience",
+      "scenario": "Quota Cloudflare D1 épuisé",
+      "expected_result": "Pas de diagnostic factice ; erreur explicite, pas de corruption métier.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "RES-003",
+      "area": "resilience",
+      "scenario": "Dispositif iOS sans mémoire suffisante pour vidéo",
+      "expected_result": "Gestion mémoire/erreur/fallback prévu, pas de crash silencieux.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "RES-004",
+      "area": "resilience",
+      "scenario": "Connexion coupée pendant import",
+      "expected_result": "Rétablissement ou annulation cohérente, pas de doublon.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "LEGAL-001",
+      "area": "compliance",
+      "scenario": "Demande de suppression des données",
+      "expected_result": "Procédure d’identité, suppression selon délais/politiques et exceptions motivées.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "LEGAL-002",
+      "area": "compliance",
+      "scenario": "Demande export des données",
+      "expected_result": "Export complet des données relevant de l’utilisateur, respect sécurité.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "LEGAL-003",
+      "area": "compliance",
+      "scenario": "Paiement sans information de renouvellement ou résiliation",
+      "expected_result": "Empêcher mise en vente : affichage clair requis avant achat.",
+      "severity": "deferred_v1",
+      "execution_status": "deferred_until_commercialization"
+    },
+    {
+      "id": "LEGAL-004",
+      "area": "compliance",
+      "scenario": "Upload vidéo vers fournisseur IA sans consentement approprié",
+      "expected_result": "Aucun transfert, information explicite et base légale avant usage.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "OPS-001",
+      "area": "operations",
+      "scenario": "Déploiement production après phase de test",
+      "expected_result": "Staging validé, sauvegarde, rollback documenté et budget approuvé.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "OPS-002",
+      "area": "operations",
+      "scenario": "Migration depuis base Supabase existante",
+      "expected_result": "Comparaison schéma/données, backup, procédure retour arrière, aucune migration automatique.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "STUDIO-MODEL-001",
+      "area": "studio_models",
+      "scenario": "Catalogue Studio affiché à un client",
+      "expected_result": "Uniquement les six modèles conservés : Codie × OMNI, Alex Hormozi, Leila, Social Kinetic, Cinematic Storytelling et Apple Premium / Spatial UI. Les cinq modèles validés/confirmés (tous sauf Cinematic) ne sont pas requalifiés en prototypes artistiques ; Cinematic seul reste à finaliser. Aucun ancien preset ; disponibilité automatique affichée selon résultat des tests de moteur.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "STUDIO-MODEL-002",
+      "area": "studio_models",
+      "scenario": "Charger les masters de référence et les références de rush existantes",
+      "expected_result": "Fichiers maîtres archivés et identifiés, SHA-256 mesuré, absence de reconstruction fictive ; signaler toute pièce manquante.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "STUDIO-MODEL-003",
+      "area": "studio_models",
+      "scenario": "Traiter au moins trois rushs inconnus avec Codie × OMNI",
+      "expected_result": "B-roll/effets spécifiques pertinents, narration et sous-titres premium ; pas de double voix ni de jump-cuts gratuits.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "STUDIO-MODEL-004",
+      "area": "studio_models",
+      "scenario": "Traiter au moins trois rushs inconnus avec Alex Hormozi",
+      "expected_result": "Premières animations réelles, mots/chiffres calés sur la voix, sous-titres propres, aucun plan annoncé avant la phrase.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "STUDIO-MODEL-005",
+      "area": "studio_models",
+      "scenario": "Traiter au moins trois rushs inconnus avec Leila Hormozi",
+      "expected_result": "Cuts intelligents, mini-tableau intégré au mur et zoom droit quand pertinent, coches et textes correctement alignés, mot-à-mot conservé.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "STUDIO-MODEL-006",
+      "area": "studio_models",
+      "scenario": "Traiter au moins trois rushs inconnus avec Social Kinetic",
+      "expected_result": "Bulles iMessage alignées aux paroles, impacts verts sans chevauchement ni sons retardés ; horizontal natif maintenu.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "STUDIO-MODEL-007",
+      "area": "studio_models",
+      "scenario": "Comparer avant/après cuts pour Leila et autres styles facecam",
+      "expected_result": "Aucune phrase tronquée ; sous-titres, coches, transitions et piste originale resynchronisés après chaque coupe.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "STUDIO-MODEL-008",
+      "area": "studio_models",
+      "scenario": "Exporter un rush horizontal 16:9 natif dans les styles applicables",
+      "expected_result": "Pas de letterboxing créé, ni conversion verticale arbitraire, ni B-roll intégral cachant la narration.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "STUDIO-MODEL-009",
+      "area": "studio_models",
+      "scenario": "Exporter un rush vertical 9:16 natif dans les styles applicables",
+      "expected_result": "Visage non recadré hors cadre, inserts pertinents, sous-titres et safe-zones respectés.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "STUDIO-MODEL-010",
+      "area": "studio_models",
+      "scenario": "Tester le modèle cinématique avec panneau Compétence/Offre/Prospection",
+      "expected_result": "Un seul panneau en haut à droite, aucun mot dupliqué, flèche/coches/libellés bien placés ; audio original intact.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "STUDIO-MODEL-011",
+      "area": "studio_models",
+      "scenario": "Tester le moteur automatique du modèle Apple Premium / Spatial UI déjà confirmé artistiquement",
+      "expected_result": "Référence créative confirmée conservée ; tracking/profondeur crédibles, aucune carte sur le visage, sous-titres et effets audio synchronisés sur nouveaux rushs. En cas d’échec du moteur, indisponibilité explicite sans dévalider le master artistique.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "STUDIO-MODEL-013",
+      "area": "studio_models",
+      "scenario": "Forcer une panne du moteur ou absence de transcription d’un style",
+      "expected_result": "État indisponible/erreur explicite, aucun faux rendu et aucun 100/100 attribué.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "STUDIO-MODEL-014",
+      "area": "studio_models",
+      "scenario": "Écoute casque et mesures de son sur chaque style",
+      "expected_result": "Aucun doublage/écho ajouté, hauteur de voix intacte, niveau/pics mesurés, sound effects cohérents.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "STUDIO-MODEL-015",
+      "area": "studio_models",
+      "scenario": "Inspecter chaque modèle sur différents fonds et scènes",
+      "expected_result": "Couleurs de sous-titres adaptatives, aucun chevauchement d’éléments, coche V alignée aux mots, contraste et safe-zones vérifiés.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "STUDIO-MODEL-016",
+      "area": "studio_models",
+      "scenario": "Changer de modèle sur un même rush",
+      "expected_result": "Grammaires de cuts/cadrages/titres/b-roll et animation vraiment différentes, pas simple changement de couleur.",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "PRIVATE-001",
+      "area": "ownership",
+      "scenario": "Accéder à /admin depuis compte membre ou sans connexion",
+      "expected_result": "HTTP 403/redirect et aucune donnée admin renvoyée",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "PRIVATE-002",
+      "area": "ownership",
+      "scenario": "Tenter de donner role=owner via client, API ou code cadeau",
+      "expected_result": "Promotion de rôle impossible et journalisée",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "PRIVATE-003",
+      "area": "ownership",
+      "scenario": "Ouvrir compte propriétaire avec MFA puis /admin",
+      "expected_result": "Seul compte propriétaire authentifié accède aux outils",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "INVITE-001",
+      "area": "invitation",
+      "scenario": "ADMIN accorde accès par e-mail vérifié",
+      "expected_result": "Membre invité se connecte sans carte ni Stripe",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "INVITE-002",
+      "area": "invitation",
+      "scenario": "ADMIN crée code 7 jours limité à un usage",
+      "expected_result": "Une rédemption réussit puis code réutilisé sur autre compte refusé",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "INVITE-003",
+      "area": "invitation",
+      "scenario": "Code 30 jours et code permanent",
+      "expected_result": "Droits calculés après activation ; permanent révocable",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "INVITE-004",
+      "area": "invitation",
+      "scenario": "Code expiré, tentative brute force et accès révoqué",
+      "expected_result": "Accès refusé ; protections rate limit et audit",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "INVITE-005",
+      "area": "privacy",
+      "scenario": "Membres de deux équipes différentes interrogent API contenus/stats",
+      "expected_result": "Pas de lecture croisée de vidéo, métriques ou données privées",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "INVITE-006",
+      "area": "billing",
+      "scenario": "Afficher le site privé et inspecter requêtes réseau",
+      "expected_result": "Aucune page tarifaire, paiement, checkout, carte bancaire, appel Stripe ni revenu fictif",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "UI-APPLE-001",
+      "area": "interface",
+      "scenario": "Safari iPhone, mode clair/sombre et rotation",
+      "expected_result": "Trois onglets visibles, navigation fluide, contenus lisibles sans chevauchements",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "UI-APPLE-002",
+      "area": "interface",
+      "scenario": "Ouvrir avatar et rubrique aide",
+      "expected_result": "FAQ, Avis, support, Confidentialité, CGU, Mentions légales accessibles",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "FAQ-001",
+      "area": "faq",
+      "scenario": "ADMIN crée, publie, archive et réordonne une FAQ",
+      "expected_result": "FAQ client à jour et aucune entrée non publiée affichée",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "FEEDBACK-001",
+      "area": "feedback",
+      "scenario": "Membre envoie note et bug",
+      "expected_result": "Avis privé visible par admin avec état et date ; aucun témoignage public",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "FEEDBACK-002",
+      "area": "feedback",
+      "scenario": "Tenter de publier avis sans opt-in spécifique",
+      "expected_result": "Publication bloquée ; refus et retrait possibles",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "FEEDBACK-003",
+      "area": "feedback",
+      "scenario": "Poster message vide, trop long, HTML script, spam répété",
+      "expected_result": "Validation serveur, protections XSS/rate limit, erreurs explicites",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "CIN-V7-001",
+      "area": "studio_models",
+      "scenario": "Le sélecteur comporte les 6 modèles validés, Cinematic V7 comprise, pas de modèles obsolètes",
+      "expected_result": "6 références, statut technique honnête par moteur",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "CIN-V7-002",
+      "area": "studio_models",
+      "scenario": "Localiser archive Cinematic V7 de 38Mo et script de 25Ko",
+      "expected_result": "Ne pas inventer archives, inventorier et demander si absentes",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "CIN-V7-003",
+      "area": "video",
+      "scenario": "Rendre V7 Python FFmpeg depuis les sources originales",
+      "expected_result": "Reproduction conforme au master, sans substitution Hyperframes",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "CIN-V7-004",
+      "area": "video",
+      "scenario": "Rendre trois nouveaux rushs en Cinematic V7",
+      "expected_result": "Exporter MP4 complets décodables sans audio altéré ni incohérence temporelle",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "UI-SOCIAL-003",
+      "area": "interface",
+      "scenario": "Contrôler site au format application iPhone Safari/Chrome Windows",
+      "expected_result": "Navigation Accueil Montage Stratégie et rendu responsive sans vue factice",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "ACCESS-007",
+      "area": "admin",
+      "scenario": "Invitations 7 jours/30 jours/illimité, puis révocation session active",
+      "expected_result": "Autorisations serveur et retrait immédiat, sans paiement",
+      "severity": "blocking",
+      "execution_status": "not_run"
+    }
+  ],
+  "change_note": "Six modèles validés visuellement, Cinematic Storytelling V7 Finale en Python+FFmpeg ajouté. 91 tests V17 + 6 tests V18; tous non exécutés.",
+  "commercialization": "future_disabled_v1"
+}
