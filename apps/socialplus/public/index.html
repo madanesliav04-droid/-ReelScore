@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#101114">
+    <meta name="color-scheme" content="dark light">
+    <meta name="description" content="Social+, votre espace privé pour monter, comprendre et faire progresser vos contenus.">
+    <title>Social+</title>
+    <link rel="stylesheet" href="/app.css">
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Aller au contenu</a>
+    <header class="topbar">
+      <a href="#home" class="brand" aria-label="Social+, accueil">Social<span>+</span></a>
+      <span class="private-label"><span class="status-dot"></span>Espace privé</span>
+      <button class="avatar" id="account-button" aria-label="Ouvrir mon compte et l’aide" aria-haspopup="dialog"></button>
+    </header>
+    <main id="main" tabindex="-1"><div class="loading-screen"><span class="spinner"></span><p>Ouverture de votre espace…</p></div></main>
+    <nav class="dock" id="main-nav" aria-label="Navigation principale" hidden>
+      <a href="#home" data-tab="home"><span data-icon="home"></span><span>Accueil</span></a>
+      <a href="#montage" data-tab="montage"><span data-icon="film"></span><span>Montage</span></a>
+      <a href="#strategy" data-tab="strategy"><span data-icon="chart"></span><span>Stratégie</span></a>
+    </nav>
+    <dialog id="sheet" class="sheet"><div class="sheet-header"><h2 id="sheet-title"></h2><button class="icon-button" id="close-sheet" aria-label="Fermer"><span data-icon="close"></span></button></div><div id="sheet-body"></div></dialog>
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

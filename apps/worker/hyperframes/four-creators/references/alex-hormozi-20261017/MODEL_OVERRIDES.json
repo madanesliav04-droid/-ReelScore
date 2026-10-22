@@ -1,0 +1,44 @@
+{
+  "model_id": "ALEX_HORMOZI_REF3_NAVY",
+  "reference_set_version": "2026-10-17-direct-3-user-clips",
+  "reference_verified": "visual sampling yes; word-level transcript and exact cut cadence not audited",
+  "decision_style": "evidence_driven_teaching",
+  "visual": {
+    "canvas": "navy_deep",
+    "foreground": "soft_white",
+    "accent": "selective_yellow",
+    "secondary": "muted_gray",
+    "chart_green": "conditional_source_data_only",
+    "sources": [
+      "REF01 talking-head captions+evidence",
+      "REF02 2-column incremental diagram",
+      "REF03 list/graph/retention breakdown"
+    ],
+    "full_screen_infographics": true,
+    "vertical_content_preserved_if_native": true,
+    "landscape_content_preserved_if_native": true,
+    "no_white_letterbox": true,
+    "no_side_sticker_slide": true
+  },
+  "narrative_scenes": [
+    "HEAD",
+    "INTRO_PREMISE",
+    "NAVY_TITLE",
+    "STEP_LIST",
+    "SIDE_BY_SIDE",
+    "DATA_GRAPH",
+    "AUTHENTIC_PROOF",
+    "CONCEPT_TREE",
+    "FACE_RETURN"
+  ],
+  "gates": {
+    "exact_transcript_required_for_verbatim": true,
+    "every_number_needs_evidence": true,
+    "face_and_hands_protection": true,
+    "licensed_broll_only": true,
+    "original_audio_only": true,
+    "output_timing_must_remap_after_cuts": true,
+    "entire_video_required": true
+  },
+  "status": "research-handoff-not-auto-integrated"
+}

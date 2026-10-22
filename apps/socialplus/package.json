@@ -1,0 +1,11 @@
+{
+  "name": "socialplus-private-v1",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=24.0.0" },
+  "scripts": {
+    "start": "node --env-file-if-exists=.env.local server/index.mjs",
+    "test": "node --test --test-isolation=none server/*.test.mjs test/*.test.mjs",
+    "owner": "node scripts/provision-owner.mjs --init"
+  }
+}
