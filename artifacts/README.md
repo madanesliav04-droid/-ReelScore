@@ -18,7 +18,7 @@ Chromium Linux : PC 1440 × 1000, téléphone 390 × 844 et rotation 844 × 390.
 - [Rotation mobile](browser/mobile-landscape.png)
 - [Résultat navigateur et SHA du téléchargement](browser/smoke-report.json)
 
-Le parcours navigateur a été réexécuté avec succès après les derniers correctifs de quotas, portabilité des données et chemins de stockage. Les captures ne sont pas présentées comme un essai sur matériel Apple.
+Le parcours navigateur a été réexécuté avec succès après les correctifs de session et l’ajout de la FAQ initiale. Révocation et changement de compte dans le même navigateur sont vérifiés. Les captures ne sont pas présentées comme un essai sur matériel Apple.
 
 ## Rendus exécutés
 
@@ -30,7 +30,7 @@ Ces rendus vérifient l’exécution de FFmpeg et d’un renderer ASS hérité. 
 
 ## Tests
 
-- [66 tests du serveur](v18-local-tests.log), aucun échec.
+- [68 tests du serveur](v18-local-tests.log), aucun échec.
 - [17 tests des moteurs hérités](inherited-engine-tests.log), aucun échec.
 - [97 scénarios d’acceptation et leurs limites](../docs/social-plus/V18_ACCEPTANCE_REPORT.md).
 

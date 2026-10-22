@@ -3,6 +3,10 @@
   "browser": "Chromium",
   "mobile": "viewports390x844 and844x390—not physical Safari",
   "assertions": [
+    "public FAQ and search",
+    "public privacy/terms/legal documents",
+    "public support submission and owner retrieval",
+    "private feedback submission",
     "MFA login",
     "three tabs",
     "profile persistence",
@@ -12,6 +16,8 @@
     "real technical MP4 export/download",
     "owner invitation UI",
     "member activation and owner route denial",
+    "revoked session returns to login",
+    "same-browser account switch clears private project state",
     "dark/light appearance",
     "landscape rotation",
     "no horizontal overflow",
@@ -32,15 +38,19 @@
     "mobile-landscape.png"
   ],
   "fixture": "Ephemeral test owner and generated technical video; no real user data",
-  "executed_at": "2026-10-22T17:29:10.725280+00:00",
+  "executed_at": "2026-10-22T17:47:00.572667+00:00",
   "download": {
-    "bytes": 53039,
     "sha256": "ade9a2ac6aa06adf35ba7a692f83caebaf939f82f3ed941e0a3d8478444a44b0",
-    "video_codec": "h264",
-    "audio_codec": "aac",
-    "audio_tracks": 1,
-    "width": 640,
-    "height": 360,
-    "duration_seconds": 3.008
+    "bytes": 53039,
+    "streams": [
+      {
+        "codec": "h264",
+        "type": "video"
+      },
+      {
+        "codec": "aac",
+        "type": "audio"
+      }
+    ]
   }
 }

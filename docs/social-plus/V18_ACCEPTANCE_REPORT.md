@@ -1,8 +1,8 @@
 # Recette Social+ V18 locale
 
-46 scénarios réussis localement, 0 échoués, 41 non exécutés, 10 différés.
+47 scénarios réussis localement, 0 échoués, 40 non exécutés, 10 différés.
 
-Les 66 tests du nouveau serveur et les 17 tests hérités passent. Ces nombres d’assertions ne sont pas les 97 scénarios d’acceptation. La V1 complète reste non certifiée : masters, rushs de recette, iPhone Safari matériel et paramètres juridiques manquent.
+Les 68 tests du nouveau serveur et les 17 tests hérités passent. Ces nombres d’assertions ne sont pas les 97 scénarios d’acceptation. La V1 complète reste non certifiée : masters, rushs de recette, iPhone Safari matériel et paramètres juridiques manquent.
 
 | Scénario | État | Limite / preuve |
 |---|---|---|
@@ -92,7 +92,7 @@ Les 66 tests du nouveau serveur et les 17 tests hérités passent. Ces nombres d
 | INVITE-005 | not_run | Isolation par identité testée dans chaque module ; pas de scénario navigateur complet avec deux équipes nommées, contenus et statistiques réunis. |
 | INVITE-006 | pass | Application privée et formulaires réels exécutés. Aucune route de facturation, aucun SDK Stripe ni appel de paiement dans le serveur V1. Les anciennes sources ne sont pas exposées par ce serveur. |
 | UI-APPLE-001 | not_run | Test Chromium Linux aux dimensions PC et iPhone réussi, sans débordement ni erreur JavaScript. Safari iPhone matériel et Chrome Windows ne sont pas exécutés : scénario complet non validé. |
-| UI-APPLE-002 | not_run | Parcours avatar/aide navigateur à compléter ; présence des écrans dans le code ne suffit pas à cocher le scénario. |
+| UI-APPLE-002 | pass | Parcours navigateur exécuté : FAQ et recherche, avis privé, support transmis et retrouvé par le propriétaire, confidentialité, CGU et mentions légales accessibles depuis le profil/aide. |
 | FAQ-001 | pass | Requêtes locales du module sécurité et base SQLite ; compte propriétaire de fixture avec MFA, aucun identifiant réel. |
 | FEEDBACK-001 | pass | Requêtes locales du module sécurité et base SQLite ; compte propriétaire de fixture avec MFA, aucun identifiant réel. |
 | FEEDBACK-002 | not_run | Consentement distinct et retrait testés ; aucune route de publication publique implémentée. Scénario de tentative de publication publique complet non exécuté. |

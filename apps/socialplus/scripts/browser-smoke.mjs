@@ -34,6 +34,24 @@ try {
   await page.goto('http://localhost:4329/');
   await page.locator('[data-form=login]').waitFor();
   await capture('desktop-login.png');
+  await page.locator('.public-footer [data-action=faq]').click();
+  await page.locator('#faq-search').waitFor();
+  assert.equal(await page.locator('#faq-entries details').count(),6);
+  await page.locator('#faq-search').fill('payant');
+  assert.equal(await page.locator('#faq-entries details:visible').count(),1);
+  await page.locator('#close-sheet').click();
+  for(const kind of ['privacy','terms','legal']){
+    await page.locator('#account-button').click();
+    await page.locator(`#sheet [data-action=legal][data-kind=${kind}]`).click();
+    await page.locator('#sheet .legal-copy').waitFor();
+    assert.ok((await page.locator('#sheet .legal-copy').textContent()).length>100);
+    await page.locator('#close-sheet').click();
+  }
+  await page.locator('.public-footer [data-action=support]').click();
+  await page.locator('[data-form=support] [name=contactEmail]').fill('support-fixture@example.test');
+  await page.locator('[data-form=support] [name=body]').fill('Message de support de test local, sans donnée personnelle réelle.');
+  await page.locator('[data-form=support] button[type=submit]').click();
+  await page.locator('#sheet').waitFor({state:'hidden'});
   await page.locator('[name=email]').fill('fixture@socialplus.test');
   await page.locator('[name=password]').fill(password);
   await page.locator('[name=totp]').fill(totpCode(seed));
@@ -84,6 +102,9 @@ try {
   await page.evaluate(()=>{location.hash='admin';});
   await page.getByRole('heading',{name:'Votre administration.',exact:true}).waitFor();
   await capture('desktop-admin.png');
+  await page.locator('[data-action=support-admin]').click();
+  await page.getByText('Message de support de test local, sans donnée personnelle réelle.',{exact:true}).waitFor();
+  await page.locator('#close-sheet').click();
   await page.locator('[data-form=invite] [name=email]').fill('member-fixture@example.test');
   await page.locator('[name=emailVerifiedByOwner]').check();
   await page.locator('[data-form=invite] button[type=submit]').click();
@@ -92,10 +113,19 @@ try {
   const memberContext=await browser.newContext();
   const activated=await memberContext.request.post('http://localhost:4329/api/auth/activate',{headers:{Origin:'http://localhost:4329'},data:{email:'member-fixture@example.test',password,displayName:'Membre de test',code:invitation.trim(),acceptTerms:true}});
   assert.equal(activated.status(),201);
+  const memberId=(await activated.json()).user.id;
   const memberPage=await memberContext.newPage();
   await memberPage.goto('http://localhost:4329/');
   await memberPage.getByRole('heading',{name:'Bonjour, Membre.',exact:true}).waitFor();
   assert.equal((await memberContext.request.get('http://localhost:4329/admin')).status(),403);
+  const memberAccess=async(action,body={})=>page.evaluate(async({id,action,body})=>{
+    const {csrf}=await fetch('/api/session').then(r=>r.json());
+    return (await fetch('/api/admin/members/'+id+'/'+action,{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':csrf},body:JSON.stringify(body)})).status;
+  },{id:memberId,action,body});
+  assert.equal(await memberAccess('revoke'),200);
+  await memberPage.locator('#main-nav [data-tab=montage]').click();
+  await memberPage.locator('[data-form=login]').waitFor();
+  assert.equal(await memberAccess('extend',{durationDays:7}),200);
   await memberContext.close();
   await page.setViewportSize({width:390,height:844});
   await page.locator('#main-nav [data-tab=strategy]').click();
@@ -107,6 +137,11 @@ try {
     await capture(`mobile-${tab}.png`,false);
   }
   await page.locator('#account-button').click();
+  await page.locator('#sheet [data-action=feedback]').click();
+  await page.locator('[data-form=feedback] [name=body]').fill('Avis privé de test local pour vérifier le formulaire réellement raccordé.');
+  await page.locator('[data-form=feedback] button[type=submit]').click();
+  await page.locator('#sheet').waitFor({state:'hidden'});
+  await page.locator('#account-button').click();
   await page.locator('#sheet [data-action=theme]').click();
   assert.equal(await page.locator('html').getAttribute('data-theme'),'light');
   await page.locator('#close-sheet').click();
@@ -114,8 +149,19 @@ try {
   await page.setViewportSize({width:844,height:390});
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Landscape overflow');
   await capture('mobile-landscape.png',false);
+  await page.locator('#account-button').click();
+  await page.locator('#sheet [data-action=logout]').click();
+  await page.locator('[data-form=login]').waitFor();
+  await page.locator('[data-form=login] [name=email]').fill('member-fixture@example.test');
+  await page.locator('[data-form=login] [name=password]').fill(password);
+  await page.locator('[data-form=login] button[type=submit]').click();
+  await page.getByRole('heading',{name:'Bonjour, Membre.',exact:true}).waitFor();
+  await page.locator('#main-nav [data-tab=montage]').click();
+  await page.locator('#video-input').waitFor({state:'attached'});
+  assert.equal(await page.locator('#source-preview').count(),0);
+  assert.equal(await page.getByText('Fixture technique locale — aucun rush utilisateur',{exact:true}).count(),0);
   assert.deepEqual(errors,[]);
-  await writeFile(artifactDir+'/smoke-report.json',JSON.stringify({status:'pass',browser:'Chromium',mobile:'viewports390x844 and844x390—not physical Safari',assertions:['MFA login','three tabs','profile persistence','CSV preview/import','observed comparable trend','project upload/persistence','real technical MP4 export/download','owner invitation UI','member activation and owner route denial','dark/light appearance','landscape rotation','no horizontal overflow','no JavaScript page errors'],screenshots,fixture:'Ephemeral test owner and generated technical video; no real user data'},null,2));
+  await writeFile(artifactDir+'/smoke-report.json',JSON.stringify({status:'pass',browser:'Chromium',mobile:'viewports390x844 and844x390—not physical Safari',assertions:['public FAQ and search','public privacy/terms/legal documents','public support submission and owner retrieval','private feedback submission','MFA login','three tabs','profile persistence','CSV preview/import','observed comparable trend','project upload/persistence','real technical MP4 export/download','owner invitation UI','member activation and owner route denial','revoked session returns to login','same-browser account switch clears private project state','dark/light appearance','landscape rotation','no horizontal overflow','no JavaScript page errors'],screenshots,fixture:'Ephemeral test owner and generated technical video; no real user data'},null,2));
   process.stdout.write(JSON.stringify({status:'pass',viewport_mobile:'390x844 and844x390 (Chromium, not physical Safari)',errors,screenshots:screenshots.length})+'\n');
 } catch(error) {
   await writeFile(join(artifactDir,'smoke-report.json'),JSON.stringify({status:'fail',browser:'Chromium',error:error.message},null,2));

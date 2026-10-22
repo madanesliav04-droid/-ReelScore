@@ -2,11 +2,12 @@ import { fingerprintFile } from './fingerprint.js';
 const $ = (selector, root = document) => root.querySelector(selector);
 const main = $('#main');
 const sheet = $('#sheet');
-const state = {
+const initialState = () => ({
   user: null, csrf: '', projects: [], styles: [], project: null,
   selectedStyle: null, file: null, objectUrl: null, strategyTab: 'overview',
-  preview: null, authMode: 'login', busy: false, jobTimer: null
-};
+  preview: null, authMode: 'login', busy: false, jobTimer: null, abortController: new AbortController()
+});
+const state = initialState();
 
 const paths = {
   home: '<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z"/>',
@@ -38,21 +39,45 @@ const button = (label, action, secondary = false, attributes = '') => `<button c
 const field = (name, label, value = '', type = 'text', attributes = '') => `<label>${label}<input name="${name}" type="${type}" value="${esc(value)}" ${attributes}></label>`;
 const empty = (title, text, action = '') => `<div class="empty-state"><div class="icon-tile">${icon('film')}</div><h3>${title}</h3><p>${text}</p>${action}</div>`;
 
+function resetPrivateState() {
+  clearTimeout(state.jobTimer);
+  state.abortController.abort();
+  if(state.analysisUrl)URL.revokeObjectURL(state.analysisUrl);
+  if(state.objectUrl)URL.revokeObjectURL(state.objectUrl);
+  for(const key of Object.keys(state))delete state[key];
+  Object.assign(state,initialState());
+  sheet.close();
+  $('#sheet-body').replaceChildren();
+  $('#main-nav').hidden=true;
+  $('#account-button').innerHTML=icon('user');
+}
+
 function hydrateIcons(root = document) {
   root.querySelectorAll('[data-icon]').forEach(element => { element.innerHTML = icon(element.dataset.icon); });
 }
 
+function ensureCurrentSession(controller) {
+  if(controller!==state.abortController || controller.signal.aborted)throw Object.assign(new Error('Cette session est fermée.'),{code:'SESSION_CHANGED'});
+}
+const staleSession = error => error.name==='AbortError' || error.code==='SESSION_CHANGED';
+
 async function api(path, options = {}) {
+  const controller=state.abortController;
+  const requestUser=state.user?.id,requestSession=state.csrf;
   const headers = { ...(options.body instanceof Blob ? {} : { 'Content-Type': 'application/json' }), ...options.headers };
   if (state.csrf) headers['X-CSRF-Token'] = state.csrf;
-  const response = await fetch(path, { credentials: 'same-origin', ...options, headers });
+  const response = await fetch(path, { credentials: 'same-origin', signal:controller.signal, ...options, headers });
   const data = await response.json().catch(() => ({}));
+  ensureCurrentSession(controller);
   if (!response.ok) {
     const error = new Error(data.message || `La demande a échoué (${response.status}).`);
     const trace=data.trace_id || response.headers.get('X-Trace-Id');
     if(response.status>=500 && trace)error.message+=` Référence : ${trace}`;
     error.code = data.code;
     error.status = response.status;
+    if(response.status===401 && requestUser && state.user?.id===requestUser && state.csrf===requestSession)setTimeout(()=>{
+      if(state.user?.id===requestUser && state.csrf===requestSession){resetPrivateState();auth();}
+    },0);
     throw error;
   }
   return data;
@@ -89,6 +114,7 @@ function formError(form, error) {
 
 async function session() {
   const data = await api('/api/session');
+  if(state.user && state.user.id!==data.user?.id)resetPrivateState();
   state.user = data.user;
   state.csrf = data.csrf || data.user?.csrf || '';
   $('#main-nav').hidden = !state.user;
@@ -291,6 +317,7 @@ async function methodAdmin() {
 }
 
 async function route() {
+  const controller=state.abortController;
   clearTimeout(state.jobTimer);
   const target = location.hash.slice(1).split('?')[0] || 'home';
   $('#main-nav').querySelectorAll('a').forEach(element => {
@@ -305,17 +332,21 @@ async function route() {
     else await home();
     main.focus({ preventScroll:true });
   } catch (error) {
+    if(staleSession(error) || controller!==state.abortController)return;
     main.innerHTML = `<section class="page">${heading('Votre espace','Une action à reprendre.')}<div class="panel"><p class="form-error">${esc(error.message)}</p><button class="button secondary section" data-action="retry">Réessayer</button></div></section>`;
   }
 }
 
 async function saveProject(form) {
+  const controller=state.abortController;
   const title = new FormData(form).get('title');
   if (!state.project) {
     const result = await post('/api/projects', { name: title });
+    ensureCurrentSession(controller);
     state.project = result.project || result;
   } else {
     const result = await api('/api/projects/' + encodeURIComponent(state.project.id), { method:'PATCH',body:JSON.stringify({name:title}) });
+    ensureCurrentSession(controller);
     state.project = result.project || { ...state.project,title };
   }
   if (state.file) {
@@ -324,6 +355,7 @@ async function saveProject(form) {
     const result = await api('/api/projects/' + encodeURIComponent(state.project.id) + '/source', {
       method:'POST',body:state.file,headers:{'Content-Type':state.file.type || 'application/octet-stream','X-Filename':encodeURIComponent(state.file.name)}
     });
+    ensureCurrentSession(controller);
     state.project = result.project || { ...state.project,source_name:state.file.name,has_source:true };
     state.file = null;
     if (state.objectUrl) URL.revokeObjectURL(state.objectUrl);
@@ -403,7 +435,7 @@ document.addEventListener('click', async event => {
     else if (action === 'support') feedback(true);
     else if (action === 'legal') await legal(element.dataset.kind);
     else if (action === 'admin') closeSheet();
-    else if (action === 'logout') { await post('/api/auth/logout');closeSheet();await session();await route(); }
+    else if (action === 'logout') { await post('/api/auth/logout');resetPrivateState();await session();await route(); }
     else if (action === 'export-data') {
       const data=await api('/api/privacy/export');const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download='socialplus-mes-donnees.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),5000);notify('Votre export a été téléchargé.');
     } else if (action === 'delete-data') openSheet('Suppression de vos données', `<p>Votre demande sera enregistrée et devra être traitée de façon vérifiée. Cette action ne prétend pas effacer silencieusement vos données.</p><form class="form section" data-form="delete-request">${field('password','Confirmez votre mot de passe','','password','required autocomplete="current-password"')}<button type="submit" class="button danger">Enregistrer ma demande</button><p class="form-error" role="alert"></p></form>`);
@@ -438,6 +470,7 @@ document.addEventListener('submit', async event => {
   const form=event.target.closest('[data-form]');
   if (!form) return;
   event.preventDefault();
+  const controller=state.abortController;
   const values=Object.fromEntries(new FormData(form));
   setBusy(form,true);
   try {
@@ -445,7 +478,7 @@ document.addEventListener('submit', async event => {
       case 'login': case 'activate': {
         if(form.dataset.form==='activate')values.acceptTerms=true;
         const data=await post('/api/auth/' + form.dataset.form,values);
-        state.user=data.user;state.csrf=data.csrf || data.user?.csrf;await session();await route();notify('Bienvenue dans votre espace.');break;
+        resetPrivateState();state.user=data.user;state.csrf=data.csrf || data.user?.csrf;await session();history.replaceState(null,'','#home');await route();notify('Bienvenue dans votre espace.');break;
       }
       case 'reset-password': await post('/api/auth/reset',values);closeSheet();notify('Mot de passe modifié. Connectez-vous avec votre nouveau mot de passe.');break;
       case 'redeem-invite': await post('/api/gifts/redeem',values);closeSheet();await session();notify('Votre invitation a été activée.');break;
@@ -455,7 +488,8 @@ document.addEventListener('submit', async event => {
       case 'csv': {
         const file=new FormData(form).get('csvfile');
         if(file.size>2000000)throw new Error('Le CSV dépasse 2 Mo. Importez un extrait plus petit.');
-        state.csvSource=await file.text();state.csvPlatform=values.platform;
+        const csv=await file.text();ensureCurrentSession(controller);
+        state.csvSource=csv;state.csvPlatform=values.platform;
         state.preview=await post('/api/strategy/imports/preview',{csv:state.csvSource,platform:values.platform});
         renderCsvPreview(state.preview);
         break;
@@ -472,7 +506,7 @@ document.addEventListener('submit', async event => {
       case 'support': await post('/api/support',values);closeSheet();notify('Message transmis au propriétaire. Aucun e-mail automatique envoyé.');break;
       case 'support-note': await api('/api/admin/support/' + encodeURIComponent(form.dataset.id),{method:'PATCH',body:JSON.stringify(values)});notify('Note interne enregistrée. Aucun e-mail envoyé.');break;
       case 'feedback': await post('/api/feedback',{...values,rating:values.rating?Number(values.rating):null,publicationConsent:form.elements.publicationConsent.checked});closeSheet();notify('Votre message privé est enregistré.');break;
-      case 'delete-account': await post('/api/privacy/delete',values);closeSheet();state.project=null;state.file=null;state.objectUrl=null;await session();await route();notify('Votre compte et vos données ont été supprimés.');break;
+      case 'delete-account': await post('/api/privacy/delete',values);resetPrivateState();await session();await route();notify('Votre compte et vos données ont été supprimés.');break;
       case 'method-version': await post('/api/admin/method-versions',{...values,method_id:form.dataset.id,process_steps:values.process_steps.split('\n').map(step=>step.trim()).filter(Boolean),success_metrics:values.success_metrics.split('\n').map(step=>step.trim()).filter(Boolean),pitfalls:values.pitfalls.split('\n').map(step=>step.trim()).filter(Boolean),enabled:true});closeSheet();notify('Nouvelle version publiée.');break;
       case 'delete-request': await post('/api/privacy/delete-request',values);closeSheet();notify('Votre demande de suppression est enregistrée.');break;
       case 'invite': {
@@ -483,7 +517,7 @@ document.addEventListener('submit', async event => {
       case 'feedback-reply': await api('/api/admin/feedback/' + encodeURIComponent(form.dataset.id),{method:'PATCH',body:JSON.stringify(values)});notify('Réponse privée enregistrée.');break;
       case 'faq-edit': await post('/api/admin/faq',{...values,sortOrder:Number(values.sortOrder || 0),published:form.elements.published.checked});closeSheet();await admin();notify('Réponse FAQ enregistrée.');break;
     }
-  } catch(error) { if(form.dataset.form==='project-save' && $('#upload-status'))$('#upload-status').innerHTML='';formError(form,error); }
+  } catch(error) { if(staleSession(error))return;if(form.dataset.form==='project-save' && $('#upload-status'))$('#upload-status').innerHTML='';formError(form,error); }
   finally { if(form.isConnected)setBusy(form,false); }
 });
 
@@ -499,7 +533,7 @@ document.addEventListener('change',async event=>{
     if(file.size>200*1048576)return notify('Cette vidéo dépasse 200 Mo. Réduisez le fichier avant de l’importer.');
     if(state.objectUrl)URL.revokeObjectURL(state.objectUrl);
     clearTimeout(state.jobTimer);state.file=file;state.objectUrl=URL.createObjectURL(file);
-    await montage();
+    try {await montage();}catch(error){if(!staleSession(error))notify(error.message);}
   } else if(event.target.id==='analysis-video') {
     const file=event.target.files?.[0];
     if(!file)return;
@@ -509,7 +543,8 @@ document.addEventListener('change',async event=>{
     state.analysisUrl=URL.createObjectURL(file);
     $('#analysis-preview').innerHTML=`<div class="video-stage"><video id="analysis-media" controls playsinline preload="metadata" src="${state.analysisUrl}"></video></div><p class="help-text section">${esc(file.name)} · ${number(file.size/1048576)} Mo</p>`;
     const video=$('#analysis-media');
-    video.addEventListener('loadedmetadata',()=>{$('#analyze-video-button').disabled=false;},{once:true});
+    const analysisUrl=state.analysisUrl;
+    video.addEventListener('loadedmetadata',()=>{const button=$('#analyze-video-button');if(analysisUrl===state.analysisUrl && button)button.disabled=false;},{once:true});
     video.addEventListener('error',()=>notify('Ce format ne peut pas être lu par votre navigateur.'),{once:true});
   }
 });
@@ -546,13 +581,16 @@ async function resultsPanel(content) {
 }
 
 async function analyzeVideo(form,values) {
+  const controller=state.abortController;
   const file=state.analysisFile;
   const video=$('#analysis-media');
   if(!file || !video?.videoWidth)throw new Error('Choisissez une vidéo lisible avant de continuer.');
   const fingerprint=await fingerprintFile(file);
+  ensureCurrentSession(controller);
   const {analysis}=await post('/api/strategy/video-analyses',{
     fingerprint,context:{goal_type:values.goal_type},metadata:{duration_seconds:video.duration,width:video.videoWidth,height:video.videoHeight,has_audio:form.elements.audioVerified.checked ? true : null},transcript:{text:values.transcript_text || ''},criteria:collectCriteria(values)
   });
+  ensureCurrentSession(controller);
   $('#video-analysis-result').innerHTML=`<h3>Précontrôle enregistré.</h3><div class="table-wrap"><table><tbody><tr><th>Format natif</th><td>${video.videoWidth} × ${video.videoHeight}</td></tr><tr><th>Durée</th><td>${number(video.duration)} s</td></tr><tr><th>Empreinte</th><td><code>${fingerprint.slice(0,16)}…</code></td></tr><tr><th>Score éditorial</th><td>${analysis.score==null?'Non évaluable':number(analysis.score) + ' / 100'}</td></tr><tr><th>Couverture des critères</th><td>${number(analysis.coverage)} %</td></tr></tbody></table></div><p class="help-text">${esc(analysis.notice || 'Le discours et les critères visuels ne sont pas évalués automatiquement. Aucun score global ne peut être attribué avec cette couverture.')}</p>${Object.entries(analysis.criteria || {}).map(([key,criterion])=>`<details><summary>${esc(REVIEW_CRITERIA.find(item=>item[0]===key)?.[1] || key)} · ${criterion.score}/100</summary><p>${esc(criterion.evidence)}</p><button class="text-button" data-action="seek-analysis" data-time="${criterion.start_sec}">Revoir à ${number(criterion.start_sec)} s${icon('arrow')}</button><small>Observation documentée par vous</small></details>`).join('')}<details><summary>Critères exclus (${analysis.excluded_criteria?.length || 0})</summary>${(analysis.excluded_criteria || []).map(item=>`<p><strong>${esc(REVIEW_CRITERIA.find(criterion=>criterion[0]===item.key)?.[1] || item.key)}</strong><br>${esc(item.reason)}</p>`).join('')}</details>`;
 }
 

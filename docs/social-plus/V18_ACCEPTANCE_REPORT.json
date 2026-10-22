@@ -7,10 +7,10 @@
   "release_gate": "NOT_READY_FOR_PRODUCTION",
   "interpretation": "Les statuts pass attestent uniquement les scénarios locaux dont les assertions citées ont été exécutées. Ils ne certifient ni staging distant, ni Safari iPhone matériel, ni fidélité des six moteurs. Aucun test non exécuté n’est présenté comme réussi.",
   "summary": {
-    "pass": 46,
-    "fail": 0,
-    "not_run": 41,
-    "deferred": 10
+    "pass": 47,
+    "not_run": 40,
+    "deferred": 10,
+    "fail": 0
   },
   "commands": [
     "node --test --test-isolation=none --test-reporter=spec apps/socialplus/server/*.test.mjs apps/socialplus/test/*.test.mjs",
@@ -1070,9 +1070,12 @@
       "scenario": "Ouvrir avatar et rubrique aide",
       "expected_result": "FAQ, Avis, support, Confidentialité, CGU, Mentions légales accessibles",
       "severity": "blocking",
-      "status": "not_run",
-      "evidence": [],
-      "reason": "Parcours avatar/aide navigateur à compléter ; présence des écrans dans le code ne suffit pas à cocher le scénario."
+      "status": "pass",
+      "evidence": [
+        "artifacts/browser/smoke-report.json",
+        "apps/socialplus/scripts/browser-smoke.mjs"
+      ],
+      "reason": "Parcours navigateur exécuté : FAQ et recherche, avis privé, support transmis et retrouvé par le propriétaire, confidentialité, CGU et mentions légales accessibles depuis le profil/aide."
     },
     {
       "id": "FAQ-001",
@@ -1199,11 +1202,11 @@
     }
   ],
   "local_test_summary": {
-    "server_pass": 66,
+    "server_pass": 68,
     "server_fail": 0,
     "inherited_engine_pass": 17,
     "inherited_engine_fail": 0,
     "browser": "Chromium Linux : PC, 390x844 et 844x390, clair/sombre, invitation ADMIN et activation membre, profil, CSV/graphique comparable, projet, export/téléchargement MP4. Safari iPhone et Chrome Windows physiques non exécutés."
   },
-  "browser_scope_note": "Le parcours navigateur étendu a été réexécuté avec succès sur le code courant, après les correctifs de quotas, export et chemins de stockage. Douze captures et un vrai téléchargement MP4 sont conservés."
+  "browser_scope_note": "Parcours navigateur réussi après ajout de la FAQ initiale et correction du nettoyage de session : révocation et changement de compte dans le même navigateur vérifiés. Douze captures et téléchargement MP4 réels conservés. Safari iPhone physique et Chrome Windows restent non exécutés."
 }

@@ -10,6 +10,7 @@ import { createStrategy } from './strategy.mjs';
 import { createProjects } from './projects.mjs';
 import * as render from './render.mjs';
 import { legalDocument } from './legal.mjs';
+import { seedInitialFaq } from './bootstrap.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const publicDir = resolve(here,'../public');
@@ -38,6 +39,7 @@ export async function createApp(options={}) {
     exportUserData: async userId=>({...projects.exportData(userId),strategy:strategy.exportData(userId)}),
     deleteUserData: async userId=>{await projects.deleteUserData(userId);await strategy.deleteData(userId);}
   }});
+  seedInitialFaq(db);
   const server=http.createServer(async(req,res)=>{
     const traceId=randomUUID();
     res.setHeader('X-Content-Type-Options','nosniff');
