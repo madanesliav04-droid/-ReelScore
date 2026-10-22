@@ -60,7 +60,8 @@ export function createProjects({ db, dataDir, render, maxUploadBytes = 200 * 102
       await rename(partial,path);
       let name = 'Vidéo importée';
       try { name = decodeURIComponent(req.headers['x-filename']||name).slice(0,160); } catch {}
-      db.prepare("UPDATE studio_projects SET source_path=?,source_name=?,source_bytes=?,metadata=?,output_path=NULL,output_bytes=0,state='ready',updated_at=? WHERE id=? AND user_id=?").run(path,name,bytes,JSON.stringify(metadata),now(),id,userId);
+      const saved=db.prepare("UPDATE studio_projects SET source_path=?,source_name=?,source_bytes=?,metadata=?,output_path=NULL,output_bytes=0,state='ready',updated_at=? WHERE id=? AND user_id=?").run(path,name,bytes,JSON.stringify(metadata),now(),id,userId);
+      if(saved.changes!==1)throw fail(410,'PROJECT_REMOVED','Le projet ou le compte a été supprimé pendant cet import.');
       await Promise.all([project.source_path,project.output_path].filter(Boolean).map(p=>rm(p,{force:true})));
       return publicProject(get(userId,id));
     } catch(error) { await rm(partial,{force:true}); await rm(path,{force:true}); throw error; }
@@ -82,7 +83,10 @@ export function createProjects({ db, dataDir, render, maxUploadBytes = 200 * 102
       const bytes=(await stat(outputPath)).size;
       const used=db.prepare('SELECT COALESCE(sum(source_bytes+output_bytes),0) AS n FROM studio_projects WHERE user_id=?').get(userId).n;
       if(used-p.output_bytes+bytes>maxUserBytes)throw fail(413,'STORAGE_QUOTA','Le fichier exporté dépasse votre stockage disponible. Supprimez un ancien projet.');
-      db.prepare("UPDATE studio_projects SET state='complete',output_path=?,output_bytes=?,updated_at=? WHERE id=? AND user_id=?").run(outputPath,bytes,now(),id,userId);
+      const updated=db.prepare("UPDATE studio_projects SET state='complete',output_path=?,output_bytes=?,updated_at=? WHERE id=? AND user_id=?").run(outputPath,bytes,now(),id,userId);
+      // stat() above yields: deletion may have removed the account/project in
+      // that interval. Never retain an output absent from the owner's records.
+      if(updated.changes!==1){await rm(outputPath,{force:true});return;}
       db.prepare("UPDATE studio_jobs SET state='complete',progress=100,audit=?,completed_at=? WHERE id=?").run(JSON.stringify(result||{}),now(),jobId);
       if (p.output_path) await rm(p.output_path,{force:true});
     }).catch(async error=>{

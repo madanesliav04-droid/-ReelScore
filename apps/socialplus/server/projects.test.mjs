@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
-import { mkdtemp, rm, readdir } from 'node:fs/promises';
+import { mkdtemp, rm, readdir, writeFile } from 'node:fs/promises';
+import { setTimeout as delay } from 'node:timers/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Readable } from 'node:stream';
@@ -43,4 +44,18 @@ test('projects: byte limit is enforced even without Content-Length',async t=>{
   const req=Readable.from([Buffer.alloc(101)]);req.headers={'content-type':'video/mp4'};
   await assert.rejects(projects.upload('alice',p.id,req),{code:'UPLOAD_QUOTA'});
   assert.deepEqual(await readdir(join(dataDir,'media')),[]);
+});
+test('projects: deletion during asynchronous render metadata check leaves no orphaned private export',async t=>{
+  const {projects,db,dataDir}=await fixture(t,{renderVideo:async({outputPath})=>{await writeFile(outputPath,'technical-render-fixture');return {};}}),p=projects.create('alice');
+  const req=Readable.from([Buffer.from('video-fixture')]);req.headers={'content-type':'video/mp4'};await projects.upload('alice',p.id,req);
+  const prepare=db.prepare.bind(db);let deletion;
+  db.prepare=sql=>{
+    const statement=prepare(sql);
+    if(sql==='SELECT id FROM studio_projects WHERE id=? AND user_id=?')return {get(...args){const row=statement.get(...args);if(row)queueMicrotask(()=>{deletion=projects.deleteUserData('alice');});return row;}};
+    return statement;
+  };
+  projects.startRender('alice',p.id,{style_id:'technical-export'});
+  for(let i=0;i<100&&!deletion;i++)await delay(10);assert(deletion,'Deletion must run at the stat() yield point.');await deletion;
+  let files=await readdir(join(dataDir,'media'));for(let i=0;i<100&&files.length;i++){await delay(10);files=await readdir(join(dataDir,'media'));}
+  assert.deepEqual(files,[]);assert.equal(projects.list('alice').length,0);
 });

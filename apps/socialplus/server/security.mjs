@@ -65,7 +65,8 @@ export function createSecurity({db,config={}}) {
     CREATE TABLE IF NOT EXISTS security_feedback(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES security_users(id) ON DELETE CASCADE,category TEXT NOT NULL,rating INTEGER,body TEXT NOT NULL,publication_consent INTEGER NOT NULL DEFAULT 0,status TEXT NOT NULL DEFAULT 'nouveau',owner_reply TEXT,created_at INTEGER NOT NULL);
     CREATE TABLE IF NOT EXISTS security_deletion_requests(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES security_users(id) ON DELETE CASCADE,status TEXT NOT NULL DEFAULT 'requested',requested_at INTEGER NOT NULL);`);
   db.exec(`CREATE TABLE IF NOT EXISTS security_consents(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES security_users(id) ON DELETE CASCADE,purpose TEXT NOT NULL,version TEXT NOT NULL,granted_at INTEGER NOT NULL,withdrawn_at INTEGER);
-    CREATE TABLE IF NOT EXISTS security_resets(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES security_users(id) ON DELETE CASCADE,code_hash TEXT NOT NULL UNIQUE,expires_at INTEGER NOT NULL,used_at INTEGER);`);
+    CREATE TABLE IF NOT EXISTS security_resets(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES security_users(id) ON DELETE CASCADE,code_hash TEXT NOT NULL UNIQUE,expires_at INTEGER NOT NULL,used_at INTEGER);
+    CREATE TABLE IF NOT EXISTS security_support(id TEXT PRIMARY KEY,user_id TEXT REFERENCES security_users(id) ON DELETE CASCADE,contact_email TEXT,contact_verified INTEGER NOT NULL DEFAULT 0,body TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'nouveau',owner_note TEXT,created_at INTEGER NOT NULL);`);
   if(!db.prepare('PRAGMA table_info(security_faq)').all().some(column=>column.name==='sort_order'))db.exec('ALTER TABLE security_faq ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0');
   const audit=(actor,action,target,result='ok')=>db.prepare('INSERT INTO security_audit VALUES (?,?,?,?,?,?)').run(randomUUID(),actor,action,target||null,result,clock());
   const limit=(req,action,max=10,window=15*60_000)=>{
@@ -130,6 +131,12 @@ export function createSecurity({db,config={}}) {
   async function handle(req,res,url){
     const path=typeof url==='string'?new URL(url,origin).pathname:url.pathname,method=req.method;
     if(path==='/api/session' && method==='GET'){const user=authenticate(req);sendJson(res,200,{user,csrf:user?.csrf||null});return true;}
+    if(path==='/api/support'&&method==='POST'){
+      checkOrigin(req);limit(req,'public_support',3,60*60_000);const input=await readJson(req),body=bounded(input.body,5000,'Message',10),contact=input.contactEmail?normalizedEmail(input.contactEmail):null;
+      if(/<\s*script\b|\bon\w+\s*=|javascript:/i.test(body))throw new HttpError(400,'unsafe_content','Le message doit contenir uniquement du texte, sans code exécutable.');
+      const user=authenticate(req),id=randomUUID();db.prepare('INSERT INTO security_support (id,user_id,contact_email,body,created_at) VALUES (?,?,?,?,?)').run(id,user?.id||null,contact,body,clock());
+      sendJson(res,201,{id,status:'nouveau',contact_verified:false,message:'Message transmis au propriétaire. Aucun e-mail automatique envoyé.'});return true;
+    }
     if(path==='/api/auth/login' && method==='POST'){
       checkOrigin(req);limit(req,'login');const input=await readJson(req),email=normalizedEmail(input.email);
       const row=db.prepare('SELECT * FROM security_users WHERE email=?').get(email);
@@ -226,6 +233,13 @@ export function createSecurity({db,config={}}) {
           db.prepare('INSERT INTO security_faq (id,question,answer,category,published,updated_at,sort_order) VALUES (?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET question=excluded.question,answer=excluded.answer,category=excluded.category,published=excluded.published,updated_at=excluded.updated_at,sort_order=excluded.sort_order').run(id,question,answer,category,input.published===true?1:0,clock(),sortOrder);audit(user.id,'faq.save',id);sendJson(res,200,{id});return true;}
       }
       if(path==='/api/admin/feedback'&&method==='GET'){sendJson(res,200,{entries:db.prepare('SELECT * FROM security_feedback ORDER BY created_at DESC LIMIT 500').all()});return true;}
+      if(path==='/api/admin/support'&&method==='GET'){sendJson(res,200,{entries:db.prepare('SELECT * FROM security_support ORDER BY created_at DESC LIMIT 200').all()});return true;}
+      const supportMatch=path.match(/^\/api\/admin\/support\/([a-f0-9-]+)$/);
+      if(supportMatch&&method==='PATCH'){
+        const input=await readJson(req);if(!['nouveau','en cours','résolu'].includes(input.status))throw new HttpError(400,'invalid_status','Statut invalide.');const note=input.note?bounded(input.note,5000,'Note interne'):null;
+        const result=db.prepare('UPDATE security_support SET status=?,owner_note=? WHERE id=?').run(input.status,note,supportMatch[1]);if(result.changes!==1)throw new HttpError(404,'not_found','Message introuvable.');audit(user.id,'support.triage',supportMatch[1]);sendJson(res,200,{ok:true});return true;
+      }
+      if(supportMatch&&method==='DELETE'){const result=db.prepare('DELETE FROM security_support WHERE id=?').run(supportMatch[1]);if(result.changes!==1)throw new HttpError(404,'not_found','Message introuvable.');audit(user.id,'support.delete',supportMatch[1]);sendJson(res,200,{ok:true});return true;}
       const feedbackMatch=path.match(/^\/api\/admin\/feedback\/([a-f0-9-]+)$/);if(feedbackMatch&&method==='PATCH'){const input=await readJson(req);if(!['nouveau','en cours','résolu'].includes(input.status))throw new HttpError(400,'invalid_status','Statut invalide.');const reply=input.reply?bounded(input.reply,5000,'Réponse'):null;db.prepare('UPDATE security_feedback SET status=?,owner_reply=? WHERE id=?').run(input.status,reply,feedbackMatch[1]);audit(user.id,'feedback.update',feedbackMatch[1]);sendJson(res,200,{ok:true});return true;}
       if(path==='/api/admin/audit-log'&&method==='GET'){sendJson(res,200,{entries:db.prepare('SELECT * FROM security_audit ORDER BY created_at DESC LIMIT 200').all()});return true;}
       if(path==='/api/admin/deletion-requests'&&method==='GET'){sendJson(res,200,{entries:db.prepare('SELECT r.*,u.email,u.display_name FROM security_deletion_requests r JOIN security_users u ON u.id=r.user_id ORDER BY r.requested_at DESC LIMIT 200').all()});return true;}
@@ -244,7 +258,7 @@ export function createSecurity({db,config={}}) {
       const user=requireUser(req),profile=db.prepare('SELECT id,email,display_name,email_verified_at,created_at,team FROM security_users WHERE id=?').get(user.id);
       const additional=await config.exportUserData?.(user.id)||{};
       res.setHeader('Content-Disposition','attachment; filename="socialplus-mes-donnees.json"');
-      sendJson(res,200,{exported_at:new Date(clock()).toISOString(),profile,grants:db.prepare('SELECT id,starts_at,expires_at,revoked_at FROM security_grants WHERE user_id=?').all(user.id),consents:db.prepare('SELECT purpose,version,granted_at,withdrawn_at FROM security_consents WHERE user_id=?').all(user.id),feedback:db.prepare('SELECT category,rating,body,publication_consent,status,owner_reply,created_at FROM security_feedback WHERE user_id=?').all(user.id),...additional});return true;
+      sendJson(res,200,{exported_at:new Date(clock()).toISOString(),profile,grants:db.prepare('SELECT id,starts_at,expires_at,revoked_at FROM security_grants WHERE user_id=?').all(user.id),consents:db.prepare('SELECT purpose,version,granted_at,withdrawn_at FROM security_consents WHERE user_id=?').all(user.id),feedback:db.prepare('SELECT category,rating,body,publication_consent,status,owner_reply,created_at FROM security_feedback WHERE user_id=?').all(user.id),support:db.prepare('SELECT contact_email,body,status,created_at FROM security_support WHERE user_id=?').all(user.id),...additional});return true;
     }
     if(path==='/api/privacy/delete'&&method==='POST'){
       checkCsrf(req);const user=requireUser(req);if(user.id===config.ownerId)throw new HttpError(409,'owner_protected','Le compte propriétaire se supprime depuis le serveur.');

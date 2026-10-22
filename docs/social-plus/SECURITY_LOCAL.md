@@ -31,6 +31,8 @@ Les membres ne peuvent lire que leurs propres retours. Les écrans administratif
 
 Les avis restent privés. Un consentement éventuel est distinct, horodaté et révocable ; aucun endpoint de publication publique d’avis n’est implémenté dans cette V1. Les réponses de FAQ sont enregistrées comme texte et ne deviennent publiques qu’après publication explicite par le propriétaire.
 
+Le formulaire de support avant connexion enregistre un message privé pour le propriétaire, avec une adresse de contact facultative **non vérifiée**. Il n’envoie aucun e-mail, ne permet aucune lecture publique du message et ne crée aucun droit d’accès. Les dépôts sont limités par adresse réseau et origine. Un message envoyé depuis une session authentifiée est lié au compte pour son export et sa suppression ; une adresse simplement déclarée ne permet jamais de rattacher ou de consulter les messages anonymes d’une autre personne. Pour ces messages anonymes, le propriétaire dispose d’une suppression manuelle après vérification de la demande, sans durée de conservation inventée.
+
 ## Export, suppression et limites
 
 `GET /api/privacy/export` assemble les seules données du membre connecté avec les hooks projets et Stratégie du serveur principal. L’export exclut mots de passe, jetons et secrets MFA. La suppression directe exige un nouveau contrôle du mot de passe et la confirmation `SUPPRIMER`, puis efface les fichiers, données métier, compte et sessions. Elle échoue explicitement si le serveur ne fournit pas de hook de purge complet. Une demande de suppression peut aussi être déposée et traitée par le propriétaire avec le même hook.

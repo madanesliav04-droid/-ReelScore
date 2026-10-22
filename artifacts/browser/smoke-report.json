@@ -1,0 +1,16 @@
+{
+  "status": "pass",
+  "browser": "Chromium",
+  "mobile": "viewport390x844—not physical Safari",
+  "assertions": [
+    "MFA login",
+    "three tabs",
+    "profile persistence",
+    "CSV preview/import",
+    "project upload/persistence",
+    "real technical MP4 export/download",
+    "no horizontal overflow",
+    "no JavaScript page errors"
+  ],
+  "fixture": "Ephemeral test owner and generated technical video; no real user data"
+}

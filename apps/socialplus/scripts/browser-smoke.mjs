@@ -1,0 +1,90 @@
+import {mkdtemp,mkdir,rm,writeFile,access} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join,resolve,dirname} from 'node:path';
+import {fileURLToPath,pathToFileURL} from 'node:url';
+import {randomUUID,randomBytes} from 'node:crypto';
+import assert from 'node:assert/strict';
+import {createApp} from '../server/index.mjs';
+import {totpCode} from '../server/security.mjs';
+const repoDir=resolve(dirname(fileURLToPath(import.meta.url)),'../../..');
+const playwright=await import(process.env.PLAYWRIGHT_MODULE_PATH ? pathToFileURL(resolve(process.env.PLAYWRIGHT_MODULE_PATH)).href : 'playwright-core').catch(()=>import('/opt/codex/cua_node/lib/node_modules/playwright-core/index.mjs'));
+const {chromium}=playwright;
+
+const dataDir=await mkdtemp(join(tmpdir(),'socialplus-ui-'));
+const artifactDir=resolve(repoDir,'artifacts/browser');
+const ownerId=randomUUID(),seed='JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP',password=randomBytes(24).toString('base64url');
+const app=await createApp({dataDir,origin:'http://localhost:4329',securityConfig:{ownerId,ownerTotpSecret:seed,secureCookies:false}});
+let browser;
+try {
+  await app.security.provisionOwner({id:ownerId,email:'fixture@socialplus.test',password,displayName:'Test local'});
+  await new Promise((resolve,reject)=>{app.server.once('error',reject);app.server.listen(4329,'localhost',resolve);});
+  browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox','--disable-dev-shm-usage']});
+  const context=await browser.newContext({viewport:{width:1440,height:1000},colorScheme:'dark'});
+  const page=await context.newPage();page.setDefaultTimeout(15000);
+  const errors=[];page.on('pageerror',error=>errors.push(error.message));
+  await mkdir(artifactDir,{recursive:true});
+  await page.goto('http://localhost:4329/');
+  await page.locator('[data-form=login]').waitFor();
+  await page.screenshot({path:artifactDir+'/desktop-login.png',fullPage:true});
+  await page.locator('[name=email]').fill('fixture@socialplus.test');
+  await page.locator('[name=password]').fill(password);
+  await page.locator('[name=totp]').fill(totpCode(seed));
+  await page.locator('[data-form=login] button[type=submit]').click();
+  await page.getByRole('heading',{name:'Bonjour, Test.'}).waitFor();
+  assert.equal(await page.locator('#main-nav a').count(),3);
+  await page.screenshot({path:artifactDir+'/desktop-home.png',fullPage:true});
+  for(const tab of ['montage','strategy']) {
+    await page.locator(`#main-nav [data-tab=${tab}]`).click();
+    await page.locator('h1').waitFor();await page.waitForTimeout(200);
+    assert.equal(await page.locator('.form-error').allTextContents().then(rows=>rows.filter(Boolean).length),0);
+    await page.screenshot({path:`${artifactDir}/desktop-${tab}.png`,fullPage:true});
+  }
+  await page.locator('#main-nav [data-tab=strategy]').click();
+  await page.getByRole('button',{name:'Mon profil',exact:true}).click();
+  await page.locator('[data-form=profile]').waitFor();
+  await page.locator('[name=handle]').fill('@fixture_locale');
+  await page.locator('[name=niche]').fill('Test technique local documenté');
+  await page.locator('[name=target_audience]').fill('Compte de test, aucune donnée réelle');
+  await page.locator('[data-form=profile] button[type=submit]').click();
+  await page.getByText('Votre profil est enregistré.',{exact:true}).waitFor();
+  await page.locator('[data-action=strategy-tab][data-id=metrics]').click();
+  const csv='external_post_id;date publication;date collecte;portée;vues;likes;comments;shares;saves\nfixture-01;2026-10-01;2026-10-02;100;120;2;1;1;0';
+  await page.locator('[name=csvfile]').setInputFiles({name:'fixture-locale.csv',mimeType:'text/csv',buffer:Buffer.from(csv)});
+  await page.locator('[data-form=csv] button[type=submit]').click();
+  await page.locator('[data-action=commit-csv]').waitFor();
+  await page.locator('[data-action=commit-csv]').click();
+  await page.getByRole('cell',{name:'fixture-01',exact:true}).waitFor();
+  await page.screenshot({path:artifactDir+'/desktop-metrics.png',fullPage:true});
+  await page.locator('#main-nav [data-tab=montage]').click();
+  await page.locator('#video-input').setInputFiles(resolve(repoDir,'artifacts/render/technical-fixture-640x360.mp4'));
+  await page.locator('#source-preview').waitFor();
+  await page.locator('[data-form=project-save] [name=title]').fill('Fixture technique locale — aucun rush utilisateur');
+  await page.locator('[data-form=project-save] button[type=submit]').click();
+  await page.getByText('Votre projet est enregistré.',{exact:true}).waitFor();
+  await page.locator('[data-action=technical-export]').click();
+  await page.locator('#render-status a[download]').waitFor({timeout:60000});
+  const downloadPromise=page.waitForEvent('download');
+  await page.locator('#render-status a[download]').click();
+  const download=await downloadPromise;
+  await download.saveAs(artifactDir+'/browser-technical-export.mp4');
+  await page.screenshot({path:artifactDir+'/desktop-export.png',fullPage:true});
+  const sessionData=await page.evaluate(()=>fetch('/api/session').then(response=>response.json()));
+  assert.equal(sessionData.user.role,'owner');
+  const dataSummary=await page.evaluate(async()=>({projects:await fetch('/api/projects').then(response=>response.json()),metrics:await fetch('/api/strategy/metrics').then(response=>response.json())}));
+  assert.equal(dataSummary.projects.projects.length,1);assert.equal(dataSummary.metrics.metrics.length,1);
+  await page.setViewportSize({width:390,height:844});
+  await page.locator('#main-nav [data-tab=strategy]').click();
+  await page.locator('[data-action=strategy-tab][data-id=overview]').click();
+  for(const tab of ['home','montage','strategy']) {
+    await page.locator(`#main-nav [data-tab=${tab}]`).click();
+    await page.waitForTimeout(250);
+    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`Overflow ${tab}`);
+    await page.screenshot({path:`${artifactDir}/mobile-${tab}.png`,fullPage:true});
+  }
+  assert.deepEqual(errors,[]);
+  await writeFile(artifactDir+'/smoke-report.json',JSON.stringify({status:'pass',browser:'Chromium',mobile:'viewport390x844—not physical Safari',assertions:['MFA login','three tabs','profile persistence','CSV preview/import','project upload/persistence','real technical MP4 export/download','no horizontal overflow','no JavaScript page errors'],fixture:'Ephemeral test owner and generated technical video; no real user data'},null,2));
+  process.stdout.write(JSON.stringify({status:'pass',viewport_mobile:'390x844 (Chromium, not physical Safari)',errors,screenshots:9})+'\n');
+} finally {
+  if(browser)await browser.close();
+  if(app.server.listening)await new Promise(resolve=>app.server.close(resolve));app.db.close();await rm(dataDir,{recursive:true,force:true});
+}

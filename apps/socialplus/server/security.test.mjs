@@ -136,3 +136,14 @@ test('admin status distinguishes revoked/expired accounts and external admin rou
   const delegated=await f.request('/api/admin/method-versions',f.owner);assert.equal(delegated.status,404);assert.equal(delegated.body,undefined);
   const c=await f.member('active@example.test');assert.equal((await f.request('/api/admin/method-versions',c)).status,403);f.db.close();
 });
+test('public support stores unverified contact privately, bounds abuse and purges authenticated messages with account',async()=>{
+  const f=await fixture(),a=await f.member();const anonymous=await f.request('/api/support',{method:'POST',ip:'192.0.2.10',data:{contactEmail:'member@example.test',body:'Demande de support avant connexion.'}});assert.equal(anonymous.status,201);assert.equal(anonymous.body.contact_verified,false);
+  assert.equal((await f.request('/api/admin/support',a)).status,403);assert.equal((await f.request('/api/privacy/export',a)).body.support.length,0);
+  const own=await f.request('/api/support',{method:'POST',...a,data:{contactEmail:'member@example.test',body:'Message depuis mon compte vérifié.'}});assert.equal(own.status,201);assert.equal((await f.request('/api/privacy/export',a)).body.support.length,1);
+  const listed=await f.request('/api/admin/support',f.owner);assert.equal(listed.body.entries.length,2);assert.equal(listed.body.entries.find(x=>x.id===anonymous.body.id).contact_verified,0);
+  assert.equal((await f.request(`/api/admin/support/${anonymous.body.id}`,{method:'PATCH',...f.owner,data:{status:'en cours',note:'Vérifier la demande par canal privé.'}})).status,200);
+  assert.equal((await f.request(`/api/admin/support/${anonymous.body.id}`,{method:'DELETE',...f.owner,data:{}})).status,200);
+  for(let i=0;i<2;i++)assert.equal((await f.request('/api/support',{method:'POST',ip:'192.0.2.10',data:{body:'Message public de test sans contact.'}})).status,201);
+  assert.equal((await f.request('/api/support',{method:'POST',ip:'192.0.2.10',data:{body:'Un quatrième message de test.'}})).status,429);
+  await f.request('/api/privacy/delete',{method:'POST',...a,data:{password:PASSWORD,confirm:'SUPPRIMER'}});assert.equal(f.db.prepare('SELECT count(*) n FROM security_support WHERE user_id=?').get(a.id).n,0);f.db.close();
+});
