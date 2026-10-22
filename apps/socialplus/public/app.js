@@ -176,7 +176,8 @@ async function montage() {
       <form class="form section" data-form="project-save">${field('title', 'Nom du projet', project?.name || project?.title || state.file?.name?.replace(/\.[^.]+$/, '') || '', 'text', 'required maxlength="120" placeholder="Donnez un nom à votre création"')}
         <button class="button secondary" type="submit" ${!state.file && !project ? 'disabled' : ''}>${icon('check')}Enregistrer le projet</button><p class="form-error" role="alert"></p></form>
       <div class="notice">${icon('info')}<span>La vidéo est d’abord lue sur cet appareil. L’enregistrement l’envoie à votre espace privé. Aucun service externe payant n’est appelé.</span></div>
-      <div class="panel section"><h3>Paroles et synchronisation</h3><p class="help-text">Si le moteur l’exige, fournissez des mots alignés et vérifiés. Aucun sous-titre n’est inventé.</p><label class="mt-15">Transcription alignée JSON · facultative<textarea id="transcript" rows="4" placeholder='[{"text":"Bonjour","start":0.2,"end":0.6}]'></textarea></label></div>
+      <div class="panel section"><h3>Paroles et synchronisation</h3><p class="help-text">Ajoutez vos mots alignés pour incruster les sous-titres. Aucun service de transcription automatique n’est configuré.</p><label class="mt-15">Transcription alignée JSON · facultative<textarea id="transcript" rows="4" placeholder='[{"text":"Bonjour","start":0.2,"end":0.6}]'></textarea></label><label class="checkbox-label section"><input id="captions-reviewed" type="checkbox"><span>J’ai vérifié ces mots et leur synchronisation avec la voix.</span></label></div>
+      <div class="panel section"><h3>Préparer mon montage</h3><p>Mesurez le son, écoutez les pauses proposées et choisissez celles à raccourcir. Le rendu applique vos coupes et vos sous-titres en conservant une seule piste audio originale.</p><button class="button secondary section" data-action="analyze-source" ${!project?.has_source?'disabled':''}>Analyser mon rush</button><div id="source-signals" class="section" aria-live="polite"></div><button class="button full section" data-action="guided-edit" disabled>Créer mon montage MP4</button></div>
     </div><div><div class="row between mb-18"><h2>Direction créative</h2><span class="pill">6 modèles</span></div><div class="model-list">${state.styles.map((style, index) => {
       const id = style.style_id || style.id;
       const available = style.available || style.enabled || style.status === 'production';
@@ -186,6 +187,16 @@ async function montage() {
       <div class="notice">${icon('shield')}<span>Les modèles sont des références visuelles validées. Leur disponibilité dépend des sources et de la recette de chaque moteur.</span></div>
     </div></div></section>`;
   updateStyleDetail();
+  if(project?.has_source){const {report}=await api('/api/projects/'+encodeURIComponent(project.id)+'/signals');if(report)showSourceSignals(report);}
+}
+
+function showSourceSignals(report){
+  const target=$('#source-signals');if(!target)return;
+  target.innerHTML=signalSummary(report)+`<p class="help-text section">Écoutez chaque passage avant de cocher. Les 250 ms aux bords de chaque pause sont conservées.</p>${report.suggestions.map(p=>`<label class="checkbox-label section"><input type="checkbox" data-pause-id="${esc(p.id)}"><span>Raccourcir ${number(p.startMs/1000)}–${number(p.endMs/1000)} s <button class="text-button" type="button" data-action="seek-source" data-time="${Math.max(0,p.startMs/1000-.5)}">Écouter</button></span></label>`).join('') || '<p class="help-text">Aucune pause intérieure de plus de 1,2 seconde détectée. Vous pouvez conserver le rush et ajouter vos sous-titres.</p>'}`;
+  $('[data-action=guided-edit]').disabled=false;
+}
+function signalSummary(report){
+  return `<p class="help-text">${esc(report.notice)}</p><div class="section">${stat('Pauses acoustiques',number(report.silenceRatio*100)+' %','Seuil mesuré : −35 dBFS')}${stat('Niveau moyen',report.meanVolumeDb==null?'Non disponible':number(report.meanVolumeDb)+' dBFS','Mesure du fichier source')}</div><ul>${report.recommendations.map(text=>`<li>${esc(text)}</li>`).join('')}</ul><small>Moteur ${esc(report.engineVersion)} · fichier ${esc(report.fingerprint.slice(0,12))}</small>`;
 }
 
 function updateStyleDetail() {
@@ -211,6 +222,9 @@ async function strategy() {
     content.innerHTML = `<div class="panel"><h2>Comprendre le processus.</h2><p>Des méthodes à appliquer vous-même, avec leurs sources et leurs limites.</p>${methods.filter(method => method.enabled !== false).map(method => `<details><summary>${esc(method.id)} · ${esc(method.title)}<span class="pill ml-10">v${esc(method.version)}</span></summary><ol>${(method.process_steps || []).map(step=>`<li>${esc(typeof step === 'string' ? step : step.description)}</li>`).join('')}</ol><p><strong>À pratiquer</strong><br>${esc(method.exercise)}</p><p><strong>Indicateur de réussite</strong><br>${esc(Array.isArray(method.success_metrics) ? method.success_metrics.join(' · ') : method.success_metrics)}</p><p>${esc(Array.isArray(method.pitfalls) ? method.pitfalls.join(' · ') : method.pitfalls)}</p>${safeSource(method.source_url)}</details>`).join('')}</div>`;
   } else if (state.strategyTab === 'video') {
     content.innerHTML = `<div class="workspace"><div><label class="upload-area" for="analysis-video"><span class="icon-tile">${icon('film')}</span><h3>Avant de publier.</h3><p>Vérifiez les caractéristiques de votre vidéo. Le fichier reste sur cet appareil.</p><small>Aucun envoi vidéo pour ce précontrôle</small></label><input id="analysis-video" class="visually-hidden" type="file" accept="video/*"><div id="analysis-preview" class="section"></div></div><div class="panel"><h2>Un regard mesuré.</h2><p>Les critères qui ne peuvent pas être observés restent « non évaluables ».</p><form class="form" data-form="video-analysis"><label>Objectif<select name="goal_type"><option value="awareness">Visibilité</option><option value="community">Communauté</option><option value="leads">Prospects</option></select></label><p class="help-text">Sans transcription fiable et revue éditoriale, le précontrôle ne produit aucun score global. Il ne prédit jamais les vues ni la viralité.</p>${editorialReview()}<button type="submit" class="button" id="analyze-video-button" disabled>Vérifier ma vidéo${icon('arrow')}</button><p class="form-error" role="alert"></p></form><div id="video-analysis-result" class="section" aria-live="polite"></div></div></div>`;
+    const {projects}=await api('/api/projects');
+    const sources=projects.filter(p=>p.has_source);
+    content.insertAdjacentHTML('afterbegin',`<div class="panel section"><h2>Mesurer une vidéo enregistrée</h2><p>Analyse locale du son réel : niveau, pauses et recommandations explicables. Aucun score de viralité n’est déduit de ces signaux.</p>${sources.length?`<label class="section">Mon projet<select id="strategy-project">${sources.map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}</select></label><button class="button section" data-action="strategy-source-analysis">Analyser le fichier réel</button>`:'<p class="help-text">Enregistrez un rush dans Montage pour lancer ses mesures.</p>'}<div id="strategy-source-signals" class="section" aria-live="polite"></div></div>`);
   } else if (state.strategyTab === 'results') {
     await resultsPanel(content);
   } else if (state.strategyTab === 'competitors') {
@@ -372,7 +386,7 @@ async function renderProject(styleId = state.selectedStyle) {
   const area = $('#render-status');
   area.innerHTML = '<div class="notice">' + icon('clock') + '<span>Vérification du moteur et des sources…</span></div>';
   try {
-    const data = await post('/api/projects/' + encodeURIComponent(state.project.id) + '/render', {style_id:styleId,transcript:aligned});
+    const data = await post('/api/projects/' + encodeURIComponent(state.project.id) + '/render', {style_id:styleId,transcript:aligned,approvedPauseIds:[...document.querySelectorAll('[data-pause-id]:checked')].map(input=>input.dataset.pauseId),captionsReviewed:$('#captions-reviewed')?.checked===true});
     const job = data.job || data;
     if (!job.id && !job.job_id) throw new Error('Le moteur n’a pas retourné de tâche de rendu.');
     await pollJob(job.id || job.job_id);
@@ -411,6 +425,10 @@ document.addEventListener('click', async event => {
       if(location.hash==='#montage')await montage();else location.hash='montage';
     } else if (action === 'select-style') { state.selectedStyle=element.dataset.id;updateStyleDetail(); }
     else if (action === 'render') await renderProject();
+    else if(action==='analyze-source'){element.disabled=true;try{const {report}=await post('/api/projects/'+encodeURIComponent(state.project.id)+'/signals');showSourceSignals(report);}finally{if(element.isConnected)element.disabled=false;}}
+    else if(action==='guided-edit')await renderProject('guided-edit');
+    else if(action==='seek-source'){const video=$('#source-preview');if(video){video.currentTime=Number(element.dataset.time);video.play().catch(()=>{});}}
+    else if(action==='strategy-source-analysis'){element.disabled=true;try{const {report}=await post('/api/projects/'+encodeURIComponent($('#strategy-project').value)+'/signals');$('#strategy-source-signals').innerHTML=signalSummary(report);}finally{if(element.isConnected)element.disabled=false;}}
     else if (action === 'technical-export') await renderProject('technical-export');
     else if (action === 'delete-project') { if(confirm('Supprimer ce projet et ses vidéos de votre espace ?')) { await api('/api/projects/' + encodeURIComponent(state.project.id), {method:'DELETE'});state.project=null;state.file=null;state.objectUrl=null;notify('Projet supprimé.');location.hash='home'; } }
     else if (action === 'strategy-tab') { state.strategyTab=element.dataset.id;await strategy(); }

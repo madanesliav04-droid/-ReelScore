@@ -1,3 +1,4 @@
+import {buildLocalEdit,SIGNAL_VERSION} from './local-edit.mjs';
 import { randomUUID } from 'node:crypto';
 import { createReadStream, createWriteStream } from 'node:fs';
 import { mkdir, rm, stat, rename } from 'node:fs/promises';
@@ -22,6 +23,7 @@ export function createProjects({ db, dataDir, render, maxUploadBytes = 200 * 102
     state TEXT NOT NULL, progress REAL NOT NULL DEFAULT 0, error_code TEXT, error_message TEXT,
     audit TEXT, created_at TEXT NOT NULL, completed_at TEXT
   ); CREATE INDEX IF NOT EXISTS studio_job_owner ON studio_jobs(user_id,created_at);
+  CREATE TABLE IF NOT EXISTS studio_signal_reports(project_id TEXT PRIMARY KEY,user_id TEXT NOT NULL,source_path TEXT NOT NULL,engine_version TEXT NOT NULL,report TEXT NOT NULL);
   CREATE TABLE IF NOT EXISTS studio_render_usage(user_id TEXT NOT NULL,day TEXT NOT NULL,started_count INTEGER NOT NULL,PRIMARY KEY(user_id,day));`);
   if(!db.prepare('PRAGMA table_info(studio_projects)').all().some(x=>x.name==='output_bytes'))db.exec('ALTER TABLE studio_projects ADD COLUMN output_bytes INTEGER NOT NULL DEFAULT 0');
   db.prepare("UPDATE studio_jobs SET state='failed',error_code='PROCESS_INTERRUPTED',error_message='Le serveur a redémarré. Relancez le traitement.' WHERE state IN ('queued','rendering')").run();
@@ -40,7 +42,7 @@ export function createProjects({ db, dataDir, render, maxUploadBytes = 200 * 102
   };
   const update = (userId,id,input) => {
     get(userId,id);
-    if (input.style_id && !render.MODEL_CATALOG.some(m=>m.id===input.style_id) && input.style_id !== 'technical-export') throw fail(400,'UNKNOWN_MODEL','Modèle inconnu.');
+    if (input.style_id && !render.MODEL_CATALOG.some(m=>m.id===input.style_id) && !['technical-export','guided-edit'].includes(input.style_id)) throw fail(400,'UNKNOWN_MODEL','Modèle inconnu.');
     db.prepare('UPDATE studio_projects SET name=COALESCE(?,name),style_id=COALESCE(?,style_id),updated_at=? WHERE id=? AND user_id=?').run(input.name == null ? null : String(input.name).trim().slice(0,160),input.style_id||null,now(),id,userId);
     return publicProject(get(userId,id));
   };
@@ -64,17 +66,46 @@ export function createProjects({ db, dataDir, render, maxUploadBytes = 200 * 102
       try { name = decodeURIComponent(req.headers['x-filename']||name).slice(0,160); } catch {}
       const saved=db.prepare("UPDATE studio_projects SET source_path=?,source_name=?,source_bytes=?,metadata=?,output_path=NULL,output_bytes=0,state='ready',updated_at=? WHERE id=? AND user_id=?").run(path,name,bytes,JSON.stringify(metadata),now(),id,userId);
       if(saved.changes!==1)throw fail(410,'PROJECT_REMOVED','Le projet ou le compte a été supprimé pendant cet import.');
+      db.prepare('DELETE FROM studio_signal_reports WHERE project_id=? AND user_id=?').run(id,userId);
       await Promise.all([project.source_path,project.output_path].filter(Boolean).map(p=>rm(p,{force:true})));
       return publicProject(get(userId,id));
     } catch(error) { await rm(partial,{force:true}); await rm(path,{force:true}); throw error; }
     finally { uploading.delete(id); uploadingUsers.delete(userId); }
+  }
+  function signalReport(userId,id){
+    const p=get(userId,id);
+    const row=db.prepare('SELECT report FROM studio_signal_reports WHERE project_id=? AND user_id=? AND source_path=? AND engine_version=?').get(id,userId,p.source_path,SIGNAL_VERSION);
+    return row?JSON.parse(row.report):null;
+  }
+  async function analyze(userId,id){
+    const p=get(userId,id);if(!p.source_path)throw fail(409,'SOURCE_REQUIRED','Importez d’abord une vidéo.');
+    const cached=signalReport(userId,id);if(cached)return cached;
+    if(running||uploading.has(id)||uploadingUsers.has(userId))throw fail(409,'RENDER_BUSY','Un traitement est déjà en cours.');
+    const day=now().slice(0,10);
+    const used=db.prepare('SELECT started_count FROM studio_render_usage WHERE user_id=? AND day=?').get(userId,day)?.started_count||0;
+    if(used>=maxRendersPerDay)throw fail(429,'DAILY_RENDER_QUOTA',`La limite de ${maxRendersPerDay} traitement(s) par jour est atteinte.`);
+    db.prepare('INSERT INTO studio_render_usage VALUES(?,?,1) ON CONFLICT(user_id,day) DO UPDATE SET started_count=started_count+1').run(userId,day);
+    running=true;uploading.add(id);
+    try{
+      const report=await render.analyzeSource(p.source_path);
+      if(!db.prepare('SELECT id FROM studio_projects WHERE id=? AND user_id=? AND source_path=?').get(id,userId,p.source_path))throw fail(410,'PROJECT_REMOVED','Ce projet a été supprimé.');
+      db.prepare('INSERT OR REPLACE INTO studio_signal_reports VALUES(?,?,?,?,?)').run(id,userId,p.source_path,SIGNAL_VERSION,JSON.stringify(report));
+      return report;
+    }finally{running=false;uploading.delete(id);}
   }
   function startRender(userId,id,input) {
     const p = get(userId,id), modelId = input.modelId || input.style_id || p.style_id;
     if (!p.source_path) throw fail(409,'SOURCE_REQUIRED','Importez d’abord une vidéo.');
     if (running || uploading.has(id)) throw fail(409,'RENDER_BUSY','Un traitement est en cours. Réessayez après sa fin.');
     const model = render.MODEL_CATALOG.find(x=>x.id===modelId);
-    if (modelId !== 'technical-export' && (!model || !model.available)) throw fail(422,'MODEL_UNAVAILABLE',model?.reason||'Le moteur de ce modèle est indisponible.');
+    if (!['technical-export','guided-edit'].includes(modelId) && (!model || !model.available)) throw fail(422,'MODEL_UNAVAILABLE',model?.reason||'Le moteur de ce modèle est indisponible.');
+    let localEdit;
+    if(modelId==='guided-edit'){
+      const report=signalReport(userId,id);
+      if(!report)throw fail(409,'SOURCE_ANALYSIS_REQUIRED','Analysez cette source avant de lancer le montage.');
+      localEdit={report,approvedPauseIds:input.approvedPauseIds,transcript:input.transcript,captionsReviewed:input.captionsReviewed===true};
+      buildLocalEdit(localEdit);
+    }
     const jobId = randomUUID(), outputPath = join(mediaDir,randomUUID()+'.mp4');
     db.exec('BEGIN IMMEDIATE');
     try {
@@ -87,7 +118,7 @@ export function createProjects({ db, dataDir, render, maxUploadBytes = 200 * 102
       db.exec('COMMIT');
     } catch(error){db.exec('ROLLBACK');throw error;}
     running = true;
-    Promise.resolve().then(()=>render.renderVideo({sourcePath:p.source_path,outputPath,modelId,captionCues:input.captionCues,analysis:input.analysis,timeline:input.timeline,frameProof:input.frameProof,editorialEvents:input.editorialEvents,onProgress: value => db.prepare('UPDATE studio_jobs SET progress=? WHERE id=?').run(Math.min(99,Math.max(0,Number(value)||0)),jobId)})).then(async result=>{
+    Promise.resolve().then(()=>render.renderVideo({sourcePath:p.source_path,outputPath,modelId,localEdit,captionCues:input.captionCues,analysis:input.analysis,timeline:input.timeline,frameProof:input.frameProof,editorialEvents:input.editorialEvents,onProgress: value => db.prepare('UPDATE studio_jobs SET progress=? WHERE id=?').run(Math.min(99,Math.max(0,Number(value)||0)),jobId)})).then(async result=>{
       // A deleted project must never leave a newly rendered private file behind.
       if (!db.prepare('SELECT id FROM studio_projects WHERE id=? AND user_id=?').get(id,userId)) { await rm(outputPath,{force:true}); return; }
       const bytes=(await stat(outputPath)).size;
@@ -114,12 +145,14 @@ export function createProjects({ db, dataDir, render, maxUploadBytes = 200 * 102
   async function remove(userId,id) {
     const p=get(userId,id);
     if(p.state==='rendering'||uploading.has(id))throw fail(409,'PROJECT_BUSY','Attendez la fin du traitement avant de supprimer ce projet.');
+    db.prepare('DELETE FROM studio_signal_reports WHERE project_id=? AND user_id=?').run(id,userId);
     db.prepare('DELETE FROM studio_jobs WHERE project_id=? AND user_id=?').run(id,userId);
     db.prepare('DELETE FROM studio_projects WHERE id=? AND user_id=?').run(id,userId);
     await Promise.all([p.source_path,p.output_path].filter(Boolean).map(p=>rm(p,{force:true})));
   }
   async function deleteUserData(userId) {
     const rows=db.prepare('SELECT * FROM studio_projects WHERE user_id=?').all(userId);
+    db.prepare('DELETE FROM studio_signal_reports WHERE user_id=?').run(userId);
     db.prepare('DELETE FROM studio_jobs WHERE user_id=?').run(userId);
     db.prepare('DELETE FROM studio_projects WHERE user_id=?').run(userId);
     db.prepare('DELETE FROM studio_render_usage WHERE user_id=?').run(userId);
@@ -143,7 +176,7 @@ export function createProjects({ db, dataDir, render, maxUploadBytes = 200 * 102
     }else{res.writeHead(200,{'Content-Length':info.size});createReadStream(path).on('error',()=>res.destroy()).pipe(res);}
   }
   function exportData(userId){
-    return {projects:list(userId),render_jobs:db.prepare('SELECT id,project_id,model_id,state,progress,error_code,error_message,created_at,completed_at FROM studio_jobs WHERE user_id=? ORDER BY created_at').all(userId),render_usage:db.prepare('SELECT day,started_count FROM studio_render_usage WHERE user_id=? ORDER BY day').all(userId),media_downloads:list(userId).filter(p=>p.has_source).map(p=>({project_id:p.id,source_url:`/api/projects/${p.id}/media`,output_url:p.has_output?`/api/projects/${p.id}/output?download=1`:null}))};
+    return {projects:list(userId),source_analyses:db.prepare('SELECT project_id,report FROM studio_signal_reports WHERE user_id=?').all(userId).map(row=>({project_id:row.project_id,...JSON.parse(row.report)})),render_jobs:db.prepare('SELECT id,project_id,model_id,state,progress,error_code,error_message,created_at,completed_at FROM studio_jobs WHERE user_id=? ORDER BY created_at').all(userId),render_usage:db.prepare('SELECT day,started_count FROM studio_render_usage WHERE user_id=? ORDER BY day').all(userId),media_downloads:list(userId).filter(p=>p.has_source).map(p=>({project_id:p.id,source_url:`/api/projects/${p.id}/media`,output_url:p.has_output?`/api/projects/${p.id}/output?download=1`:null}))};
   }
-  return {list,create,update,get:(u,id)=>publicProject(get(u,id)),upload,startRender,job,remove,stream,deleteUserData,exportData};
+  return {list,create,update,analyze,signalReport,get:(u,id)=>publicProject(get(u,id)),upload,startRender,job,remove,stream,deleteUserData,exportData};
 }

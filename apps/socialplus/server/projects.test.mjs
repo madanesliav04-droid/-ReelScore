@@ -14,6 +14,28 @@ async function fixture(t,renderOverrides={},limits={}) {
   const render={MODEL_CATALOG:[{id:'absent',available:false,reason:'Source manquante.'}],probeVideo:async()=>({width:1920,height:1080,durationMs:1000}),...renderOverrides};
   return {projects:createProjects({db,dataDir,render,maxUploadBytes:100,...limits}),db,dataDir};
 }
+test('projects: measured reports are cached per source, isolated, invalidated on replacement and deleted with member data',async t=>{
+  let calls=0;
+  const report={engineVersion:'local-acoustic-v1',fingerprint:'fixture',metadata:{durationMs:4000,width:640,height:360,hasAudio:true},suggestions:[{id:'pause-0',startMs:1000,endMs:2000}]};
+  const {projects,db}=await fixture(t,{analyzeSource:async()=>{calls++;return report;},renderVideo:async({outputPath,localEdit})=>{assert.equal(localEdit.report.fingerprint,'fixture');await writeFile(outputPath,'fixture');return {};}});
+  const p=projects.create('alice');
+  const upload=async()=>{const req=Readable.from([Buffer.from('video')]);req.headers={'content-type':'video/mp4'};await projects.upload('alice',p.id,req);};
+  await upload();assert.equal(projects.signalReport('alice',p.id),null);
+  assert.throws(()=>projects.startRender('alice',p.id,{style_id:'guided-edit'}),{code:'SOURCE_ANALYSIS_REQUIRED'});
+  assert.deepEqual(await projects.analyze('alice',p.id),report);
+  await projects.analyze('alice',p.id);assert.equal(calls,1);
+  await assert.rejects(projects.analyze('bob',p.id),{code:'PROJECT_NOT_FOUND'});
+  assert.throws(()=>projects.signalReport('bob',p.id),{code:'PROJECT_NOT_FOUND'});
+  assert.throws(()=>projects.startRender('alice',p.id,{style_id:'guided-edit',approvedPauseIds:['fake']}),{code:'INVALID_EDIT'});
+  assert.equal(db.prepare('SELECT started_count n FROM studio_render_usage').get().n,1);
+  const job=projects.startRender('alice',p.id,{style_id:'guided-edit',approvedPauseIds:['pause-0']});
+  for(let i=0;i<100&&projects.job('alice',job.id).state==='rendering';i++)await delay(10);
+  assert.equal(projects.job('alice',job.id).state,'complete');
+  assert.equal(projects.exportData('alice').source_analyses.length,1);
+  await upload();assert.equal(projects.signalReport('alice',p.id),null);
+  await projects.analyze('alice',p.id);assert.equal(calls,2);
+  await projects.deleteUserData('alice');assert.equal(db.prepare('SELECT count(*) n FROM studio_signal_reports').get().n,0);
+});
 test('projects: tenant boundary covers get update delete upload and job lookup',async t=>{
   const {projects}=await fixture(t),p=projects.create('alice',{name:'Privé'});
   assert.equal(projects.list('bob').length,0);

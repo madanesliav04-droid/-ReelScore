@@ -1,4 +1,7 @@
 import {spawn} from 'node:child_process';
+import {createReadStream} from 'node:fs';
+import {createHash} from 'node:crypto';
+import {acousticReport,buildLocalEdit} from './local-edit.mjs';
 import {mkdtemp, writeFile, rm, stat} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
@@ -48,7 +51,7 @@ function run(command,args,{timeoutMs=600_000,signal,maxOutput=512_000}={}) {
     const timer=setTimeout(()=>{child.kill('SIGKILL');done(new RenderError('RENDER_TIMEOUT','Le délai de traitement local est dépassé.'));},timeoutMs);
     signal?.addEventListener('abort',cancel,{once:true});
     child.stdout.on('data',b=>{stdout+=b.toString();if(stdout.length>maxOutput){child.kill('SIGKILL');done(new RenderError('PROCESS_OUTPUT_LIMIT','La sortie du traitement est trop volumineuse.'));}});
-    child.stderr.on('data',b=>{stderr=(stderr+b.toString()).slice(-8000);});
+    child.stderr.on('data',b=>{stderr=(stderr+b.toString()).slice(-maxOutput);});
     child.on('error',e=>done(new RenderError('TOOL_UNAVAILABLE',`${command} est nécessaire sur cette machine.`,{cause:e.code})));
     child.on('close',code=>code===0?done(null,{stdout,stderr}):done(new RenderError('RENDER_FAILED','Le traitement vidéo a échoué.',{tool:command,exitCode:code,log:stderr})));
   });
@@ -70,6 +73,15 @@ export async function probeVideo(sourcePath,{signal}={}) {
     bytes:Number(data.format?.size)||null,rotation,rawFrameRate:video.avg_frame_rate};
 }
 
+export async function analyzeSource(sourcePath,{signal}={}) {
+  const metadata=await probeVideo(sourcePath,{signal});
+  if(metadata.durationMs>600_000||metadata.width*metadata.height>3840*2160)throw new RenderError('LOCAL_RENDER_LIMIT','L’analyse locale accepte jusqu’à 10 minutes en 4K.');
+  const hash=createHash('sha256');for await(const chunk of createReadStream(sourcePath))hash.update(chunk);
+  let log='';
+  if(metadata.hasAudio)({stderr:log}=await run('ffmpeg',['-hide_banner','-nostdin','-protocol_whitelist','file,pipe','-format_whitelist','mov,matroska,webm,avi,mpegts,ogg','-i',sourcePath,'-map','0:a:0','-vn','-af','silencedetect=noise=-35dB:d=0.25,volumedetect','-f','null','-'],{signal,timeoutMs:120_000}));
+  return acousticReport(log,metadata,hash.digest('hex'));
+}
+
 function assertSafeTimeline(timeline,meta) {
   if(!timeline||timeline.audio?.hasAudio!==meta.hasAudio||Math.abs(timeline.outputDurationMs-meta.durationMs)>65||
     timeline.export?.width!==meta.width||timeline.export?.height!==meta.height||
@@ -78,9 +90,9 @@ function assertSafeTimeline(timeline,meta) {
 }
 
 /** Trusted server paths only: never pass a client-supplied path or shell text. */
-export async function renderVideo({sourcePath,outputPath,modelId,analysis,timeline,frameProof,editorialEvents,onProgress=async()=>{},signal}={}) {
+export async function renderVideo({sourcePath,outputPath,modelId,analysis,timeline,frameProof,editorialEvents,localEdit,onProgress=async()=>{},signal}={}) {
   const known=MODEL_CATALOG.find(m=>m.id===modelId);
-  if(modelId!==TECHNICAL_EXPORT.id&&!known)throw new RenderError('UNKNOWN_MODEL','Modèle inconnu.');
+  if(modelId!==TECHNICAL_EXPORT.id&&modelId!=='guided-edit'&&!known)throw new RenderError('UNKNOWN_MODEL','Modèle inconnu.');
   if(known?.sourceAvailable===false)throw new RenderError('MODEL_SOURCE_MISSING',known.reason,{missingSources:known.missingSources});
   if(known&&process.env.SOCIALPLUS_BETA_RENDER!=='staging')
     throw new RenderError('MODEL_QA_REQUIRED',known.reason,{modelId,status:known.status});
@@ -92,8 +104,25 @@ export async function renderVideo({sourcePath,outputPath,modelId,analysis,timeli
   try {
     await onProgress(10,'Vérification du fichier source');
     const filters=['scale=trunc(iw/2)*2:trunc(ih/2)*2','setsar=1'];
+    let expectedDurationMs=meta.durationMs;
+    let inputLabels=null,complex=null;
     let audit={modelId,artisticModel:false,engine:'ffmpeg-native-export-v1',cuts:0,source:meta,originalAudioStreamsSelected:meta.hasAudio?1:0};
-    if(modelId==='alex-hormozi-v16') {
+    if(modelId==='guided-edit') {
+      const edit=buildLocalEdit(localEdit);
+      if(edit.outputDurationMs<500)throw new RenderError('INVALID_EDIT','Le montage doit conserver au moins une demi-seconde.');
+      expectedDurationMs=edit.outputDurationMs;
+      if(edit.cuts.length){
+        const graphs=[];
+        edit.keepRanges.forEach((r,i)=>{
+          graphs.push(`[0:v:0]trim=start=${r.startMs/1000}:end=${r.endMs/1000},setpts=PTS-STARTPTS[v${i}]`);
+          if(meta.hasAudio)graphs.push(`[0:a:0]atrim=start=${r.startMs/1000}:end=${r.endMs/1000},asetpts=PTS-STARTPTS[a${i}]`);
+        });
+        graphs.push(edit.keepRanges.map((_,i)=>`[v${i}]${meta.hasAudio?`[a${i}]`:''}`).join('')+`concat=n=${edit.keepRanges.length}:v=1:a=${meta.hasAudio?1:0}[cutv]${meta.hasAudio?'[outa]':''}`);
+        complex=graphs;inputLabels=true;
+      }
+      if(edit.ass){const assPath=path.join(work,'captions.ass');await writeFile(assPath,edit.ass,'utf8');filters.push(`ass=filename='${assPath.replace(/\\/g,'/').replace(/:/g,'\\:').replace(/'/g,"\\'")}'`);}
+      audit={...audit,engine:'local-guided-edit-v1',cuts:edit.cuts.length,keepRanges:edit.keepRanges,captionCount:edit.captions.length,approval:'user_reviewed_acoustic_pauses',sourceFingerprint:localEdit.report.fingerprint};
+    } else if(modelId==='alex-hormozi-v16') {
       assertSafeTimeline(timeline,meta);
       const plan=planHormoziOmniStoryboard({analysis,words:analysis?.transcript?.words,durationMs:meta.durationMs,enabled:true});
       if(!plan.cues.length)throw new RenderError('VERIFIED_EVIDENCE_REQUIRED','Le moteur Alex exige des mots alignés et une preuve indépendante de placement.',{held:plan.held});
@@ -110,12 +139,12 @@ export async function renderVideo({sourcePath,outputPath,modelId,analysis,timeli
       return {outputPath,audit:{...audit,...result,artisticModel:true,engine:'social-kinetic-v28',release:'staging_qa_required'},metadata:await probeVideo(outputPath,{signal})};
     }
     await onProgress(30,known?'Rendu du moteur de référence en laboratoire':'Conversion MP4 du rush original');
+    if(complex)complex.push('[cutv]'+filters.join(',')+'[outv]');
     await run('ffmpeg',['-hide_banner','-loglevel','error','-nostdin','-y','-protocol_whitelist','file,pipe','-format_whitelist','mov,matroska,webm,avi,mpegts,ogg','-i',sourcePath,
-      '-map','0:v:0',...(meta.hasAudio?['-map','0:a:0']:['-an']),'-map_metadata','-1',
-      '-vf',filters.join(','),'-c:v','libx264','-preset','veryfast','-crf','19','-pix_fmt','yuv420p','-threads','2',
+      ...(inputLabels?['-filter_complex',complex.join(';'),'-map','[outv]',...(meta.hasAudio?['-map','[outa]']:['-an'])]:['-map','0:v:0',...(meta.hasAudio?['-map','0:a:0']:['-an']),'-vf',filters.join(',')]),'-map_metadata','-1','-c:v','libx264','-preset','veryfast','-crf','19','-pix_fmt','yuv420p','-threads','2',
       ...(meta.hasAudio?['-c:a','aac','-b:a','192k']:[]),'-movflags','+faststart',outputPath],{signal});
     const output=await probeVideo(outputPath,{signal});
-    if(output.videoCodec!=='h264'||(meta.hasAudio&&output.audioCodec!=='aac')||output.audioStreams>(meta.hasAudio?1:0)||Math.abs(output.durationMs-meta.durationMs)>150)
+    if(output.videoCodec!=='h264'||(meta.hasAudio&&output.audioCodec!=='aac')||output.audioStreams>(meta.hasAudio?1:0)||Math.abs(output.durationMs-expectedDurationMs)>Math.max(150,(audit.cuts||0)*40))
       throw new RenderError('OUTPUT_QA_FAILED','La vérification des pistes ou de la durée du MP4 a échoué.');
     await onProgress(100,'MP4 vérifié');
     return {outputPath,bytes:(await stat(outputPath)).size,metadata:output,audit};

@@ -21,7 +21,7 @@ const app=await createApp({dataDir,origin:'http://localhost:4329',securityConfig
 let browser;
 try {
   const fixturePath=join(dataDir,'technical-fixture.mp4');
-  await promisify(execFile)('ffmpeg',['-hide_banner','-loglevel','error','-y','-f','lavfi','-i','color=c=0x253348:s=640x360:r=30','-f','lavfi','-i','sine=frequency=440:sample_rate=48000','-t','3','-c:v','libx264','-pix_fmt','yuv420p','-threads','2','-c:a','aac',fixturePath]);
+  await promisify(execFile)('ffmpeg',['-hide_banner','-loglevel','error','-y','-f','lavfi','-i','color=c=0x253348:s=640x360:r=30','-f','lavfi','-i','sine=frequency=440:sample_rate=48000','-t','6','-af',"volume=0:enable='between(t,2,4)'",'-c:v','libx264','-pix_fmt','yuv420p','-threads','2','-c:a','aac',fixturePath]);
   await app.security.provisionOwner({id:ownerId,email:'fixture@socialplus.test',password,displayName:'Test local'});
   await new Promise((resolve,reject)=>{app.server.once('error',reject);app.server.listen(4329,'localhost',resolve);});
   browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox','--disable-dev-shm-usage']});
@@ -95,6 +95,29 @@ try {
   const download=await downloadPromise;
   await download.saveAs(artifactDir+'/browser-technical-export.mp4');
   await capture('desktop-export.png');
+  await page.locator('[data-action=analyze-source]').click();
+  await page.locator('[data-pause-id]').waitFor({timeout:60000});
+  assert.equal(await page.locator('[data-pause-id]').count(),1);
+  await page.locator('[data-pause-id]').check();
+  await page.locator('#transcript').fill(JSON.stringify([{text:'Fixture',start:.5,end:1},{text:'technique',start:4.5,end:5}]));
+  await page.locator('#captions-reviewed').check();
+  const renderResponse=page.waitForResponse(r=>r.url().endsWith('/render')&&r.request().method()==='POST');
+  await page.locator('[data-action=guided-edit]').click();
+  assert.equal((await renderResponse).status(),202);
+  await page.locator('#render-status a[download]').waitFor({timeout:60000});
+  const guidedDownload=page.waitForEvent('download');
+  await page.locator('#render-status a[download]').click();
+  await (await guidedDownload).saveAs(artifactDir+'/guided-edit.mp4');
+  const {stdout:guidedProbe}=await promisify(execFile)('ffprobe',['-v','error','-show_streams','-show_format','-of','json',artifactDir+'/guided-edit.mp4']);
+  const edited=JSON.parse(guidedProbe);
+  assert.ok(Number(edited.format.duration)>4.4&&Number(edited.format.duration)<4.7);
+  assert.equal(edited.streams.filter(s=>s.codec_type==='audio').length,1);
+  assert.equal(edited.streams.find(s=>s.codec_type==='video').codec_name,'h264');
+  await page.locator('#main-nav [data-tab=strategy]').click();
+  await page.locator('[data-action=strategy-tab][data-id=video]').click();
+  await page.locator('[data-action=strategy-source-analysis]').click();
+  await page.locator('#strategy-source-signals').getByText(/local-acoustic-v1/).waitFor();
+
   const sessionData=await page.evaluate(()=>fetch('/api/session').then(response=>response.json()));
   assert.equal(sessionData.user.role,'owner');
   const dataSummary=await page.evaluate(async()=>({projects:await fetch('/api/projects').then(response=>response.json()),metrics:await fetch('/api/strategy/metrics').then(response=>response.json())}));
@@ -161,7 +184,7 @@ try {
   assert.equal(await page.locator('#source-preview').count(),0);
   assert.equal(await page.getByText('Fixture technique locale — aucun rush utilisateur',{exact:true}).count(),0);
   assert.deepEqual(errors,[]);
-  await writeFile(artifactDir+'/smoke-report.json',JSON.stringify({status:'pass',browser:'Chromium',mobile:'viewports390x844 and844x390—not physical Safari',assertions:['public FAQ and search','public privacy/terms/legal documents','public support submission and owner retrieval','private feedback submission','MFA login','three tabs','profile persistence','CSV preview/import','observed comparable trend','project upload/persistence','real technical MP4 export/download','owner invitation UI','member activation and owner route denial','revoked session returns to login','same-browser account switch clears private project state','dark/light appearance','landscape rotation','no horizontal overflow','no JavaScript page errors'],screenshots,fixture:'Ephemeral test owner and generated technical video; no real user data'},null,2));
+  await writeFile(artifactDir+'/smoke-report.json',JSON.stringify({status:'pass',browser:'Chromium',mobile:'viewports390x844 and844x390—not physical Safari',assertions:['public FAQ and search','public privacy/terms/legal documents','public support submission and owner retrieval','private feedback submission','MFA login','three tabs','profile persistence','CSV preview/import','observed comparable trend','project upload/persistence','real technical MP4 export/download','local acoustic analysis from saved source','approved pause edit and synchronized captions with real MP4 download','Strategy recommendations from measured source','owner invitation UI','member activation and owner route denial','revoked session returns to login','same-browser account switch clears private project state','dark/light appearance','landscape rotation','no horizontal overflow','no JavaScript page errors'],screenshots,fixture:'Ephemeral test owner and generated technical video; no real user data'},null,2));
   process.stdout.write(JSON.stringify({status:'pass',viewport_mobile:'390x844 and844x390 (Chromium, not physical Safari)',errors,screenshots:screenshots.length})+'\n');
 } catch(error) {
   await writeFile(join(artifactDir,'smoke-report.json'),JSON.stringify({status:'fail',browser:'Chromium',error:error.message},null,2));

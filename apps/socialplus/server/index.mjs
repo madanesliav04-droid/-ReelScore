@@ -73,9 +73,11 @@ export async function createApp(options={}) {
           if(req.method==='GET'){json(res,200,{projects:projects.list(user.id)});return;}
           if(req.method==='POST'){json(res,201,{project:projects.create(user.id,await readJson(req))});return;}
         }
-        const projectMatch=/^\/api\/projects\/([^/]+)(?:\/(source|media|render|output))?$/.exec(url.pathname);
+        const projectMatch=/^\/api\/projects\/([^/]+)(?:\/(source|media|render|output|signals))?$/.exec(url.pathname);
         if(projectMatch){
           const [,id,action]=projectMatch;
+          if(action==='signals'&&req.method==='POST'){json(res,200,{report:await projects.analyze(user.id,id)});return;}
+          if(action==='signals'&&req.method==='GET'){json(res,200,{report:projects.signalReport(user.id,id)});return;}
           if(action==='source'&&req.method==='POST'){json(res,200,{project:await projects.upload(user.id,id,req)});return;}
           if(action==='media'&&req.method==='GET'){await projects.stream(user.id,id,req,res);return;}
           if(action==='output'&&req.method==='GET'){await projects.stream(user.id,id,req,res,{output:true,download:url.searchParams.has('download')});return;}
