@@ -35,7 +35,7 @@ export const TECHNICAL_EXPORT = Object.freeze({id:'technical-export',label:'Expo
   reason:'Conversion H.264/AAC du rush original, sans montage artistique ni mots inventés.'});
 
 export class RenderError extends Error {
-  constructor(code,message,details={}) {super(message);this.name='RenderError';this.code=code;this.details=details;}
+  constructor(code,message,details={}) {super(message);this.name='RenderError';this.code=code;this.details=details;this.status=code==='TOOL_UNAVAILABLE'?503:code==='RENDER_TIMEOUT'?504:code==='LOCAL_RENDER_LIMIT'?413:422;}
 }
 
 function run(command,args,{timeoutMs=600_000,signal,maxOutput=512_000}={}) {

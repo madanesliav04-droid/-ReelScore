@@ -1,0 +1,25 @@
+✔ beat starts quantize to verified spoken words within half a 30 fps frame (8.011407ms)
+✔ each reveal ends before the next spoken beat, no arbitrary fixed delay (0.731616ms)
+✔ invalid too-tight or reversed beats are held instead of creating visual lag (1.025709ms)
+✔ a genuinely distinct Hormozi preset is available without replacing Codie or Impact (0.975027ms)
+✔ only numerals literally present in forced-aligned speech may appear (3.729142ms)
+✔ spoken lists animate only actual ordered spoken items (4.176068ms)
+✔ a comparison appears on two distinct speech beats (2.098497ms)
+✔ single-frame claims, missing alignment, and unverified charts never reach screen (2.752432ms)
+✔ disabled by default: existing customer edits do not get new overlay spontaneously (9.231107ms)
+✔ Hormozi 16:9 raw rush stays landscape even when upstream selects portrait (0.630092ms)
+✔ Hormozi 9:16 raw rush stays portrait even when upstream selects landscape (1.857375ms)
+✔ Other Edit+ models keep their explicitly selected output format (0.915977ms)
+✔ V28 is a distinct actual Edit+ style, without changing legacy model (0.931005ms)
+✔ V28 sources bullet from real phrase and verified timing (9.04866ms)
+✔ V28 refuses unverified words or missing face/hand safety proof (1.379204ms)
+✔ V28 never invents financial amounts or unspoken message text (1.744559ms)
+✔ V28 renderer does not bypass staging and HyperFrames release gates (1.683856ms)
+ℹ tests 17
+ℹ suites 0
+ℹ pass 17
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 197.615475

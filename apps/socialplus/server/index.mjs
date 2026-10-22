@@ -22,19 +22,20 @@ async function readJson(req) {
 }
 
 export async function createApp(options={}) {
-  const dataDir=resolve(options.dataDir||process.env.SOCIALPLUS_DATA_DIR||resolve(here,'../.data'));
+  const dataDir=resolve(here,'..',options.dataDir||process.env.SOCIALPLUS_DATA_DIR||'.data');
   await mkdir(dataDir,{recursive:true,mode:0o700});
   const db=options.db||new DatabaseSync(resolve(dataDir,'socialplus.sqlite'));
   db.exec('PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;');
   const strategy=createStrategy({db});
-  const projects=createProjects({db,dataDir,render:options.render||render});
+  const maxRendersPerDay=Number(process.env.SOCIALPLUS_MAX_RENDERS_PER_DAY??10);
+  const projects=createProjects({db,dataDir,render:options.render||render,maxRendersPerDay});
   const security=createSecurity({db,config:{
     origin:options.origin||process.env.SOCIALPLUS_ORIGIN||'http://localhost:4318',
     ownerId:process.env.SOCIALPLUS_OWNER_ID,
     ownerTotpSecret:process.env.SOCIALPLUS_OWNER_TOTP_SECRET,
     secureCookies:process.env.NODE_ENV==='production',
     ...options.securityConfig,
-    exportUserData: async userId=>({projects:projects.list(userId),strategy:strategy.exportData(userId)}),
+    exportUserData: async userId=>({...projects.exportData(userId),strategy:strategy.exportData(userId)}),
     deleteUserData: async userId=>{await projects.deleteUserData(userId);await strategy.deleteData(userId);}
   }});
   const server=http.createServer(async(req,res)=>{
@@ -54,7 +55,7 @@ export async function createApp(options={}) {
         if(url.pathname==='/api/admin/usage'&&req.method==='GET'){
           security.requireOwner(req);
           const usage=db.prepare('SELECT count(*) projects, COALESCE(sum(source_bytes+output_bytes),0) storage_bytes FROM studio_projects').get();
-          json(res,200,{...usage,render_jobs:db.prepare('SELECT state,count(*) count FROM studio_jobs GROUP BY state').all(),completed_render_seconds:db.prepare("SELECT COALESCE(sum((julianday(completed_at)-julianday(created_at))*86400),0) seconds FROM studio_jobs WHERE state='complete'").get().seconds,limits:{upload_bytes:209715200,user_storage_bytes:1073741824},external_paid_calls:0,cost_notice:'Aucun appel à un service facturé dans ce serveur local ; coûts de la machine et de l’hébergement non mesurés.'});return;
+          json(res,200,{...usage,render_jobs:db.prepare('SELECT state,count(*) count FROM studio_jobs GROUP BY state').all(),completed_render_seconds:db.prepare("SELECT COALESCE(sum((julianday(completed_at)-julianday(created_at))*86400),0) seconds FROM studio_jobs WHERE state='complete'").get().seconds,limits:{upload_bytes:209715200,user_storage_bytes:1073741824,renders_per_day:maxRendersPerDay},external_paid_calls:0,cost_notice:'Aucun appel à un service facturé dans ce serveur local ; coûts de la machine et de l’hébergement non mesurés.'});return;
         }
         if(url.pathname.startsWith('/api/admin/method-versions')){
           const owner=security.requireOwner(req);

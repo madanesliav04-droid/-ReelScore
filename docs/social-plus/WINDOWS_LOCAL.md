@@ -15,7 +15,7 @@ Set-Location .\-ReelScore\apps\socialplus
 node --version
 ffmpeg -version
 ffprobe -version
-Copy-Item .env.example .env.local
+if (!(Test-Path .env.local)) { Copy-Item .env.example .env.local }
 npm run owner
 npm start
 ```
@@ -39,7 +39,7 @@ Les paramètres juridiques de `.env.local` sont volontairement vides. Les pages 
 ```powershell
 npm test
 Set-Location ..\..
-node --test --test-isolation=none --test-reporter=spec apps/worker/tests/hormozi-*.test.mjs apps/worker/tests/social-kinetic-v28-integration.test.mjs
+node --test --test-isolation=none --test-reporter=spec apps/worker/tests/hormozi-beat-timing.test.mjs apps/worker/tests/hormozi-omni-director.test.mjs apps/worker/tests/hormozi-source-format.test.mjs apps/worker/tests/social-kinetic-v28-integration.test.mjs
 node apps/socialplus/scripts/verify-render.mjs
 ```
 

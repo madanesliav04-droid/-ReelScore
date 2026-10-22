@@ -42,6 +42,7 @@ test('integrated HTTP: public legal, owner MFA, private projects, method admin a
   assert.equal((await request(app,'/api/projects',{method:'POST',cookie,body:{name:'Missing CSRF'}})).status,403);
   const methods=await request(app,'/api/admin/method-versions',{cookie});assert.equal(methods.status,200);assert.equal(methods.body.methods.length,12);
   const usage=await request(app,'/api/admin/usage',{cookie});assert.equal(usage.status,200);assert.equal(usage.body.projects,1);
+  const exported=await request(app,'/api/privacy/export',{cookie});assert.equal(exported.status,200);assert.equal(exported.body.projects[0].id,id);assert.deepEqual(exported.body.render_jobs,[]);assert.deepEqual(exported.body.media_downloads,[]);
   const invite=await request(app,'/api/admin/invites',{method:'POST',cookie,csrf,body:{email:'member@example.test',emailVerifiedByOwner:true,durationDays:7}});assert.equal(invite.status,201);
   const activation=await request(app,'/api/auth/activate',{method:'POST',body:{email:'member@example.test',password:'Member-test-only-123!',displayName:'Integration member',code:invite.body.code,acceptTerms:true,role:'owner'}});
   assert.equal(activation.status,201);assert.equal(activation.body.user.role,'member');

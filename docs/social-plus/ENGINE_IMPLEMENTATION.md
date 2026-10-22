@@ -29,7 +29,7 @@ Les 17 assertions de régression des moteurs ciblés passent. Les trois tests du
 
 Les vidéos de ces essais sont **des fixtures synthétiques techniques**, couleurs unies et tonalité ; leurs preuves de mots/cadrage pour l'essai ASS sont également synthétiques et ne prétendent pas analyser un sujet réel. Elles ne certifient ni la synchronisation d'une parole ni la qualité artistique V16. Les rushs de discours inconnus, les références approuvées et l'écoute humaine manquent pour la recette de chacun des six modèles. Aucun essai de rendu V28 Hyperframes n'a été déclaré réussi.
 
-Le script conserve les MP4, SHA-256, métadonnées FFprobe et durées locales dans `artifacts/render/report.json`. Il ne contacte aucun service payant et ne déploie rien. Les coûts mesurables ici sont le temps CPU local et la taille des fichiers ; aucun prix d'hébergement ou coût de production n'est extrapolé.
+Le script conserve les MP4, SHA-256, métadonnées FFprobe et durées locales dans `artifacts/render/report.json`. Il ne contacte aucun service payant et ne déploie rien. Les coûts mesurables ici sont la durée murale des traitements locaux et la taille des fichiers (pas une mesure de facturation CPU) ; aucun prix d'hébergement ou coût de production n'est extrapolé.
 
 ## Contrat d'intégration
 

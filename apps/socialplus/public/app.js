@@ -49,6 +49,8 @@ async function api(path, options = {}) {
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
     const error = new Error(data.message || `La demande a échoué (${response.status}).`);
+    const trace=data.trace_id || response.headers.get('X-Trace-Id');
+    if(response.status>=500 && trace)error.message+=` Référence : ${trace}`;
     error.code = data.code;
     error.status = response.status;
     throw error;
@@ -207,9 +209,17 @@ function missionCard(mission) {
 }
 
 async function metrics(content) {
-  const { metrics: rows = [], notice = '' } = await api('/api/strategy/metrics');
+  const { metrics: rows = [], notice = '', trend } = await api('/api/strategy/metrics');
   content.innerHTML = `<div class="section-heading mt-0"><div><h2>Vos performances réelles</h2><p>Chaque chiffre conserve sa source et sa date de collecte.</p></div></div><div class="grid-two stack-mobile"><div class="panel"><h3>Importer un CSV</h3><p class="help-text">Colonnes : publication_at, collected_at, external_post_id, reach, views, likes, comments, shares, saves. Séparateur ; accepté.</p><form class="form section" data-form="csv"><label>Plateforme<select name="platform"><option value="instagram">Instagram</option><option value="tiktok">TikTok</option><option value="youtube">YouTube</option></select></label><label>Fichier CSV<input type="file" name="csvfile" accept=".csv,text/csv" required></label><button class="button secondary" type="submit">Vérifier avant import${icon('arrow')}</button><p class="form-error" role="alert"></p></form></div><div class="panel"><h3>Saisir une publication</h3><p class="help-text">Laissez un champ vide si la donnée est inconnue. Un zéro est une mesure.</p><form class="form section" data-form="metric"><div class="field-grid">${field('external_post_id','Identifiant / lien','','text','required')}${field('publication_at','Date de publication','','date','required')}${field('collected_at','Date de collecte',new Date().toISOString().slice(0,10),'date','required')}</div><label>Plateforme<select name="platform"><option value="instagram">Instagram</option><option value="tiktok">TikTok</option><option value="youtube">YouTube</option></select></label><div class="field-grid">${['reach','views','likes','comments','shares','saves'].map((key,index)=>field(key,['Portée','Vues','J’aime','Commentaires','Partages','Enregistrements'][index],'','number','min="0" step="1"')).join('')}</div><details><summary>Contexte de comparaison · facultatif</summary><div class="field-grid section">${field('format','Format de publication','','text','placeholder="Reel, Short…"')}${field('observation_window','Fenêtre d’observation','','text','placeholder="24 h, 7 jours, 28 jours…"')}${field('video_duration_seconds','Durée vidéo (secondes)','','number','min="0" step="0.01"')}${field('average_watch_seconds','Visionnage moyen (secondes)','','number','min="0" step="0.01"')}${field('definition_version','Définition de la mesure','','text','placeholder="Source / définition fournie par la plateforme"')}</div></details><button class="button secondary" type="submit">Enregistrer ces chiffres${icon('check')}</button><p class="form-error" role="alert"></p></form></div></div><div id="csv-preview" class="section" aria-live="polite"></div>
+    ${metricTrend(trend)}
     ${rows.length ? `<div class="panel section"><h3>Historique des publications</h3><div class="table-wrap"><table><thead><tr><th>Publication</th><th>Plateforme</th><th>Portée</th><th>Vues</th><th>Partages / portée</th><th>Source</th><th>Collecte</th></tr></thead><tbody>${rows.map(row=>`<tr><td>${esc(row.external_post_id)}</td><td>${esc(row.platform)}</td><td>${number(row.reach)}</td><td>${number(row.views)}</td><td>${row.rates?.share_rate == null ? 'Non évaluable' : number(row.rates.share_rate) + ' %'}</td><td>${esc(row.source_kind)}</td><td>${date(row.collected_at)}</td></tr>`).join('')}</tbody></table></div><p class="help-text">${esc(notice || 'Les plateformes et les fenêtres d’observation différentes ne sont pas agrégées.')}</p></div>` : `<div class="notice section">${icon('info')}<span>Aucun historique disponible. Vos chiffres importés apparaîtront ici.</span></div>`}`;
+}
+
+function metricTrend(trend) {
+  if(!trend?.available)return `<div class="notice section">${icon('chart')}<span>Évolution non évaluable. ${esc(trend?.reason || 'Renseignez le contexte des publications avant de comparer leurs résultats.')}</span></div>`;
+  const points=trend.points,maximum=Math.max(1,...points.map(p=>p.value));
+  const coords=points.map((point,index)=>({x:28+index/(points.length-1)*544,y:166-point.value/maximum*140,...point}));
+  return `<figure class="panel section"><figcaption><h3>Évolution · ${esc(trend.metric)}</h3><p class="help-text">${esc(trend.platform)} · ${esc(trend.format)} · fenêtre ${esc(trend.observation_window)} · ${points.length} publications comparables</p></figcaption><svg class="metric-trend" viewBox="0 0 600 200" role="img" aria-label="Évolution descriptive des partages divisés par la portée, dans l’ordre des publications"><path class="trend-axis" d="M28 20v146h544"/><polyline points="${coords.map(p=>`${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')}"/>${coords.map(p=>`<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4"><title>${esc(p.external_post_id)} : ${number(p.value)} % · ${esc(p.source_kind)} · collecte ${date(p.collected_at)}</title></circle>`).join('')}<text x="28" y="192">${esc(date(points[0].publication_at))}</text><text x="572" y="192" text-anchor="end">${esc(date(points.at(-1).publication_at))}</text></svg><p class="help-text">${esc(trend.notice)} Ordre chronologique ; le survol des points indique la mesure et sa source. Définition : ${esc(trend.definition_version)}.</p></figure>`;
 }
 
 function renderCsvPreview(preview) {
@@ -271,7 +281,7 @@ function usagePanel(usage) {
   if(usage.unavailable)return `<div class="notice">${icon('info')}<span>Consommation non disponible : ${esc(usage.unavailable)}</span></div>`;
   const jobs=(usage.render_jobs || []).reduce((sum,row)=>sum+Number(row.count),0);
   const complete=(usage.render_jobs || []).filter(row=>['complete','completed'].includes(row.state)).reduce((sum,row)=>sum+Number(row.count),0);
-  return `<div class="grid-three admin-usage">${stat('Projets enregistrés',number(usage.projects),'Agrégat de l’espace privé')}${stat('Stockage des vidéos',number(usage.storage_bytes/1048576)+' Mo',`Limite par membre : ${number(usage.limits?.user_storage_bytes/1048576)} Mo`)}${stat('Traitements terminés',number(complete)+' / '+number(jobs),`${number(usage.completed_render_seconds)} s de traitement mesurées`)}</div><div class="notice">${icon('info')}<span>${number(usage.external_paid_calls)} appel à un service externe facturé dans ce serveur. ${esc(usage.cost_notice || 'Les coûts de la machine et de l’hébergement ne sont pas mesurés.')}</span></div>`;
+  return `<div class="grid-three admin-usage">${stat('Projets enregistrés',number(usage.projects),'Agrégat de l’espace privé')}${stat('Stockage des vidéos',number(usage.storage_bytes/1048576)+' Mo',`Limite par membre : ${number(usage.limits?.user_storage_bytes/1048576)} Mo`)}${stat('Traitements terminés',number(complete)+' / '+number(jobs),`${number(usage.completed_render_seconds)} s de traitement mesurées`)}</div><div class="notice">${icon('info')}<span>${number(usage.external_paid_calls)} appel à un service externe facturé dans ce serveur. Limite par membre : ${number(usage.limits?.renders_per_day)} traitements par jour UTC. ${esc(usage.cost_notice || 'Les coûts de la machine et de l’hébergement ne sont pas mesurés.')}</span></div>`;
 }
 
 async function methodAdmin() {
@@ -485,7 +495,7 @@ document.addEventListener('change',async event=>{
   } else if(event.target.id==='video-input') {
     const file=event.target.files?.[0];
     if(!file)return;
-    if(!file.type.startsWith('video/'))return notify('Choisissez un fichier vidéo.');
+    if(!file.type.startsWith('video/') && !(file.type==='' && /\.(mp4|mov|m4v|webm)$/i.test(file.name)))return notify('Choisissez un fichier vidéo.');
     if(file.size>200*1048576)return notify('Cette vidéo dépasse 200 Mo. Réduisez le fichier avant de l’importer.');
     if(state.objectUrl)URL.revokeObjectURL(state.objectUrl);
     clearTimeout(state.jobTimer);state.file=file;state.objectUrl=URL.createObjectURL(file);

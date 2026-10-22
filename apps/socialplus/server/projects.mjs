@@ -8,7 +8,8 @@ import { Transform } from 'node:stream';
 const fail = (status, code, message) => Object.assign(new Error(message), { status, code });
 const now = () => new Date().toISOString();
 
-export function createProjects({ db, dataDir, render, maxUploadBytes = 200 * 1024 * 1024, maxUserBytes = 1024 * 1024 * 1024 }) {
+export function createProjects({ db, dataDir, render, maxUploadBytes = 200 * 1024 * 1024, maxUserBytes = 1024 * 1024 * 1024, maxRendersPerDay = 10 }) {
+  if(!Number.isSafeInteger(maxRendersPerDay)||maxRendersPerDay<0||maxRendersPerDay>1000)throw new Error('SOCIALPLUS_MAX_RENDERS_PER_DAY doit être un entier entre 0 et 1000.');
   const mediaDir = resolve(dataDir, 'media');
   db.exec(`CREATE TABLE IF NOT EXISTS studio_projects (
     id TEXT PRIMARY KEY, user_id TEXT NOT NULL, name TEXT NOT NULL, style_id TEXT,
@@ -20,7 +21,8 @@ export function createProjects({ db, dataDir, render, maxUploadBytes = 200 * 102
     id TEXT PRIMARY KEY, project_id TEXT NOT NULL, user_id TEXT NOT NULL, model_id TEXT NOT NULL,
     state TEXT NOT NULL, progress REAL NOT NULL DEFAULT 0, error_code TEXT, error_message TEXT,
     audit TEXT, created_at TEXT NOT NULL, completed_at TEXT
-  ); CREATE INDEX IF NOT EXISTS studio_job_owner ON studio_jobs(user_id,created_at);`);
+  ); CREATE INDEX IF NOT EXISTS studio_job_owner ON studio_jobs(user_id,created_at);
+  CREATE TABLE IF NOT EXISTS studio_render_usage(user_id TEXT NOT NULL,day TEXT NOT NULL,started_count INTEGER NOT NULL,PRIMARY KEY(user_id,day));`);
   if(!db.prepare('PRAGMA table_info(studio_projects)').all().some(x=>x.name==='output_bytes'))db.exec('ALTER TABLE studio_projects ADD COLUMN output_bytes INTEGER NOT NULL DEFAULT 0');
   db.prepare("UPDATE studio_jobs SET state='failed',error_code='PROCESS_INTERRUPTED',error_message='Le serveur a redémarré. Relancez le traitement.' WHERE state IN ('queued','rendering')").run();
   db.prepare("UPDATE studio_projects SET state='ready' WHERE state='rendering'").run();
@@ -45,7 +47,7 @@ export function createProjects({ db, dataDir, render, maxUploadBytes = 200 * 102
   async function upload(userId,id,req) {
     const project = get(userId,id);
     if (project.state === 'rendering' || uploading.has(id) || uploadingUsers.has(userId)) throw fail(409,'PROJECT_BUSY','Un import ou traitement est déjà en cours.');
-    if (!/^video\//i.test(req.headers['content-type']||'')) throw fail(415,'MEDIA_TYPE','Choisissez un fichier vidéo.');
+    if (!/^video\//i.test(req.headers['content-type']||'') && req.headers['content-type']!=='application/octet-stream') throw fail(415,'MEDIA_TYPE','Choisissez un fichier vidéo.');
     const used = db.prepare('SELECT COALESCE(sum(source_bytes+output_bytes),0) AS n FROM studio_projects WHERE user_id=?').get(userId).n;
     const available = Math.min(maxUploadBytes,maxUserBytes-used+project.source_bytes+project.output_bytes);
     if (Number(req.headers['content-length']||0)>available || available<=0) throw fail(413,'UPLOAD_QUOTA','La vidéo dépasse la limite de stockage disponible.');
@@ -74,8 +76,16 @@ export function createProjects({ db, dataDir, render, maxUploadBytes = 200 * 102
     const model = render.MODEL_CATALOG.find(x=>x.id===modelId);
     if (modelId !== 'technical-export' && (!model || !model.available)) throw fail(422,'MODEL_UNAVAILABLE',model?.reason||'Le moteur de ce modèle est indisponible.');
     const jobId = randomUUID(), outputPath = join(mediaDir,randomUUID()+'.mp4');
-    db.prepare("INSERT INTO studio_jobs(id,project_id,user_id,model_id,state,created_at) VALUES(?,?,?,?,'rendering',?)").run(jobId,id,userId,modelId,now());
-    db.prepare("UPDATE studio_projects SET state='rendering',style_id=?,updated_at=? WHERE id=?").run(modelId,now(),id);
+    db.exec('BEGIN IMMEDIATE');
+    try {
+      const day=now().slice(0,10);
+      const used=db.prepare('SELECT started_count FROM studio_render_usage WHERE user_id=? AND day=?').get(userId,day)?.started_count||0;
+      if(used>=maxRendersPerDay)throw fail(429,'DAILY_RENDER_QUOTA',`La limite de ${maxRendersPerDay} traitement(s) par jour est atteinte. Réessayez après minuit UTC.`);
+      db.prepare('INSERT INTO studio_render_usage VALUES(?,?,1) ON CONFLICT(user_id,day) DO UPDATE SET started_count=started_count+1').run(userId,day);
+      db.prepare("INSERT INTO studio_jobs(id,project_id,user_id,model_id,state,created_at) VALUES(?,?,?,?,'rendering',?)").run(jobId,id,userId,modelId,now());
+      db.prepare("UPDATE studio_projects SET state='rendering',style_id=?,updated_at=? WHERE id=?").run(modelId,now(),id);
+      db.exec('COMMIT');
+    } catch(error){db.exec('ROLLBACK');throw error;}
     running = true;
     Promise.resolve().then(()=>render.renderVideo({sourcePath:p.source_path,outputPath,modelId,captionCues:input.captionCues,analysis:input.analysis,timeline:input.timeline,frameProof:input.frameProof,editorialEvents:input.editorialEvents,onProgress: value => db.prepare('UPDATE studio_jobs SET progress=? WHERE id=?').run(Math.min(99,Math.max(0,Number(value)||0)),jobId)})).then(async result=>{
       // A deleted project must never leave a newly rendered private file behind.
@@ -112,6 +122,7 @@ export function createProjects({ db, dataDir, render, maxUploadBytes = 200 * 102
     const rows=db.prepare('SELECT * FROM studio_projects WHERE user_id=?').all(userId);
     db.prepare('DELETE FROM studio_jobs WHERE user_id=?').run(userId);
     db.prepare('DELETE FROM studio_projects WHERE user_id=?').run(userId);
+    db.prepare('DELETE FROM studio_render_usage WHERE user_id=?').run(userId);
     await Promise.all(rows.flatMap(p=>[p.source_path,p.output_path]).filter(Boolean).map(p=>rm(p,{force:true})));
   }
   async function stream(userId,id,req,res,{output=false,download=false}={}) {
@@ -131,5 +142,8 @@ export function createProjects({ db, dataDir, render, maxUploadBytes = 200 * 102
       createReadStream(path,{start,end}).on('error',()=>res.destroy()).pipe(res);
     }else{res.writeHead(200,{'Content-Length':info.size});createReadStream(path).on('error',()=>res.destroy()).pipe(res);}
   }
-  return {list,create,update,get:(u,id)=>publicProject(get(u,id)),upload,startRender,job,remove,stream,deleteUserData};
+  function exportData(userId){
+    return {projects:list(userId),render_jobs:db.prepare('SELECT id,project_id,model_id,state,progress,error_code,error_message,created_at,completed_at FROM studio_jobs WHERE user_id=? ORDER BY created_at').all(userId),render_usage:db.prepare('SELECT day,started_count FROM studio_render_usage WHERE user_id=? ORDER BY day').all(userId),media_downloads:list(userId).filter(p=>p.has_source).map(p=>({project_id:p.id,source_url:`/api/projects/${p.id}/media`,output_url:p.has_output?`/api/projects/${p.id}/output?download=1`:null}))};
+  }
+  return {list,create,update,get:(u,id)=>publicProject(get(u,id)),upload,startRender,job,remove,stream,deleteUserData,exportData};
 }

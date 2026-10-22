@@ -5,7 +5,7 @@
   "engines": { "node": ">=24.0.0" },
   "scripts": {
     "start": "node --env-file-if-exists=.env.local server/index.mjs",
-    "test": "node --test --test-isolation=none server/*.test.mjs test/*.test.mjs",
+    "test": "node --test --test-isolation=none",
     "owner": "node scripts/provision-owner.mjs --init"
   }
 }

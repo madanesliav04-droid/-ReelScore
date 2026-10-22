@@ -42,7 +42,10 @@ export function normalizeMetric(raw,{source_kind='manual',platform}={}){
  result.publication_at=date(raw.publication_at,'publication_at',true);
  result.collected_at=date(raw.collected_at,'collected_at',true);
  if(result.collected_at<result.publication_at)throw fail('INVALID_PERIOD','La collecte précède la publication.');
- for(const key of numericFields)result[key]=parseNumber(raw[key],key);
+ for(const key of numericFields){
+  result[key]=parseNumber(raw[key],key);
+  if(result[key]!==null&&!['average_watch_seconds','video_duration_seconds'].includes(key)&&!Number.isSafeInteger(result[key]))throw fail('INVALID_COUNT',`${key} : un nombre entier de comptes ou d’actions est requis.`);
+ }
  for(const key of textFields)result[key]=clean(raw[key],key==='proof_ref'?1000:300)||null;
  result.attribution_documented=raw.attribution_documented===true||raw.attribution_documented==='true';
  result.verified_flag=raw.verified_flag===true;
@@ -52,7 +55,11 @@ export function normalizeMetric(raw,{source_kind='manual',platform}={}){
 }
 export const metricIdentity=metric=>inputHash({platform:metric.platform,source_kind:metric.source_kind,content:metric.external_post_id||{publication_at:metric.publication_at,topic:metric.topic,format:metric.format},collected_at:metric.collected_at,observation_window:metric.observation_window});
 export function calculateRates(metric){
- const ratio=(numerator,denominator)=>numerator!==null&&numerator!==undefined&&denominator>0?Math.round(numerator/denominator*10000)/100:null;
+ const ratio=(numerator,denominator)=>{
+  if(numerator===null||numerator===undefined||!(denominator>0))return null;
+  const value=numerator/denominator*100;
+  return Number.isFinite(value)?Number(value.toFixed(2)):null;
+ };
  const complete=['likes','comments','shares','saves'].every(k=>metric[k]!==null&&metric[k]!==undefined);
  const engagement=complete?['likes','comments','shares','saves'].reduce((sum,k)=>sum+metric[k],0):null;
  return {share_rate:ratio(metric.shares,metric.reach),save_rate:ratio(metric.saves,metric.reach),engagement_rate:ratio(engagement,metric.reach),watch_ratio:ratio(metric.average_watch_seconds,metric.video_duration_seconds),profile_action_rate:metric.attribution_documented?ratio(metric.follows_attributed,metric.profile_visits):null,profile_period_ratio:!metric.attribution_documented?ratio(metric.follows,metric.profile_visits):null,lead_conversion_rate:metric.attribution_documented?ratio(metric.attributed_qualified_leads,metric.tracked_visitors):null,labels:{share_rate:'Partages / portée',save_rate:'Enregistrements / portée',engagement_rate:'(J’aime + commentaires + partages + enregistrements) / portée',watch_ratio:'Durée moyenne / durée vidéo ; peut dépasser 100 % en cas de relecture',profile_action_rate:'Abonnements attribués / visites de profil (attribution documentée)',profile_period_ratio:'Ratio indicatif de période, sans attribution individuelle',lead_conversion_rate:'Prospects qualifiés attribués / visiteurs suivis'}};
@@ -107,7 +114,7 @@ export function previewCSV({csv,platform,column_mapping={}}){
  return {columns:parsed.columns,column_mapping:mapping,rows:validRows,errors,valid_count:validRows.length,total_count:parsed.rows.length,delimiter:parsed.delimiter};
 }
 
-const method=(id,title,source_url,process_steps,exercise,success_metrics,pitfalls)=>({id,title,version:1,enabled:true,source_url,source_title:source_url.includes('acquisition')?'Acquisition.com — ressources Hormozi (adaptation pédagogique)':source_url.includes('tiktok')?'TikTok for Business — Creative Codes / Creative Center':source_url.includes('youtube')?'YouTube Help — Analytics':'Meta — Best Practices / méthode Social+',last_verified_at:'2026-10-21',process_steps,exercise,success_metrics,pitfalls,notice:'Adaptation pédagogique : ni règle secrète de plateforme ni garantie de résultats.'});
+const method=(id,title,source_url,process_steps,exercise,success_metrics,pitfalls)=>({id,title,version:1,enabled:true,source_url,source_title:source_url.includes('acquisition')?'Acquisition.com — ressources Hormozi (adaptation pédagogique)':source_url.includes('tiktok')?'TikTok for Business — Creative Codes / Creative Center':source_url.includes('youtube')?'YouTube Help — Analytics':'Meta — Best Practices / méthode Social+',last_verified_at:null,source_verification:'Référence du cahier V18 ; lien externe non revérifié pendant cette recette',process_steps,exercise,success_metrics,pitfalls,notice:'Adaptation pédagogique : ni règle secrète de plateforme ni garantie de résultats.'});
 export const METHODS=Object.freeze([
  method('M01','Audience idéale','https://www.acquisition.com/leads-gifts',['Décrivez un segment précis et son problème concret.','Interrogez des personnes de ce segment avec des questions ouvertes.','Comparez leurs mots à votre positionnement.'],'Écrivez trois problèmes exprimés par votre audience, avec la source et la date.',['Pertinence des retours qualitatifs','Correspondance avec votre objectif'],['Déduire toute une audience de quelques réactions']),
  method('M02','Promesse et bio','https://www.acquisition.com/training/offers',['Identifiez la cible, le bénéfice et une preuve vérifiable.','Faites lire votre bio à une personne du segment sans explication.','Notez ce qui est compris et ajustez un seul élément.'],'Rédigez vous-même une bio, puis relevez trois réponses au test de compréhension.',['Compréhension de la cible et du bénéfice','Actions / visites si disponibles'],['Inventer une preuve','Confondre ratio de période et conversion attribuée']),
@@ -135,6 +142,31 @@ export function compareMetrics(before,after){
  const a=calculateRates(before),b=calculateRates(after);
  const deltas=Object.fromEntries(Object.keys(a).filter(k=>k!=='labels').map(k=>[k,!reasons.length&&a[k]!==null&&b[k]!==null?Math.round((b[k]-a[k])*100)/100:null]));
  return {comparable:reasons.length===0,reasons,deltas,conclusion:reasons.length?'not_evaluable':'unclear',caveat:'Écart descriptif, sans attribution causale. Même une hausse ne démontre pas que l’action en est la cause.'};
+}
+
+export function buildMetricTrend(rows){
+ const groups=new Map();
+ for(const row of rows){
+  if(!row.external_post_id||!row.format||!row.observation_window||!row.definition_version||!(row.video_duration_seconds>0)||calculateRates(row).share_rate===null)continue;
+  const key=JSON.stringify([row.platform,row.format,row.observation_window,row.definition_version]);
+  const group=groups.get(key)||new Map(),previous=group.get(row.external_post_id);
+  if(!previous||row.collected_at>previous.collected_at)group.set(row.external_post_id,row);
+  groups.set(key,group);
+ }
+ let selectedGroup=[],selectedStart=0,selectedEnd=0,bestCount=0;
+ for(const group of groups.values()){
+  const sorted=[...group.values()].sort((a,b)=>a.video_duration_seconds-b.video_duration_seconds||a.external_post_id.localeCompare(b.external_post_id));
+  let left=0;
+  for(let right=0;right<sorted.length;right++){
+   while(sorted[right].video_duration_seconds-sorted[left].video_duration_seconds>Math.max(5,sorted[left].video_duration_seconds*.2))left++;
+   if(right-left+1>bestCount){bestCount=right-left+1;selectedGroup=sorted;selectedStart=left;selectedEnd=right+1;}
+  }
+ }
+ const selected=selectedGroup.slice(selectedStart,selectedEnd);
+ if(selected.length<2)return {available:false,reason:'Au moins deux publications avec plateforme, format, durée, fenêtre et définition comparables sont nécessaires. Les partages et la portée doivent être mesurés.'};
+ selected.sort((a,b)=>a.publication_at.localeCompare(b.publication_at)||a.external_post_id.localeCompare(b.external_post_id));
+ const anchor=selected[0];
+ return {available:true,platform:anchor.platform,format:anchor.format,observation_window:anchor.observation_window,definition_version:anchor.definition_version,total_points:selected.length,points:selected.slice(-200).map(row=>({id:row.id,external_post_id:row.external_post_id,publication_at:row.publication_at,collected_at:row.collected_at,source_kind:row.source_kind,value:calculateRates(row).share_rate})),unit:'%',metric:'Partages / portée',notice:'Évolution descriptive de publications comparables. Un seul instantané, le plus récent, est retenu par publication ; aucune attribution causale.'};
 }
 
 export function buildDiagnostic({profile={},metrics=[],competitors=[],methods=METHODS,method_state=[]}){
@@ -238,7 +270,7 @@ export function createStrategy({db}){
     send(res,200,{profile:put(uid,'profile',profile,{id:inputHash({uid,kind:'profile'})})});return true;
    }
    if(path==='/api/strategy/methods'&&req.method==='GET'){send(res,200,{methods:methods().filter(m=>m.enabled)});return true;}
-   if(path==='/api/strategy/metrics'&&req.method==='GET'){send(res,200,{metrics:metrics(uid),notice:NOTICE});return true;}
+   if(path==='/api/strategy/metrics'&&req.method==='GET'){send(res,200,{metrics:metrics(uid),trend:buildMetricTrend(metrics(uid)),notice:NOTICE});return true;}
    if(path==='/api/strategy/metrics'&&req.method==='POST'){
     const metric=normalizeMetric(await body(req));const checksum=inputHash(metric);
     if(list(uid,'metric').some(saved=>metricIdentity(saved)===metricIdentity(metric)&&inputHash(normalizeMetric(saved,{source_kind:saved.source_kind}))!==checksum))throw fail('CONFLICTING_METRIC','Une mesure différente existe pour ce contenu au même instant. Vérifiez la source avant de corriger.',409);
@@ -336,7 +368,7 @@ export function createStrategy({db}){
     const steps=Array.isArray(raw.process_steps)?raw.process_steps.map(s=>clean(s,2000)).filter(Boolean):[];
     const measurements=Array.isArray(raw.success_metrics)?raw.success_metrics.map(s=>clean(s,1000)).filter(Boolean):[];
     if(!clean(raw.title,200)||steps.length<2||steps.length>12||!measurements.length||clean(raw.exercise).length<20)throw fail('METHOD_INCOMPLETE','Titre, au moins deux étapes, exercice et indicateurs requis.');
-    const published={...current,title:clean(raw.title,200),source_url:source.toString(),source_title:clean(raw.source_title,300)||source.hostname,process_steps:steps,success_metrics:measurements,exercise:clean(raw.exercise,3000),pitfalls:Array.isArray(raw.pitfalls)?raw.pitfalls.map(s=>clean(s,1000)).filter(Boolean).slice(0,10):current.pitfalls,version:current.version+1,enabled:raw.enabled!==false,last_verified_at:new Date().toISOString().slice(0,10)};
+    const published={...current,title:clean(raw.title,200),source_url:source.toString(),source_title:clean(raw.source_title,300)||source.hostname,process_steps:steps,success_metrics:measurements,exercise:clean(raw.exercise,3000),pitfalls:Array.isArray(raw.pitfalls)?raw.pitfalls.map(s=>clean(s,1000)).filter(Boolean).slice(0,10):current.pitfalls,version:current.version+1,enabled:raw.enabled!==false,last_verified_at:raw.source_verified_by_owner===true?new Date().toISOString().slice(0,10):null,source_verification:raw.source_verified_by_owner===true?'Vérification déclarée par le propriétaire':'Lien externe à vérifier'};
     db.exec('BEGIN IMMEDIATE');
     try{
      const now=new Date().toISOString();

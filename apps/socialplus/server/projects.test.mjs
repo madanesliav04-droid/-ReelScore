@@ -8,11 +8,11 @@ import { join } from 'node:path';
 import { Readable } from 'node:stream';
 import { createProjects } from './projects.mjs';
 
-async function fixture(t,renderOverrides={}) {
+async function fixture(t,renderOverrides={},limits={}) {
   const dataDir=await mkdtemp(join(tmpdir(),'socialplus-project-test-')),db=new DatabaseSync(':memory:');
   t.after(async()=>{db.close();await rm(dataDir,{recursive:true,force:true});});
   const render={MODEL_CATALOG:[{id:'absent',available:false,reason:'Source manquante.'}],probeVideo:async()=>({width:1920,height:1080,durationMs:1000}),...renderOverrides};
-  return {projects:createProjects({db,dataDir,render,maxUploadBytes:100}),db,dataDir};
+  return {projects:createProjects({db,dataDir,render,maxUploadBytes:100,...limits}),db,dataDir};
 }
 test('projects: tenant boundary covers get update delete upload and job lookup',async t=>{
   const {projects}=await fixture(t),p=projects.create('alice',{name:'Privé'});
@@ -25,7 +25,7 @@ test('projects: tenant boundary covers get update delete upload and job lookup',
 });
 test('projects: metadata persists; unavailable model cannot produce fake job',async t=>{
   const {projects}=await fixture(t),p=projects.create('alice');
-  const req=Readable.from([Buffer.from('video-fixture')]);req.headers={'content-type':'video/mp4','x-filename':encodeURIComponent('test été.mp4')};
+  const req=Readable.from([Buffer.from('video-fixture')]);req.headers={'content-type':'application/octet-stream','x-filename':encodeURIComponent('test été.mp4')};
   const uploaded=await projects.upload('alice',p.id,req);
   assert.equal(uploaded.source_name,'test été.mp4');assert.equal(uploaded.has_source,true);
   assert.equal(projects.list('alice')[0].metadata.width,1920);
@@ -44,6 +44,15 @@ test('projects: byte limit is enforced even without Content-Length',async t=>{
   const req=Readable.from([Buffer.alloc(101)]);req.headers={'content-type':'video/mp4'};
   await assert.rejects(projects.upload('alice',p.id,req),{code:'UPLOAD_QUOTA'});
   assert.deepEqual(await readdir(join(dataDir,'media')),[]);
+});
+test('projects: daily compute quota survives project deletion and remains scoped to its member',async t=>{
+  const {projects}=await fixture(t,{renderVideo:async({outputPath})=>{await writeFile(outputPath,'technical-fixture');return {};}},{maxRendersPerDay:1});
+  const upload=async user=>{const p=projects.create(user);const req=Readable.from([Buffer.from('video-fixture')]);req.headers={'content-type':'video/mp4'};await projects.upload(user,p.id,req);return p;};
+  const finish=async(user,job)=>{for(let i=0;i<500&&projects.job(user,job.id).state==='rendering';i++)await delay(10);assert.equal(projects.job(user,job.id).state,'complete');};
+  const first=await upload('alice');await finish('alice',projects.startRender('alice',first.id,{style_id:'technical-export'}));await projects.remove('alice',first.id);
+  const second=await upload('alice');assert.throws(()=>projects.startRender('alice',second.id,{style_id:'technical-export'}),{code:'DAILY_RENDER_QUOTA'});
+  const other=await upload('bob');await finish('bob',projects.startRender('bob',other.id,{style_id:'technical-export'}));
+  assert.equal(projects.exportData('alice').render_usage[0].started_count,1);
 });
 test('projects: deletion during asynchronous render metadata check leaves no orphaned private export',async t=>{
   const {projects,db,dataDir}=await fixture(t,{renderVideo:async({outputPath})=>{await writeFile(outputPath,'technical-render-fixture');return {};}}),p=projects.create('alice');

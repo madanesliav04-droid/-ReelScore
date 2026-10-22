@@ -7,9 +7,9 @@
   "release_gate": "NOT_READY_FOR_PRODUCTION",
   "interpretation": "Les statuts pass attestent uniquement les scénarios locaux dont les assertions citées ont été exécutées. Ils ne certifient ni staging distant, ni Safari iPhone matériel, ni fidélité des six moteurs. Aucun test non exécuté n’est présenté comme réussi.",
   "summary": {
-    "pass": 45,
+    "pass": 46,
     "fail": 0,
-    "not_run": 42,
+    "not_run": 41,
     "deferred": 10
   },
   "commands": [
@@ -1042,9 +1042,14 @@
       "scenario": "Afficher le site privé et inspecter requêtes réseau",
       "expected_result": "Aucune page tarifaire, paiement, checkout, carte bancaire, appel Stripe ni revenu fictif",
       "severity": "blocking",
-      "status": "not_run",
-      "evidence": [],
-      "reason": "Inspection réseau navigateur à compléter. Aucune intégration de facturation créée dans la V1 locale."
+      "status": "pass",
+      "evidence": [
+        "artifacts/browser/smoke-report.json",
+        "apps/socialplus/public/index.html",
+        "apps/socialplus/server/index.mjs"
+      ],
+      "reason": "Application privée et formulaires réels exécutés. Aucune route de facturation, aucun SDK Stripe ni appel de paiement dans le serveur V1. Les anciennes sources ne sont pas exposées par ce serveur.",
+      "scope": "local_chromium_and_source"
     },
     {
       "id": "UI-APPLE-001",
@@ -1194,9 +1199,11 @@
     }
   ],
   "local_test_summary": {
-    "server_pass": 62,
+    "server_pass": 66,
     "server_fail": 0,
     "inherited_engine_pass": 17,
-    "browser": "Chromium Desktop + 390x844 viewport: profile/CSV/upload/export flow passed. Physical Safari and Windows remain not run."
-  }
+    "inherited_engine_fail": 0,
+    "browser": "Chromium Linux : PC, 390x844 et 844x390, clair/sombre, invitation ADMIN et activation membre, profil, CSV/graphique comparable, projet, export/téléchargement MP4. Safari iPhone et Chrome Windows physiques non exécutés."
+  },
+  "browser_scope_note": "Le parcours navigateur étendu a été réexécuté avec succès sur le code courant, après les correctifs de quotas, export et chemins de stockage. Douze captures et un vrai téléchargement MP4 sont conservés."
 }

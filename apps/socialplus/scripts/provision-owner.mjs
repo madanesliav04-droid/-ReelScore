@@ -49,7 +49,7 @@ try{
   password=process.env.SOCIALPLUS_OWNER_PASSWORD||await hiddenQuestion('Mot de passe propriétaire (12 caractères minimum) : ');
   if(!nonInteractive){const confirm=await hiddenQuestion('Confirmez le mot de passe : ');if(password!==confirm)throw new Error('Les mots de passe diffèrent.');}
 }finally{rl?.close();}
-const dataDir=resolve(process.env.SOCIALPLUS_DATA_DIR||resolve(appDir,'.data'));await mkdir(dataDir,{recursive:true,mode:0o700});
+const dataDir=resolve(appDir,process.env.SOCIALPLUS_DATA_DIR||'.data');await mkdir(dataDir,{recursive:true,mode:0o700});
 const db=new DatabaseSync(resolve(dataDir,'socialplus.sqlite'));
 try{
   const security=createSecurity({db,config:{origin:process.env.SOCIALPLUS_ORIGIN||'http://localhost:4318',ownerId:process.env.SOCIALPLUS_OWNER_ID,ownerTotpSecret:process.env.SOCIALPLUS_OWNER_TOTP_SECRET}});

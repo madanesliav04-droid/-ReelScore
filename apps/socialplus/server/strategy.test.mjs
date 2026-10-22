@@ -2,10 +2,21 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
 import {Readable} from 'node:stream';
-import {METHODS,SCORE_WEIGHTS,parseNumber,parseCSV,previewCSV,normalizeMetric,calculateRates,priority,buildDiagnostic,analyzeVideo,compareMetrics,createStrategy} from './strategy.mjs';
+import {METHODS,SCORE_WEIGHTS,parseNumber,parseCSV,previewCSV,normalizeMetric,calculateRates,priority,buildDiagnostic,buildMetricTrend,analyzeVideo,compareMetrics,createStrategy} from './strategy.mjs';
 
 const base={platform:'instagram',external_post_id:'post-1',publication_at:'2026-10-01',collected_at:'2026-10-02',reach:1000,views:1200,likes:20,comments:3,shares:5,saves:2,video_duration_seconds:10,average_watch_seconds:15,format:'reel',observation_window:'24h',definition_version:'manual-v1'};
 const fingerprint='a'.repeat(64);
+test('observed trends never merge platforms, definitions, periods or incompatible durations',()=>{
+ const first=normalizeMetric(base),second=normalizeMetric({...base,external_post_id:'post-2',publication_at:'2026-10-02',collected_at:'2026-10-03',shares:10});
+ assert.equal(buildMetricTrend([first]).available,false);
+ for(const changes of [{platform:'tiktok'},{definition_version:'other'},{observation_window:'7d'},{video_duration_seconds:60},{format:null},{shares:null}])assert.equal(buildMetricTrend([first,{...second,...changes}]).available,false);
+ const trend=buildMetricTrend([first,second]);assert.equal(trend.available,true);assert.deepEqual(trend.points.map(p=>p.value),[.5,1]);
+});
+test('observed trends keep one latest snapshot per post and preserve measured zero',()=>{
+ const first=normalizeMetric(base),latest=normalizeMetric({...base,collected_at:'2026-10-03',shares:0}),second=normalizeMetric({...base,external_post_id:'post-2'});
+ const trend=buildMetricTrend([first,latest,second]);assert.equal(trend.points.length,2);assert.equal(trend.points[0].value,0);
+ assert.equal(buildMetricTrend([first,latest]).available,false);
+});
 const video={fingerprint,metadata:{duration_seconds:10,width:1920,height:1080,has_audio:true},context:{goal_type:'awareness'}};
 const csv='date publication;date collecte;portée;vues;durée moyenne;durée\n2026-10-01;2026-10-02;1 000;1200;12,5;10';
 
@@ -23,6 +34,11 @@ function harness(){
 test('FR decimal, whitespace, missing and zero have distinct meanings',()=>{
  assert.equal(parseNumber('1\u202f234,5'),1234.5);assert.equal(parseNumber(''),null);assert.equal(parseNumber(0),0);
  for(const bad of ['-1','NaN','1,234.5','infinity',true])assert.throws(()=>parseNumber(bad));
+});
+test('fractional action counts reject and overflowing ratios stay unavailable',()=>{
+ assert.throws(()=>normalizeMetric({...base,reach:.5}),{code:'INVALID_COUNT'});
+ assert.equal(calculateRates({shares:1e15,reach:1e-320}).share_rate,null);
+ assert.equal(normalizeMetric({...base,average_watch_seconds:'12,5'}).average_watch_seconds,12.5);
 });
 test('CSV FR headers and decimals are normalized with a preview',()=>{
  const result=previewCSV({csv,platform:'instagram'});

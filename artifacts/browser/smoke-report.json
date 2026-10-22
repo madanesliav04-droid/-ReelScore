@@ -1,16 +1,46 @@
 {
   "status": "pass",
   "browser": "Chromium",
-  "mobile": "viewport390x844—not physical Safari",
+  "mobile": "viewports390x844 and844x390—not physical Safari",
   "assertions": [
     "MFA login",
     "three tabs",
     "profile persistence",
     "CSV preview/import",
+    "observed comparable trend",
     "project upload/persistence",
     "real technical MP4 export/download",
+    "owner invitation UI",
+    "member activation and owner route denial",
+    "dark/light appearance",
+    "landscape rotation",
     "no horizontal overflow",
     "no JavaScript page errors"
   ],
-  "fixture": "Ephemeral test owner and generated technical video; no real user data"
+  "screenshots": [
+    "desktop-login.png",
+    "desktop-home.png",
+    "desktop-montage.png",
+    "desktop-strategy.png",
+    "desktop-metrics.png",
+    "desktop-export.png",
+    "desktop-admin.png",
+    "mobile-home.png",
+    "mobile-montage.png",
+    "mobile-strategy.png",
+    "mobile-light.png",
+    "mobile-landscape.png"
+  ],
+  "fixture": "Ephemeral test owner and generated technical video; no real user data",
+  "executed_at": "2026-10-22T17:29:10.725280+00:00",
+  "download": {
+    "bytes": 53039,
+    "sha256": "ade9a2ac6aa06adf35ba7a692f83caebaf939f82f3ed941e0a3d8478444a44b0",
+    "video_codec": "h264",
+    "audio_codec": "aac",
+    "audio_tracks": 1,
+    "width": 640,
+    "height": 360,
+    "duration_seconds": 3.008
+  }
 }
