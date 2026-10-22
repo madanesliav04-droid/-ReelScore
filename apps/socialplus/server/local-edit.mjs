@@ -35,6 +35,7 @@ export function buildLocalEdit({report,approvedPauseIds=[],transcript=[],caption
   if(transcript.length&&!captionsReviewed)throw invalid('Confirmez avoir vérifié les mots et leur synchronisation.');
   let previousEnd=0;
   const words=transcript.map(w=>{
+    if(!w||typeof w!=='object'||Array.isArray(w))throw invalid('Chaque mot doit contenir un texte, un début et une fin.');
     const startMs=typeof w.startMs==='number'?w.startMs:Math.round(w.start*1000),endMs=typeof w.endMs==='number'?w.endMs:Math.round(w.end*1000);
     const text=typeof w.text==='string'?w.text.trim():'';
     if(!Number.isFinite(startMs)||!Number.isFinite(endMs)||startMs<previousEnd||endMs<=startMs||endMs>report.metadata.durationMs||!text||text.length>40||/[{}\\\r\n\x00-\x1f]/.test(text))throw invalid('Mots invalides : texte court, ordre chronologique et bornes dans la vidéo requis.');

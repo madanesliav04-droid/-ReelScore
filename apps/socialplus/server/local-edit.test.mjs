@@ -30,6 +30,8 @@ test('guided edit maps supplied words through approved cuts using inherited time
 });
 test('guided edit rejects unsafe words, unreviewed timing and fabricated cuts',()=>{
  const bad=[
+ {transcript:[null],captionsReviewed:true},
+ {transcript:[{text:'UnMotBeaucoupTropLongPourCeCadreEtroit',start:1,end:2}],captionsReviewed:true},
  {approvedPauseIds:['invented']}, {approvedPauseIds:['pause-0','pause-0']},
  {transcript:[{text:'Mot',start:1,end:1.5}]},
  {transcript:[{text:'{\\pos(0,0)}',start:1,end:1.5}],captionsReviewed:true},
