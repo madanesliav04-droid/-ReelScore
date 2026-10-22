@@ -13,7 +13,7 @@ const playwright=await import(process.env.PLAYWRIGHT_MODULE_PATH ? pathToFileURL
 const {chromium}=playwright;
 
 const dataDir=await mkdtemp(join(tmpdir(),'socialplus-ui-'));
-const artifactDir=resolve(repoDir,'artifacts/browser');
+const artifactDir=process.env.SOCIALPLUS_BROWSER_ARTIFACT_DIR?resolve(process.env.SOCIALPLUS_BROWSER_ARTIFACT_DIR):resolve(repoDir,'artifacts/browser');
 await mkdir(artifactDir,{recursive:true});
 await rm(join(artifactDir,'smoke-report.json'),{force:true});
 const ownerId=randomUUID(),seed='JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP',password=randomBytes(24).toString('base64url');
@@ -113,6 +113,17 @@ try {
   assert.ok(Number(edited.format.duration)>4.4&&Number(edited.format.duration)<4.7);
   assert.equal(edited.streams.filter(s=>s.codec_type==='audio').length,1);
   assert.equal(edited.streams.find(s=>s.codec_type==='video').codec_name,'h264');
+  await page.locator('[data-action=select-style][data-id=codie-omni-v60]').click();
+  await page.locator('#transcript').fill(JSON.stringify([{text:'temps',start:.5,end:.8}]));
+  await page.locator('#reference-events').fill(JSON.stringify([{wordIndex:0,kind:'clock',rect:[.1,.1,.3,.4]}]));
+  await page.locator('#placement-reviewed').check();
+  const originalResponse=page.waitForResponse(r=>r.url().endsWith('/render')&&r.request().method()==='POST');
+  await page.locator('[data-action=restored-preview]').click();
+  assert.equal((await originalResponse).status(),202);
+  await page.locator('#render-status a[download]').waitFor({timeout:180000});
+  const originalDownload=page.waitForEvent('download');
+  await page.locator('#render-status a[download]').click();
+  await (await originalDownload).saveAs(artifactDir+'/codie-v60-components.mp4');
   await page.locator('#main-nav [data-tab=strategy]').click();
   await page.locator('[data-action=strategy-tab][data-id=video]').click();
   await page.locator('[data-action=strategy-source-analysis]').click();
@@ -184,7 +195,7 @@ try {
   assert.equal(await page.locator('#source-preview').count(),0);
   assert.equal(await page.getByText('Fixture technique locale — aucun rush utilisateur',{exact:true}).count(),0);
   assert.deepEqual(errors,[]);
-  await writeFile(artifactDir+'/smoke-report.json',JSON.stringify({status:'pass',browser:'Chromium',mobile:'viewports390x844 and844x390—not physical Safari',assertions:['public FAQ and search','public privacy/terms/legal documents','public support submission and owner retrieval','private feedback submission','MFA login','three tabs','profile persistence','CSV preview/import','observed comparable trend','project upload/persistence','real technical MP4 export/download','local acoustic analysis from saved source','approved pause edit and synchronized captions with real MP4 download','Strategy recommendations from measured source','owner invitation UI','member activation and owner route denial','revoked session returns to login','same-browser account switch clears private project state','dark/light appearance','landscape rotation','no horizontal overflow','no JavaScript page errors'],screenshots,fixture:'Ephemeral test owner and generated technical video; no real user data'},null,2));
+  await writeFile(artifactDir+'/smoke-report.json',JSON.stringify({status:'pass',browser:'Chromium',mobile:'viewports390x844 and844x390—not physical Safari',assertions:['public FAQ and search','public privacy/terms/legal documents','public support submission and owner retrieval','private feedback submission','MFA login','three tabs','profile persistence','CSV preview/import','observed comparable trend','project upload/persistence','real technical MP4 export/download','local acoustic analysis from saved source','original Codie icon component render from UI and MP4 download','approved pause edit and synchronized captions with real MP4 download','Strategy recommendations from measured source','owner invitation UI','member activation and owner route denial','revoked session returns to login','same-browser account switch clears private project state','dark/light appearance','landscape rotation','no horizontal overflow','no JavaScript page errors'],screenshots,fixture:'Ephemeral test owner and generated technical video; no real user data'},null,2));
   process.stdout.write(JSON.stringify({status:'pass',viewport_mobile:'390x844 and844x390 (Chromium, not physical Safari)',errors,screenshots:screenshots.length})+'\n');
 } catch(error) {
   await writeFile(join(artifactDir,'smoke-report.json'),JSON.stringify({status:'fail',browser:'Chromium',error:error.message},null,2));

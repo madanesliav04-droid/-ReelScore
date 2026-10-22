@@ -1,3 +1,4 @@
+import {prepareRestoredOverlay,RESTORED_PREVIEWS} from './restored-models.mjs';
 import {spawn} from 'node:child_process';
 import {createReadStream} from 'node:fs';
 import {createHash} from 'node:crypto';
@@ -13,25 +14,25 @@ import {renderSocialKineticV28Staging} from '../../worker/src/social-kinetic-v28
 // A visual approval never enables an autonomous engine. Keep the catalogue
 // explicit about its sources; technical export is intentionally separate.
 export const MODEL_CATALOG = Object.freeze([
-  {id:'codie-omni-v60',label:'Codie × OMNI',version:'V60',status:'reference_only',sourceAvailable:false,available:false,
-    reason:'Le pack V60 et son script de référence ne sont pas présents dans les branches inspectées.',
-    missingSources:['EDITPLUS_V60_FINITION_OMNI.mp4','EDITPLUS_V60_FINITION_PACK_QA.zip','build_v60.py']},
+  {id:'codie-omni-v60',label:'Codie × OMNI',version:'V60',status:'component_preview',previewAvailable:true,sourceAvailable:true,available:false,
+    reason:'Script V60 restauré. Les icônes originales sont testables sur vos mots alignés et vos zones validées. La recette complète V60 attend encore ses médias de référence.',
+    missingSources:['EDITPLUS_V60_FINITION_OMNI.mp4','EDITPLUS_V60_FINITION_PACK_QA.zip : médias V57/V58/V59 et rush original']},
   {id:'alex-hormozi-v16',label:'Alex Hormozi',version:'V16',status:'beta',sourceAvailable:true,available:false,
     reason:'Code OMNI de référence retrouvé. Pack V16 et recette sur trois nouveaux rushs nécessaires avant activation.',
     sourceBranch:'editplus-alex-reference-lock-20261017',engineVersion:'hormozi-omni-explainer-v1',
     missingSources:['EDITPLUS_HORMOZI_V16_RETOUR_V11_PACK.zip']},
-  {id:'leila-hormozi-v53',label:'Leila Hormozi',version:'V53',status:'reference_only',sourceAvailable:false,available:false,
-    reason:'Le master et le moteur Python V53 ne sont pas présents dans les branches inspectées.',
-    missingSources:['EDITPLUS_LEILA_MODELE_3_V53_SOURCE_ET_AUDIT.zip','render_leila_v53.py']},
+  {id:'leila-hormozi-v53',label:'Leila Hormozi',version:'V53',status:'component_preview',previewAvailable:true,sourceAvailable:true,available:false,
+    reason:'Scripts V53/V51/V46 restaurés. Les titres muraux sont testables sur un nouveau rush ; le rendu V53 intégral dépend encore des médias V44/V49.',
+    missingSources:['IMG_0516.mp4','EDITPLUS_LEILA_IMG_0516_V44_MUR_ANCRE_PREMIUM.mp4','EDITPLUS_LEILA_IMG_0516_V49_RETOUCHES_FINALES_IPHONE.mp4','EDITPLUS_LEILA_IMG_0516_V53_RACCORDS_AFFINES.mp4']},
   {id:'social-kinetic-v28',label:'Social Kinetic',version:'V28',status:'beta',sourceAvailable:true,available:false,
     reason:'Moteur V28 retrouvé. Nécessite Hyperframes local, mots alignés et preuve indépendante de placement ; recette réelle en attente.',
     sourceBranch:'editplus-integrate-social-kinetic-v28-20261018',engineVersion:'28',missingSources:[]},
-  {id:'apple-premium-spatial',label:'Apple Premium / Spatial UI',version:'Master à confirmer',status:'reference_only',sourceAvailable:false,available:false,
-    reason:'Le master approuvé et les packages Apple V4/V5/V10 restent à fournir.',
-    missingSources:['EDITPLUS_MODELE05_V10_CODE.zip','packages Apple Premium V4/V5','identification du master approuvé']},
-  {id:'cinematic-storytelling-v7',label:'Cinematic Storytelling',version:'V7 finale',status:'reference_only',sourceAvailable:false,available:false,
+  {id:'apple-premium-spatial',label:'Apple Premium / Spatial UI',version:'V10',status:'component_preview',previewAvailable:true,sourceAvailable:true,available:false,
+    reason:'Scripts Spatial V8/V9/V10 restaurés. Le composant titre V10 est testable ; la chaîne historique complète nécessite encore les médias V8/V9 et le master V10.',
+    missingSources:['MODELE05_V10_SAUVEGARDE_COMPLETE.zip : médias V8/V9, rush et master V10']},
+  {id:'cinematic-storytelling-v7',label:'Cinematic Storytelling',version:'V7 finale',status:'reference_only',sourceAvailable:true,referenceMediaRequired:true,available:false,
     reason:'Le master approuvé utilise Python + FFmpeg. Le prototype Hyperframes V2 retrouvé ne le remplace pas.',
-    missingSources:['archive V7 finale de 38 Mo','script V7 Python de 25 Ko','rush original V7','timings et réglages V7']}
+    missingSources:['CINEMATIC_STORYTELLING_V7_PROJET_COMPLET.zip : médias','IMG_0506(2).mp4','IMG_0506_CINEMATIC_V6_APPLE_MINIMAL_IPHONE.mp4','IMG_0506_CINEMATIC_V7_PREMIUM_FINAL_IPHONE.mp4']}
 ]);
 
 export const TECHNICAL_EXPORT = Object.freeze({id:'technical-export',label:'Exporter la source en MP4',status:'available',available:true,
@@ -90,9 +91,12 @@ function assertSafeTimeline(timeline,meta) {
 }
 
 /** Trusted server paths only: never pass a client-supplied path or shell text. */
-export async function renderVideo({sourcePath,outputPath,modelId,analysis,timeline,frameProof,editorialEvents,localEdit,onProgress=async()=>{},signal}={}) {
+export async function renderVideo({sourcePath,outputPath,modelId,analysis,timeline,frameProof,editorialEvents,localEdit,restoredInput,onProgress=async()=>{},signal}={}) {
+  const preview=typeof modelId==='string'&&modelId.startsWith('restored-preview:')?modelId.slice('restored-preview:'.length):null;
+  if(preview&&!RESTORED_PREVIEWS.includes(preview))throw new RenderError('UNKNOWN_MODEL','Port de composants inconnu.');
   const known=MODEL_CATALOG.find(m=>m.id===modelId);
-  if(modelId!==TECHNICAL_EXPORT.id&&modelId!=='guided-edit'&&!known)throw new RenderError('UNKNOWN_MODEL','Modèle inconnu.');
+  if(modelId!==TECHNICAL_EXPORT.id&&modelId!=='guided-edit'&&!preview&&!known)throw new RenderError('UNKNOWN_MODEL','Modèle inconnu.');
+  if(known?.referenceMediaRequired)throw new RenderError('MODEL_REFERENCE_MEDIA_REQUIRED','Le script V7 restauré nécessite encore le rush IMG_0506(2).mp4 et la vidéo V6 IMG_0506_CINEMATIC_V6_APPLE_MINIMAL_IPHONE.mp4.');
   if(known?.sourceAvailable===false)throw new RenderError('MODEL_SOURCE_MISSING',known.reason,{missingSources:known.missingSources});
   if(known&&process.env.SOCIALPLUS_BETA_RENDER!=='staging')
     throw new RenderError('MODEL_QA_REQUIRED',known.reason,{modelId,status:known.status});
@@ -105,9 +109,15 @@ export async function renderVideo({sourcePath,outputPath,modelId,analysis,timeli
     await onProgress(10,'Vérification du fichier source');
     const filters=['scale=trunc(iw/2)*2:trunc(ih/2)*2','setsar=1'];
     let expectedDurationMs=meta.durationMs;
-    let inputLabels=null,complex=null;
+    let inputLabels=null,complex=null,restoredOverlay=null;
     let audit={modelId,artisticModel:false,engine:'ffmpeg-native-export-v1',cuts:0,source:meta,originalAudioStreamsSelected:meta.hasAudio?1:0};
-    if(modelId==='guided-edit') {
+    if(preview){
+      const {plan,overlayPath}=await prepareRestoredOverlay({model:preview,meta,input:restoredInput,work,run,signal});
+      restoredOverlay=overlayPath;
+      complex=['[0:v:0][1:v:0]overlay=0:0:format=auto:eof_action=pass:repeatlast=0[cutv]'];inputLabels=true;
+      if(plan.ass){const assPath=path.join(work,'captions.ass');await writeFile(assPath,plan.ass);filters.push(`ass=filename='${assPath.replace(/\\/g,'/').replace(/:/g,'\\:')}'`);}
+      audit={...audit,engine:'restored-original-components-v1',release:'component_preview_not_master_certified',restoredModel:preview,eventCount:plan.events.length,placement:'user_reviewed',font:'Inter or system fallback'};
+    }else if(modelId==='guided-edit') {
       const edit=buildLocalEdit(localEdit);
       if(edit.outputDurationMs<500)throw new RenderError('INVALID_EDIT','Le montage doit conserver au moins une demi-seconde.');
       expectedDurationMs=edit.outputDurationMs;
@@ -140,8 +150,8 @@ export async function renderVideo({sourcePath,outputPath,modelId,analysis,timeli
     }
     await onProgress(30,known?'Rendu du moteur de référence en laboratoire':'Conversion MP4 du rush original');
     if(complex)complex.push('[cutv]'+filters.join(',')+'[outv]');
-    await run('ffmpeg',['-hide_banner','-loglevel','error','-nostdin','-y','-protocol_whitelist','file,pipe','-format_whitelist','mov,matroska,webm,avi,mpegts,ogg','-i',sourcePath,
-      ...(inputLabels?['-filter_complex',complex.join(';'),'-map','[outv]',...(meta.hasAudio?['-map','[outa]']:['-an'])]:['-map','0:v:0',...(meta.hasAudio?['-map','0:a:0']:['-an']),'-vf',filters.join(',')]),'-map_metadata','-1','-c:v','libx264','-preset','veryfast','-crf','19','-pix_fmt','yuv420p','-threads','2',
+    await run('ffmpeg',['-hide_banner','-loglevel','error','-nostdin','-y','-protocol_whitelist','file,pipe','-format_whitelist','mov,matroska,webm,avi,mpegts,ogg','-i',sourcePath,...(restoredOverlay?['-i',restoredOverlay]:[]),
+      ...(inputLabels?['-filter_complex',complex.join(';'),'-map','[outv]',...(meta.hasAudio?['-map',restoredOverlay?'0:a:0':'[outa]']:['-an'])]:['-map','0:v:0',...(meta.hasAudio?['-map','0:a:0']:['-an']),'-vf',filters.join(',')]),'-map_metadata','-1','-c:v','libx264','-preset','veryfast','-crf','19','-pix_fmt','yuv420p','-threads','2',
       ...(meta.hasAudio?['-c:a','aac','-b:a','192k']:[]),'-movflags','+faststart',outputPath],{signal});
     const output=await probeVideo(outputPath,{signal});
     if(output.videoCodec!=='h264'||(meta.hasAudio&&output.audioCodec!=='aac')||output.audioStreams>(meta.hasAudio?1:0)||Math.abs(output.durationMs-expectedDurationMs)>Math.max(150,(audit.cuts||0)*40))

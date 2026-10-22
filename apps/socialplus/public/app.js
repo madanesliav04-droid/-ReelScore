@@ -183,6 +183,7 @@ async function montage() {
       const available = style.available || style.enabled || style.status === 'production';
       return `<button class="model" data-action="select-style" data-id="${esc(id)}" aria-pressed="${id === state.selectedStyle}"><span class="model-number">0${index + 1}</span><span><strong>${esc(style.display_name || style.label || style.name)}</strong><small>${esc(style.version || '')}</small></span><span class="pill ${available ? 'good' : ''}">${available ? (style.status === 'production' ? 'Disponible' : 'Bêta') : 'Indisponible'}</span></button>`;
     }).join('')}</div><div id="model-detail" class="model-detail"></div>
+      <div id="restored-controls" class="panel section" hidden><h3>Tester les composants originaux</h3><p>Ce port utilise les dessins du script restauré avec vos mots et vos zones libres. Il reste à comparer au master validé. Rush de 60 secondes maximum, jusqu’à 720p natif.</p><label class="section">Événements · indices des mots et zone libre normalisée<textarea id="reference-events" rows="4" placeholder='[{"wordIndex":0,"wordCount":1,"kind":"clock","rect":[0.1,0.1,0.2,0.3]}]'></textarea></label><p class="help-text">rect : position x, y, largeur et hauteur entre 0 et 1. Codie : clock sur « temps », euro sur « argent ». Leila/Spatial : le titre reprend les mots désignés. Consultez le rush pour choisir une zone sans visage ni texte.</p><label class="checkbox-label section"><input id="placement-reviewed" type="checkbox"><span>J’ai vérifié cette zone libre sur toute la durée de chaque graphisme.</span></label><button class="button secondary section" data-action="restored-preview">Rendre un essai avec ces composants</button></div>
       <button class="button full section" data-action="render" ${!project?.id ? 'disabled' : ''}>${icon('spark')}Lancer le montage</button><div id="render-status" aria-live="polite"></div><div class="panel section"><h3>Exporter votre source</h3><p class="help-text">Convertissez votre vidéo en MP4 H.264/AAC avec son audio original et son format natif. Cette opération technique ne réalise aucun montage artistique.</p><button class="button secondary full section" data-action="technical-export" ${!project?.has_source ? 'disabled' : ''}>${icon('download')}Exporter la source en MP4</button></div>${project?.has_output ? `<a class="button secondary full section" href="/api/projects/${encodeURIComponent(project.id)}/output?download=1" download>${icon('download')}Télécharger mon dernier export</a>` : ''}${project?.id ? `<button class="text-button section" data-action="delete-project">Supprimer ce projet</button>` : ''}
       <div class="notice">${icon('shield')}<span>Les modèles sont des références visuelles validées. Leur disponibilité dépend des sources et de la recette de chaque moteur.</span></div>
     </div></div></section>`;
@@ -204,6 +205,8 @@ function updateStyleDetail() {
   if (!style || !$('#model-detail')) return;
   const available = style.available || style.enabled || style.status === 'production';
   $('#model-detail').innerHTML = `<p>${esc(style.description || style.reason || style.unavailable_reason || (available ? 'Moteur disponible pour essais. Les contrôles qualité restent requis.' : 'Sources ou dépendances de rendu non disponibles. Aucun rendu de remplacement ne sera généré.'))}</p>${(style.missingSources || style.missing)?.length ? `<p class="mt-8">Éléments requis : ${(style.missingSources || style.missing).map(esc).join(', ')}</p>` : ''}`;
+  $('#restored-controls').hidden=!style.previewAvailable;
+  $('[data-action=restored-preview]').disabled=!state.project?.has_source;
   const renderButton = $('[data-action="render"]');
   if (renderButton) renderButton.disabled = !available || !state.project?.id;
   document.querySelectorAll('.model').forEach(element => element.setAttribute('aria-pressed', String(element.dataset.id === state.selectedStyle)));
@@ -383,10 +386,12 @@ async function renderProject(styleId = state.selectedStyle) {
   const transcript = $('#transcript')?.value.trim();
   let aligned;
   if (transcript) { try { aligned = JSON.parse(transcript); } catch { throw new Error('La transcription doit être un tableau JSON valide.'); } }
+  let events;
+  if(styleId.startsWith('restored-preview:')){try{events=JSON.parse($('#reference-events').value);}catch{throw new Error('Les événements graphiques doivent être un tableau JSON valide.');}}
   const area = $('#render-status');
   area.innerHTML = '<div class="notice">' + icon('clock') + '<span>Vérification du moteur et des sources…</span></div>';
   try {
-    const data = await post('/api/projects/' + encodeURIComponent(state.project.id) + '/render', {style_id:styleId,transcript:aligned,approvedPauseIds:[...document.querySelectorAll('[data-pause-id]:checked')].map(input=>input.dataset.pauseId),captionsReviewed:$('#captions-reviewed')?.checked===true});
+    const data = await post('/api/projects/' + encodeURIComponent(state.project.id) + '/render', {style_id:styleId,transcript:aligned,events,placementReviewed:$('#placement-reviewed')?.checked===true,approvedPauseIds:[...document.querySelectorAll('[data-pause-id]:checked')].map(input=>input.dataset.pauseId),captionsReviewed:$('#captions-reviewed')?.checked===true});
     const job = data.job || data;
     if (!job.id && !job.job_id) throw new Error('Le moteur n’a pas retourné de tâche de rendu.');
     await pollJob(job.id || job.job_id);
@@ -424,6 +429,7 @@ document.addEventListener('click', async event => {
       state.project=data.project || data;state.file=null;if(state.objectUrl)URL.revokeObjectURL(state.objectUrl);state.objectUrl=null;
       if(location.hash==='#montage')await montage();else location.hash='montage';
     } else if (action === 'select-style') { state.selectedStyle=element.dataset.id;updateStyleDetail(); }
+    else if(action==='restored-preview')await renderProject('restored-preview:'+state.selectedStyle);
     else if (action === 'render') await renderProject();
     else if(action==='analyze-source'){element.disabled=true;try{const {report}=await post('/api/projects/'+encodeURIComponent(state.project.id)+'/signals');showSourceSignals(report);}finally{if(element.isConnected)element.disabled=false;}}
     else if(action==='guided-edit')await renderProject('guided-edit');

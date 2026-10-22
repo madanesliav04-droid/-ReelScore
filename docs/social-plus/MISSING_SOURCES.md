@@ -1,15 +1,17 @@
 # Éléments indispensables à la finalisation des moteurs
 
-L’application locale et ses modules indépendants fonctionnent. Les pièces suivantes n’ont pas été retrouvées dans les branches inspectées. Aucun de ces fichiers n’est reconstitué ou présenté comme disponible.
+Le pack léger reçu le 22 octobre contient les scripts Codie V60, Leila V53/V51/V46, Spatial V8/V9/V10 et Cinematic V7, avec timings et réglages V7. Ils sont conservés intacts dans `apps/socialplus/engines/originals/`, avec SHA-256. Les médias listés par le manifeste complet ne sont pas inclus dans ce ZIP léger.
 
-| Modèle | Source encore nécessaire | Code conservé / conséquence |
+| Modèle | Médias ou dépendances encore nécessaires | Raccord disponible |
 |---|---|---|
-| Codie × OMNI V60 | `EDITPLUS_V60_FINITION_OMNI.mp4`, `EDITPLUS_V60_FINITION_PACK_QA.zip`, `build_v60.py` et dépendances du pack | Anciennes grammaires OMNI conservées ; aucun remplacement de la V60 |
-| Alex Hormozi V16 | `EDITPLUS_HORMOZI_V16_RETOUR_V11_PACK.zip`, master/rush et assets correspondants | Directeur, beats et renderer OMNI réemployés ; vrai overlay de laboratoire testé, fidélité V16 non certifiée |
-| Leila V53 | `EDITPLUS_LEILA_MODELE_3_V53_SOURCE_ET_AUDIT.zip`, `render_leila_v53.py`, master/rush et assets | Les anciennes variantes ne remplacent pas la V53 approuvée |
-| Social Kinetic V28 | Master approuvé, rush de référence, installation locale Hyperframes requise par le runtime, mots alignés et preuves indépendantes de placement | Moteur, runtime, prototype HTML et tests réemployés ; rendu Hyperframes complet non exécuté |
-| Apple Premium / Spatial UI | `EDITPLUS_MODELE05_V10_CODE.zip`, packages Apple Premium V4/V5, identification du master confirmé et ses assets | Prototypes retrouvés ; aucune équivalence définitive annoncée |
-| Cinematic Storytelling V7 finale | Archive originale annoncée de **38 Mo**, script **Python de 25 Ko**, rush original, master V7, timings, réglages et médias dépendants | Le nom exact de l’archive/script n’a pas été fourni. Le prototype Hyperframes séparé ne remplace pas la V7 Python + FFmpeg |
+| Codie × OMNI V60 | `EDITPLUS_V60_FINITION_PACK_QA.zip` complet et `EDITPLUS_V60_FINITION_OMNI.mp4` ; le script désigne `IMG_0506.mp4`, `MX-18296.mp4`, `MX-241.mp4`, le MP4 V59 audio et les captions V57 | Icônes originales portées sur mots alignés et placement revu ; MP4 de composants testable, recette V60 complète en attente |
+| Alex Hormozi V16 | `EDITPLUS_HORMOZI_V16_RETOUR_V11_PACK.zip`, master/rush/assets | Directeur, beats et renderer OMNI existants conservés |
+| Leila V53 | `IMG_0516.mp4`, `EDITPLUS_LEILA_IMG_0516_V44_MUR_ANCRE_PREMIUM.mp4`, `EDITPLUS_LEILA_IMG_0516_V49_RETOUCHES_FINALES_IPHONE.mp4`, master V53 | Dessin mural original réutilisé sur les titres parlés du nouveau rush ; chaîne V53 historique dépend encore des pixels V44 et de l’audio V49 |
+| Social Kinetic V28 | Master/rush de référence, runtime Hyperframes local et preuves de placement/alignement | Moteur et runtime V28 existants conservés |
+| Spatial UI V10 | `MODELE05_V10_SAUVEGARDE_COMPLETE.zip` complet ; rush, médias V8/V9 et master V10 | Composant titre original V10 porté ; chaîne V10 complète dépend encore des rendus V8/V9 |
+| Cinematic V7 | `CINEMATIC_STORYTELLING_V7_PROJET_COMPLET.zip` avec `media/IMG_0506(2).mp4` et `media/IMG_0506_CINEMATIC_V6_APPLE_MINIMAL_IPHONE.mp4` ; master `IMG_0506_CINEMATIC_V7_PREMIUM_FINAL_IPHONE.mp4` | Script Python original, configuration et timings récupérés. La V7 utilise les images et l’audio de V6 pour ses scènes ; aucune scène de remplacement n’est fabriquée |
+
+Les essais Codie/Leila/Spatial utilisent les fonctions graphiques originales et de nouveaux textes/timings fournis, sans exécuter les anciens cuts ni réutiliser l’audio d’une autre vidéo. Ils restent des prévisualisations des composants, distinctes des masters artistiques complets. Les polices système de substitution sont signalées. Les titres Leila sont ajustés à leur zone pour éviter leur troncature.
 
 Il faut également au moins trois nouveaux rushs de parole autorisés par modèle, distincts de leurs rushs de conception, pour les recettes de fidélité, synchronisation, son et composition. Les fixtures techniques couleurs/tonalité fournissent des preuves d’exécution FFmpeg, pas une certification artistique.
 

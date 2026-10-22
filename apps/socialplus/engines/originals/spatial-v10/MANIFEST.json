@@ -1,0 +1,37 @@
+{
+  "name": "Edit+ 05 Spatial UI V10",
+  "created": "2026-10-20",
+  "status": "Creative direction frozen; technical QA pending for commercial engine",
+  "source": "IMG_0516.mp4",
+  "duration_sec": 47.2,
+  "resolution": "910x512",
+  "fps": 30,
+  "caption_word_count_from_asr": 172,
+  "focus": [
+    {
+      "title": "COMPÉTENCE",
+      "start_s": 9.12,
+      "end_s": 11.82
+    },
+    {
+      "title": "OFFRE",
+      "start_s": 21.25,
+      "end_s": 23.8
+    },
+    {
+      "title": "PROSPECTION",
+      "start_s": 37.22,
+      "end_s": 39.78
+    }
+  ],
+  "files": {
+    "files/IMG_0516.mp4": "a12c13efedfc891e695c2dc58617aa3f0d367910f8b7b6dc76f0d48edb143f3e",
+    "media/EDITPLUS_SPATIAL_UI_V9_MOTION_FLOW.mp4": "09f399a741ef10c0ce30bd60a7aa95965394c450957e0c11e7b07a3eb6afe684",
+    "media/EDITPLUS_SPATIAL_UI_V10_FOCUS.mp4": "3c9424b273602f5d264c8463e6e25204d1d9619f1911aa859a866e8823ef22fd"
+  },
+  "caveats": [
+    "2.5D perspective, not metric 3D",
+    "Word-level timestamp alignment unverified",
+    "Standalone single-rush example, not integrated product engine"
+  ]
+}

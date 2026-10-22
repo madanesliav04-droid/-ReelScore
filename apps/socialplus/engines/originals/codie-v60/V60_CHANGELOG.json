@@ -1,0 +1,44 @@
+{
+  "source": "original IMG_0506.mp4 + old V58 B-roll clips + V59 AAC",
+  "human_supervised": true,
+  "cut_ranges_frames": [
+    [
+      0,
+      119
+    ],
+    [
+      157,
+      436
+    ],
+    [
+      467,
+      1335
+    ]
+  ],
+  "broll": [
+    "MX-18296.mp4",
+    "MX-241.mp4"
+  ],
+  "caption_overlaps_removed": 27,
+  "caption_font": "Inter Display SemiBold 34px (Avenir reference, not exact)",
+  "graphic_cues": [
+    {
+      "kind": "clock",
+      "x": 176,
+      "y": 161,
+      "start": 36.77,
+      "end": 39.0,
+      "spoken": "temps"
+    },
+    {
+      "kind": "euro",
+      "x": 852,
+      "y": 161,
+      "start": 38.14,
+      "end": 40.25,
+      "spoken": "argent"
+    }
+  ],
+  "audio": "copied original encoded stream from V59; no audio changes",
+  "timing_caveat": "prior ASR estimates, not independent forced alignment"
+}

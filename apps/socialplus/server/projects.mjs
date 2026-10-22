@@ -1,3 +1,4 @@
+import {RESTORED_PREVIEWS,restoredPlan} from './restored-models.mjs';
 import {buildLocalEdit,SIGNAL_VERSION} from './local-edit.mjs';
 import { randomUUID } from 'node:crypto';
 import { createReadStream, createWriteStream } from 'node:fs';
@@ -98,8 +99,11 @@ export function createProjects({ db, dataDir, render, maxUploadBytes = 200 * 102
     if (!p.source_path) throw fail(409,'SOURCE_REQUIRED','Importez d’abord une vidéo.');
     if (running || uploading.has(id)) throw fail(409,'RENDER_BUSY','Un traitement est en cours. Réessayez après sa fin.');
     const model = render.MODEL_CATALOG.find(x=>x.id===modelId);
-    if (!['technical-export','guided-edit'].includes(modelId) && (!model || !model.available)) throw fail(422,'MODEL_UNAVAILABLE',model?.reason||'Le moteur de ce modèle est indisponible.');
-    let localEdit;
+    const preview=typeof modelId==='string'&&modelId.startsWith('restored-preview:')?modelId.slice('restored-preview:'.length):null;
+    const isPreview=RESTORED_PREVIEWS.includes(preview);
+    if (!['technical-export','guided-edit'].includes(modelId) && !isPreview && (!model || !model.available)) throw fail(422,'MODEL_UNAVAILABLE',model?.reason||'Le moteur de ce modèle est indisponible.');
+    let localEdit,restoredInput;
+    if(isPreview){restoredInput={transcript:input.transcript,captionsReviewed:input.captionsReviewed===true,events:input.events,placementReviewed:input.placementReviewed===true};restoredPlan(preview,JSON.parse(p.metadata),restoredInput);}
     if(modelId==='guided-edit'){
       const report=signalReport(userId,id);
       if(!report)throw fail(409,'SOURCE_ANALYSIS_REQUIRED','Analysez cette source avant de lancer le montage.');
@@ -118,7 +122,7 @@ export function createProjects({ db, dataDir, render, maxUploadBytes = 200 * 102
       db.exec('COMMIT');
     } catch(error){db.exec('ROLLBACK');throw error;}
     running = true;
-    Promise.resolve().then(()=>render.renderVideo({sourcePath:p.source_path,outputPath,modelId,localEdit,captionCues:input.captionCues,analysis:input.analysis,timeline:input.timeline,frameProof:input.frameProof,editorialEvents:input.editorialEvents,onProgress: value => db.prepare('UPDATE studio_jobs SET progress=? WHERE id=?').run(Math.min(99,Math.max(0,Number(value)||0)),jobId)})).then(async result=>{
+    Promise.resolve().then(()=>render.renderVideo({sourcePath:p.source_path,outputPath,modelId,localEdit,restoredInput,captionCues:input.captionCues,analysis:input.analysis,timeline:input.timeline,frameProof:input.frameProof,editorialEvents:input.editorialEvents,onProgress: value => db.prepare('UPDATE studio_jobs SET progress=? WHERE id=?').run(Math.min(99,Math.max(0,Number(value)||0)),jobId)})).then(async result=>{
       // A deleted project must never leave a newly rendered private file behind.
       if (!db.prepare('SELECT id FROM studio_projects WHERE id=? AND user_id=?').get(id,userId)) { await rm(outputPath,{force:true}); return; }
       const bytes=(await stat(outputPath)).size;
