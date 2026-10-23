@@ -68,14 +68,16 @@ export async function createApp(options={}) {
         const user=security.requireUser(req);
         if(!['GET','HEAD','OPTIONS'].includes(req.method))security.checkCsrf(req);
         if(await strategy.handle(req,res,url,user))return;
-        if(url.pathname==='/api/studio/styles'&&req.method==='GET'){json(res,200,{styles:render.MODEL_CATALOG});return;}
+        if(url.pathname==='/api/studio/styles'&&req.method==='GET'){json(res,200,{styles:render.MODEL_CATALOG,transcription:{configured:Boolean(render.transcriptionKey())}});return;}
         if(url.pathname==='/api/projects'){
           if(req.method==='GET'){json(res,200,{projects:projects.list(user.id)});return;}
           if(req.method==='POST'){json(res,201,{project:projects.create(user.id,await readJson(req))});return;}
         }
-        const projectMatch=/^\/api\/projects\/([^/]+)(?:\/(source|media|render|output|signals))?$/.exec(url.pathname);
+        const projectMatch=/^\/api\/projects\/([^/]+)(?:\/(source|media|render|output|signals|transcript))?$/.exec(url.pathname);
         if(projectMatch){
           const [,id,action]=projectMatch;
+          if(action==='transcript'&&req.method==='POST'){json(res,200,{transcript:await projects.transcribe(user.id,id)});return;}
+          if(action==='transcript'&&req.method==='GET'){json(res,200,{transcript:projects.transcript(user.id,id)});return;}
           if(action==='signals'&&req.method==='POST'){json(res,200,{report:await projects.analyze(user.id,id)});return;}
           if(action==='signals'&&req.method==='GET'){json(res,200,{report:projects.signalReport(user.id,id)});return;}
           if(action==='source'&&req.method==='POST'){json(res,200,{project:await projects.upload(user.id,id,req)});return;}

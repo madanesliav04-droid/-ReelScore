@@ -90,3 +90,33 @@ test('projects: deletion during asynchronous render metadata check leaves no orp
   let files=await readdir(join(dataDir,'media'));for(let i=0;i<100&&files.length;i++){await delay(10);files=await readdir(join(dataDir,'media'));}
   assert.deepEqual(files,[]);assert.equal(projects.list('alice').length,0);
 });
+
+test('projects: offline transcripts cache by model and source, isolate tenants and follow privacy deletion',async t=>{
+ let calls=0,key='model-v1';
+ const result={words:[{text:'test',startMs:100,endMs:300}],reviewed:false,warnings:[]};
+ const {projects,db}=await fixture(t,{transcriptionKey:()=>key,transcribeSource:async()=>{calls++;return result;}});
+ const p=projects.create('alice');
+ const upload=async()=>{const req=Readable.from([Buffer.from('video')]);req.headers={'content-type':'video/mp4'};await projects.upload('alice',p.id,req);};
+ await upload();assert.equal(projects.transcript('alice',p.id),null);
+ assert.deepEqual(await projects.transcribe('alice',p.id),result);
+ await projects.transcribe('alice',p.id);assert.equal(calls,1);
+ assert.throws(()=>projects.transcript('bob',p.id),{code:'PROJECT_NOT_FOUND'});
+ await assert.rejects(projects.transcribe('bob',p.id),{code:'PROJECT_NOT_FOUND'});
+ key='model-v2';await projects.transcribe('alice',p.id);assert.equal(calls,2);
+ assert.equal(projects.exportData('alice').transcripts.length,1);
+ await upload();assert.equal(projects.transcript('alice',p.id),null);
+ await projects.transcribe('alice',p.id);assert.equal(calls,3);
+ await projects.deleteUserData('alice');assert.equal(db.prepare('SELECT count(*) n FROM studio_transcripts').get().n,0);
+});
+test('projects: missing offline model does not consume quota and deleted project leaves no ASR result',async t=>{
+ let key=null,finish;
+ const {projects,db}=await fixture(t,{transcriptionKey:()=>key,transcribeSource:()=>new Promise(resolve=>{finish=resolve;})});
+ const p=projects.create('alice'),req=Readable.from([Buffer.from('video')]);req.headers={'content-type':'video/mp4'};await projects.upload('alice',p.id,req);
+ await assert.rejects(projects.transcribe('alice',p.id),{code:'ASR_NOT_CONFIGURED'});
+ assert.equal(db.prepare('SELECT count(*) n FROM studio_render_usage').get().n,0);
+ key='local-model';const pending=projects.transcribe('alice',p.id);
+ await assert.rejects(projects.transcribe('alice',p.id),{code:'RENDER_BUSY'});
+ await projects.deleteUserData('alice');finish({words:[],reviewed:false});
+ await assert.rejects(pending,{code:'PROJECT_REMOVED'});
+ assert.equal(db.prepare('SELECT count(*) n FROM studio_transcripts').get().n,0);
+});

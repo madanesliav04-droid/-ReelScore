@@ -135,7 +135,7 @@ try {
   await page.locator('#main-nav [data-tab=strategy]').click();
   await page.locator('[data-action=strategy-tab][data-id=video]').click();
   await page.locator('[data-action=strategy-source-analysis]').click();
-  await page.locator('#strategy-source-signals').getByText(/local-acoustic-v1/).waitFor();
+  await page.locator('#strategy-source-signals').getByText(/local-acoustic-v2/).waitFor();
 
   const sessionData=await page.evaluate(()=>fetch('/api/session').then(response=>response.json()));
   assert.equal(sessionData.user.role,'owner');

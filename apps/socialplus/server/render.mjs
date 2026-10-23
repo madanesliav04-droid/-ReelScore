@@ -1,3 +1,5 @@
+import {transcribeLocal,transcriptionKey} from './transcription.mjs';
+export {transcriptionKey};
 import {mapOriginalToOutput} from '../../worker/src/edit.js';
 import {prepareRestoredOverlay,RESTORED_PREVIEWS} from './restored-models.mjs';
 import {spawn} from 'node:child_process';
@@ -84,6 +86,13 @@ export async function analyzeSource(sourcePath,{signal}={}) {
   return acousticReport(log,metadata,hash.digest('hex'));
 }
 
+export async function transcribeSource(sourcePath,{signal}={}){
+ const meta=await probeVideo(sourcePath,{signal});
+ if(!meta.hasAudio)throw new RenderError('ORIGINAL_AUDIO_REQUIRED','Aucune piste audio à transcrire.');
+ if(meta.durationMs>600_000)throw new RenderError('LOCAL_RENDER_LIMIT','La transcription locale accepte jusqu’à dix minutes.');
+ return transcribeLocal(sourcePath,{run,signal});
+}
+
 function assertSafeTimeline(timeline,meta) {
   if(!timeline||timeline.audio?.hasAudio!==meta.hasAudio||Math.abs(timeline.outputDurationMs-meta.durationMs)>65||
     timeline.export?.width!==meta.width||timeline.export?.height!==meta.height||
@@ -92,7 +101,7 @@ function assertSafeTimeline(timeline,meta) {
 }
 
 /** Trusted server paths only: never pass a client-supplied path or shell text. */
-export async function renderVideo({sourcePath,outputPath,modelId,analysis,timeline,frameProof,editorialEvents,localEdit,restoredInput,onProgress=async()=>{},signal}={}) {
+export async function renderVideo({sourcePath,outputPath,modelId,analysis,timeline,frameProof,editorialEvents,localEdit,restoredInput,renderCaptions=true,onProgress=async()=>{},signal}={}) {
   const preview=typeof modelId==='string'&&modelId.startsWith('restored-preview:')?modelId.slice('restored-preview:'.length):restoredInput&&RESTORED_PREVIEWS.includes(modelId)?modelId:null;
   if(preview&&!RESTORED_PREVIEWS.includes(preview))throw new RenderError('UNKNOWN_MODEL','Port de composants inconnu.');
   const known=MODEL_CATALOG.find(m=>m.id===modelId);
@@ -115,7 +124,7 @@ export async function renderVideo({sourcePath,outputPath,modelId,analysis,timeli
     if(preview){
       if(localEdit?.approvedPauseIds?.length){
         const edit=buildLocalEdit(localEdit),editedPath=path.join(work,'edited-source.mp4');
-        const result=await renderVideo({sourcePath,outputPath:editedPath,modelId:'guided-edit',localEdit,signal});
+        const result=await renderVideo({sourcePath,outputPath:editedPath,modelId:'guided-edit',localEdit,renderCaptions:false,signal});
         sourcePath=editedPath;meta=result.metadata;expectedDurationMs=meta.durationMs;
         restoredInput={...restoredInput,transcript:restoredInput.transcript.map(w=>({...w,startMs:mapOriginalToOutput(typeof w.startMs==='number'?w.startMs:Math.round(w.start*1000),edit.keepRanges),endMs:mapOriginalToOutput(typeof w.endMs==='number'?w.endMs:Math.round(w.end*1000),edit.keepRanges)})),events:restoredInput.events.map(e=>({...e,...(typeof e.endMs==='number'?{endMs:mapOriginalToOutput(e.endMs,edit.keepRanges)??undefined}:{})}))};
         audit={...audit,cuts:edit.cuts.length,keepRanges:edit.keepRanges};
@@ -131,15 +140,18 @@ export async function renderVideo({sourcePath,outputPath,modelId,analysis,timeli
       if(edit.outputDurationMs<500)throw new RenderError('INVALID_EDIT','Le montage doit conserver au moins une demi-seconde.');
       expectedDurationMs=edit.outputDurationMs;
       if(edit.cuts.length){
-        const graphs=[];
-        edit.keepRanges.forEach((r,i)=>{
-          graphs.push(`[0:v:0]trim=start=${r.startMs/1000}:end=${r.endMs/1000},setpts=PTS-STARTPTS[v${i}]`);
-          if(meta.hasAudio)graphs.push(`[0:a:0]atrim=start=${r.startMs/1000}:end=${r.endMs/1000},asetpts=PTS-STARTPTS[a${i}]`);
-        });
-        graphs.push(edit.keepRanges.map((_,i)=>`[v${i}]${meta.hasAudio?`[a${i}]`:''}`).join('')+`concat=n=${edit.keepRanges.length}:v=1:a=${meta.hasAudio?1:0}[cutv]${meta.hasAudio?'[outa]':''}`);
+        // Keep source frame timestamps mapped through the edit, instead of
+        // paired A/V concat (which pads audio to every rounded video segment).
+        const drop=edit.cuts.map(c=>`between(t,${c.startMs/1000},${c.endMs/1000})`).join('+');
+        const removed=edit.cuts.map(c=>`gte(T,${c.endMs/1000})*${(c.endMs-c.startMs)/1000}`).join('+');
+        const graphs=[`[0:v:0]setpts=PTS-STARTPTS,select='not(${drop})',setpts='PTS-(${removed})/TB'[cutv]`];
+        if(meta.hasAudio){
+          edit.keepRanges.forEach((r,i)=>graphs.push(`[0:a:0]atrim=start=${r.startMs/1000}:end=${r.endMs/1000},asetpts=PTS-STARTPTS[a${i}]`));
+          graphs.push(edit.keepRanges.map((_,i)=>`[a${i}]`).join('')+`concat=n=${edit.keepRanges.length}:v=0:a=1[outa]`);
+        }
         complex=graphs;inputLabels=true;
       }
-      if(edit.ass){const assPath=path.join(work,'captions.ass');await writeFile(assPath,edit.ass,'utf8');filters.push(`ass=filename='${assPath.replace(/\\/g,'/').replace(/:/g,'\\:').replace(/'/g,"\\'")}'`);}
+      if(edit.ass&&renderCaptions){const assPath=path.join(work,'captions.ass');await writeFile(assPath,edit.ass,'utf8');filters.push(`ass=filename='${assPath.replace(/\\/g,'/').replace(/:/g,'\\:').replace(/'/g,"\\'")}'`);}
       audit={...audit,engine:'local-guided-edit-v1',cuts:edit.cuts.length,keepRanges:edit.keepRanges,captionCount:edit.captions.length,approval:'user_reviewed_acoustic_pauses',sourceFingerprint:localEdit.report.fingerprint};
     } else if(modelId==='alex-hormozi-v16') {
       assertSafeTimeline(timeline,meta);
@@ -157,11 +169,13 @@ export async function renderVideo({sourcePath,outputPath,modelId,analysis,timeli
       const result=await renderSocialKineticV28Staging({inputPath:sourcePath,outputPath,timeline,plan,workDir:work,onProgress});
       return {outputPath,audit:{...audit,...result,artisticModel:true,engine:'social-kinetic-v28',release:'staging_qa_required'},metadata:await probeVideo(outputPath,{signal})};
     }
+    const copyAudio=meta.audioCodec==='aac'&&(!complex||Boolean(restoredOverlay));
+    audit={...audit,audioMode:copyAudio?'source_aac_passthrough':'source_aac_encode',captionReview:restoredInput?.captionsReviewed?'confirmed':restoredInput?.allowUnreviewedPreview?'asr_preview':'not_supplied'};
     await onProgress(30,known?'Rendu du moteur de référence en laboratoire':'Conversion MP4 du rush original');
     if(complex)complex.push('[cutv]'+filters.join(',')+'[outv]');
     await run('ffmpeg',['-hide_banner','-loglevel','error','-nostdin','-y','-protocol_whitelist','file,pipe','-format_whitelist','mov,matroska,webm,avi,mpegts,ogg','-i',sourcePath,...(restoredOverlay?['-i',restoredOverlay]:[]),
       ...(inputLabels?['-filter_complex',complex.join(';'),'-map','[outv]',...(meta.hasAudio?['-map',restoredOverlay?'0:a:0':'[outa]']:['-an'])]:['-map','0:v:0',...(meta.hasAudio?['-map','0:a:0']:['-an']),'-vf',filters.join(',')]),'-map_metadata','-1','-c:v','libx264','-preset','veryfast','-crf','19','-pix_fmt','yuv420p','-threads','2',
-      ...(meta.hasAudio?['-c:a','aac','-b:a','192k']:[]),'-movflags','+faststart',outputPath],{signal});
+      ...(meta.hasAudio?(copyAudio?['-c:a','copy']:['-c:a','aac','-b:a','192k']):[]),'-fps_mode','vfr','-movflags','+faststart',outputPath],{signal});
     const output=await probeVideo(outputPath,{signal});
     if(output.videoCodec!=='h264'||(meta.hasAudio&&output.audioCodec!=='aac')||output.audioStreams>(meta.hasAudio?1:0)||Math.abs(output.durationMs-expectedDurationMs)>Math.max(150,(audit.cuts||0)*40))
       throw new RenderError('OUTPUT_QA_FAILED','La vérification des pistes ou de la durée du MP4 a échoué.');

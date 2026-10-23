@@ -1,0 +1,2 @@
+# Optional offline transcription environment, separate from drawing engines.
+faster-whisper==1.2.1

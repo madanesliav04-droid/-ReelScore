@@ -53,3 +53,17 @@ Le serveur écoute volontairement la boucle locale. `localhost` sur l'iPhone dé
 Arrêter le serveur avec `Ctrl+C` avant de sauvegarder ensemble `.data` et `.env.local` dans un emplacement privé. Pour revenir à une sauvegarde, arrêter le serveur, conserver une copie de l'état courant, puis restaurer les deux éléments cohérents. La restauration et les délais de conservation doivent faire l'objet d'une recette avant production. La production existante Supabase/Railway/Cloudflare n'est pas migrée par cette branche.
 
 Pour les six adaptations de modèles : installer Python 3, puis `python -m pip install numpy Pillow`. Dans `.env.local`, définir `SOCIALPLUS_PYTHON=python`. Pour Social Kinetic, renseigner `SOCIALPLUS_CHROMIUM` avec le chemin de Chrome/Chromium déjà installé, par exemple `C:\Program Files\Google\Chrome\Application\chrome.exe`. Aucun appel à un service de rendu externe n’est effectué. `npm run preflight` contrôle les prérequis.
+
+## Transcription locale facultative
+
+Pour remplir les mots horodatés depuis un vrai rush, installer le module local :
+
+```powershell
+python -m pip install -r engines/requirements-asr.txt
+```
+
+Placer un modèle **faster-whisper** compatible déjà téléchargé dans un dossier privé (au minimum `model.bin`, `config.json`, `tokenizer.json`). Renseigner `SOCIALPLUS_ASR_MODEL_DIR` avec ce dossier et `SOCIALPLUS_ASR_PYTHON=python` dans `.env.local`, puis redémarrer. Le bouton « Transcrire localement » apparaît actif dans Montage. Le traitement utilise le CPU ; son temps dépend du PC. Aucune clé API, synthèse vocale ou connexion aux réseaux sociaux n'est requise. Le moteur interdit les téléchargements à l'exécution.
+
+Relire les mots en écoutant la source. Les horaires Whisper sont automatiques et approximatifs : la case de validation reste décochée. Le mode « transcription encore à relire » permet un MP4 de prévisualisation explicitement non validé. Les événements graphiques désignent les indices des mots de ce rush ; ne jamais recopier les timings des masters. Alex propose aussi `kind: "fullscreen"`, avec un second groupe facultatif `secondaryWordIndex` / `secondaryWordCount`. Utiliser ce mode quand la bande haute cacherait le visage. Codie accepte `events: []` si aucun mot « temps » ou « argent » n'est prononcé.
+
+Les nouvelles coupes restent dans les pauses acoustiques mesurées et, avec une transcription, conservent 120 ms de marge autour des mots. Une transcription imprécise nécessite une revue supplémentaire des raccords. Les six adaptations restent en bêta jusqu'à validation artistique et phonétique ; elles ne rejouent ni la voix ni les pixels des masters.

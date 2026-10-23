@@ -1,0 +1,20 @@
+✔ projects: measured reports are cached per source, isolated, invalidated on replacement and deleted with member data (161.940823ms)
+✔ projects: tenant boundary covers get update delete upload and job lookup (35.78424ms)
+✔ projects: metadata persists; unavailable model cannot produce fake job (13.611062ms)
+✔ projects: invalid probe and interrupted uploads leave no partial file (12.925958ms)
+✔ projects: byte limit is enforced even without Content-Length (19.873449ms)
+✔ projects: daily compute quota survives project deletion and remains scoped to its member (77.626585ms)
+✔ projects: deletion during asynchronous render metadata check leaves no orphaned private export (31.802153ms)
+✔ projects: offline transcripts cache by model and source, isolate tenants and follow privacy deletion (73.321205ms)
+✔ projects: missing offline model does not consume quota and deleted project leaves no ASR result (12.828891ms)
+✔ word captions retain 20ms words without overlapping ASS events (3.232735ms)
+✔ cinematic scene only suppresses its covered intervals, preserving adjacent camera captions (0.53181ms)
+✔ real acoustic pauses merge and narrow conservatively around words (3.819784ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 12
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1393.945015

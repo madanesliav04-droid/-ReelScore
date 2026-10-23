@@ -11,7 +11,8 @@ const require=createRequire(import.meta.url);
 export async function captureKinetic(plan,outputPath,{signal}={}){
  const {chromium}=await import('playwright-core');
  const gsap=await readFile(require.resolve('gsap/dist/gsap.min.js'),'utf8');
- const events=plan.events.map((e,i)=>({id:'reviewed-'+i,kind:e.kind==='hero'?'hero':'bubble',text:e.text,startMs:e.startMs,endMs:e.endMs,rect:{x:e.rect[0],y:e.rect[1],w:e.rect[2],h:e.rect[3]}}));
+ const graphics=plan.events.map((e,i)=>({id:'reviewed-'+i,kind:e.kind==='hero'?'hero':'bubble',text:e.text,startMs:e.startMs,endMs:e.endMs,rect:{x:e.rect[0],y:e.rect[1],w:e.rect[2],h:e.rect[3]}}));
+ const events=[...graphics,...(plan.captions||[])].sort((a,b)=>a.startMs-b.startMs);
  const html=socialKineticV28Html({model:'social_kinetic_v28',status:'staging_renderable',durationMs:plan.durationMs,events},{width:plan.width,height:plan.height,fps:30})
    .replace(/<script src="https:[^"]+"><\/script>/,()=>'<script>'+gsap.replace(/<\/script/gi,'<\\/script')+'</script>');
  const browser=await chromium.launch({headless:true,...(process.env.SOCIALPLUS_CHROMIUM?{executablePath:process.env.SOCIALPLUS_CHROMIUM}:process.platform==='linux'?{executablePath:'/usr/bin/chromium'}:{}),args:['--disable-dev-shm-usage']});

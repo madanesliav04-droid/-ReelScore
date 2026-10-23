@@ -39,6 +39,8 @@ def main(config_path):
         scope.update(STAGES=[dict(num=str(i+1).zfill(2),title=e['text'],sub=e.get('sub','')) for i,e in enumerate(events)])
         scope['fnt']=lambda n,w='medium':ImageFont.truetype(font({'regular':'Inter-Regular.otf','medium':'Inter-Medium.otf','semi':'Inter-SemiBold.otf'}[w]),n)
         functions(ROOT/'spatial-v10/code/portable_editplus_spatial_ui_v10_focus.py',['title_image'],scope)
+    elif model=='alex-hormozi-v16':
+        palette=c['palette']
     elif model=='cinematic-storytelling-v7':
         scope.update(W=960,H=540,NAVY=(3,17,32),WHITE=(247,250,255),MUTED=(170,193,211),GOLD=(228,189,113),CYAN=(153,194,217))
         scope['font']=lambda n,w='b':ImageFont.truetype(font('Inter-SemiBold.otf'),n)
@@ -81,6 +83,37 @@ def main(config_path):
                     scope['SERIF'][73]=fitted
                     im=ImageOps.contain(Image.fromarray(scope['draw_scene'](t,scene)),(w,h),Image.Resampling.LANCZOS)
                     x+=(w-im.width)//2;y+=(h-im.height)//2
+                elif model=='alex-hormozi-v16':
+                    im=Image.new('RGBA',(W,H),palette['surface']);d=ImageDraw.Draw(im)
+                    factor=min(W/910,H/512)
+                    titlefont=ImageFont.truetype(font('Inter-SemiBold.otf'),max(18,round(29*factor)))
+                    labelfont=ImageFont.truetype(font('Inter-Medium.otf'),max(16,round(21*factor)))
+                    nodefont=ImageFont.truetype(font('Inter-SemiBold.otf'),max(16,round(22*factor)))
+                    loc=t-a;wave=lambda q:(lambda v:v*v*(3-2*v))(max(0,min(1,q)))
+                    header=e['text'].upper();title_size=titlefont.size
+                    while titlefont.getlength(header)>W*.84 and title_size>16:title_size-=1;titlefont=ImageFont.truetype(font('Inter-SemiBold.otf'),title_size)
+                    d.text((W*.5,H*.16),header,font=titlefont,fill=palette['text'],anchor='mm')
+                    d.line((W*.07,H*.25,W*.93,H*.25),fill=palette['border'],width=max(1,round(factor)))
+                    radius=round(min(W*.075,H*.14));cy=round(H*.47)
+                    def node(cx,label,accent):
+                        d.ellipse((cx-radius,cy-radius,cx+radius,cy+radius),fill=palette['surface'],outline=accent,width=max(1,round(2*factor)))
+                        key=label.strip('.,!?').split()[-1].upper();nf=nodefont
+                        if nf.getlength(key)>radius*1.7:nf=ImageFont.truetype(font('Inter-SemiBold.otf'),max(12,round(nf.size*radius*1.7/nf.getlength(key))))
+                        d.text((cx,cy),key,font=nf,fill=accent,anchor='mm')
+                        lf=labelfont
+                        if lf.getlength(label)>W*.4:lf=ImageFont.truetype(font('Inter-Medium.otf'),max(12,round(lf.size*W*.4/lf.getlength(label))))
+                        d.text((cx,H*.68),label,font=lf,fill=accent,anchor='mm')
+                    node(round(W*.28),e['text'],palette['text'])
+                    second=e.get('secondary')
+                    if second and t>=second['startMs']/1000:
+                        gain=wave((t-second['startMs']/1000)/.3)
+                        x0=W*.39;x1=x0+(W*.61-x0)*gain
+                        d.line((x0,cy,x1,cy),fill=palette['accent'],width=max(1,round(2*factor)))
+                        if gain>.9:d.polygon([(x1,cy),(x1-8*factor,cy-5*factor),(x1-8*factor,cy+5*factor)],fill=palette['accent'])
+                        node(round(W*.72),second['text'],palette['accent'])
+                    opacity=min(1,loc/.35,(b-t)/.35)
+                    im.putalpha(im.getchannel('A').point(lambda p:round(p*opacity)))
+                    x=y=0
                 elif model=='cinematic-storytelling-v7':
                     im=ImageOps.fit(cinema_bg,(W,H),Image.Resampling.LANCZOS)
                     content=Image.new('RGBA',(960,540))
