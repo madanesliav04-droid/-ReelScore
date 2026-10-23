@@ -9,7 +9,8 @@
     "start": "node --env-file-if-exists=.env.local server/index.mjs",
     "test": "node --test --test-isolation=none",
     "owner": "node scripts/provision-owner.mjs --init",
-    "preflight": "node --env-file-if-exists=.env.local scripts/check-runtime.mjs"
+    "preflight": "node --env-file-if-exists=.env.local scripts/check-runtime.mjs",
+    "verify:models": "node scripts/verify-models.mjs"
   },
   "dependencies": {
     "gsap": "3.13.0",
