@@ -1,3 +1,4 @@
+import {renderFont} from './render-fonts.mjs';
 import {spawn} from 'node:child_process';
 import {readFile,mkdir,writeFile,rm} from 'node:fs/promises';
 import {join} from 'node:path';
@@ -13,8 +14,11 @@ export async function captureKinetic(plan,outputPath,{signal}={}){
  const gsap=await readFile(require.resolve('gsap/dist/gsap.min.js'),'utf8');
  const graphics=plan.events.map((e,i)=>({id:'reviewed-'+i,kind:e.kind==='hero'?'hero':'bubble',text:e.text,startMs:e.startMs,endMs:e.endMs,rect:{x:e.rect[0],y:e.rect[1],w:e.rect[2],h:e.rect[3]}}));
  const events=[...graphics,...(plan.captions||[])].sort((a,b)=>a.startMs-b.startMs);
- const html=socialKineticV28Html({model:'social_kinetic_v28',status:'staging_renderable',durationMs:plan.durationMs,events},{width:plan.width,height:plan.height,fps:30})
+ let html=socialKineticV28Html({model:'social_kinetic_v28',status:'staging_renderable',durationMs:plan.durationMs,events},{width:plan.width,height:plan.height,fps:30})
    .replace(/<script src="https:[^"]+"><\/script>/,()=>'<script>'+gsap.replace(/<\/script/gi,'<\\/script')+'</script>');
+ const fontAliases=['Inter-SemiBold.otf','Inter-Medium.otf','Inter-ExtraBold.otf'];
+ const embedded=await Promise.all(fontAliases.map(async alias=>{const f=renderFont(alias);return `@font-face{font-family:"${f.family}";src:url(data:font/ttf;base64,${(await readFile(f.path)).toString('base64')})}`;}));
+ html=html.replace('</style>',embedded.join('')+`.caption .inner{font-family:"${renderFont(fontAliases[0]).family}"}.bubble .inner{font-family:"${renderFont(fontAliases[1]).family}"}.hero .inner{font-family:"${renderFont(fontAliases[2]).family}"}</style>`);
  const browser=await chromium.launch({headless:true,...(process.env.SOCIALPLUS_CHROMIUM?{executablePath:process.env.SOCIALPLUS_CHROMIUM}:process.platform==='linux'?{executablePath:'/usr/bin/chromium'}:{}),args:['--disable-dev-shm-usage']});
  const frameDir=outputPath+'.frames';await mkdir(frameDir,{recursive:true});
  let child,stderr='',processError;

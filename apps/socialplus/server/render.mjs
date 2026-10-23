@@ -1,3 +1,6 @@
+import {focusOpacityCommands} from './focus-envelope.mjs';
+import {mapEditBoundary} from './edit-boundaries.mjs';
+import {FONT_DIR} from './render-fonts.mjs';
 import {transcribeLocal,transcriptionKey} from './transcription.mjs';
 export {transcriptionKey};
 import {mapOriginalToOutput} from '../../worker/src/edit.js';
@@ -126,15 +129,23 @@ export async function renderVideo({sourcePath,outputPath,modelId,analysis,timeli
         const edit=buildLocalEdit(localEdit),editedPath=path.join(work,'edited-source.mp4');
         const result=await renderVideo({sourcePath,outputPath:editedPath,modelId:'guided-edit',localEdit,renderCaptions:false,signal});
         sourcePath=editedPath;meta=result.metadata;expectedDurationMs=meta.durationMs;
-        restoredInput={...restoredInput,transcript:restoredInput.transcript.map(w=>({...w,startMs:mapOriginalToOutput(typeof w.startMs==='number'?w.startMs:Math.round(w.start*1000),edit.keepRanges),endMs:mapOriginalToOutput(typeof w.endMs==='number'?w.endMs:Math.round(w.end*1000),edit.keepRanges)})),events:restoredInput.events.map(e=>({...e,...(typeof e.endMs==='number'?{endMs:mapOriginalToOutput(e.endMs,edit.keepRanges)??undefined}:{})}))};
+        restoredInput={...restoredInput,transcript:restoredInput.transcript.map(w=>({...w,startMs:mapOriginalToOutput(typeof w.startMs==='number'?w.startMs:Math.round(w.start*1000),edit.keepRanges),endMs:mapOriginalToOutput(typeof w.endMs==='number'?w.endMs:Math.round(w.end*1000),edit.keepRanges)})),events:restoredInput.events.map(e=>({...e,...(typeof e.endMs==='number'?{endMs:mapEditBoundary(e.endMs,edit.keepRanges)}:{})}))};
         audit={...audit,cuts:edit.cuts.length,keepRanges:edit.keepRanges};
       }
       const {plan,overlayPath,graphicAss}=await prepareRestoredOverlay({model:preview,meta,input:restoredInput,work,run,signal});
       restoredOverlay=overlayPath;
-      if(overlayPath){complex=['[0:v:0][1:v:0]overlay=0:0:format=auto:eof_action=pass:repeatlast=0[cutv]'];inputLabels=true;}
-      if(graphicAss){const assPath=path.join(work,'graphics.ass');await writeFile(assPath,graphicAss);filters.push(`ass=filename='${assPath.replace(/\\/g,'/').replace(/:/g,'\\:')}'`);}
-      if(plan.ass){const assPath=path.join(work,'captions.ass');await writeFile(assPath,plan.ass);filters.push(`ass=filename='${assPath.replace(/\\/g,'/').replace(/:/g,'\\:')}'`);}
-      audit={...audit,engine:'socialplus-model-adapter-v2',release:'beta_not_master_certified',restoredModel:preview,eventCount:plan.events.length,placement:'user_reviewed',font:'Inter or system fallback'};
+      if(overlayPath){
+        const focus=preview==='apple-premium-spatial'?plan.events.filter(e=>e.kind==='focus'):[];
+        if(focus.length){
+          const commands=path.join(work,'spatial-focus.cmd');await writeFile(commands,focusOpacityCommands(focus,meta.durationMs));
+          const active=focus.map(e=>`between(t,${e.startMs/1000},${e.endMs/1000})`).join('+');
+          complex=[`[0:v:0]sendcmd=f='${commands.replaceAll('\\','/').replaceAll(':','\\:')}',format=gbrp,split=2[sharp][softin]`,`[softin]gblur=sigma=7:enable='${active}',lutrgb=r='val*0.78+52.58':g='val*0.78+53.46':b='val*0.78+54.12'[soft]`,'[sharp][soft]blend@spatial=all_mode=normal:all_opacity=1[focus]','[focus][1:v:0]overlay=0:0:format=auto:eof_action=pass:repeatlast=0[cutv]'];
+        }else complex=['[0:v:0][1:v:0]overlay=0:0:format=auto:eof_action=pass:repeatlast=0[cutv]'];
+        inputLabels=true;
+      }
+      if(graphicAss){const assPath=path.join(work,'graphics.ass');await writeFile(assPath,graphicAss);filters.push(`ass=fontsdir='${FONT_DIR.replace(/\\/g,'/').replace(/:/g,'\\:')}':filename='${assPath.replace(/\\/g,'/').replace(/:/g,'\\:')}'`);}
+      if(plan.ass){const assPath=path.join(work,'captions.ass');await writeFile(assPath,plan.ass);filters.push(`ass=fontsdir='${FONT_DIR.replace(/\\/g,'/').replace(/:/g,'\\:')}':filename='${assPath.replace(/\\/g,'/').replace(/:/g,'\\:')}'`);}
+      audit={...audit,engine:'socialplus-model-adapter-v3',release:'beta_not_master_certified',restoredModel:preview,eventCount:plan.events.length,placement:'user_reviewed',font:'bundled_SIL_OFL_Latin_alternatives'};
     }else if(modelId==='guided-edit') {
       const edit=buildLocalEdit(localEdit);
       if(edit.outputDurationMs<500)throw new RenderError('INVALID_EDIT','Le montage doit conserver au moins une demi-seconde.');
@@ -151,7 +162,7 @@ export async function renderVideo({sourcePath,outputPath,modelId,analysis,timeli
         }
         complex=graphs;inputLabels=true;
       }
-      if(edit.ass&&renderCaptions){const assPath=path.join(work,'captions.ass');await writeFile(assPath,edit.ass,'utf8');filters.push(`ass=filename='${assPath.replace(/\\/g,'/').replace(/:/g,'\\:').replace(/'/g,"\\'")}'`);}
+      if(edit.ass&&renderCaptions){const assPath=path.join(work,'captions.ass');await writeFile(assPath,edit.ass,'utf8');filters.push(`ass=fontsdir='${FONT_DIR.replace(/\\/g,'/').replace(/:/g,'\\:')}':filename='${assPath.replace(/\\/g,'/').replace(/:/g,'\\:').replace(/'/g,"\\'")}'`);}
       audit={...audit,engine:'local-guided-edit-v1',cuts:edit.cuts.length,keepRanges:edit.keepRanges,captionCount:edit.captions.length,approval:'user_reviewed_acoustic_pauses',sourceFingerprint:localEdit.report.fingerprint};
     } else if(modelId==='alex-hormozi-v16') {
       assertSafeTimeline(timeline,meta);
@@ -160,7 +171,7 @@ export async function renderVideo({sourcePath,outputPath,modelId,analysis,timeli
       const ass=renderHormoziOmniAss({graphicCues:plan.cues},meta.width,meta.height);
       const assPath=path.join(work,'alex.ass');await writeFile(assPath,ass,'utf8');
       // Temporary paths are generated here and contain no user text.
-      filters.push(`ass=${assPath.replace(/\\/g,'/').replace(/:/g,'\\:').replace(/'/g,"\\'")}`);
+      filters.push(`ass=fontsdir='${FONT_DIR.replace(/\\/g,'/').replace(/:/g,'\\:')}':filename=${assPath.replace(/\\/g,'/').replace(/:/g,'\\:').replace(/'/g,"\\'")}`);
       audit={...audit,artisticModel:true,engine:plan.policy,release:'beta_reference_grammar_not_V16_certified',acceptedCues:plan.cues.length,held:plan.held};
     } else if(modelId==='social-kinetic-v28') {
       assertSafeTimeline(timeline,meta);

@@ -128,7 +128,7 @@ export function createProjects({ db, dataDir, render, maxUploadBytes = 200 * 102
     const restoredModel=preview||modelId;
     if (!['technical-export','guided-edit'].includes(modelId) && !isPreview && (!model || !model.available)) throw fail(422,'MODEL_UNAVAILABLE',model?.reason||'Le moteur de ce modèle est indisponible.');
     let localEdit,restoredInput;
-    if(isPreview){restoredInput={transcript:input.transcript,captionsReviewed:input.captionsReviewed===true,allowUnreviewedPreview:input.allowUnreviewedPreview===true,events:input.events,placementReviewed:input.placementReviewed===true};restoredPlan(restoredModel,JSON.parse(p.metadata),restoredInput);
+    if(isPreview){restoredInput={transcript:input.transcript,captionsReviewed:input.captionsReviewed===true,allowUnreviewedPreview:input.allowUnreviewedPreview===true,events:input.events,captionZones:input.captionZones,placementReviewed:input.placementReviewed===true};restoredPlan(restoredModel,JSON.parse(p.metadata),restoredInput);
       if(input.approvedPauseIds?.length){const report=signalReport(userId,id);if(!report)throw fail(409,'SOURCE_ANALYSIS_REQUIRED','Analysez cette source avant de couper ses pauses.');localEdit={report,approvedPauseIds:input.approvedPauseIds,transcript:input.transcript,captionsReviewed:input.captionsReviewed===true,previewOnly:input.allowUnreviewedPreview===true};buildLocalEdit(localEdit);}}
     if(modelId==='guided-edit'){
       const report=signalReport(userId,id);

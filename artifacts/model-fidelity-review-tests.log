@@ -1,0 +1,14 @@
+✔ local acoustic analysis is deterministic and preserves safety margins (9.678098ms)
+✔ guided edit maps supplied words through approved cuts using inherited time mapping (5.883579ms)
+✔ guided edit rejects unsafe words, unreviewed timing and fabricated cuts (2.534298ms)
+✔ real local analysis and edited MP4 shorten only approved measured silence and retain original audio (53440.041918ms)
+✔ an acoustic cut after the last supplied caption preserves that word and does not require invented words (1.339786ms)
+✔ uncertain words require explicit confirmation even with a reviewed claim (0.806833ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 53976.523293

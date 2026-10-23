@@ -64,3 +64,10 @@ test('an acoustic cut after the last supplied caption preserves that word and do
  const edit=buildLocalEdit({report,approvedPauseIds:['pause-0'],transcript:[{text:'Avant',start:1,end:1.5}],captionsReviewed:true});
  assert.equal(edit.cuts.length,1);assert.equal(edit.captions[0].words[0].endMs,1500);
 });
+
+ test('uncertain words require explicit confirmation even with a reviewed claim',()=>{
+ const transcript=[{text:'hypothèse',start:1,end:1.5,reviewRequired:true,confirmed:false}];
+ assert.throws(()=>buildLocalEdit({report,transcript,captionsReviewed:true,previewOnly:true}),/incertain/);
+ assert.doesNotThrow(()=>buildLocalEdit({report,transcript,previewOnly:true}));
+ assert.doesNotThrow(()=>buildLocalEdit({report,transcript:transcript.map(w=>({...w,confirmed:true})),captionsReviewed:true}));
+ });

@@ -1,0 +1,4 @@
+✔ automatic graphic drafts quote source words and pass each of the six model validators (29.737472ms)
+✔ restored original source files remain byte-for-byte identical to the uploaded pack (87.732421ms)
+✔ restored previews require reviewed speech and composition, reject unsafe or fabricated events (9.893514ms)
+✔ six reference releases remain guarded individually; recovered code is not master certification (8.084675ms)

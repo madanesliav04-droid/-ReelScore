@@ -1,6 +1,7 @@
+import {renderFont} from './render-fonts.mjs';
 import {buildCaptionAss} from '../../worker/src/render.js';
 const styles={
- 'codie-omni-v60':{size:31,accent:'#C6B3DA',stroke:2},
+ 'codie-omni-v60':{size:34,accent:'#C6B3DA',stroke:2.6},
  'alex-hormozi-v16':{size:28,accent:'#7D91DD',stroke:1},
  'leila-hormozi-v53':{size:25,accent:'#FFFFFF',stroke:1},
  'apple-premium-spatial':{size:26,accent:'#FFFFFF',stroke:1},
@@ -16,7 +17,7 @@ export function speechCaptionAss(base,model,meta,events=[]){
  const style=styles[model]||styles['leila-hormozi-v53'];
  const scale=Math.min(meta.width/910,meta.height/512),fontPx=Math.max(20,Math.round(style.size*scale));
  const sizeScale=Math.max(.55,Math.min(1.15,meta.height/1920));
- const config={...base.captionConfig,fontSize:fontPx/sizeScale,stroke:style.stroke,fontWeight:600};
+ const config={...base.captionConfig,fontFamily:renderFont(model==='codie-omni-v60'?'InterDisplay-SemiBold.otf':'Inter-SemiBold.otf').family,fontSize:fontPx/sizeScale,stroke:style.stroke,fontWeight:600};
  const header=buildCaptionAss({...base,captions:[],captionConfig:config},meta.width,meta.height);
  const lines=[];
  for(const caption of base.captions){
