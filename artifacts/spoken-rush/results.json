@@ -1,0 +1,191 @@
+{
+  "results": [
+    {
+      "model": "codie-omni-v60",
+      "width": 910,
+      "height": 512,
+      "durationMs": 23800,
+      "codecs": [
+        "h264",
+        "aac"
+      ],
+      "audioStreams": 1,
+      "fullDecode": "pass",
+      "aacSha256": "4115b87ebcefb1a17fc82000ddc31d38888e201c472f5da60ad0f25e256d4722",
+      "bytes": 3901294,
+      "voiceCorrelation": [
+        {
+          "sourceStartMs": 600,
+          "outputMapStartMs": 600,
+          "audioLagMs": 0.0,
+          "correlation": 0.999993
+        },
+        {
+          "sourceStartMs": 8437,
+          "outputMapStartMs": 7838,
+          "audioLagMs": 0.0,
+          "correlation": 0.999949
+        },
+        {
+          "sourceStartMs": 10277,
+          "outputMapStartMs": 9350,
+          "audioLagMs": 0.0,
+          "correlation": 0.999559
+        },
+        {
+          "sourceStartMs": 21513,
+          "outputMapStartMs": 20282,
+          "audioLagMs": 0.0,
+          "correlation": 0.999812
+        }
+      ]
+    },
+    {
+      "model": "alex-hormozi-v16",
+      "width": 910,
+      "height": 512,
+      "durationMs": 23800,
+      "codecs": [
+        "h264",
+        "aac"
+      ],
+      "audioStreams": 1,
+      "fullDecode": "pass",
+      "aacSha256": "4115b87ebcefb1a17fc82000ddc31d38888e201c472f5da60ad0f25e256d4722",
+      "bytes": 3589954
+    },
+    {
+      "model": "leila-hormozi-v53",
+      "width": 910,
+      "height": 512,
+      "durationMs": 23800,
+      "codecs": [
+        "h264",
+        "aac"
+      ],
+      "audioStreams": 1,
+      "fullDecode": "pass",
+      "aacSha256": "4115b87ebcefb1a17fc82000ddc31d38888e201c472f5da60ad0f25e256d4722",
+      "bytes": 3988716
+    },
+    {
+      "model": "social-kinetic-v28",
+      "width": 910,
+      "height": 512,
+      "durationMs": 23800,
+      "codecs": [
+        "h264",
+        "aac"
+      ],
+      "audioStreams": 1,
+      "fullDecode": "pass",
+      "aacSha256": "4115b87ebcefb1a17fc82000ddc31d38888e201c472f5da60ad0f25e256d4722",
+      "bytes": 4021547
+    },
+    {
+      "model": "apple-premium-spatial",
+      "width": 910,
+      "height": 512,
+      "durationMs": 23800,
+      "codecs": [
+        "h264",
+        "aac"
+      ],
+      "audioStreams": 1,
+      "fullDecode": "pass",
+      "aacSha256": "4115b87ebcefb1a17fc82000ddc31d38888e201c472f5da60ad0f25e256d4722",
+      "bytes": 4017920
+    },
+    {
+      "model": "cinematic-storytelling-v7",
+      "width": 910,
+      "height": 512,
+      "durationMs": 23800,
+      "codecs": [
+        "h264",
+        "aac"
+      ],
+      "audioStreams": 1,
+      "fullDecode": "pass",
+      "aacSha256": "4115b87ebcefb1a17fc82000ddc31d38888e201c472f5da60ad0f25e256d4722",
+      "bytes": 3610805
+    }
+  ],
+  "captionStatus": "asr_preview_not_phonetically_certified",
+  "allSixAudioIdentical": true,
+  "source": {
+    "kind": "user_supplied_unedited_spoken_video",
+    "durationMs": 25000,
+    "nativeWidth": 910,
+    "nativeHeight": 512
+  },
+  "edits": {
+    "fingerprint": "8c57d71ca798711e50cdef56d7e8fc3a7289b9de32ba2c5e8b42c7da2869a210",
+    "cuts": [
+      {
+        "id": "pause-0",
+        "startMs": 7534,
+        "endMs": 8133
+      },
+      {
+        "id": "pause-1",
+        "startMs": 9349,
+        "endMs": 9677
+      },
+      {
+        "id": "pause-2",
+        "startMs": 20609,
+        "endMs": 20913
+      }
+    ],
+    "keepRanges": [
+      {
+        "startMs": 0,
+        "endMs": 7534
+      },
+      {
+        "startMs": 8133,
+        "endMs": 9349
+      },
+      {
+        "startMs": 9677,
+        "endMs": 20609
+      },
+      {
+        "startMs": 20913,
+        "endMs": 25000
+      }
+    ],
+    "outputDurationMs": 23769,
+    "captionReview": "asr_preview"
+  },
+  "validation": {
+    "masterFidelityCertified": false,
+    "phoneticAlignmentCertified": false,
+    "transcriptRequiresHumanReview": true,
+    "realBrowserFlow": "pass",
+    "desktopChromium": [
+      1440,
+      1000
+    ],
+    "mobileChromiumEmulation": [
+      390,
+      844
+    ],
+    "physicalSafariTested": false,
+    "suiteBeforeFinalCutEdgeFix": {
+      "passed": 84
+    },
+    "finalEditRegression": {
+      "passed": 17
+    },
+    "multipleCutAudioClockRegression": {
+      "passed": 1
+    },
+    "pythonNormalizationAndOnsetTests": {
+      "passed": 3
+    },
+    "productionChanged": false,
+    "paidServicesActivated": false
+  }
+}

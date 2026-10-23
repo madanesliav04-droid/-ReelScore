@@ -35,7 +35,7 @@ test('guided edit rejects unsafe words, unreviewed timing and fabricated cuts',(
  {approvedPauseIds:['invented']}, {approvedPauseIds:['pause-0','pause-0']},
  {transcript:[{text:'Mot',start:1,end:1.5}]},
  {transcript:[{text:'{\\pos(0,0)}',start:1,end:1.5}],captionsReviewed:true},
- {transcript:[{text:'Mot',start:2.3,end:2.6}],captionsReviewed:true,approvedPauseIds:['pause-0']},
+ {transcript:[{text:'Mot',start:1.8,end:4.2}],captionsReviewed:true,approvedPauseIds:['pause-0']},
  {transcript:[{text:'Un',start:1,end:2},{text:'Deux',start:1.5,end:3}],captionsReviewed:true},
  {transcript:[{text:'Fin',start:5.5,end:7}],captionsReviewed:true}
  ];
@@ -58,4 +58,9 @@ test('real local analysis and edited MP4 shorten only approved measured silence 
   let crossings=0;for(let i=2;i<audio.length;i+=2)if(audio.readInt16LE(i-2)<0&&audio.readInt16LE(i)>=0)crossings++;
   assert.ok(crossings/1.5>425&&crossings/1.5<450);
  }finally{await rm(dir,{recursive:true,force:true});}
+});
+
+test('an acoustic cut after the last supplied caption preserves that word and does not require invented words',()=>{
+ const edit=buildLocalEdit({report,approvedPauseIds:['pause-0'],transcript:[{text:'Avant',start:1,end:1.5}],captionsReviewed:true});
+ assert.equal(edit.cuts.length,1);assert.equal(edit.captions[0].words[0].endMs,1500);
 });

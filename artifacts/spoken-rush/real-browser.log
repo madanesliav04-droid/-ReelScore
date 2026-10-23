@@ -1,0 +1,16 @@
+{
+  "passed": true,
+  "localTranscriptWords": 84,
+  "reviewUnchecked": true,
+  "sixEventDrafts": true,
+  "realMp4Downloaded": true,
+  "desktop": [
+    1440,
+    1000
+  ],
+  "mobileEmulation": [
+    390,
+    844
+  ],
+  "javascriptErrors": []
+}

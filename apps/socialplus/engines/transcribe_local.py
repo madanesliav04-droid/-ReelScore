@@ -1,7 +1,7 @@
 """Offline CPU transcription. Model weights must already exist locally.
 No video upload, model download, API key or speech synthesis takes place here.
 """
-import os,sys,json,hashlib,subprocess
+import os,sys,json,hashlib,subprocess,re
 os.environ['HF_HUB_OFFLINE']='1'
 os.environ['HF_HUB_DISABLE_TELEMETRY']='1'
 from pathlib import Path
@@ -36,6 +36,21 @@ def normalize_words(raw,duration_ms):
     if pending:warnings.append({'code':'UNTIMED_WORD','text':pending['text']})
     return words,warnings
 
+def bound_onsets(words,log):
+    windows=[];start=None;warnings=[]
+    for kind,value in re.findall(r'silence_(start|end):\s*([0-9.]+)',log):
+        ms=round(float(value)*1000)
+        if kind=='start':start=ms
+        elif start is not None:windows.append((start,ms));start=None
+    for i,word in enumerate(words):
+        for a,b in windows:
+            if a<=word['startMs']<b and b<word['endMs']-20:
+                onset=max(word['startMs'],b-40)
+                if onset>word['startMs']:
+                    warnings.append({'code':'ACOUSTIC_ONSET_BOUND','wordIndex':i,'previousStartMs':word['startMs'],'startMs':onset})
+                    word['startMs']=onset
+    return warnings
+
 def main(source):
     import numpy as np
     from faster_whisper import WhisperModel,__version__ as whisper_version
@@ -46,8 +61,8 @@ def main(source):
         for block in iter(lambda:f.read(1024*1024),b''):digest.update(block)
     # Decode with the same local FFmpeg used by the editor. This also avoids
     # the PyAV metadata_errors incompatibility affecting recent PyAV wheels.
-    pcm=subprocess.run(['ffmpeg','-v','error','-nostdin','-protocol_whitelist','file,pipe','-format_whitelist','mov,matroska,webm,avi,mpegts,ogg','-i',source,'-map','0:a:0','-vn','-ac','1','-ar','16000','-t','600','-f','f32le','pipe:1'],check=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=60).stdout
-    audio=np.frombuffer(pcm,dtype='<f4');duration_ms=round(len(audio)/16)
+    decoded=subprocess.run(['ffmpeg','-hide_banner','-loglevel','info','-nostdin','-protocol_whitelist','file,pipe','-format_whitelist','mov,matroska,webm,avi,mpegts,ogg','-i',source,'-map','0:a:0','-vn','-af','silencedetect=noise=-35dB:d=0.25','-ac','1','-ar','16000','-t','600','-f','f32le','pipe:1'],check=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=60)
+    audio=np.frombuffer(decoded.stdout,dtype='<f4');duration_ms=round(len(audio)/16)
     model=WhisperModel(str(model_dir),device='cpu',compute_type='int8',cpu_threads=4,local_files_only=True)
     segments,info=model.transcribe(audio,language='fr',beam_size=5,word_timestamps=True,condition_on_previous_text=False,vad_filter=False,temperature=0)
     raw=[];text=[]
@@ -55,6 +70,7 @@ def main(source):
         text.append(segment.text.strip())
         raw.extend({'text':w.word,'start':w.start,'end':w.end,'probability':w.probability} for w in segment.words)
     words,warnings=normalize_words(raw,duration_ms)
-    print(json.dumps({'engineVersion':'faster-whisper-'+whisper_version+'-cpu-int8-beam5-fr-v1','modelSha256':digest.hexdigest(),'language':info.language,'text':' '.join(text),'words':words,'warnings':warnings,'reviewed':False,'timingMethod':'whisper_word_timestamps','notice':'Transcription automatique locale à relire et écouter. Les horaires Whisper ne constituent pas un alignement phonétique indépendant certifié.'},ensure_ascii=False))
+    warnings.extend(bound_onsets(words,decoded.stderr.decode('utf8',errors='replace')))
+    print(json.dumps({'engineVersion':'faster-whisper-'+whisper_version+'-cpu-int8-beam5-fr-v2','modelSha256':digest.hexdigest(),'language':info.language,'text':' '.join(text),'words':words,'warnings':warnings,'reviewed':False,'timingMethod':'whisper_word_timestamps','notice':'Transcription automatique locale à relire et écouter. Les horaires Whisper ne constituent pas un alignement phonétique indépendant certifié.'},ensure_ascii=False))
 
 if __name__=='__main__':main(sys.argv[1])

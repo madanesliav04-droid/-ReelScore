@@ -1,0 +1,24 @@
+# Context paths are relative to the repository root. Send only runtime sources.
+**
+!apps/
+!apps/socialplus/
+!apps/socialplus/Dockerfile
+!apps/socialplus/package.json
+!apps/socialplus/package-lock.json
+!apps/socialplus/server/
+!apps/socialplus/server/**
+!apps/socialplus/public/
+!apps/socialplus/public/**
+!apps/socialplus/scripts/
+!apps/socialplus/scripts/**
+!apps/socialplus/engines/
+!apps/socialplus/engines/**
+!apps/worker/
+!apps/worker/package.json
+!apps/worker/src/
+!apps/worker/src/**
+**/__pycache__
+**/*.pyc
+**/node_modules
+**/.env*
+**/.data

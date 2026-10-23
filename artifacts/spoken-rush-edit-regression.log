@@ -1,0 +1,25 @@
+✔ local acoustic analysis is deterministic and preserves safety margins (11.495065ms)
+✔ guided edit maps supplied words through approved cuts using inherited time mapping (48.372783ms)
+✔ guided edit rejects unsafe words, unreviewed timing and fabricated cuts (6.716396ms)
+✔ real local analysis and edited MP4 shorten only approved measured silence and retain original audio (13114.552568ms)
+✔ an acoustic cut after the last supplied caption preserves that word and does not require invented words (5.893486ms)
+✔ projects: measured reports are cached per source, isolated, invalidated on replacement and deleted with member data (190.227497ms)
+✔ projects: tenant boundary covers get update delete upload and job lookup (18.685855ms)
+✔ projects: metadata persists; unavailable model cannot produce fake job (24.107487ms)
+✔ projects: invalid probe and interrupted uploads leave no partial file (63.225751ms)
+✔ projects: byte limit is enforced even without Content-Length (13.779709ms)
+✔ projects: daily compute quota survives project deletion and remains scoped to its member (67.859863ms)
+✔ projects: deletion during asynchronous render metadata check leaves no orphaned private export (25.953662ms)
+✔ projects: offline transcripts cache by model and source, isolate tenants and follow privacy deletion (14.393868ms)
+✔ projects: missing offline model does not consume quota and deleted project leaves no ASR result (13.925026ms)
+✔ word captions retain 20ms words without overlapping ASS events (6.619313ms)
+✔ cinematic scene only suppresses its covered intervals, preserving adjacent camera captions (0.802989ms)
+✔ real acoustic pauses merge and narrow conservatively around words (3.07951ms)
+ℹ tests 17
+ℹ suites 0
+ℹ pass 17
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 14936.554736

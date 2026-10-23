@@ -46,7 +46,7 @@ export function buildLocalEdit({report,approvedPauseIds=[],transcript=[],caption
     return {text,startMs,endMs};
   });
   if(words.length)cuts=cuts.map(c=>{
-    const gaps=[];for(let i=0;i<words.length-1;i++){const startMs=Math.max(c.startMs,words[i].endMs+120),endMs=Math.min(c.endMs,words[i+1].startMs-120);if(endMs-startMs>=220)gaps.push({startMs,endMs});}
+    const gaps=[];for(let i=-1;i<words.length;i++){const startMs=Math.max(c.startMs,i<0?0:words[i].endMs+120),endMs=Math.min(c.endMs,i+1>=words.length?report.metadata.durationMs:words[i+1].startMs-120);if(endMs-startMs>=220)gaps.push({startMs,endMs});}
     const gap=gaps.sort((a,b)=>(b.endMs-b.startMs)-(a.endMs-a.startMs))[0];
     if(!gap)throw invalid('Aucune coupe sûre entre les mots de cette pause. Désélectionnez-la.');
     return {...c,...gap};
