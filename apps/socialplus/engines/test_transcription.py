@@ -14,4 +14,16 @@ class WordNormalization(unittest.TestCase):
   warnings=bound_onsets(words,'silence_start: 0\nsilence_end: 0.645')
   self.assertEqual(words[0]['startMs'],605)
   self.assertEqual(words[1]['startMs'],710);self.assertEqual(warnings[0]['code'],'ACOUSTIC_ONSET_BOUND')
+
+class AcousticRelease(unittest.TestCase):
+ def test_release_does_not_highlight_a_word_inside_the_following_pause(self):
+  words=[{'text':'mot','startMs':1700,'endMs':2580},{'text':'suivant','startMs':2580,'endMs':2940}]
+  warnings=bound_onsets(words,'silence_start: 2.298\nsilence_end: 2.722')
+  self.assertEqual(words[0]['endMs'],2338);self.assertEqual(words[1]['startMs'],2682)
+  self.assertEqual([w['code'] for w in warnings],['ACOUSTIC_OFFSET_BOUND','ACOUSTIC_ONSET_BOUND'])
+ def test_internal_quiet_syllable_is_not_deleted(self):
+  words=[{'text':'mot','startMs':1000,'endMs':1800}]
+  self.assertEqual(bound_onsets(words,'silence_start: 1.2\nsilence_end: 1.5'),[])
+  self.assertEqual(words[0]['endMs'],1800)
+
 if __name__=='__main__':unittest.main()

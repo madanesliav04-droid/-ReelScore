@@ -47,8 +47,18 @@ def bound_onsets(words,log):
             if a<=word['startMs']<b and b<word['endMs']-20:
                 onset=max(word['startMs'],b-40)
                 if onset>word['startMs']:
+                    word.setdefault('asrStartMs',word['startMs'])
                     warnings.append({'code':'ACOUSTIC_ONSET_BOUND','wordIndex':i,'previousStartMs':word['startMs'],'startMs':onset})
                     word['startMs']=onset
+            # The last syllable must not remain highlighted deep into a
+            # measured pause. Keep a 40ms release margin, never cut inside
+            # an internal silence whose end still belongs to this word.
+            if word['startMs']+20<a<word['endMs']<=b:
+                release=min(word['endMs'],a+40)
+                if release<word['endMs']:
+                    word.setdefault('asrEndMs',word['endMs'])
+                    warnings.append({'code':'ACOUSTIC_OFFSET_BOUND','wordIndex':i,'previousEndMs':word['endMs'],'endMs':release})
+                    word['endMs']=release
     return warnings
 
 def main(source):
@@ -71,6 +81,6 @@ def main(source):
         raw.extend({'text':w.word,'start':w.start,'end':w.end,'probability':w.probability} for w in segment.words)
     words,warnings=normalize_words(raw,duration_ms)
     warnings.extend(bound_onsets(words,decoded.stderr.decode('utf8',errors='replace')))
-    print(json.dumps({'engineVersion':'faster-whisper-'+whisper_version+'-cpu-int8-beam5-fr-v2','modelSha256':digest.hexdigest(),'language':info.language,'text':' '.join(text),'words':words,'warnings':warnings,'reviewed':False,'timingMethod':'whisper_word_timestamps','notice':'Transcription automatique locale à relire et écouter. Les horaires Whisper ne constituent pas un alignement phonétique indépendant certifié.'},ensure_ascii=False))
+    print(json.dumps({'engineVersion':'faster-whisper-'+whisper_version+'-cpu-int8-beam5-fr-v3','modelSha256':digest.hexdigest(),'language':info.language,'text':' '.join(w['text'] for w in words),'words':words,'warnings':warnings,'reviewed':False,'timingMethod':'whisper_word_timestamps_acoustic_bounds','notice':'Transcription automatique locale à relire et écouter. Les horaires Whisper, même bornés par les pauses mesurées, ne constituent pas un alignement phonétique indépendant certifié.'},ensure_ascii=False))
 
 if __name__=='__main__':main(sys.argv[1])

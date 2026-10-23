@@ -45,8 +45,14 @@ export function buildLocalEdit({report,approvedPauseIds=[],transcript=[],caption
     previousEnd=endMs;
     return {text,startMs,endMs};
   });
+  // Acoustic display refinements must never authorize cutting a quiet syllable
+  // covered by the original ASR interval. These guards can only widen a word.
+  const guards=words.map((w,i)=>({
+    startMs:Number.isFinite(transcript[i].asrStartMs)&&transcript[i].asrStartMs>=0?Math.min(w.startMs,transcript[i].asrStartMs):w.startMs,
+    endMs:Number.isFinite(transcript[i].asrEndMs)&&transcript[i].asrEndMs<=report.metadata.durationMs?Math.max(w.endMs,transcript[i].asrEndMs):w.endMs
+  }));
   if(words.length)cuts=cuts.map(c=>{
-    const gaps=[];for(let i=-1;i<words.length;i++){const startMs=Math.max(c.startMs,i<0?0:words[i].endMs+120),endMs=Math.min(c.endMs,i+1>=words.length?report.metadata.durationMs:words[i+1].startMs-120);if(endMs-startMs>=220)gaps.push({startMs,endMs});}
+    const gaps=[];for(let i=-1;i<guards.length;i++){const startMs=Math.max(c.startMs,i<0?0:guards[i].endMs+120),endMs=Math.min(c.endMs,i+1>=guards.length?report.metadata.durationMs:guards[i+1].startMs-120);if(endMs-startMs>=220)gaps.push({startMs,endMs});}
     const gap=gaps.sort((a,b)=>(b.endMs-b.startMs)-(a.endMs-a.startMs))[0];
     if(!gap)throw invalid('Aucune coupe sûre entre les mots de cette pause. Désélectionnez-la.');
     return {...c,...gap};

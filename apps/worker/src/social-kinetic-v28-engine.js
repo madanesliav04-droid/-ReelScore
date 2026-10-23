@@ -78,17 +78,24 @@ export function socialKineticV28Html(plan,{width,height,fps=30}={}){
  }).join('');
  const cues=[];
  for(let i=0;i<plan.events.length;i++){
-  const e=plan.events[i],a=sec(e.startMs),
-    exit=sec(Math.max(e.startMs+200,Math.min(e.endMs-155,plan.durationMs-130)));
-  const dy=e.kind==='hero'?18:9,dur=e.kind==='hero'?.26:.19;
+  const e=plan.events[i],a=sec(e.startMs),caption=e.kind==='caption';
+  const first=e.words?.[0],last=e.words?.at(-1);
+  const wordDuration=w=>Math.max(1,w.outputEndMs-w.outputStartMs);
+  // Speech captions must remain readable through their last word and leave
+  // before the next group. Keep the original timing for non-speech graphics.
+  const fadeMs=caption?Math.min(140,wordDuration(last)/4):140;
+  const exit=sec(caption?e.endMs-fadeMs:Math.max(e.startMs+200,Math.min(e.endMs-155,plan.durationMs-130)));
+  const speechFade=(ms,maximum)=>ms<1000/fps?0:Math.min(maximum,ms/1000);
+  const dy=e.kind==='hero'?18:9,dur=caption?speechFade(wordDuration(first),.19):e.kind==='hero'?.26:.19;
   cues.push('tl.fromTo("#i'+i+'",{opacity:0,y:'+dy+',scale:'+(e.kind==='hero'?.87:.97)+
     '},{opacity:1,y:0,scale:1,duration:'+dur+',ease:"power2.out",immediateRender:false},'+a+');');
   if(e.kind==='caption'){
     for(let k=0;k<e.words.length;k++){
-     cues.push('tl.fromTo("#w'+i+'_'+k+'",{opacity:0,y:5},{opacity:1,y:0,duration:.17,ease:"power2.out",immediateRender:false},'+sec(e.words[k].outputStartMs)+');');
+     const wordFade=speechFade(wordDuration(e.words[k]),.17);
+     cues.push('tl.fromTo("#w'+i+'_'+k+'",{opacity:0,y:5},{opacity:1,y:0,duration:'+wordFade+',ease:"power2.out",immediateRender:false},'+sec(e.words[k].outputStartMs)+');');
     }
   }
-  cues.push('tl.to("#i'+i+'",{opacity:0,y:-4,duration:.14,ease:"power2.in"},'+exit+');');
+  cues.push('tl.to("#i'+i+'",{opacity:0,y:-4,duration:'+fadeMs/1000+',ease:"power2.in"},'+exit+');');
  }
  const info={model:'social_kinetic_v28',durationMs:plan.durationMs,
    approvedEvents:plan.events.length,withheld:plan.held?.length||0,source:'verified_words_and_independent_safe_rects'};
@@ -116,3 +123,4 @@ export function socialKineticV28Html(plan,{width,height,fps=30}={}){
  'window.__timelines=window.__timelines||{};window.__timelines["editplus-social-kinetic-v28-native"]=tl;'+
  'window.__sceneManifest='+JSON.stringify(info)+';</script></body></html>';
 }
+

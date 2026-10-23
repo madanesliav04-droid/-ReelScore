@@ -25,3 +25,13 @@ test('real acoustic pauses merge and narrow conservatively around words',()=>{
  assert.deepEqual(edit.cuts.map(({startMs,endMs})=>({startMs,endMs})),[{startMs:1320,endMs:1680}]);
  assert.equal(edit.captions.flatMap(c=>c.words)[1].startMs,1440);
 });
+
+test('caption edge refinements cannot widen a cut into the original ASR speech interval',()=>{
+ const report={metadata:{...meta,durationMs:4000},suggestions:[{id:'pause',startMs:1250,endMs:2250}]};
+ const transcript=[{text:'avant',startMs:800,endMs:1100,asrEndMs:1300},{text:'après',startMs:2400,endMs:2800,asrStartMs:2100}];
+ const edit=buildLocalEdit({report,approvedPauseIds:['pause'],transcript,previewOnly:true});
+ assert.deepEqual(edit.cuts.map(c=>[c.startMs,c.endMs]),[[1420,1980]]);
+ const hostile=transcript.map(w=>({...w,asrStartMs:999999,asrEndMs:-999999}));
+ const fallback=buildLocalEdit({report,approvedPauseIds:['pause'],transcript:hostile,previewOnly:true});
+ assert.deepEqual(fallback.cuts.map(c=>[c.startMs,c.endMs]),[[1250,2250]]);
+});

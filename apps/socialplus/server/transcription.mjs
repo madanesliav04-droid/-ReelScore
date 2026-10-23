@@ -7,7 +7,7 @@ export function transcriptionKey(){
  const dir=process.env.SOCIALPLUS_ASR_MODEL_DIR;
  if(!dir||!['model.bin','config.json','tokenizer.json'].every(name=>existsSync(join(dir,name))))return null;
  const file=statSync(join(dir,'model.bin'));
- return createHash('sha256').update(JSON.stringify(['local-whisper-v2',dir,file.size,file.mtimeMs,process.env.SOCIALPLUS_ASR_PYTHON,process.env.SOCIALPLUS_ASR_MODULE_DIR])).digest('hex');
+ return createHash('sha256').update(JSON.stringify(['local-whisper-v3',dir,file.size,file.mtimeMs,process.env.SOCIALPLUS_ASR_PYTHON,process.env.SOCIALPLUS_ASR_MODULE_DIR])).digest('hex');
 }
 export async function transcribeLocal(sourcePath,{run,signal}={}){
  if(!transcriptionKey())throw Object.assign(new Error('Configurer un modèle Whisper local avant la transcription.'),{code:'ASR_NOT_CONFIGURED',status:503});
