@@ -1,0 +1,206 @@
+{
+  "baseRemoteCommit": "a314ddd197b90f212d9c05c2a4f7ac4d03537d77",
+  "scope": "Correction des sous-titres et recette ciblée sur le rush parlé existant. Aucune nouvelle fonctionnalité produit.",
+  "exports": [
+    {
+      "model": "codie-omni-v60",
+      "width": 910,
+      "height": 512,
+      "durationMs": 23967,
+      "codecs": [
+        "h264",
+        "aac"
+      ],
+      "audioStreams": 1,
+      "fullDecode": "pass",
+      "aacSha256": "3ab56de121876c557cf02f06da30faba19e447b1c7dcad782e0c77ff45e41a2b",
+      "bytes": 3914937,
+      "voiceCorrelation": [
+        {
+          "sourceStartMs": 600,
+          "outputMapStartMs": 600,
+          "audioLagMs": 0.0,
+          "correlation": 0.999993
+        },
+        {
+          "sourceStartMs": 8307,
+          "outputMapStartMs": 7881,
+          "audioLagMs": 0.0,
+          "correlation": 0.999143
+        },
+        {
+          "sourceStartMs": 10277,
+          "outputMapStartMs": 9523,
+          "audioLagMs": 0.0,
+          "correlation": 0.998353
+        },
+        {
+          "sourceStartMs": 21500,
+          "outputMapStartMs": 20455,
+          "audioLagMs": 0.0,
+          "correlation": 0.998824
+        }
+      ]
+    },
+    {
+      "model": "alex-hormozi-v16",
+      "width": 910,
+      "height": 512,
+      "durationMs": 23967,
+      "codecs": [
+        "h264",
+        "aac"
+      ],
+      "audioStreams": 1,
+      "fullDecode": "pass",
+      "aacSha256": "3ab56de121876c557cf02f06da30faba19e447b1c7dcad782e0c77ff45e41a2b",
+      "bytes": 3628201
+    },
+    {
+      "model": "leila-hormozi-v53",
+      "width": 910,
+      "height": 512,
+      "durationMs": 23967,
+      "codecs": [
+        "h264",
+        "aac"
+      ],
+      "audioStreams": 1,
+      "fullDecode": "pass",
+      "aacSha256": "3ab56de121876c557cf02f06da30faba19e447b1c7dcad782e0c77ff45e41a2b",
+      "bytes": 4025674
+    },
+    {
+      "model": "social-kinetic-v28",
+      "width": 910,
+      "height": 512,
+      "durationMs": 23967,
+      "codecs": [
+        "h264",
+        "aac"
+      ],
+      "audioStreams": 1,
+      "fullDecode": "pass",
+      "aacSha256": "3ab56de121876c557cf02f06da30faba19e447b1c7dcad782e0c77ff45e41a2b",
+      "bytes": 4034298
+    },
+    {
+      "model": "apple-premium-spatial",
+      "width": 910,
+      "height": 512,
+      "durationMs": 23967,
+      "codecs": [
+        "h264",
+        "aac"
+      ],
+      "audioStreams": 1,
+      "fullDecode": "pass",
+      "aacSha256": "3ab56de121876c557cf02f06da30faba19e447b1c7dcad782e0c77ff45e41a2b",
+      "bytes": 4061600
+    },
+    {
+      "model": "cinematic-storytelling-v7",
+      "width": 910,
+      "height": 512,
+      "durationMs": 23967,
+      "codecs": [
+        "h264",
+        "aac"
+      ],
+      "audioStreams": 1,
+      "fullDecode": "pass",
+      "aacSha256": "3ab56de121876c557cf02f06da30faba19e447b1c7dcad782e0c77ff45e41a2b",
+      "bytes": 3630024
+    }
+  ],
+  "allSixAudioIdentical": true,
+  "audioProcessing": "Un encodage lors des coupes ; flux AAC édité copié pendant la passe graphique. Corrélation avec la voix source, pas identité binaire avec le rush non coupé.",
+  "editMap": {
+    "fingerprint": "8c57d71ca798711e50cdef56d7e8fc3a7289b9de32ba2c5e8b42c7da2869a210",
+    "cuts": [
+      {
+        "id": "pause-0",
+        "startMs": 7534,
+        "endMs": 7960
+      },
+      {
+        "id": "pause-1",
+        "startMs": 9349,
+        "endMs": 9677
+      },
+      {
+        "id": "pause-2",
+        "startMs": 20609,
+        "endMs": 20900
+      }
+    ],
+    "keepRanges": [
+      {
+        "startMs": 0,
+        "endMs": 7534
+      },
+      {
+        "startMs": 7960,
+        "endMs": 9349
+      },
+      {
+        "startMs": 9677,
+        "endMs": 20609
+      },
+      {
+        "startMs": 20900,
+        "endMs": 25000
+      }
+    ],
+    "outputDurationMs": 23955,
+    "captionReview": "asr_preview"
+  },
+  "corrections": [
+    {
+      "sourceMs": 6680,
+      "from": "restes",
+      "to": "rester",
+      "evidence": "context-only local ASR re-decode",
+      "humanListeningVerified": false
+    },
+    {
+      "sourceMs": 14660,
+      "from": "peux fin",
+      "to": "peaufine",
+      "evidence": "contextual spelling hypothesis, local cross-attention alignment 14650–15170ms",
+      "humanListeningVerified": false
+    }
+  ],
+  "wordTimingMethod": "Horaires ASR, réexamen ciblé local et bornes acoustiques avec conservation des intervalles ASR bruts pour protéger les syllabes faibles.",
+  "independentPhoneticAlignmentCertified": false,
+  "asrAutonomouslyCorrectsBothPassages": false,
+  "browser": {
+    "passed": true,
+    "localTranscriptWords": 84,
+    "contextualCorrectionsApplied": 2,
+    "realPreviewPlayed": true,
+    "reviewUnchecked": true,
+    "sixEventDrafts": true,
+    "realMp4Downloaded": true,
+    "desktop": [
+      1440,
+      1000
+    ],
+    "mobileEmulation": [
+      390,
+      844
+    ],
+    "javascriptErrors": [],
+    "correctionSource": "Plan privé appliqué à la transcription dans le formulaire existant ; les deux corrections ne sont pas présentées comme une réussite de la reconnaissance automatique."
+  },
+  "tests": {
+    "targetedNodeRegression": 26,
+    "kineticFrameAndTimingTests": 4,
+    "pythonWordBoundaryTests": 5,
+    "originalSourceHashIntegrity": true
+  },
+  "commercialReady": false,
+  "masterFidelityCertified": false,
+  "productionModified": false,
+  "paidServiceActivated": false
+}

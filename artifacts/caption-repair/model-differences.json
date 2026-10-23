@@ -1,0 +1,137 @@
+{
+  "scope": "Comparaison ciblée de frames des masters, de captures des exports et des fonctions réellement appelées. Ne vaut pas certification exhaustive image par image.",
+  "originalSourcesIntegrity": "passed",
+  "masterFidelityCertified": false,
+  "models": [
+    {
+      "id": "codie-omni-v60",
+      "reference": "EDITPLUS_V60_FINITION_OMNI.mp4",
+      "referenceSha256": "0266a42d7f341244eaddc3edaa5778b7b34e2f2c681572b4a2349c381669d2c2",
+      "referenceAvailable": true,
+      "referenceSamplesSeconds": [
+        8,
+        16,
+        24,
+        32
+      ],
+      "matches": [
+        "Composants icônes V60 et accents lavande conservés.",
+        "Aucune icône temps/argent hors contexte sur ce rush."
+      ],
+      "differences": [
+        "Les sous-titres utilisent DejaVu Sans 31 px au lieu de la configuration Inter Display SemiBold 34 px du script V60.",
+        "Le master contient des inserts illustratifs ; aucun insert de ce master n’est appliqué au nouveau rush sans source pertinente. Ce choix respecte la consigne de ne pas inventer de B-roll."
+      ]
+    },
+    {
+      "id": "alex-hormozi-v16",
+      "reference": "EDITPLUS_HORMOZI_V16_B_PLEIN_ECRAN_V11_RESTAUREE.mp4",
+      "referenceSha256": "b61463091e12b0ab3d4dc131ae5383e4e0002be64928ab1fbcfa391cae177c35",
+      "referenceAvailable": true,
+      "referenceSamplesSeconds": [
+        8,
+        24,
+        32
+      ],
+      "matches": [
+        "Palette claire, cercles, flèches et mode plein écran présents."
+      ],
+      "differences": [
+        "Le port produit deux nœuds avec leurs libellés parlés. Le master comporte aussi des chaînes à trois blocs, des intertitres sémantiques et des bandeaux de synthèse qui ne sont pas reproduits ici.",
+        "Les décors de fond discrets et la typographie du master ne sont pas reproduits exactement."
+      ]
+    },
+    {
+      "id": "leila-hormozi-v53",
+      "reference": "EDITPLUS_LEILA_IMG_0516_V53_RACCORDS_AFFINES.mp4",
+      "referenceSha256": "e1c9d9c28c76c6bd6bf08e36cf6e724bdcfb0755a17ed4ac2b9294343ec502cb",
+      "referenceAvailable": true,
+      "referenceSamplesSeconds": [
+        16,
+        24,
+        32
+      ],
+      "matches": [
+        "Fonction draw_scene originale, arrivée progressive et filet mural conservés."
+      ],
+      "differences": [
+        "Les lignes à coches prononcées successivement du master sont absentes : rows est vide dans le port.",
+        "La police serif EBGaramond du master est remplacée par une sans-serif de substitution.",
+        "La zone approuvée sur ce rush est à gauche et plus étroite ; le titre est réduit pour dégager le visage."
+      ]
+    },
+    {
+      "id": "social-kinetic-v28",
+      "reference": "EDITPLUS_SOCIAL_KINETIC_V28_BULLES_TIMING_VALIDE.mp4",
+      "referenceSha256": "57711be2328d08a66e0f9b197ce053d4b4d3607673ad1181f2493ca59d4df2cd",
+      "referenceAvailable": true,
+      "referenceSamplesSeconds": [
+        8,
+        16,
+        32
+      ],
+      "matches": [
+        "Compositeur HTML/GSAP V28 existant, blanc condensé et bulles bleues réutilisés.",
+        "Les fondus de parole courts et la sortie de groupe sont corrigés."
+      ],
+      "differences": [
+        "La position des sous-titres du port reste fixe en bas à gauche ; le master alterne les côtés selon ses plans.",
+        "Le placement des bulles est fourni et relu ; il ne résulte pas d’un suivi automatique indépendant du visage ou des mains."
+      ]
+    },
+    {
+      "id": "apple-premium-spatial",
+      "reference": "EDITPLUS_SPATIAL_UI_V10_FOCUS.mp4",
+      "referenceSha256": "bf19588c9b983eba5f52e829f1f305fba082cd575b7a69d4bef62bff45e01c06",
+      "referenceAvailable": true,
+      "referenceSamplesSeconds": [
+        8,
+        16,
+        24,
+        32
+      ],
+      "matches": [
+        "Fonction title_image V10, filet et marqueurs de progression réutilisés."
+      ],
+      "differences": [
+        "Le port ne compose que le titre. Les détails de la chaîne V8/V9 visibles dans le master (schéma en étapes, colonnes, sous-points et pictogrammes de document) ne sont pas raccordés.",
+        "La typographie Inter exacte manque ; la zone libre plus étroite réduit la taille du composant."
+      ]
+    },
+    {
+      "id": "cinematic-storytelling-v7",
+      "reference": "IMG_0506_CINEMATIC_V7_PREMIUM_FINAL_IPHONE.mp4",
+      "referenceSha256": "adce34392a66a4ba505571a1d28ec7eee54acb513a7edd97031b67666afefa2c",
+      "referenceAvailable": true,
+      "referenceSamplesSeconds": [
+        6.7,
+        20.2,
+        27.4,
+        35
+      ],
+      "matches": [
+        "Fond navy à grille/radial, accent or, mix_layer, under_rule et fondus Python originaux réutilisés."
+      ],
+      "differences": [
+        "Le port reste un titre et un filet. Le master emploie une hiérarchie blanc/or à plusieurs niveaux, des numéros de chapitre, des cartes, des flèches et une progression en bas de cadre qui ne sont pas intégrés.",
+        "La police Inter SemiBold exacte manque. Le script V7 et le master sont présents : ce blocage est une intégration incomplète, pas une archive V7 introuvable."
+      ]
+    }
+  ],
+  "missingFonts": {
+    "files": [
+      "InterDisplay-SemiBold.otf",
+      "Inter-Regular.otf",
+      "Inter-Medium.otf",
+      "Inter-SemiBold.otf",
+      "EBGaramond08-Regular.ttf",
+      "Lato-Medium.ttf",
+      "Lato-Regular.ttf"
+    ],
+    "neededFor": "Reproduire les familles et métriques typographiques d’origine. Ces fichiers ne bloquent pas la génération H.264/AAC avec substitution.",
+    "presentInProvidedPacks": false,
+    "presentAtOriginalScriptPaths": false
+  },
+  "missingMasterOrScript": [],
+  "remainingPhoneticBlock": "La correction lexicale du second passage reste une hypothèse contextuelle. Une écoute humaine du rush et des exports est indispensable avant de déclarer les paroles et horaires exacts."
+}
