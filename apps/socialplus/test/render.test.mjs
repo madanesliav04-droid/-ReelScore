@@ -11,7 +11,7 @@ import {MODEL_CATALOG,probeVideo,renderVideo} from '../server/render.mjs';
 test('the six artistic references stay distinct from technical conversion and fail closed',async()=>{
   assert.equal(MODEL_CATALOG.length,6);
   assert.equal(new Set(MODEL_CATALOG.map(m=>m.id)).size,6);
-  assert.ok(MODEL_CATALOG.every(m=>m.available===false));
+  assert.ok(MODEL_CATALOG.every(m=>m.available===true&&m.releaseApproved===false));
   await assert.rejects(renderVideo({modelId:'cinematic-storytelling-v7'}),{code:'MODEL_REFERENCE_MEDIA_REQUIRED'});
   await assert.rejects(renderVideo({modelId:'alex-hormozi-v16'}),{code:'MODEL_QA_REQUIRED'});
   await assert.rejects(renderVideo({modelId:'not-a-model'}),{code:'UNKNOWN_MODEL'});

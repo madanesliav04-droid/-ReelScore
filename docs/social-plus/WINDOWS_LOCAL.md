@@ -16,11 +16,12 @@ node --version
 ffmpeg -version
 ffprobe -version
 if (!(Test-Path .env.local)) { Copy-Item .env.example .env.local }
+npm ci
 npm run owner
 npm start
 ```
 
-Ouvrir `http://localhost:4318` dans Chrome ou Edge. Aucune installation npm n'est nécessaire au lancement : le serveur utilise les modules fournis avec Node.js. Si le port est occupé, changer ensemble `PORT` et `SOCIALPLUS_ORIGIN` dans `.env.local` avant de relancer.
+Ouvrir `http://localhost:4318` dans Chrome ou Edge. `npm ci` installe les dépendances verrouillées du compositeur Social Kinetic hors ligne (Playwright et GSAP). Les autres traitements utilisent Node.js, Python et FFmpeg. Si le port est occupé, changer ensemble `PORT` et `SOCIALPLUS_ORIGIN` dans `.env.local` avant de relancer.
 
 `npm run owner` demande l'adresse e-mail vérifiée, inscrit le propriétaire dans la base locale, affiche une clé TOTP dans votre terminal privé et exige le code correspondant. Le mot de passe est saisi sans écho. Garder `.env.local` et `.data` hors Git. Ne jamais partager une capture contenant la clé ou le QR/URI TOTP. Une connexion propriétaire exige mot de passe et nouveau code MFA.
 
@@ -50,3 +51,5 @@ Les fichiers `artifacts/render/*` sont des essais techniques synthétiques ident
 Le serveur écoute volontairement la boucle locale. `localhost` sur l'iPhone désigne l'iPhone, pas le PC. Pour une vraie recette Safari iPhone, prévoir un staging privé HTTPS autorisé ou un accès HTTPS local correctement configuré ; ne pas exposer directement le serveur sur Internet. Aucun hébergement ni tunnel payant n'est activé par ces instructions. Les captures aux dimensions iPhone exécutées sous Chromium sont de l'émulation, pas un essai Safari matériel.
 
 Arrêter le serveur avec `Ctrl+C` avant de sauvegarder ensemble `.data` et `.env.local` dans un emplacement privé. Pour revenir à une sauvegarde, arrêter le serveur, conserver une copie de l'état courant, puis restaurer les deux éléments cohérents. La restauration et les délais de conservation doivent faire l'objet d'une recette avant production. La production existante Supabase/Railway/Cloudflare n'est pas migrée par cette branche.
+
+Pour les six adaptations de modèles : installer Python 3, puis `python -m pip install numpy Pillow`. Dans `.env.local`, définir `SOCIALPLUS_PYTHON=python`. Pour Social Kinetic, renseigner `SOCIALPLUS_CHROMIUM` avec le chemin de Chrome/Chromium déjà installé, par exemple `C:\Program Files\Google\Chrome\Application\chrome.exe`. Aucun appel à un service de rendu externe n’est effectué. `npm run preflight` contrôle les prérequis.

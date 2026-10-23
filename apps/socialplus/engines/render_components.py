@@ -39,6 +39,16 @@ def main(config_path):
         scope.update(STAGES=[dict(num=str(i+1).zfill(2),title=e['text'],sub=e.get('sub','')) for i,e in enumerate(events)])
         scope['fnt']=lambda n,w='medium':ImageFont.truetype(font({'regular':'Inter-Regular.otf','medium':'Inter-Medium.otf','semi':'Inter-SemiBold.otf'}[w]),n)
         functions(ROOT/'spatial-v10/code/portable_editplus_spatial_ui_v10_focus.py',['title_image'],scope)
+    elif model=='cinematic-storytelling-v7':
+        scope.update(W=960,H=540,NAVY=(3,17,32),WHITE=(247,250,255),MUTED=(170,193,211),GOLD=(228,189,113),CYAN=(153,194,217))
+        scope['font']=lambda n,w='b':ImageFont.truetype(font('Inter-SemiBold.otf'),n)
+        functions(ROOT/'cinematic-v7/src/render_v6_historique.py',['textxy','ease','wave','ramp','fade_edge','make_bg','layer_from','mix_layer','under_rule'],scope)
+        cinema_bg=scope['make_bg']()
+        cinema_layers=[]
+        for e in events:
+            title=e['text'];size=65
+            while scope['font'](size).getlength(title)>820 and size>18:size-=1
+            cinema_layers.append(scope['layer_from'](lambda d,title=title,size=size:scope['textxy'](d,(480,260),title,size,scope['GOLD'],'mm','s')))
     else:raise RuntimeError('Restored component renderer unavailable')
     cmd=['ffmpeg','-hide_banner','-loglevel','error','-nostdin','-y','-f','rawvideo','-pix_fmt','rgba','-s',f'{W}x{H}','-r',str(fps),'-i','pipe:0','-an','-c:v','qtrle',c['output']]
     process=subprocess.Popen(cmd,stdin=subprocess.PIPE)
@@ -71,6 +81,14 @@ def main(config_path):
                     scope['SERIF'][73]=fitted
                     im=ImageOps.contain(Image.fromarray(scope['draw_scene'](t,scene)),(w,h),Image.Resampling.LANCZOS)
                     x+=(w-im.width)//2;y+=(h-im.height)//2
+                elif model=='cinematic-storytelling-v7':
+                    im=cinema_bg.copy()
+                    scope['mix_layer'](im,cinema_layers[i],t-a,delay=.12,dur=.36,dy=24)
+                    scope['mix_layer'](im,scope['under_rule'](340),t-a,delay=.34,dur=.4,dy=0)
+                    im=ImageOps.fit(im,(W,H),Image.Resampling.LANCZOS)
+                    opacity=scope['fade_edge'](t-a,b-a,fin=.22,fout=.28)
+                    im.putalpha(im.getchannel('A').point(lambda p:round(p*opacity)))
+                    x=y=0
                 else:
                     im=ImageOps.contain(Image.fromarray(scope['title_image'](i)),(w,h),Image.Resampling.LANCZOS)
                     x+=(w-im.width)//2;y+=(h-im.height)//2

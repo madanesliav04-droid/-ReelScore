@@ -1,10 +1,13 @@
+import {createRequire} from 'node:module';
 import {spawnSync} from 'node:child_process';
 import {DatabaseSync} from 'node:sqlite';
 import {mkdtemp,writeFile,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 
-const failures=[];
+const failures=[];const require=createRequire(import.meta.url);
+for(const pkg of ['playwright-core','gsap'])try{require.resolve(pkg);}catch{failures.push('Exécutez npm ci : dépendance manquante '+pkg);}
+if(process.env.SOCIALPLUS_CHROMIUM||process.platform==='linux')output(process.env.SOCIALPLUS_CHROMIUM||'/usr/bin/chromium',['--version']);
 if(Number(process.versions.node.split('.')[0])<24)failures.push('Node.js 24 ou plus récent requis.');
 function output(tool,args){const r=spawnSync(tool,args,{encoding:'utf8',timeout:10000,maxBuffer:2_000_000});if(r.error||r.status!==0){failures.push(`${tool} indisponible ou en échec.`);return '';}return r.stdout+r.stderr;}
 const encoders=output('ffmpeg',['-hide_banner','-encoders']);

@@ -1,12 +1,13 @@
 # Build from the repository root. No app credentials, data or npm dependencies
 # enter this image. Build/run this image only on an explicitly selected machine.
 FROM node:24-bookworm-slim
-RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg fonts-dejavu-core ca-certificates python3 python3-numpy python3-pil \
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg fonts-dejavu-core ca-certificates python3 python3-numpy python3-pil chromium \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app/apps/socialplus
 COPY --chown=node:node apps/worker/package.json /app/apps/worker/package.json
 COPY --chown=node:node apps/worker/src /app/apps/worker/src
-COPY --chown=node:node apps/socialplus/package.json ./package.json
+COPY --chown=node:node apps/socialplus/package.json apps/socialplus/package-lock.json ./
+RUN npm ci --omit=dev --ignore-scripts --no-audit --no-fund
 COPY --chown=node:node apps/socialplus/server ./server
 COPY --chown=node:node apps/socialplus/public ./public
 COPY --chown=node:node apps/socialplus/scripts ./scripts

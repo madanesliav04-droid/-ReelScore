@@ -25,26 +25,27 @@ test('restored previews require reviewed speech and composition, reject unsafe o
 });
 test('six reference releases remain guarded individually; recovered code is not master certification',async()=>{
  for(const model of MODEL_CATALOG){
-  assert.equal(model.available,false);
+  assert.equal(model.available,true);assert.equal(model.releaseApproved,false);
   await assert.rejects(renderVideo({modelId:model.id}),{code:model.id==='cinematic-storytelling-v7'?'MODEL_REFERENCE_MEDIA_REQUIRED':'MODEL_QA_REQUIRED'});
  }
 });
-test('three restored original compositors render visible MP4s on new technical fixtures with native audio',async()=>{
+test('six restored original compositors render visible MP4s on new technical fixtures with native audio',async()=>{
  const dir=await mkdtemp(join(tmpdir(),'socialplus-original-port-'));
  try{
   const source=join(dir,'new-technical-fixture.mp4');
   await exec('ffmpeg',['-v','error','-f','lavfi','-i','color=c=0xE0E0DA:s=640x360:r=30:d=3','-f','lavfi','-i','sine=frequency=440:duration=3','-c:v','libx264','-threads','1','-pix_fmt','yuv420p','-c:a','aac','-shortest',source]);
   const frame=p=>exec('ffmpeg',['-v','error','-ss','1.3','-i',p,'-frames:v','1','-f','rawvideo','-pix_fmt','rgb24','pipe:1'],{encoding:'buffer',maxBuffer:2_000_000});
   const before=(await frame(source)).stdout;
-  for(const model of RESTORED_PREVIEWS){
+  for(const model of RESTORED_PREVIEWS.filter(model=>!process.env.SOCIALPLUS_TEST_MODELS||process.env.SOCIALPLUS_TEST_MODELS.split(',').includes(model))){
    const output=join(dir,model+'.mp4');
-   const result=await renderVideo({sourcePath:source,outputPath:output,modelId:'restored-preview:'+model,restoredInput:input});
+   const result=await renderVideo({sourcePath:source,outputPath:output,modelId:model,restoredInput:{...input,events:[{wordIndex:0,kind:model==='social-kinetic-v28'?'bubble':'clock',rect:model==='alex-hormozi-v16'?[.15,.05,.7,.2]:[.1,.1,.4,.4]}]}});
    assert.equal(result.metadata.videoCodec,'h264');assert.equal(result.metadata.audioCodec,'aac');assert.equal(result.metadata.audioStreams,1);
    assert.equal(result.metadata.width,640);assert.equal(result.metadata.height,360);assert.ok(Math.abs(result.metadata.durationMs-3000)<150);
-   assert.equal(result.audit.restoredModel,model);assert.equal(result.audit.release,'component_preview_not_master_certified');
+   assert.equal(result.audit.restoredModel,model);assert.equal(result.audit.release,'beta_not_master_certified');
    const after=(await frame(output)).stdout;let changed=0;
    // Check only the graphic zone, excluding subtitles and compression noise.
    for(let y=40;y<170;y++)for(let x=65;x<310;x++){const i=(y*640+x)*3;if(Math.max(...[0,1,2].map(k=>Math.abs(after[i+k]-before[i+k])))>30)changed++;}
+   if(process.env.SOCIALPLUS_MODEL_TEST_OUTPUT){const {mkdir,copyFile}=await import('node:fs/promises');await mkdir(process.env.SOCIALPLUS_MODEL_TEST_OUTPUT,{recursive:true});await copyFile(output,join(process.env.SOCIALPLUS_MODEL_TEST_OUTPUT,model+'.mp4'));}
    assert.ok(changed>80,model+' visible original component pixels: '+changed);
   }
  }finally{await rm(dir,{recursive:true,force:true});}

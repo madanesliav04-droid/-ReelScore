@@ -6,6 +6,7 @@ Avec Node.js 24, FFmpeg et FFprobe installés :
 
 ```sh
 cd apps/socialplus
+npm ci
 npm run owner
 npm start
 ```
@@ -16,7 +17,7 @@ Ouvrir `http://localhost:4318`. Le script propriétaire initialise `.env.local` 
 npm test
 ```
 
-Le lancement et les tests du serveur n’exigent aucune dépendance npm. Le script facultatif `scripts/browser-smoke.mjs` exige Playwright Core et Chromium déjà installés ; il peut utiliser `PLAYWRIGHT_MODULE_PATH` et `CHROMIUM_PATH`. Il crée uniquement une base temporaire et une vidéo technique générée, puis supprime les comptes de test. Il ne déploie rien.
+Le serveur de base utilise les modules Node.js. Les tests et le rendu Social Kinetic exigent les dépendances verrouillées installées par `npm ci`. Le script facultatif `scripts/browser-smoke.mjs` exige Playwright Core et Chromium déjà installés ; il peut utiliser `PLAYWRIGHT_MODULE_PATH` et `CHROMIUM_PATH`. Il crée uniquement une base temporaire et une vidéo technique générée, puis supprime les comptes de test. Il ne déploie rien.
 
 - [Guide Windows](../../docs/social-plus/WINDOWS_LOCAL.md)
 - [Rapport des 97 scénarios](../../docs/social-plus/V18_ACCEPTANCE_REPORT.json)
@@ -44,3 +45,12 @@ Sur une machine et un hébergement autorisés : configurer `.env.local` avec l�
 Les scripts du pack léger utilisateur sont conservés sans modification dans `engines/originals`, avec empreintes SHA-256. Trois ports de composants sont accessibles depuis le modèle choisi : icônes Codie V60, titres muraux Leila et titres Spatial V10. Ils utilisent les fonctions de dessin originales, vos mots alignés et vos zones libres validées. Le formulaire d’événements désigne les mots par `wordIndex` (à partir de zéro) et `wordCount`, puis leur rectangle normalisé. Aucune date historique, phrase de référence ni piste audio d’un autre rush n’est appliquée.
 
 Python 3 avec `numpy` et `Pillow` est requis pour ces essais (`python -m pip install numpy Pillow`). Configurer `SOCIALPLUS_PYTHON=python` sur Windows si nécessaire. Les essais gardent le format natif jusqu’à 720p et 60 secondes, et exportent H.264/AAC. Ils ne constituent pas encore les moteurs complets certifiés V60/V53/V10. Le script Cinematic V7 est bien restauré, mais ses scènes utilisent les vidéos V6 et le rush absents du pack léger : elles restent bloquées, sans remplacement artificiel.
+
+
+### Six adaptations de modèles — références reçues le 23 octobre
+
+Les six vidéos de référence sont reçues et vérifiées. Elles restent hors du dépôt standard ; `engines/REFERENCE_MANIFEST.json` conserve leurs empreintes et distingue les copies recompressées de transport. Les fichiers `originals/received-20261023` complètent les sources sans modifier celles déjà intégrées.
+
+Les six modèles disposent désormais d’une adaptation en bêta, avec texte déclenché par les mots fournis et placement relu. Alex réutilise le renderer ASS OMNI ; Social Kinetic réutilise son compositeur HTML/GSAP V28, capturé localement et sans CDN ; Cinematic reprend les fonctions graphiques Python de la chaîne V6/V7 pour des séquences plein écran, en masquant les sous-titres pendant ces séquences. Aucun texte, cut ni audio de référence n’est appliqué à une autre vidéo. Les coupes de pauses validées peuvent précéder les six rendus ; leurs mots et déclencheurs sont recalés sur le même montage.
+
+Lancer `npm ci` pour les deux dépendances verrouillées Playwright/GSAP. Python avec numpy/Pillow et Chrome/Chromium local sont nécessaires ; consulter le guide Windows. Les rendus d’essai restent limités à 720p natif et 60 secondes. La fidélité artistique et l’écoute mot-à-mot nécessitent une recette sur de nouveaux rushs parlés : `releaseApproved` reste faux. Les sous-titres reposent sur la transcription alignée fournie et relue, sans transcription automatique simulée.

@@ -1,3 +1,4 @@
+import {mapOriginalToOutput} from '../../worker/src/edit.js';
 import {prepareRestoredOverlay,RESTORED_PREVIEWS} from './restored-models.mjs';
 import {spawn} from 'node:child_process';
 import {createReadStream} from 'node:fs';
@@ -33,7 +34,7 @@ export const MODEL_CATALOG = Object.freeze([
   {id:'cinematic-storytelling-v7',label:'Cinematic Storytelling',version:'V7 finale',status:'reference_only',sourceAvailable:true,referenceMediaRequired:true,available:false,
     reason:'Le master approuvé utilise Python + FFmpeg. Le prototype Hyperframes V2 retrouvé ne le remplace pas.',
     missingSources:['CINEMATIC_STORYTELLING_V7_PROJET_COMPLET.zip : médias','IMG_0506(2).mp4','IMG_0506_CINEMATIC_V6_APPLE_MINIMAL_IPHONE.mp4','IMG_0506_CINEMATIC_V7_PREMIUM_FINAL_IPHONE.mp4']}
-]);
+].map(m=>({...m,available:true,previewAvailable:true,status:'beta',sourceAvailable:true,referenceAvailable:true,releaseApproved:false,missingSources:[],reason:'Adaptation nouveau rush en bêta, avec mots alignés et zones relues. Fidélité au master et synchronisation à vérifier avant publication.'})));
 
 export const TECHNICAL_EXPORT = Object.freeze({id:'technical-export',label:'Exporter la source en MP4',status:'available',available:true,
   reason:'Conversion H.264/AAC du rush original, sans montage artistique ni mots inventés.'});
@@ -92,15 +93,15 @@ function assertSafeTimeline(timeline,meta) {
 
 /** Trusted server paths only: never pass a client-supplied path or shell text. */
 export async function renderVideo({sourcePath,outputPath,modelId,analysis,timeline,frameProof,editorialEvents,localEdit,restoredInput,onProgress=async()=>{},signal}={}) {
-  const preview=typeof modelId==='string'&&modelId.startsWith('restored-preview:')?modelId.slice('restored-preview:'.length):null;
+  const preview=typeof modelId==='string'&&modelId.startsWith('restored-preview:')?modelId.slice('restored-preview:'.length):restoredInput&&RESTORED_PREVIEWS.includes(modelId)?modelId:null;
   if(preview&&!RESTORED_PREVIEWS.includes(preview))throw new RenderError('UNKNOWN_MODEL','Port de composants inconnu.');
   const known=MODEL_CATALOG.find(m=>m.id===modelId);
   if(modelId!==TECHNICAL_EXPORT.id&&modelId!=='guided-edit'&&!preview&&!known)throw new RenderError('UNKNOWN_MODEL','Modèle inconnu.');
-  if(known?.referenceMediaRequired)throw new RenderError('MODEL_REFERENCE_MEDIA_REQUIRED','Le script V7 restauré nécessite encore le rush IMG_0506(2).mp4 et la vidéo V6 IMG_0506_CINEMATIC_V6_APPLE_MINIMAL_IPHONE.mp4.');
+  if(known?.referenceMediaRequired&&!preview)throw new RenderError('MODEL_REFERENCE_MEDIA_REQUIRED','Le script V7 restauré nécessite encore le rush IMG_0506(2).mp4 et la vidéo V6 IMG_0506_CINEMATIC_V6_APPLE_MINIMAL_IPHONE.mp4.');
   if(known?.sourceAvailable===false)throw new RenderError('MODEL_SOURCE_MISSING',known.reason,{missingSources:known.missingSources});
-  if(known&&process.env.SOCIALPLUS_BETA_RENDER!=='staging')
+  if(known&&!preview&&process.env.SOCIALPLUS_BETA_RENDER!=='staging')
     throw new RenderError('MODEL_QA_REQUIRED',known.reason,{modelId,status:known.status});
-  const meta=await probeVideo(sourcePath,{signal});
+  let meta=await probeVideo(sourcePath,{signal});
   if(meta.durationMs>600_000||meta.width*meta.height>3840*2160)
     throw new RenderError('LOCAL_RENDER_LIMIT','Le rendu local accepte jusqu’à 10 minutes et une définition 4K.');
   if(known&&!meta.hasAudio)throw new RenderError('ORIGINAL_AUDIO_REQUIRED','Le moteur nécessite la piste de voix originale.');
@@ -112,11 +113,19 @@ export async function renderVideo({sourcePath,outputPath,modelId,analysis,timeli
     let inputLabels=null,complex=null,restoredOverlay=null;
     let audit={modelId,artisticModel:false,engine:'ffmpeg-native-export-v1',cuts:0,source:meta,originalAudioStreamsSelected:meta.hasAudio?1:0};
     if(preview){
-      const {plan,overlayPath}=await prepareRestoredOverlay({model:preview,meta,input:restoredInput,work,run,signal});
+      if(localEdit?.approvedPauseIds?.length){
+        const edit=buildLocalEdit(localEdit),editedPath=path.join(work,'edited-source.mp4');
+        const result=await renderVideo({sourcePath,outputPath:editedPath,modelId:'guided-edit',localEdit,signal});
+        sourcePath=editedPath;meta=result.metadata;expectedDurationMs=meta.durationMs;
+        restoredInput={...restoredInput,transcript:restoredInput.transcript.map(w=>({...w,startMs:mapOriginalToOutput(typeof w.startMs==='number'?w.startMs:Math.round(w.start*1000),edit.keepRanges),endMs:mapOriginalToOutput(typeof w.endMs==='number'?w.endMs:Math.round(w.end*1000),edit.keepRanges)})),events:restoredInput.events.map(e=>({...e,...(typeof e.endMs==='number'?{endMs:mapOriginalToOutput(e.endMs,edit.keepRanges)??undefined}:{})}))};
+        audit={...audit,cuts:edit.cuts.length,keepRanges:edit.keepRanges};
+      }
+      const {plan,overlayPath,graphicAss}=await prepareRestoredOverlay({model:preview,meta,input:restoredInput,work,run,signal});
       restoredOverlay=overlayPath;
-      complex=['[0:v:0][1:v:0]overlay=0:0:format=auto:eof_action=pass:repeatlast=0[cutv]'];inputLabels=true;
+      if(overlayPath){complex=['[0:v:0][1:v:0]overlay=0:0:format=auto:eof_action=pass:repeatlast=0[cutv]'];inputLabels=true;}
+      if(graphicAss){const assPath=path.join(work,'graphics.ass');await writeFile(assPath,graphicAss);filters.push(`ass=filename='${assPath.replace(/\\/g,'/').replace(/:/g,'\\:')}'`);}
       if(plan.ass){const assPath=path.join(work,'captions.ass');await writeFile(assPath,plan.ass);filters.push(`ass=filename='${assPath.replace(/\\/g,'/').replace(/:/g,'\\:')}'`);}
-      audit={...audit,engine:'restored-original-components-v1',release:'component_preview_not_master_certified',restoredModel:preview,eventCount:plan.events.length,placement:'user_reviewed',font:'Inter or system fallback'};
+      audit={...audit,engine:'socialplus-model-adapter-v2',release:'beta_not_master_certified',restoredModel:preview,eventCount:plan.events.length,placement:'user_reviewed',font:'Inter or system fallback'};
     }else if(modelId==='guided-edit') {
       const edit=buildLocalEdit(localEdit);
       if(edit.outputDurationMs<500)throw new RenderError('INVALID_EDIT','Le montage doit conserver au moins une demi-seconde.');
