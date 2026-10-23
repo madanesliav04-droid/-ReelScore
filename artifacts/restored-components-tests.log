@@ -1,0 +1,23 @@
+✔ restored original source files remain byte-for-byte identical to the uploaded pack (1057.717092ms)
+✔ restored previews require reviewed speech and composition, reject unsafe or fabricated events (850.476984ms)
+✔ six reference releases remain guarded individually; recovered code is not master certification (30.368518ms)
+✔ three restored original compositors render visible MP4s on new technical fixtures with native audio (52478.728046ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 54629.170635
+
+Final renders after safe-area/aspect-fit adjustment:
+✔ three restored original compositors render visible MP4s on new technical fixtures with native audio (64213.625147ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 64590.899605

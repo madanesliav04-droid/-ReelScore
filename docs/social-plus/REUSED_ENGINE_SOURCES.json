@@ -1,0 +1,277 @@
+{
+  "sourceBranch": "editplus-integrate-social-kinetic-v28-20261018",
+  "commit": "c1d64744d86cbcf1362104ee76c89ccd3f6af8f2",
+  "files": [
+    {
+      "path": "apps/worker/hyperframes/social-kinetic-v28-speech-timed/README.md",
+      "sha": "955a6449f488b5aa115e4daf97cbc3b393a29693",
+      "size": 1935
+    },
+    {
+      "path": "apps/worker/hyperframes/social-kinetic-v28-speech-timed/index.html",
+      "sha": "d7b2265890d50974856b68182062ae15a1795a17",
+      "size": 21841
+    },
+    {
+      "path": "apps/worker/package.json",
+      "sha": "a88cc51b6c1f0429e2e7312cbeec9ba5b05cf86d",
+      "size": 485
+    },
+    {
+      "path": "apps/worker/src/alex-v7-audio-captions.js",
+      "sha": "c586d26c2c4078f1b08b80eb253a11930522cd4a",
+      "size": 7674
+    },
+    {
+      "path": "apps/worker/src/alex-v7-runtime.js",
+      "sha": "aa3ede0afba0e19bd68d4671a9c2b3c355ce1124",
+      "size": 3297
+    },
+    {
+      "path": "apps/worker/src/alex-v8-release.js",
+      "sha": "61289d465c3027719229a224f20330d74c58ca16",
+      "size": 3872
+    },
+    {
+      "path": "apps/worker/src/broll-art-direction.js",
+      "sha": "8c7166dcdf0dfcc8133e63a120c6655a3debcc70",
+      "size": 4299
+    },
+    {
+      "path": "apps/worker/src/broll-library-selector.js",
+      "sha": "bc415f1f8b625e7e555b1931fb109f000d02dbcc",
+      "size": 3856
+    },
+    {
+      "path": "apps/worker/src/broll.js",
+      "sha": "68d3cb50e30390a62d7f05163dbae8480de7faeb",
+      "size": 30213
+    },
+    {
+      "path": "apps/worker/src/creative-quality-gate.js",
+      "sha": "84a32a0712db1f0e23be6b33ac7ce974249ba0d0",
+      "size": 15298
+    },
+    {
+      "path": "apps/worker/src/edit.js",
+      "sha": "a22d72f1ed39070df21455ecddd02d5925da5823",
+      "size": 43417
+    },
+    {
+      "path": "apps/worker/src/hormozi-beat-timing.js",
+      "sha": "c8647a9478f0c06ee8ce2f6b2c9a67565c78829d",
+      "size": 1512
+    },
+    {
+      "path": "apps/worker/src/hormozi-omni-director.js",
+      "sha": "b8170e7e2242d0343f729182d0e2f77ac97b6748",
+      "size": 7132
+    },
+    {
+      "path": "apps/worker/src/hormozi-omni-render.js",
+      "sha": "6988c6521d7ce151f1846358963ae7e6112da6a0",
+      "size": 3425
+    },
+    {
+      "path": "apps/worker/src/hyperframes-renderer.js",
+      "sha": "ce5f792cc3aa1b00d2dc90c62e8ec06a69a46605",
+      "size": 2210
+    },
+    {
+      "path": "apps/worker/src/hyperframes-speech-sync.js",
+      "sha": "14657d6f74031f5eef4dbb2d81a40f679d3b7105",
+      "size": 4113
+    },
+    {
+      "path": "apps/worker/src/hyperframes-story-first-gate.js",
+      "sha": "87447aaf2fe8ee8d317af216bdfe425d6123ad78",
+      "size": 4286
+    },
+    {
+      "path": "apps/worker/src/index.js",
+      "sha": "88c0f9f572b3f3679e30354c4d48e06026cda69f",
+      "size": 39372
+    },
+    {
+      "path": "apps/worker/src/multimodal-director.js",
+      "sha": "1919bc9314ce55a82713bd67d1be049a469b96d7",
+      "size": 4853
+    },
+    {
+      "path": "apps/worker/src/omni-brand-tokens.js",
+      "sha": "e24a4f372faedfa48765c18c1631ef2c27be3e57",
+      "size": 1630
+    },
+    {
+      "path": "apps/worker/src/omni-bubbles-render.js",
+      "sha": "2dd69a247269cb32dd03da98e48ec9950cabc368",
+      "size": 3561
+    },
+    {
+      "path": "apps/worker/src/omni-codie-quality-contract.js",
+      "sha": "12122dacc83dd3a23a8a6b8402d9033ce57cc9e8",
+      "size": 2365
+    },
+    {
+      "path": "apps/worker/src/omni-semantic-director.js",
+      "sha": "4d6655c04f5ff5d8f91bc2bc908491156be3e04f",
+      "size": 6827
+    },
+    {
+      "path": "apps/worker/src/omni-style-system.js",
+      "sha": "5ceb376f1673e60b989021e329a3655e007795db",
+      "size": 4224
+    },
+    {
+      "path": "apps/worker/src/organic-director.js",
+      "sha": "f7bc3dade2b8a0ccf2bd03d68b53a8483c83bda1",
+      "size": 2917
+    },
+    {
+      "path": "apps/worker/src/organic-render.js",
+      "sha": "6567161328beb568b3a6c13fae647be7eb7166be",
+      "size": 2206
+    },
+    {
+      "path": "apps/worker/src/pinterest-reference-router.js",
+      "sha": "1d2c684fcda4616dfd1758470e419defd2acb461",
+      "size": 2870
+    },
+    {
+      "path": "apps/worker/src/premium-creative-grammar.js",
+      "sha": "408f1da2c38170a3ae7eb21fb1cb8dde6ee5e801",
+      "size": 6291
+    },
+    {
+      "path": "apps/worker/src/premium-quality-v3.js",
+      "sha": "c06bc5b3a68af4886ad74699db48009bf3fde37e",
+      "size": 5487
+    },
+    {
+      "path": "apps/worker/src/release-gates.js",
+      "sha": "8dd46af0668b48f0bbce82175c981a3c098b91da",
+      "size": 5495
+    },
+    {
+      "path": "apps/worker/src/render-inspector-v4.js",
+      "sha": "336784b15cd70812bd9ebf268dba00fff568a38a",
+      "size": 3152
+    },
+    {
+      "path": "apps/worker/src/render.js",
+      "sha": "6138ea8874bc520e6cf7a843417cd1f37e7bef3c",
+      "size": 32734
+    },
+    {
+      "path": "apps/worker/src/social-kinetic-reference-v4.js",
+      "sha": "26b4a727f8447c1df5bef5f237f0989f4faa4054",
+      "size": 16366
+    },
+    {
+      "path": "apps/worker/src/social-kinetic-v1.js",
+      "sha": "d766a6aac644665de452d6840e5f80f3a7e2dde0",
+      "size": 6023
+    },
+    {
+      "path": "apps/worker/src/social-kinetic-v10-release.js",
+      "sha": "ab0debb79900dfeeaec88ccf4acbec45d63d046b",
+      "size": 4754
+    },
+    {
+      "path": "apps/worker/src/social-kinetic-v10-runtime.js",
+      "sha": "c260e8505df38bd7bb7d1a74fc0cb511159118e5",
+      "size": 2737
+    },
+    {
+      "path": "apps/worker/src/social-kinetic-v10-score.js",
+      "sha": "acb4669d0a18c16a9cac82ec6f6bd83a146c285f",
+      "size": 4185
+    },
+    {
+      "path": "apps/worker/src/social-kinetic-v10-word-plan.js",
+      "sha": "5ad0184970db86e0f76a156f6374e5646588589c",
+      "size": 9517
+    },
+    {
+      "path": "apps/worker/src/social-kinetic-v15-ios-audio.js",
+      "sha": "c135e9bfa51b594e935e8a5f8f2569b8f077a8d9",
+      "size": 7276
+    },
+    {
+      "path": "apps/worker/src/social-kinetic-v28-engine.js",
+      "sha": "359f84ce5a153c481948d93681b9f57033ebcdc5",
+      "size": 7691
+    },
+    {
+      "path": "apps/worker/src/social-kinetic-v28-runtime.js",
+      "sha": "aaeaa681523fe02c0f49d4848fd2bf868be48d27",
+      "size": 2878
+    },
+    {
+      "path": "apps/worker/src/social-kinetic-v4-runtime.js",
+      "sha": "d43e2aa528fa0a9c30584282f43c43a07ad55c49",
+      "size": 2901
+    },
+    {
+      "path": "apps/worker/src/viral-fingerprint.js",
+      "sha": "8713b17548f0968fc41788d1d2205553505cc721",
+      "size": 3619
+    },
+    {
+      "path": "apps/worker/src/viral-personalization.js",
+      "sha": "fc1a9b3800ad4bd5f841eb3ea6a164694bb7c68c",
+      "size": 10715
+    },
+    {
+      "path": "apps/worker/src/viral-quality.js",
+      "sha": "40d6ad17b5cc232d421b356f831405a9b32188bd",
+      "size": 10851
+    },
+    {
+      "path": "apps/worker/src/viral-verifier.js",
+      "sha": "0f00c9d1dc59782536af81ea21bae84c8b5514b4",
+      "size": 8708
+    },
+    {
+      "path": "apps/worker/src/viral.js",
+      "sha": "eea8293aed3d6b2fdc22dce09498e53f348eca75",
+      "size": 36659
+    },
+    {
+      "path": "apps/worker/src/visual-contrast.js",
+      "sha": "732126fe439b5f8d4c6465db95876549cf5f3087",
+      "size": 1811
+    },
+    {
+      "path": "apps/worker/tests/fixtures/social-kinetic-v28-scene.mjs",
+      "sha": "6b22b2cf14b507e4476f1ea344b0e5158362b792",
+      "size": 1672
+    },
+    {
+      "path": "apps/worker/tests/hormozi-beat-timing.test.mjs",
+      "sha": "223bbc2dbde2b4a3ff31f3974f4c426821da08b5",
+      "size": 1302
+    },
+    {
+      "path": "apps/worker/tests/hormozi-omni-director.test.mjs",
+      "sha": "6191027047c243aa265c4acbc09fdc102a01627d",
+      "size": 4588
+    },
+    {
+      "path": "apps/worker/tests/hormozi-source-format.test.mjs",
+      "sha": "3d994bce68cb249be959c0f38d42ca52b8d510bc",
+      "size": 1282
+    },
+    {
+      "path": "apps/worker/tests/social-kinetic-v28-integration.test.mjs",
+      "sha": "04cc2261ed35d9da9fb13ab774abcb0228d0240b",
+      "size": 5029
+    }
+  ],
+  "notes": [
+    "Source files copied without algorithm changes.",
+    "Alex reference-lock and Alex v8 share the same hormozi-omni-director, render and timing blobs as this branch.",
+    "Prototype Hyperframes is a demonstration, not proof of general rendering autonomy.",
+    "Cinematic v2 branch inspected; contains JS prototypes, no V7 Python source or 38 MB archive."
+  ]
+}

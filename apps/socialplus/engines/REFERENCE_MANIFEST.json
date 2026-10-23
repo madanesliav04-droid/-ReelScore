@@ -1,0 +1,62 @@
+[
+  {
+    "model": "ALEX_HORMOZI_V16",
+    "reference": "EDITPLUS_HORMOZI_V16_B_PLEIN_ECRAN_V11_RESTAUREE.mp4",
+    "sha256": "b61463091e12b0ab3d4dc131ae5383e4e0002be64928ab1fbcfa391cae177c35",
+    "bytes": 6668454,
+    "width": 910,
+    "height": 512,
+    "duration": 40.5,
+    "transport_recompression": false
+  },
+  {
+    "model": "APPLE_SPATIAL_V10_FICHIER_UNIQUE",
+    "reference": "EDITPLUS_SPATIAL_UI_V10_FOCUS.mp4",
+    "sha256": "bf19588c9b983eba5f52e829f1f305fba082cd575b7a69d4bef62bff45e01c06",
+    "bytes": 7857410,
+    "width": 910,
+    "height": 512,
+    "duration": 47.2,
+    "transport_recompression": true
+  },
+  {
+    "model": "CINEMATIC_V7_FICHIER_UNIQUE",
+    "reference": "IMG_0506_CINEMATIC_V7_PREMIUM_FINAL_IPHONE.mp4",
+    "sha256": "adce34392a66a4ba505571a1d28ec7eee54acb513a7edd97031b67666afefa2c",
+    "bytes": 5780501,
+    "width": 960,
+    "height": 540,
+    "duration": 38.833333,
+    "transport_recompression": true
+  },
+  {
+    "model": "CODIE_OMNI_V60_FICHIER_UNIQUE",
+    "reference": "EDITPLUS_V60_FINITION_OMNI.mp4",
+    "sha256": "0266a42d7f341244eaddc3edaa5778b7b34e2f2c681572b4a2349c381669d2c2",
+    "bytes": 6731693,
+    "width": 910,
+    "height": 512,
+    "duration": 42.2,
+    "transport_recompression": true
+  },
+  {
+    "model": "LEILA_V53_FICHIER_UNIQUE",
+    "reference": "EDITPLUS_LEILA_IMG_0516_V53_RACCORDS_AFFINES.mp4",
+    "sha256": "e1c9d9c28c76c6bd6bf08e36cf6e724bdcfb0755a17ed4ac2b9294343ec502cb",
+    "bytes": 6914169,
+    "width": 1280,
+    "height": 720,
+    "duration": 43.566667,
+    "transport_recompression": true
+  },
+  {
+    "model": "SOCIAL_KINETIC_V28",
+    "reference": "EDITPLUS_SOCIAL_KINETIC_V28_BULLES_TIMING_VALIDE.mp4",
+    "sha256": "57711be2328d08a66e0f9b197ce053d4b4d3607673ad1181f2493ca59d4df2cd",
+    "bytes": 9448133,
+    "width": 910,
+    "height": 512,
+    "duration": 41.1,
+    "transport_recompression": false
+  }
+]

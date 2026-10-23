@@ -1,0 +1,6 @@
+.env
+.env.local
+.data/
+test-artifacts/
+
+node_modules/

@@ -1,0 +1,83 @@
+{
+  "fixture": "Generated six-second color/tone technical video, approved pause removed; display text is test data, not spoken words. No real speech or artistic fidelity certification.",
+  "results": [
+    {
+      "model": "codie-omni-v60",
+      "sha256": "8f07583bd2d8e5fdf526f460e13ff791c39fa98ec19465c323e6c2b1a76564bc",
+      "bytes": 83851,
+      "width": 640,
+      "height": 360,
+      "video": "h264",
+      "audio": "aac",
+      "audio_streams": 1,
+      "duration_seconds": 4.522,
+      "source_tone_hz_observed": 439.0,
+      "status": "pass"
+    },
+    {
+      "model": "alex-hormozi-v16",
+      "sha256": "5620fc1295b6b3022a3382dc6ad2a0a8f054c08ce89ce69cac46a1d33952116e",
+      "bytes": 80022,
+      "width": 640,
+      "height": 360,
+      "video": "h264",
+      "audio": "aac",
+      "audio_streams": 1,
+      "duration_seconds": 4.522,
+      "source_tone_hz_observed": 439.0,
+      "status": "pass"
+    },
+    {
+      "model": "leila-hormozi-v53",
+      "sha256": "a04d1517b160953c98151c2e7a6f00adb463308fb7c8d701872fe9c5abe04d0e",
+      "bytes": 79446,
+      "width": 640,
+      "height": 360,
+      "video": "h264",
+      "audio": "aac",
+      "audio_streams": 1,
+      "duration_seconds": 4.522,
+      "source_tone_hz_observed": 439.0,
+      "status": "pass"
+    },
+    {
+      "model": "social-kinetic-v28",
+      "sha256": "8f44a8dea1399b0be615ff3f10bfb9d42fb43ad425176be1029bbc4207b0bf45",
+      "bytes": 81104,
+      "width": 640,
+      "height": 360,
+      "video": "h264",
+      "audio": "aac",
+      "audio_streams": 1,
+      "duration_seconds": 4.522,
+      "source_tone_hz_observed": 439.0,
+      "status": "pass"
+    },
+    {
+      "model": "apple-premium-spatial",
+      "sha256": "a0c5fbafc72c5f5ce082370269c1ae407cfe6ea35e2e76231b5845e40e91f402",
+      "bytes": 78906,
+      "width": 640,
+      "height": 360,
+      "video": "h264",
+      "audio": "aac",
+      "audio_streams": 1,
+      "duration_seconds": 4.522,
+      "source_tone_hz_observed": 439.0,
+      "status": "pass"
+    },
+    {
+      "model": "cinematic-storytelling-v7",
+      "sha256": "33182f52cb5d3ad5ca0f9a92d7227e4638e29810665cb1c5e6e4fa6485022beb",
+      "bytes": 106102,
+      "width": 640,
+      "height": 360,
+      "video": "h264",
+      "audio": "aac",
+      "audio_streams": 1,
+      "duration_seconds": 4.522,
+      "source_tone_hz_observed": 439.0,
+      "status": "pass"
+    }
+  ]
+}

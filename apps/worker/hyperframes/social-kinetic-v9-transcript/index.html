@@ -1,0 +1,103 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>
+*{box-sizing:border-box}html,body{width:960px;height:540px;margin:0;overflow:hidden;background:transparent!important;-webkit-font-smoothing:antialiased}#root{width:960px;height:540px;position:relative;overflow:hidden;background:transparent!important}
+#wash{position:absolute;inset:0;background:linear-gradient(90deg,rgba(1,6,10,.30) 0%,rgba(4,7,8,.1) 30%,transparent 45%);opacity:0;pointer-events:none}
+.cue,.hero,.blue,.step{position:absolute;pointer-events:none;will-change:transform,opacity,filter;left:20px;width:346px;opacity:0;display:none}
+.cue{top:207px;text-align:center;font:850 34px/1.08 'DejaVu Sans Condensed','Arial Narrow',Arial,sans-serif;letter-spacing:-.039em;color:#F8F9FC;text-shadow:0 2px 8px #000c, 0 1px 2px #000b;white-space:normal}
+.cue .part,.hero .part{display:inline-block;white-space:nowrap;opacity:0;will-change:transform,opacity,filter;margin-right:.17em}
+.hero{top:175px;text-align:center;white-space:normal;line-height:1}
+.hero .pre{display:block;margin:auto;color:#FAFCFF;font:800 24px/1.05 'DejaVu Sans Condensed',Arial,sans-serif;letter-spacing:-.044em;text-shadow:0 3px 9px #000b;margin-bottom:8px;max-width:345px}
+.hero .big{display:block;font:950 63px/.94 'Inter Display','Arial Black',Arial,sans-serif;color:#214421;letter-spacing:-.065em;max-width:345px;white-space:nowrap;-webkit-text-stroke:.6px #CFE0C760;text-shadow:0 1px 2px #d5f0cb5c, 1px 3px 3px #0004}
+.hero .big.long{font-size:51px}
+.hero .accent{width:96px;height:2px;background:linear-gradient(90deg,transparent,#317244,transparent);margin:10px auto 0;transform-origin:50%}
+.blue{top:145px;left:8px;width:280px;min-height:64px;padding:12px 16px;background:#0B63BC;border-radius:16px;color:#FFF;font:800 18px/1.15 'DejaVu Sans Condensed',Arial,sans-serif;letter-spacing:-.02em;text-align:center;box-shadow:0 8px 22px #06162958,inset 0 1px #ffffff28;white-space:normal}
+.blue.level1{top:140px;min-height:102px}.blue.level2{top:260px;min-height:66px}.blue.level3{top:344px;min-height:80px}
+.step{top:194px;text-align:left;padding-left:20px}
+.step .digit{display:inline-block;vertical-align:middle;font:900 85px/.9 'Inter Display',Arial,sans-serif;color:#214421;text-shadow:0 1px 3px #ffffff69}
+.step .copy{display:inline-block;vertical-align:middle;margin-left:9px;max-width:192px;font:800 25px/1.07 'DejaVu Sans Condensed',Arial,sans-serif;color:#f7f9fb;text-shadow:0 2px 7px #000b}
+</style></head><body><div id="root" data-composition-id="social-kinetic-v9-speech-grounded" data-start="0" data-duration="38.533333" data-width="960" data-height="540" data-fps="30"><div id="wash"></div><div id="captions"></div><div id="heroes"></div><div id="bubbles"></div><div id="steps"></div></div>
+<script>
+const D={"captions":[{"a":0.561,"b":1.241,"text":"TU NE FAIS","words":[{"text":"TU","a":0.5606},{"text":"NE","a":0.7259},{"text":"FAIS","a":0.8912}]},{"a":1.151,"b":1.994,"text":"PAS D’ARGENT ET","words":[{"text":"PAS","a":1.1506},{"text":"D’ARGENT","a":1.3657},{"text":"ET","a":1.7389}]},{"a":1.904,"b":2.674,"text":"TU N’EN SERAS","words":[{"text":"TU","a":1.9042},{"text":"N’EN","a":2.0695},{"text":"SERAS","a":2.2846}]},{"a":2.584,"b":3.719,"text":"PROBABLEMENT PAS PARCE","words":[{"text":"PROBABLEMENT","a":2.5845},{"text":"PAS","a":3.1142},{"text":"PARCE","a":3.3293}]},{"a":3.816,"b":4.6,"text":"TE POSES LA","words":[{"text":"TE","a":3.8161},{"text":"POSES","a":3.9981},{"text":"LA","a":4.3282}]},{"a":5.987,"b":6.931,"text":"COMMENT FAIRE POUR","words":[{"text":"COMMENT","a":5.9867},{"text":"FAIRE","a":6.3285},{"text":"POUR","a":6.6031}]},{"a":8.345,"b":9.02,"text":"GAGNER DE L’ARGENT,","words":[{"text":"GAGNER","a":8.3451},{"text":"DE","a":8.5703},{"text":"L’ARGENT,","a":8.6806}]},{"a":8.93,"b":9.536,"text":"MAIS EST-CE QUE","words":[{"text":"MAIS","a":8.9296},{"text":"EST-CE","a":9.1026},{"text":"QUE","a":9.3027}]},{"a":9.446,"b":10.069,"text":"TU SAIS COMMENT","words":[{"text":"TU","a":9.4462},{"text":"SAIS","a":9.5565},{"text":"COMMENT","a":9.7295}]},{"a":9.979,"b":10.525,"text":"ON FAIT POUR","words":[{"text":"ON","a":9.9785},{"text":"FAIT","a":10.0888},{"text":"POUR","a":10.2618}]},{"a":10.435,"b":11.109,"text":"GAGNER DE L’ARGENT","words":[{"text":"GAGNER","a":10.4349},{"text":"DE","a":10.6601},{"text":"L’ARGENT","a":10.7704}]},{"a":11.019,"b":11.463,"text":"CONCRÈTEMENT","words":[{"text":"CONCRÈTEMENT","a":11.0194}]},{"a":11.922,"b":12.564,"text":"QUE TU","words":[{"text":"QUE","a":11.9224},{"text":"TU","a":12.2341}]},{"a":12.835,"b":13.435,"text":"JE NE SAIS","words":[{"text":"JE","a":12.8351},{"text":"NE","a":12.9778},{"text":"SAIS","a":13.1206}]},{"a":13.53,"b":14.328,"text":"PARCE QU’EN FAIT,","words":[{"text":"PARCE","a":13.5305},{"text":"QU’EN","a":13.7895},{"text":"FAIT,","a":14.0135}]},{"a":14.238,"b":15.008,"text":"TA QUESTION DÈS","words":[{"text":"TA","a":14.2376},{"text":"QUESTION","a":14.3804},{"text":"DÈS","a":14.7319}]},{"a":14.918,"b":15.666,"text":"LE DÉPART N’EST","words":[{"text":"LE","a":14.9177},{"text":"DÉPART","a":15.0605},{"text":"N’EST","a":15.3521}]},{"a":15.576,"b":16.111,"text":"PAS BONNE.","words":[{"text":"PAS","a":15.5762},{"text":"BONNE.","a":15.762}]},{"a":23.022,"b":23.82,"text":"TU VAS FORCÉMENT","words":[{"text":"TU","a":23.0223},{"text":"VAS","a":23.1651},{"text":"FORCÉMENT","a":23.3509}]},{"a":23.73,"b":24.112,"text":"GAGNER.","words":[{"text":"GAGNER.","a":23.7304}]},{"a":24.397,"b":25.186,"text":"OK ÇA C’EST","words":[{"text":"OK","a":24.3974},{"text":"ÇA","a":24.5931},{"text":"C’EST","a":24.7888}]},{"a":28.995,"b":30.342,"text":"LES PERSONNES SERAIENT","words":[{"text":"LES","a":28.9954},{"text":"PERSONNES","a":29.2501},{"text":"SERAIENT","a":29.7703}]},{"a":30.252,"b":31.062,"text":"PRÊTES À TE","words":[{"text":"PRÊTES","a":30.2521},{"text":"À","a":30.6518},{"text":"TE","a":30.7765}]},{"a":30.972,"b":31.979,"text":"PAYER POUR QUE","words":[{"text":"PAYER","a":30.9722},{"text":"POUR","a":31.3273},{"text":"QUE","a":31.6343}]},{"a":31.889,"b":32.657,"text":"TU RÉSOLVES,","words":[{"text":"TU","a":31.8891},{"text":"RÉSOLVES,","a":32.0848}]},{"a":32.567,"b":33.388,"text":"POUR LEUR FAIRE","words":[{"text":"POUR","a":32.5666},{"text":"LEUR","a":32.7984},{"text":"FAIRE","a":33.0302}]},{"a":33.298,"b":34.106,"text":"GAGNER DU TEMPS,","words":[{"text":"GAGNER","a":33.2982},{"text":"DU","a":33.5999},{"text":"TEMPS,","a":33.7476}]},{"a":34.016,"b":34.837,"text":"POUR LEUR FAIRE","words":[{"text":"POUR","a":34.0155},{"text":"LEUR","a":34.2473},{"text":"FAIRE","a":34.4791}]},{"a":34.747,"b":35.62,"text":"GAGNER DE L’ARGENT,","words":[{"text":"GAGNER","a":34.7471},{"text":"DE","a":35.0488},{"text":"L’ARGENT,","a":35.1965}]}],"heroes":[{"a":4.51,"b":5.96,"hero":"MAUVAISE","over":"LA MAUVAISE QUESTION"},{"a":6.841,"b":8.291,"hero":"L’ARGENT","over":"GAGNER DE"},{"a":27.116,"b":28.566,"hero":"APPRENDRE","over":"TU DOIS"},{"a":36.56,"b":38.06,"hero":"PROBLÈME","over":"RÉSOUDRE UN PROBLÈME"}],"bubbles":[{"a":16.021,"b":22.886,"text":"COMMENT ON FAIT POUR GAGNER DE L’ARGENT ?"},{"a":17.691,"b":22.886,"text":"JE VAIS TE LE DIRE"},{"a":18.567,"b":22.886,"text":"ON AIDE D’AUTRES PERSONNES"}],"steps":[{"a":25.292,"b":26.082,"num":"1","text":"1ER DES POINTS"},{"a":26.142,"b":27.056,"num":"2","text":"2E DES POINTS"}]};
+
+const clamp=x=>Math.max(0,Math.min(1,x));
+const cubic=x=>1-Math.pow(1-clamp(x),3);
+const exp=x=>{x=clamp(x);return x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2};
+const root=document.getElementById('root');
+const wash=document.getElementById('wash');
+const create=(name,parent,cls,content)=>{const el=document.createElement(name);el.className=cls;parent.append(el);if(content)el.textContent=content;return el};
+const captions=Array.from(D.captions,(e,i)=>{
+ const el=create('div',document.getElementById('captions'),'cue','');
+ el.style.top=(198+(i%3-1)*16)+'px';
+ const wordEls=[];for(const w of e.words){const span=create('span',el,'part',w.text);wordEls.push(span)}
+ return {el,wordEls,...e};
+});
+const heroes=Array.from(D.heroes,e=>{
+ const el=create('div',document.getElementById('heroes'),'hero','');
+ if(e.a<9)el.style.top='320px';
+ const pre=create('div',el,'pre',e.over);
+ const big=create('div',el,'big'+(e.hero.length>=9?' long':''),e.hero);
+ const rule=create('div',el,'accent','');
+ return {el,pre,big,rule,...e};
+});
+const bubbles=Array.from(D.bubbles,(e,i)=>{
+ const el=create('div',document.getElementById('bubbles'),'blue level'+(i+1),e.text);
+ return {el,...e};
+});
+const steps=Array.from(D.steps,(e,i)=>{
+ const el=create('div',document.getElementById('steps'),'step','');
+ const digit=create('span',el,'digit',e.num);
+ const copy=create('span',el,'copy',e.text);
+ return {el,digit,copy,...e};
+});
+function show(e,t,pad=.01){const yes=(t>=e.a-pad&&t<=e.b+pad);e.el.style.display=yes?'block':'none';return yes}
+function renderAt(t){
+ t=+t;let count=0;
+ for(const f of captions){if(!show(f,t))continue;count++;
+  let on=cubic((t-f.a)/.13),off=cubic((f.b-t)/.15);
+  const v=clamp(on*off);f.el.style.opacity=v;
+  const shift=(1-on)*9-(1-off)*5;
+  f.el.style.transform='translate3d('+((1-on)*12).toFixed(2)+'px,'+shift.toFixed(2)+'px,0)';
+  for(let i=0;i<f.wordEls.length;i++){
+   const w=f.words[i],el=f.wordEls[i];
+   const start=Math.max(f.a,w.a); // estimated word timing, anchored within real utterance segment
+   const p=cubic((t-start)/.18),e=cubic((f.b-t)/.13);
+   el.style.opacity=clamp(p*e);
+   el.style.transform='translate3d(0,'+((1-p)*14-(1-e)*5).toFixed(2)+'px,0) scale('+(.955+.045*p).toFixed(3)+')';
+   el.style.filter='blur('+((1-p)*3.7).toFixed(2)+'px)';
+  }
+ }
+ for(const h of heroes){if(!show(h,t))continue;count++;
+  const on=cubic((t-h.a)/.23),off=cubic((h.b-t)/.20),v=clamp(on*off);
+  h.el.style.opacity=v;
+  h.el.style.transform='translate3d('+((1-on)*17).toFixed(2)+'px,'+((1-on)*9-(1-off)*5).toFixed(2)+'px,0)';
+  const a=cubic((t-h.a-.05)/.22),b=cubic((t-h.a-.19)/.29);
+  h.pre.style.opacity=a;
+  h.pre.style.transform='translateY('+((1-a)*12)+'px)';
+  h.big.style.opacity=b;
+  h.big.style.transform='translateY('+((1-b)*21)+'px) scale('+(.86+.14*b).toFixed(3)+')';
+  h.big.style.filter='blur('+((1-b)*5.8).toFixed(2)+'px)';
+  const line=cubic((t-h.a-.37)/.34);h.rule.style.transform='scaleX('+line+')';h.rule.style.opacity=line;
+ }
+ for(const b of bubbles){if(!show(b,t))continue;count++;
+  const on=cubic((t-b.a)/.3),off=cubic((b.b-t)/.23);
+  b.el.style.opacity=clamp(on*off);
+  b.el.style.transform='translate3d('+((on-1)*41).toFixed(2)+'px,'+((1-on)*14).toFixed(2)+'px,0) scale('+(.90+.1*on).toFixed(3)+')';
+  b.el.style.filter='blur('+((1-on)*3.5).toFixed(2)+'px)';
+ }
+ for(const s of steps){if(!show(s,t))continue;count++;
+  const on=cubic((t-s.a)/.24),off=cubic((s.b-t)/.20);s.el.style.opacity=clamp(on*off);
+  s.el.style.transform='translate3d(0,'+((1-on)*19).toFixed(2)+'px,0)';
+  s.digit.style.transform='scale('+(.78+.22*on).toFixed(3)+')';
+ }
+ wash.style.opacity=count?Math.min(.45,.18+count*.06):0;
+}
+window.renderAt=renderAt;
+window.__timelines=window.__timelines||{};
+if(window.gsap&&typeof window.gsap.timeline==='function'){
+ const head={clock:0},tl=gsap.timeline({paused:true});
+ tl.to(head,{clock:38.533333,duration:38.533333,ease:'none',onUpdate:()=>renderAt(head.clock)},0);
+ window.__timelines['social-kinetic-v9-speech-grounded']=tl;
+}else{
+ window.__timelines['social-kinetic-v9-speech-grounded']={seek:renderAt,progress:p=>renderAt(38.533333*p),pause:()=>{},duration:()=>38.533333};
+}
+renderAt(0);
+</script></body></html>

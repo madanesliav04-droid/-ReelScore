@@ -1,0 +1,129 @@
+{
+  "date": "2026-10-23",
+  "status": "preview_not_release_approved",
+  "score": null,
+  "productionDeployed": false,
+  "paidServicesUsed": false,
+  "speechReview": {
+    "humanListeningVerified": false,
+    "pendingSourceTimesMs": [
+      6700,
+      14700
+    ],
+    "candidateTextsUnconfirmed": [
+      "rester à zéro",
+      "je peaufine"
+    ],
+    "notice": "No uncertain word has been validated. Contextual ASR/DTW candidates do not replace listening. Some normalized ASR entries merge zero-duration fragments; independent phonetic alignment remains unverified."
+  },
+  "fonts": {
+    "missingRolesResolved": 7,
+    "license": "SIL OFL 1.1; licenses and renamed subsets bundled",
+    "exactHistoricalFacesRecovered": false,
+    "manifest": "apps/socialplus/engines/fonts/manifest.json"
+  },
+  "commonLimits": [
+    "Three acoustic cuts require review; acoustic silence is not a semantic cut guarantee. Original ASR spans plus 120ms guards are preserved.",
+    "No commercial-release or full-speed six-master visual approval claimed. No on-device iPhone test; Chromium mobile viewport emulation only.",
+    "Raw footage, transcript and face screenshots remain local private artifacts."
+  ],
+  "models": [
+    {
+      "id": "codie-omni-v60",
+      "restored": "V60 icon tile + original overshoot/easing; outlined speech captions",
+      "remainingDefectsOrValidation": "No temps/argent trigger in this rush: icon animation is tested on a technical fixture, not this spoken rush. No stock B-roll injected. Master caption font metrics differ.",
+      "releaseApproved": false,
+      "export": {
+        "file": "codie-omni-v60.mp4",
+        "sha256": "08af86d139ff3f3effea845a797bfe0bc6d092abdb8ff634d9575c31cd848c8d",
+        "bytes": 3868742
+      },
+      "sampledFrameTimesSeconds": [
+        1.4,
+        6.9,
+        13.8
+      ]
+    },
+    {
+      "id": "alex-hormozi-v16",
+      "restored": "Native white/lavender composition, progressive two-circle/three-node chain, footer and source-timed words",
+      "remainingDefectsOrValidation": "Original semantic labels are authored; current automatic draft quotes speech instead of synthesizing labels. Arc/rule geometry and node timing still need continuous side-by-side approval.",
+      "releaseApproved": false,
+      "export": {
+        "file": "alex-hormozi-v16.mp4",
+        "sha256": "75c40473f7eab8e0c62295c2def7bbb95b62b92f553fab90e8cbaf564c113644",
+        "bytes": 3317667
+      },
+      "sampledFrameTimesSeconds": [
+        5.2,
+        7.2,
+        20.7
+      ]
+    },
+    {
+      "id": "leila-hormozi-v53",
+      "restored": "Original draw_scene; serif title, progressive checked rows; humanist alternative font",
+      "remainingDefectsOrValidation": "Close-up leaves less free wall than master. Right-wall placement clears the sampled face/cap collision; rows remain smaller than the master. Lato Regular replaces unavailable Medium; exact historical metrics differ.",
+      "releaseApproved": false,
+      "export": {
+        "file": "leila-hormozi-v53.mp4",
+        "sha256": "e929529723171118ab724c7ee11cf0e91907c40d723fc13188e499b4cb6944ac",
+        "bytes": 4012255
+      },
+      "sampledFrameTimesSeconds": [
+        9.4,
+        18.9,
+        20.7
+      ]
+    },
+    {
+      "id": "social-kinetic-v28",
+      "restored": "Original browser scene compositor; bundled fonts; explicit left/right caption zones",
+      "remainingDefectsOrValidation": "Zones are manually reviewed per rush; no automatic face/hand tracking. Motion/line breaks require full-speed review; Chromium frame-timing fixture is a technical check, not human certification.",
+      "releaseApproved": false,
+      "export": {
+        "file": "social-kinetic-v28.mp4",
+        "sha256": "1fa5efa186df4ecd601d846c9214d5b290333fe4dc373b0a37da9868377d5f2b",
+        "bytes": 4045298
+      },
+      "sampledFrameTimesSeconds": [
+        11.9,
+        15.2,
+        22.6
+      ]
+    },
+    {
+      "id": "apple-premium-spatial",
+      "restored": "Original V9 diagrams/document + V10 focus easing/title composer, native-video blur/tint",
+      "remainingDefectsOrValidation": "Right-wall panel avoids the sampled cap collision; secondary labels are small. Native blur/focus is ported to FFmpeg; original compositing pixels and historical font metrics are not identical.",
+      "releaseApproved": false,
+      "export": {
+        "file": "apple-premium-spatial.mp4",
+        "sha256": "82830c92bd9cde37081c93bd761274fd36e4eb27a1d88862ee95faa1783cf541",
+        "bytes": 3916053
+      },
+      "sampledFrameTimesSeconds": [
+        5.2,
+        18.8,
+        20.7
+      ]
+    },
+    {
+      "id": "cinematic-storytelling-v7",
+      "restored": "Original Python scene_layers/mix_layer/base_header drawing functions; chapter, white/gold hierarchy, progressive cards",
+      "remainingDefectsOrValidation": "Adapted to actual rush words and scene times; full-screen cards and text hierarchy need full-speed master comparison. This is Python/FFmpeg reuse, not Hyperframes; no automatic semantic storyboard certification.",
+      "releaseApproved": false,
+      "export": {
+        "file": "cinematic-storytelling-v7.mp4",
+        "sha256": "ee881ec7e4f0abcb83231fec74702d15fddc73e624470e0317bea4ccdef3c9d8",
+        "bytes": 3523089
+      },
+      "sampledFrameTimesSeconds": [
+        7.2,
+        18.9,
+        20.7
+      ]
+    }
+  ],
+  "browserEvidenceScope": "Browser test preceded the final explicit uncertain-word guard and final wall placement; the guard has a separate six-test server validation. No repeat of local ASR inference was needed for these changes."
+}

@@ -1,0 +1,80 @@
+{
+  "project": "Social+ Cinematic Storytelling",
+  "source": "IMG_0506(2).mp4",
+  "fps": 30,
+  "durationSeconds": 38.83333,
+  "mode": "HyperFrames composition",
+  "visualDirection": "Apple premium navy / gold, fullscreen narrative inserts",
+  "fullscreenScenes": [
+    {
+      "id": "question",
+      "start": 6.15,
+      "duration": 1.92,
+      "type": "question",
+      "title": "LA MAUVAISE QUESTION",
+      "subtitle": "COMMENT GAGNER DE L’ARGENT EN LIGNE ?"
+    },
+    {
+      "id": "aider",
+      "start": 19.15,
+      "duration": 3.25,
+      "type": "solution",
+      "title": "LA VRAIE LOGIQUE",
+      "subtitle": "AIDER LES AUTRES À GAGNER"
+    },
+    {
+      "id": "competence",
+      "start": 26.1,
+      "duration": 3.3,
+      "type": "competence",
+      "title": "APPRENDS UNE COMPÉTENCE",
+      "subtitle": "QUI RÉSOUT UN VRAI PROBLÈME"
+    },
+    {
+      "id": "benefices",
+      "start": 33.15,
+      "duration": 4.9,
+      "type": "benefices",
+      "title": "CRÉE DE LA VALEUR",
+      "subtitle": "3 RAISONS DE TE PAYER"
+    }
+  ],
+  "sourceTrims": [
+    {
+      "sourceStartSeconds": 0.0,
+      "sourceEndSeconds": 3.9
+    },
+    {
+      "sourceStartSeconds": 5.43333,
+      "sourceEndSeconds": 7.7
+    },
+    {
+      "sourceStartSeconds": 8.16667,
+      "sourceEndSeconds": 10.06667
+    },
+    {
+      "sourceStartSeconds": 10.7,
+      "sourceEndSeconds": 14.7
+    },
+    {
+      "sourceStartSeconds": 15.76667,
+      "sourceEndSeconds": 16.93333
+    },
+    {
+      "sourceStartSeconds": 17.9,
+      "sourceEndSeconds": 40.56667
+    },
+    {
+      "sourceStartSeconds": 40.93333,
+      "sourceEndSeconds": 43.86667
+    }
+  ],
+  "audio": "Original rush, cuts matched frame boundaries, normalized for intelligibility",
+  "constraints": [
+    "native horizontal aspect",
+    "no AI voice",
+    "no invented subtitles",
+    "premium animation",
+    "content-specific full-screen visuals"
+  ]
+}

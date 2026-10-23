@@ -1,0 +1,191 @@
+{
+  "generatedAt": "2026-10-22T07:55:18.008Z",
+  "scope": "Technical FFmpeg/ASS execution only. No certification of V16, V28 or another artistic model; three new real speech rushes per model remain required.",
+  "results": [
+    {
+      "fixture": "synthetic color + 440 Hz tone, not a speech rush",
+      "modelId": "technical-export",
+      "sourcePath": "/workspace/ReelScore/artifacts/render/technical-fixture-640x360.mp4",
+      "outputPath": "/workspace/ReelScore/artifacts/render/technical-export-640x360.mp4",
+      "sourceSha256": "a1c803be7be4646f6dea04c1bdac65f3a7e6ce920436f4603f8f7ec896e09727",
+      "outputSha256": "02ce00d921224ef37209dfa16eb65741e5a12d694bfe39c6a020237c5eb827d9",
+      "elapsedMs": 950,
+      "metadata": {
+        "width": 640,
+        "height": 360,
+        "durationMs": 3018,
+        "videoCodec": "h264",
+        "audioCodec": "aac",
+        "hasAudio": true,
+        "audioStreams": 1,
+        "audioChannels": 1,
+        "container": "mov,mp4,m4a,3gp,3g2,mj2",
+        "mime_type": "video/mp4",
+        "bytes": 49259,
+        "rotation": 0,
+        "rawFrameRate": "30/1"
+      },
+      "audit": {
+        "modelId": "technical-export",
+        "artisticModel": false,
+        "engine": "ffmpeg-native-export-v1",
+        "cuts": 0,
+        "source": {
+          "width": 640,
+          "height": 360,
+          "durationMs": 3000,
+          "videoCodec": "h264",
+          "audioCodec": "aac",
+          "hasAudio": true,
+          "audioStreams": 1,
+          "audioChannels": 1,
+          "container": "mov,mp4,m4a,3gp,3g2,mj2",
+          "mime_type": "video/mp4",
+          "bytes": 33621,
+          "rotation": 0,
+          "rawFrameRate": "30/1"
+        },
+        "originalAudioStreamsSelected": 1
+      }
+    },
+    {
+      "fixture": "synthetic color + 440 Hz tone, not a speech rush",
+      "modelId": "technical-export",
+      "sourcePath": "/workspace/ReelScore/artifacts/render/technical-fixture-360x640.mp4",
+      "outputPath": "/workspace/ReelScore/artifacts/render/technical-export-360x640.mp4",
+      "sourceSha256": "d15bafb3e2fba3eef81e786746ea5551bec189d6cf48aa08cf57c5580924e0c6",
+      "outputSha256": "c6e02819347e979e0518c0aae8a0e9dfcbac98c88d2bae5c74f5cd417a4bd3cd",
+      "elapsedMs": 857,
+      "metadata": {
+        "width": 360,
+        "height": 640,
+        "durationMs": 3018,
+        "videoCodec": "h264",
+        "audioCodec": "aac",
+        "hasAudio": true,
+        "audioStreams": 1,
+        "audioChannels": 1,
+        "container": "mov,mp4,m4a,3gp,3g2,mj2",
+        "mime_type": "video/mp4",
+        "bytes": 49260,
+        "rotation": 0,
+        "rawFrameRate": "30/1"
+      },
+      "audit": {
+        "modelId": "technical-export",
+        "artisticModel": false,
+        "engine": "ffmpeg-native-export-v1",
+        "cuts": 0,
+        "source": {
+          "width": 360,
+          "height": 640,
+          "durationMs": 3000,
+          "videoCodec": "h264",
+          "audioCodec": "aac",
+          "hasAudio": true,
+          "audioStreams": 1,
+          "audioChannels": 1,
+          "container": "mov,mp4,m4a,3gp,3g2,mj2",
+          "mime_type": "video/mp4",
+          "bytes": 33621,
+          "rotation": 0,
+          "rawFrameRate": "30/1"
+        },
+        "originalAudioStreamsSelected": 1
+      }
+    },
+    {
+      "fixture": "synthetic color + 440 Hz tone, not a speech rush",
+      "modelId": "technical-export",
+      "sourcePath": "/workspace/ReelScore/artifacts/render/technical-fixture-360x360.mp4",
+      "outputPath": "/workspace/ReelScore/artifacts/render/technical-export-360x360.mp4",
+      "sourceSha256": "814ad9d2c6e3602e3f4eccca6256c2195395cba2c11be2c3a9af4d1b804f170b",
+      "outputSha256": "7e7775d0767256df2aa0d9c33c0d8704567038fb27660ea4ce43ea61f4db5653",
+      "elapsedMs": 687,
+      "metadata": {
+        "width": 360,
+        "height": 360,
+        "durationMs": 3018,
+        "videoCodec": "h264",
+        "audioCodec": "aac",
+        "hasAudio": true,
+        "audioStreams": 1,
+        "audioChannels": 1,
+        "container": "mov,mp4,m4a,3gp,3g2,mj2",
+        "mime_type": "video/mp4",
+        "bytes": 48974,
+        "rotation": 0,
+        "rawFrameRate": "30/1"
+      },
+      "audit": {
+        "modelId": "technical-export",
+        "artisticModel": false,
+        "engine": "ffmpeg-native-export-v1",
+        "cuts": 0,
+        "source": {
+          "width": 360,
+          "height": 360,
+          "durationMs": 3000,
+          "videoCodec": "h264",
+          "audioCodec": "aac",
+          "hasAudio": true,
+          "audioStreams": 1,
+          "audioChannels": 1,
+          "container": "mov,mp4,m4a,3gp,3g2,mj2",
+          "mime_type": "video/mp4",
+          "bytes": 33422,
+          "rotation": 0,
+          "rawFrameRate": "30/1"
+        },
+        "originalAudioStreamsSelected": 1
+      }
+    },
+    {
+      "fixture": "synthetic empty frame with synthetic alignment/frame evidence, not real speech",
+      "modelId": "alex-hormozi-v16",
+      "sourcePath": "/workspace/ReelScore/artifacts/render/technical-fixture-640x360.mp4",
+      "outputPath": "/workspace/ReelScore/artifacts/render/alex-reference-grammar-synthetic.mp4",
+      "elapsedMs": 1049,
+      "metadata": {
+        "width": 640,
+        "height": 360,
+        "durationMs": 3018,
+        "videoCodec": "h264",
+        "audioCodec": "aac",
+        "hasAudio": true,
+        "audioStreams": 1,
+        "audioChannels": 1,
+        "container": "mov,mp4,m4a,3gp,3g2,mj2",
+        "mime_type": "video/mp4",
+        "bytes": 49688,
+        "rotation": 0,
+        "rawFrameRate": "30/1"
+      },
+      "audit": {
+        "modelId": "alex-hormozi-v16",
+        "artisticModel": true,
+        "engine": "hormozi-omni-explainer-v1",
+        "cuts": 0,
+        "source": {
+          "width": 640,
+          "height": 360,
+          "durationMs": 3000,
+          "videoCodec": "h264",
+          "audioCodec": "aac",
+          "hasAudio": true,
+          "audioStreams": 1,
+          "audioChannels": 1,
+          "container": "mov,mp4,m4a,3gp,3g2,mj2",
+          "mime_type": "video/mp4",
+          "bytes": 33621,
+          "rotation": 0,
+          "rawFrameRate": "30/1"
+        },
+        "originalAudioStreamsSelected": 1,
+        "release": "beta_reference_grammar_not_V16_certified",
+        "acceptedCues": 1,
+        "held": []
+      }
+    }
+  ]
+}

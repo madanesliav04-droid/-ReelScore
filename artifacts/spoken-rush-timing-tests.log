@@ -1,0 +1,15 @@
+✔ local acoustic analysis is deterministic and preserves safety margins (14.230104ms)
+✔ guided edit maps supplied words through approved cuts using inherited time mapping (9.49433ms)
+✔ guided edit rejects unsafe words, unreviewed timing and fabricated cuts (1.904846ms)
+✔ real local analysis and edited MP4 shorten only approved measured silence and retain original audio (9901.300648ms)
+✔ the six artistic references stay distinct from technical conversion and fail closed (25.763863ms)
+✔ real FFmpeg conversions keep native orientation, duration, H.264 and one AAC track (12712.065231ms)
+✔ Alex reference grammar performs a real local overlay only with evidence; missing evidence rejects (4802.854168ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 28545.960395

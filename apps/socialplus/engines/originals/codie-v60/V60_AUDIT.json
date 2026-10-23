@@ -1,0 +1,60 @@
+{
+  "source": "original IMG_0506.mp4 + old V58 B-roll clips + V59 AAC",
+  "human_supervised": true,
+  "cut_ranges_frames": [
+    [
+      0,
+      119
+    ],
+    [
+      157,
+      436
+    ],
+    [
+      467,
+      1335
+    ]
+  ],
+  "broll": [
+    "MX-18296.mp4",
+    "MX-241.mp4"
+  ],
+  "caption_overlaps_removed": 27,
+  "caption_font": "Inter Display SemiBold 34px (Avenir reference, not exact)",
+  "graphic_cues": [
+    {
+      "kind": "clock",
+      "x": 176,
+      "y": 161,
+      "start": 36.77,
+      "end": 39.0,
+      "spoken": "temps"
+    },
+    {
+      "kind": "euro",
+      "x": 852,
+      "y": 161,
+      "start": 38.14,
+      "end": 40.25,
+      "spoken": "argent"
+    }
+  ],
+  "audio": "copied original encoded stream from V59; no audio changes",
+  "timing_caveat": "prior ASR estimates, not independent forced alignment",
+  "duration_sec": 42.2,
+  "resolution": "910x512",
+  "ffmpeg_full_decode": "PASS",
+  "black_screen_and_long_freeze_scan": "none_above_configured_thresholds",
+  "audio_bitstream_same_as_V59": true,
+  "audio_aac_sha256": "55db701fd73f0c3865085aa3dabcfab19d38a2ef8b7d9c9801338261b749d7f4",
+  "file_size_bytes": 12225156,
+  "file_sha256": "12294ac4dae6e35c4133009f3e008d90c4b3ad1a9f74234d360e910c77d3351e",
+  "licensed_broll_before_commercial_release": "requires source page verification",
+  "font_reference": "Avenir",
+  "font_rendered": "Inter Display SemiBold (temporary)",
+  "subtitles_notes": "27 overlapping caption intervals repaired, 34px font size",
+  "artistic_status": "human_review_required",
+  "engine_automation_proven": false,
+  "sfx_status": "unchanged V59",
+  "word_alignment": "estimates; not independently force-aligned"
+}

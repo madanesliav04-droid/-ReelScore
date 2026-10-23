@@ -1,0 +1,34 @@
+✔ V28 fast speech fades finish inside word durations; the last word stays visible until its release (100.180243ms)
+✔ V28 a single short word no longer persists past the next caption (11.143697ms)
+✔ V28 existing bubble entrance and exit stay unchanged (7.375619ms)
+✔ local acoustic analysis is deterministic and preserves safety margins (8.042516ms)
+✔ guided edit maps supplied words through approved cuts using inherited time mapping (6.399965ms)
+✔ guided edit rejects unsafe words, unreviewed timing and fabricated cuts (3.563914ms)
+✔ real local analysis and edited MP4 shorten only approved measured silence and retain original audio (18431.697896ms)
+✔ an acoustic cut after the last supplied caption preserves that word and does not require invented words (1.679623ms)
+✔ projects: measured reports are cached per source, isolated, invalidated on replacement and deleted with member data (184.857448ms)
+✔ projects: tenant boundary covers get update delete upload and job lookup (12.029044ms)
+✔ projects: metadata persists; unavailable model cannot produce fake job (46.934957ms)
+✔ projects: invalid probe and interrupted uploads leave no partial file (16.99973ms)
+✔ projects: byte limit is enforced even without Content-Length (26.787327ms)
+✔ projects: daily compute quota survives project deletion and remains scoped to its member (81.915652ms)
+✔ projects: deletion during asynchronous render metadata check leaves no orphaned private export (37.938598ms)
+✔ projects: offline transcripts cache by model and source, isolate tenants and follow privacy deletion (66.473438ms)
+✔ projects: missing offline model does not consume quota and deleted project leaves no ASR result (64.19765ms)
+✔ word captions retain 20ms words without overlapping ASS events (11.12199ms)
+✔ cinematic scene only suppresses its covered intervals, preserving adjacent camera captions (0.435514ms)
+✔ real acoustic pauses merge and narrow conservatively around words (4.168384ms)
+✔ caption edge refinements cannot widen a cut into the original ASR speech interval (0.536223ms)
+✔ V28 is a distinct actual Edit+ style, without changing legacy model (111.17144ms)
+✔ V28 sources bullet from real phrase and verified timing (17.239885ms)
+✔ V28 refuses unverified words or missing face/hand safety proof (1.771722ms)
+✔ V28 never invents financial amounts or unspoken message text (3.873871ms)
+✔ V28 renderer does not bypass staging and HyperFrames release gates (4.402772ms)
+ℹ tests 26
+ℹ suites 0
+ℹ pass 26
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 33005.334387

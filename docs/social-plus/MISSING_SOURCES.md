@@ -1,0 +1,9 @@
+# Ressources et recette des modèles
+
+Mise à jour du 23 octobre : les six masters/références transmis sont maintenant présents dans le stockage privé de travail, hors du dépôt standard. Le manifeste `apps/socialplus/engines/REFERENCE_MANIFEST.json` conserve leurs empreintes. Quatre vidéos sont des copies recompressées explicitement décrites par leurs README ; les références Alex et Social Kinetic sont conservées telles que fournies. Les scripts déjà importés restent intacts ; audits et documents nouveaux complètent `engines/originals/received-20261023`.
+
+Les six adaptations fonctionnent sans reprendre les anciens textes, timings, cuts ou pistes audio des références. La chaîne de reproduction historique exacte de certains masters conserve des dépendances intermédiaires (V44/V49 Leila, V8/V9 Spatial, V6 Cinematic), mais ces vidéos ne sont pas requises par les nouvelles adaptations paramétrées. Aucun remplacement de rush ni preuve de fidélité n’est fabriqué.
+
+Il manque encore **un nouveau rush brut parlé autorisé, distinct des six vidéos montées de référence**, pour la recette vocale et visuelle sur une véritable nouvelle prise : mots entendus, timing, coupes, visage/mains, contraste et choix narratifs. Les fixtures techniques synthétiques permettent de contrôler les six exports MP4 ; elles ne certifient pas ces critères artistiques. Les mots alignés doivent être fournis et relus tant qu’aucune transcription indépendante n’est configurée.
+
+Les polices Inter/EB Garamond/Lato exactes et le pack de maquette Apple Pro ne sont pas inclus dans ces archives ; les substitutions système sont signalées. Safari iPhone physique et Chrome Windows restent à recetter. Les coordonnées juridiques réelles et la politique finale de conservation restent à compléter avant ouverture aux équipes. Aucun service existant n’est migré et aucun déploiement n’est lancé.

@@ -1,0 +1,118 @@
+[
+  {
+    "path": "LIRE_EN_PREMIER.md",
+    "sha256": "a43bc3f0c2052ed2d0f2c24e1b3fd1e65f9b301e6aaf798bcfc15a77b99cffeb"
+  },
+  {
+    "path": "MANIFEST_SHA256_COMPLET.json",
+    "sha256": "6ac74f7bae1423c210638798a68f468e584f8f3d71e2d1f655b75617b2075eda"
+  },
+  {
+    "path": "cinematic-v7/README.md",
+    "sha256": "278d71da8066b4184271e6b9f01e979fbd45333df871933cf241c69bb0fcc458"
+  },
+  {
+    "path": "cinematic-v7/config/IMG_0506_CINEMATIC_V6_TIMING.json",
+    "sha256": "724aa22aa9fd6a4e19d4bbc76e87574ebe50e872a28c363d844bc8a05bc704e0"
+  },
+  {
+    "path": "cinematic-v7/config/modele_v7.json",
+    "sha256": "2df4f0e92c1f9f4c2e83ef2469861411d0f22a43e7917cfa4dd014ef7c86e9d1"
+  },
+  {
+    "path": "cinematic-v7/reference_hyperframes/index_prototype.html",
+    "sha256": "da19e45bb9e1f4feebfca4a2d3f3a0434d9b9ff9f1ad5870dadcfd59ed276ba7"
+  },
+  {
+    "path": "cinematic-v7/reference_hyperframes/timeline_initiale.json",
+    "sha256": "08cb4ea3da56559e4d5473feefe96b6b5af5e270fb201dd82beba19ec7a89500"
+  },
+  {
+    "path": "cinematic-v7/requirements.txt",
+    "sha256": "397d8c2817e786eb16d948d6505f2384d228f4a0a24966e817b92b56c8ccba09"
+  },
+  {
+    "path": "cinematic-v7/src/render_v6_historique.py",
+    "sha256": "143f4ff81f2c15f0f9b8d77cdace1b264fc0099ec6876dd5b2acb12ddaa758d2"
+  },
+  {
+    "path": "cinematic-v7/src/render_v7.py",
+    "sha256": "8cf4c0257804a276c68e2eea54d424fe20396309890da52409d6aaedcfca267b"
+  },
+  {
+    "path": "cinematic-v7/src/render_v7_original_reference.py",
+    "sha256": "47dcfa52aa818648f4991d9d81cd83ca75eb7aebdc59a9bb61adaaa4d4ecaf0e"
+  },
+  {
+    "path": "codie-v60/V60_AUDIT.json",
+    "sha256": "046e8f0423d80f762b08f53017813561991d157d4a4f1eedff2bb53a4b6197d6"
+  },
+  {
+    "path": "codie-v60/V60_CHANGELOG.json",
+    "sha256": "154669be2644509bdf7d15ac330805a50af0feda71a27c6215c72494ef63f8a1"
+  },
+  {
+    "path": "codie-v60/build_v60.py",
+    "sha256": "0127903c5b2a7674cf669730d0f1c73d466510572e034e2c4c3c80cf0b60a205"
+  },
+  {
+    "path": "codie-v60/captions_clean_v60.ass",
+    "sha256": "e01538b8d4a622a20411ec6630fbf3b62e90fa057996f8b8f24536ca79d9c471"
+  },
+  {
+    "path": "leila-v53/README_V53.md",
+    "sha256": "32e822e41019eb814c39c943e3d5279ca200d01c2d5175984047f9a76b0ca070"
+  },
+  {
+    "path": "leila-v53/V53_AUDIT_TECHNIQUE.json",
+    "sha256": "f0629be1bae4b37c7c6e40d5e346dee2e1725c281fce9516b4a7e6c15afec473"
+  },
+  {
+    "path": "leila-v53/render_leila_v46.py",
+    "sha256": "dc93ca95890b87b1298aefd7452641fd77470625484ef4a57432717c70d5059d"
+  },
+  {
+    "path": "leila-v53/render_leila_v51_ticks_aligned.py",
+    "sha256": "0725de1cb32d299cd438242610c64c14a5728af2392f823a3d91304074e663ea"
+  },
+  {
+    "path": "leila-v53/render_leila_v53.py",
+    "sha256": "94850709d19a917c33e9fa710769dc03332e1b3b390239904ed7048a395cd50c"
+  },
+  {
+    "path": "spatial-v10/MANIFEST.json",
+    "sha256": "95359b57eddb164151dda2b1898bf4e39a5ecbc3af6f6c44a7e4dc0885caf2ab"
+  },
+  {
+    "path": "spatial-v10/README.md",
+    "sha256": "b04a881b0afeb34730be9fa4eca623209f297bb1b7e65bcca94458f735c8762f"
+  },
+  {
+    "path": "spatial-v10/code/editplus_spatial_ui_v10_focus.py",
+    "sha256": "5015172e4a50ebc75886df962afe36cc6dcfa28ff5de6d04162aa424e96b70f6"
+  },
+  {
+    "path": "spatial-v10/code/editplus_spatial_ui_v8_pipeline.py",
+    "sha256": "61f3791ee29d7bdc8177e326e5acf0ea15427c6f93d1cf42875d1662a5ee639b"
+  },
+  {
+    "path": "spatial-v10/code/editplus_spatial_ui_v9_motion_flow.py",
+    "sha256": "80f028b865c0db0bc45b25d7b3dc72e68ccf723ecb7b0bffb84439fc55525696"
+  },
+  {
+    "path": "spatial-v10/code/portable_editplus_spatial_ui_v10_focus.py",
+    "sha256": "becb988a0d5e157c26f37c565da451656452e7578f8f54f491762200b385472f"
+  },
+  {
+    "path": "spatial-v10/code/portable_editplus_spatial_ui_v8_pipeline.py",
+    "sha256": "58993a0d034c97781d6aaf09854e064a65a49bacb5d1f7f88d319c17c2bfc4d7"
+  },
+  {
+    "path": "spatial-v10/code/portable_editplus_spatial_ui_v9_motion_flow.py",
+    "sha256": "6bd682a4cdd6c67e8646803d71a01e0c7155e3d929ee3e3fa462a11a29d3f78e"
+  },
+  {
+    "path": "spatial-v10/run_v10.py",
+    "sha256": "6ca7f84ba62c5487ee3ea450cc20a97de23d49d0674de8ba7fe10fb025f65455"
+  }
+]

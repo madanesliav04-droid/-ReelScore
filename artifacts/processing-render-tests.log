@@ -1,0 +1,21 @@
+✔ local acoustic analysis is deterministic and preserves safety margins (25.465793ms)
+✔ guided edit maps supplied words through approved cuts using inherited time mapping (11.075137ms)
+✔ guided edit rejects unsafe words, unreviewed timing and fabricated cuts (4.634229ms)
+✔ real local analysis and edited MP4 shorten only approved measured silence and retain original audio (6539.498542ms)
+✔ projects: tenant boundary covers get update delete upload and job lookup (91.026698ms)
+✔ projects: metadata persists; unavailable model cannot produce fake job (24.19831ms)
+✔ projects: invalid probe and interrupted uploads leave no partial file (10.47483ms)
+✔ projects: byte limit is enforced even without Content-Length (16.732711ms)
+✔ projects: daily compute quota survives project deletion and remains scoped to its member (67.732577ms)
+✔ projects: deletion during asynchronous render metadata check leaves no orphaned private export (35.294ms)
+✔ the six artistic references stay distinct from technical conversion and fail closed (2.707934ms)
+✔ real FFmpeg conversions keep native orientation, duration, H.264 and one AAC track (8244.666921ms)
+✔ Alex reference grammar performs a real local overlay only with evidence; missing evidence rejects (3989.271469ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 20233.584246

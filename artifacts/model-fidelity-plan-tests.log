@@ -1,0 +1,15 @@
+✔ automatic graphic drafts quote source words and pass each of the six model validators (16.83851ms)
+✔ reference scene details quote current words and use their measured cues in every compositor (16.204823ms)
+✔ details reject absent words, malformed data, historic times and overlaps (4.666061ms)
+✔ kinetic captions can follow separately reviewed left/right zones without changing word times (1.771136ms)
+✔ graphic endpoints inside removed pauses collapse to the actual splice instead of using a guessed scene duration (2.616557ms)
+✔ Spatial focus keeps its reviewed wall anchor while using a native fullscreen overlay (1.595397ms)
+✔ Spatial focus really composites V9/V10 with native video and copied AAC (10063.689524ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 10661.25593

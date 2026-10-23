@@ -1,0 +1,15 @@
+✔ projects: measured reports are cached per source, isolated, invalidated on replacement and deleted with member data (82.782647ms)
+✔ projects: tenant boundary covers get update delete upload and job lookup (13.393983ms)
+✔ projects: metadata persists; unavailable model cannot produce fake job (15.000845ms)
+✔ projects: invalid probe and interrupted uploads leave no partial file (17.797009ms)
+✔ projects: byte limit is enforced even without Content-Length (27.999702ms)
+✔ projects: daily compute quota survives project deletion and remains scoped to its member (57.607096ms)
+✔ projects: deletion during asynchronous render metadata check leaves no orphaned private export (28.006629ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 328.278815

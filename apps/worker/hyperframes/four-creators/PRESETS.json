@@ -1,0 +1,82 @@
+{
+  "version": "2026-10-17",
+  "referenceStatus": "Hypotheses awaiting scene-by-scene verification of primary video corpus",
+  "presets": {
+    "CODIE_DOC": {
+      "name": "Codie Sanchez inspired",
+      "editorial": "documentary_story",
+      "sceneTypes": [
+        "facecam",
+        "licensed_evidence"
+      ],
+      "graphics": "rare_small_hook",
+      "broll": "rare_contextual",
+      "sound": "minimal"
+    },
+    "ALEX_EXPLAIN": {
+      "name": "Alex Hormozi inspired",
+      "editorial": "concept_explanation",
+      "sceneTypes": [
+        "facecam",
+        "fullscreen_navy_teaching",
+        "semantic_object_explainer",
+        "sequential_process",
+        "navy_comparison",
+        "verified_graph",
+        "licensed_evidence"
+      ],
+      "graphics": "dark_navy_fullscreen_white_yellow_incremental_reasoning",
+      "broll": "verified_specific_proof_only",
+      "sound": "source_voice_priority_modest_semantic",
+      "reference_override": "ALEX_HORMOZI_REF3_NAVY_V3_OBJECT_MOTION",
+      "referenceRules": "references/alex-hormozi-20261017/MODEL_RULES.md",
+      "status": "brief-v3-ready; render integration pending",
+      "v3Brief": "references/alex-hormozi-20261017/ALEX_V3_BRIEF_OBJECT_MOTION.md",
+      "objectMotion": {
+        "enabledAsCreativeSpecification": true,
+        "renderEngine": "HyperFrames",
+        "decisionEngine": "Edit+ semantic analysis (integration pending)",
+        "trigger": "only_for_concrete_spoken_meaning",
+        "assets": "local custom SVG/CSS primitives and licensed media",
+        "avoid": [
+          "decorative floating shapes",
+          "made up figures",
+          "stock placeholders",
+          "screen obstruction"
+        ]
+      }
+    },
+    "LEILA_EDITORIAL": {
+      "name": "Leila Hormozi inspired",
+      "editorial": "restrained_leadership",
+      "sceneTypes": [
+        "facecam",
+        "anchored_typography"
+      ],
+      "graphics": "one_major_word_and_thin_lines",
+      "broll": "exceptional",
+      "sound": "nearly_silent"
+    },
+    "GADZHI_CINEMATIC": {
+      "name": "Iman Gadzhi inspired [identity unconfirmed]",
+      "editorial": "cinematic_chapters",
+      "sceneTypes": [
+        "facecam",
+        "cinematic_chapter",
+        "licensed_broll"
+      ],
+      "graphics": "spatial_story_moments",
+      "broll": "narrative",
+      "sound": "restrained_cinematic"
+    }
+  },
+  "hardFails": [
+    "invented_quote",
+    "invented_number",
+    "wrong_aspect",
+    "audio_dubbing",
+    "face_collision",
+    "unlicensed_media",
+    "misleading_branding"
+  ]
+}

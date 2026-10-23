@@ -1,0 +1,11 @@
+✔ restored original source files remain byte-for-byte identical to the uploaded pack (105.199745ms)
+✔ restored previews require reviewed speech and composition, reject unsafe or fabricated events (12.071903ms)
+✔ six restored original compositors render visible MP4s on new technical fixtures with native audio (35032.655153ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 35499.085614
