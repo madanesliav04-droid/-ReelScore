@@ -1,0 +1,152 @@
+{
+  "results": [
+    {
+      "model": "codie-omni-v60",
+      "width": 910,
+      "height": 512,
+      "durationMs": 23967,
+      "codecs": [
+        "h264",
+        "aac"
+      ],
+      "audioStreams": 1,
+      "fullDecode": "pass",
+      "aacSha256": "3ab56de121876c557cf02f06da30faba19e447b1c7dcad782e0c77ff45e41a2b",
+      "bytes": 3868742,
+      "voiceCorrelation": [
+        {
+          "sourceStartMs": 600,
+          "outputMapStartMs": 600,
+          "audioLagMs": 0.0,
+          "correlation": 0.999993
+        },
+        {
+          "sourceStartMs": 8307,
+          "outputMapStartMs": 7881,
+          "audioLagMs": 0.0,
+          "correlation": 0.999143
+        },
+        {
+          "sourceStartMs": 10277,
+          "outputMapStartMs": 9523,
+          "audioLagMs": 0.0,
+          "correlation": 0.998353
+        },
+        {
+          "sourceStartMs": 21500,
+          "outputMapStartMs": 20455,
+          "audioLagMs": 0.0,
+          "correlation": 0.998824
+        }
+      ],
+      "retainedPictureChecks": [
+        {
+          "sourceTimeMs": 600,
+          "outputTimeMs": 600,
+          "bestSeekOffsetMs": 0,
+          "meanAbsoluteLumaError": 0.292,
+          "threshold": 8
+        },
+        {
+          "sourceTimeMs": 8307,
+          "outputTimeMs": 7881,
+          "bestSeekOffsetMs": 33.333,
+          "meanAbsoluteLumaError": 0.4685,
+          "threshold": 8
+        },
+        {
+          "sourceTimeMs": 10277,
+          "outputTimeMs": 9523,
+          "bestSeekOffsetMs": 33.333,
+          "meanAbsoluteLumaError": 0.3535,
+          "threshold": 8
+        },
+        {
+          "sourceTimeMs": 21500,
+          "outputTimeMs": 20455,
+          "bestSeekOffsetMs": 0,
+          "meanAbsoluteLumaError": 0.4814,
+          "threshold": 8
+        }
+      ],
+      "mp4Sha256": "08af86d139ff3f3effea845a797bfe0bc6d092abdb8ff634d9575c31cd848c8d"
+    },
+    {
+      "model": "alex-hormozi-v16",
+      "width": 910,
+      "height": 512,
+      "durationMs": 23967,
+      "codecs": [
+        "h264",
+        "aac"
+      ],
+      "audioStreams": 1,
+      "fullDecode": "pass",
+      "aacSha256": "3ab56de121876c557cf02f06da30faba19e447b1c7dcad782e0c77ff45e41a2b",
+      "bytes": 3317667,
+      "mp4Sha256": "75c40473f7eab8e0c62295c2def7bbb95b62b92f553fab90e8cbaf564c113644"
+    },
+    {
+      "model": "leila-hormozi-v53",
+      "width": 910,
+      "height": 512,
+      "durationMs": 23967,
+      "codecs": [
+        "h264",
+        "aac"
+      ],
+      "audioStreams": 1,
+      "fullDecode": "pass",
+      "aacSha256": "3ab56de121876c557cf02f06da30faba19e447b1c7dcad782e0c77ff45e41a2b",
+      "bytes": 4012255,
+      "mp4Sha256": "e929529723171118ab724c7ee11cf0e91907c40d723fc13188e499b4cb6944ac"
+    },
+    {
+      "model": "social-kinetic-v28",
+      "width": 910,
+      "height": 512,
+      "durationMs": 23967,
+      "codecs": [
+        "h264",
+        "aac"
+      ],
+      "audioStreams": 1,
+      "fullDecode": "pass",
+      "aacSha256": "3ab56de121876c557cf02f06da30faba19e447b1c7dcad782e0c77ff45e41a2b",
+      "bytes": 4045298,
+      "mp4Sha256": "1fa5efa186df4ecd601d846c9214d5b290333fe4dc373b0a37da9868377d5f2b"
+    },
+    {
+      "model": "apple-premium-spatial",
+      "width": 910,
+      "height": 512,
+      "durationMs": 23967,
+      "codecs": [
+        "h264",
+        "aac"
+      ],
+      "audioStreams": 1,
+      "fullDecode": "pass",
+      "aacSha256": "3ab56de121876c557cf02f06da30faba19e447b1c7dcad782e0c77ff45e41a2b",
+      "bytes": 3916053,
+      "mp4Sha256": "82830c92bd9cde37081c93bd761274fd36e4eb27a1d88862ee95faa1783cf541"
+    },
+    {
+      "model": "cinematic-storytelling-v7",
+      "width": 910,
+      "height": 512,
+      "durationMs": 23967,
+      "codecs": [
+        "h264",
+        "aac"
+      ],
+      "audioStreams": 1,
+      "fullDecode": "pass",
+      "aacSha256": "3ab56de121876c557cf02f06da30faba19e447b1c7dcad782e0c77ff45e41a2b",
+      "bytes": 3523089,
+      "mp4Sha256": "ee881ec7e4f0abcb83231fec74702d15fddc73e624470e0317bea4ccdef3c9d8"
+    }
+  ],
+  "captionStatus": "asr_preview_not_phonetically_certified",
+  "allSixAudioIdentical": true
+}

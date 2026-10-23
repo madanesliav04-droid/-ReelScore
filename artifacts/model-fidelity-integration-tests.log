@@ -2,3 +2,13 @@
 ✔ restored original source files remain byte-for-byte identical to the uploaded pack (87.732421ms)
 ✔ restored previews require reviewed speech and composition, reject unsafe or fabricated events (9.893514ms)
 ✔ six reference releases remain guarded individually; recovered code is not master certification (8.084675ms)
+✔ six restored original compositors render visible MP4s on new technical fixtures with native audio (58549.081507ms)
+✔ new portrait source keeps native 1080x1920 dimensions for Codie and Cinematic (36117.377671ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 95501.059398

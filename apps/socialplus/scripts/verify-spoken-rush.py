@@ -5,6 +5,9 @@ if len(sys.argv)!=3:raise SystemExit('Usage: python scripts/verify-spoken-rush.p
 source=sys.argv[1];out=pathlib.Path(sys.argv[2])
 source_meta=json.loads(subprocess.check_output(['ffprobe','-v','error','-show_streams','-of','json',source]));sv=next(s for s in source_meta['streams'] if s['codec_type']=='video');native=(sv['width'],sv['height']);rotation=next((d.get('rotation',0) for d in sv.get('side_data_list',[]) if 'rotation' in d),0)
 if abs(rotation)%180==90:native=native[::-1]
+def upper_frame(p,t):
+ data=subprocess.check_output(['ffmpeg','-v','error','-ss',str(max(0,t)),'-i',str(p),'-map','0:v:0','-frames:v','1','-vf','scale=256:144,crop=256:96:0:0,format=gray','-f','rawvideo','pipe:1'])
+ return np.frombuffer(data,dtype=np.uint8).astype(np.float32)
 def audio(p):return np.frombuffer(subprocess.check_output(['ffmpeg','-v','error','-i',str(p),'-map','0:a:0','-ac','1','-ar','8000','-f','f32le','pipe:1']),dtype='<f4')
 src=audio(source);report=[];rows=[]
 models=['codie-omni-v60','alex-hormozi-v16','leila-hormozi-v53','social-kinetic-v28','apple-premium-spatial','cinematic-storytelling-v7']
@@ -21,6 +24,19 @@ for model in models:
    assert scores[best]>.95, 'Voice does not correlate with the retained original interval'
    checks.append({'sourceStartMs':round((a+offset)*1000),'outputMapStartMs':round((cumulative+offset)*1000),'audioLagMs':round((lo+best-expected)/8,3),'correlation':round(float(scores[best]),6)});cumulative+=b-a
   entry['voiceCorrelation']=checks
+  # Codie has no graphic event on this rush. Compare its upper picture to the
+  # source at each retained interval, excluding the caption band. One frame
+  # of seek/quantization tolerance is reported, never phonetic certification.
+  picture=[];cumulative=0
+  for keep in keeps:
+   a,b=keep['startMs']/1000,keep['endMs']/1000;offset=min(.6,(b-a)/4);expected=cumulative+offset
+   reference=upper_frame(source,a+offset)
+   matches=[(float(np.mean(np.abs(reference-upper_frame(p,expected+delta)))),delta) for delta in [-1/30,0,1/30]]
+   error,delta=min(matches)
+   assert error<8,'Retained video frame does not match native source picture'
+   picture.append({'sourceTimeMs':round((a+offset)*1000),'outputTimeMs':round(expected*1000),'bestSeekOffsetMs':round(delta*1000,3),'meanAbsoluteLumaError':round(error,4),'threshold':8})
+   cumulative+=b-a
+  entry['retainedPictureChecks']=picture
  row=Image.new('RGB',(1092,235),'#181b21');d=ImageDraw.Draw(row);d.text((5,5),model,fill='white')
  times={'codie-omni-v60':[1.4,6.9,13.8],'alex-hormozi-v16':[5.2,7.2,20.7],'leila-hormozi-v53':[9.4,18.9,20.6],'social-kinetic-v28':[11.9,15.2,22.6],'apple-premium-spatial':[5.2,18.8,20.7],'cinematic-storytelling-v7':[7.2,18.9,20.7]}[model]
  if float(meta['format']['duration'])<24:times=[min(t,float(meta['format']['duration'])-.3) for t in times]
