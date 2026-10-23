@@ -1,0 +1,25 @@
+{
+  "status": "pass",
+  "browser": "Chromium Linux",
+  "viewports": [
+    "1440x1000",
+    "390x844"
+  ],
+  "checks": [
+    "owner MFA login",
+    "create experiment via form and API",
+    "baseline frozen in SQLite",
+    "same-day publication through datetime form in Europe/Paris timezone",
+    "complete result via form and API",
+    "result persists after reload",
+    "no horizontal overflow",
+    "manual competitor observation date persists",
+    "no JavaScript errors"
+  ],
+  "limitations": [
+    "No physical Safari iPhone or Chrome Windows",
+    "All metrics are explicitly fictional fixtures",
+    "No causal conclusion or model render certified"
+  ],
+  "external_paid_calls": 0
+}

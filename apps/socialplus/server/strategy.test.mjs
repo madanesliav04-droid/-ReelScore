@@ -20,8 +20,8 @@ test('observed trends keep one latest snapshot per post and preserve measured ze
 const video={fingerprint,metadata:{duration_seconds:10,width:1920,height:1080,has_audio:true},context:{goal_type:'awareness'}};
 const csv='date publication;date collecte;portée;vues;durée moyenne;durée\n2026-10-01;2026-10-02;1 000;1200;12,5;10';
 
-function harness(){
- const db=new DatabaseSync(':memory:');const strategy=createStrategy({db});
+function harness(options={}){
+ const db=new DatabaseSync(':memory:');const strategy=createStrategy({db,...options});
  const request=async(path,method='GET',data,uid='a')=>{
   const req=Readable.from(data===undefined?[]:[Buffer.from(JSON.stringify(data))]);req.method=method;
   let status=0,output='';const res={writeHead(code){status=code;},end(value){output=value;}};
@@ -210,4 +210,108 @@ test('admin methods require owner MFA; published history is immutable and disabl
  await admin('PATCH',{enabled:false},owner,'/api/admin/method-versions/M01');
  const disabled=(await h.request('/api/strategy/diagnostic','POST',{})).body.diagnostic;
  assert.ok(disabled.missions.every(m=>m.method_id!=='M01'));h.db.close();
+});
+
+function experimentHarness(){
+ let time=Date.parse('2026-10-03T00:00:00Z');
+ const h=harness({clock:()=>time});
+ return {...h,advance:()=>{time=Date.parse('2026-10-06T00:00:00Z');}};
+}
+const experimentInput=baseline=>({hypothesis:'Une promesse plus précise augmentera les partages par portée.',changed_variable:'La formulation de la promesse dans mon ouverture',goal_metric:'share_rate',baseline_metric_id:baseline.id});
+const afterExperiment={...base,external_post_id:'post-test',publication_at:'2026-10-04',collected_at:'2026-10-05',shares:20};
+const experimentObservation='Hausse observée sur cette publication ; le sujet et l’audience peuvent aussi différer.';
+
+test('experiments freeze the hypothesis, KPI and baseline before a new publication',async()=>{
+ const h=experimentHarness();
+ const baseline=(await h.request('/api/strategy/metrics','POST',base)).body.metric;
+ const started=await h.request('/api/strategy/experiments','POST',{...experimentInput(baseline),status:'completed',conclusion:'improved'});
+ assert.equal(started.status,201);const e=started.body.experiment;
+ assert.equal(e.status,'active');assert.equal(e.conclusion,null);assert.equal(e.baseline_value,.5);
+ assert.equal(e.started_at,'2026-10-03T00:00:00.000Z');assert.deepEqual(e.baseline_snapshot,baseline);
+ // A later snapshot of the reference publication does not rewrite the baseline.
+ await h.request('/api/strategy/metrics','POST',{...base,collected_at:'2026-10-03',shares:100});
+ const persisted=(await h.request('/api/strategy/experiments/'+e.id)).body.experiment;
+ assert.equal(persisted.baseline_snapshot.shares,5);assert.equal(persisted.baseline_value,.5);
+ const after=(await h.request('/api/strategy/metrics','POST',afterExperiment)).body.metric;
+ h.advance();
+ const completed=await h.request('/api/strategy/experiments/'+e.id+'/results','POST',{after_metric_id:after.id,observation_note:experimentObservation});
+ assert.equal(completed.status,201);assert.equal(completed.body.experiment.delta_points,1.5);
+ assert.equal(completed.body.experiment.conclusion,'improved');assert.equal(completed.body.experiment.after_value,2);
+ assert.match(completed.body.experiment.caveat,/sans attribution causale/);
+ assert.deepEqual(completed.body.experiment.baseline_snapshot,baseline);
+ assert.ok(h.strategy.exportData('a').some(record=>record.kind==='experiment'&&record.id===e.id));
+ h.db.close();
+});
+
+test('experiments reject missing context and unobservable KPIs without inventing a baseline',async()=>{
+ const h=experimentHarness();
+ const baseline=(await h.request('/api/strategy/metrics','POST',{...base,shares:null})).body.metric;
+ assert.equal((await h.request('/api/strategy/experiments','POST',experimentInput(baseline))).body.code,'EXPERIMENT_BASELINE');
+ const incomplete=(await h.request('/api/strategy/metrics','POST',{...base,external_post_id:'incomplete',format:null})).body.metric;
+ assert.equal((await h.request('/api/strategy/experiments','POST',experimentInput(incomplete))).body.code,'EXPERIMENT_BASELINE');
+ assert.equal((await h.request('/api/strategy/experiments','POST',{...experimentInput(baseline),goal_metric:'viral_probability'})).body.code,'EXPERIMENT_METRIC');
+ assert.equal((await h.request('/api/strategy/experiments')).body.experiments.length,0);h.db.close();
+});
+
+test('experiment access, measurement references, export and deletion stay isolated per user',async()=>{
+ const h=experimentHarness();
+ const baseline=(await h.request('/api/strategy/metrics','POST',base)).body.metric;
+ const e=(await h.request('/api/strategy/experiments','POST',experimentInput(baseline))).body.experiment;
+ assert.equal((await h.request('/api/strategy/experiments','GET',undefined,'b')).body.experiments.length,0);
+ assert.equal((await h.request('/api/strategy/experiments/'+e.id,'GET',undefined,'b')).status,404);
+ assert.equal((await h.request('/api/strategy/experiments/'+e.id+'/results','POST',{},'b')).status,404);
+ assert.equal((await h.request('/api/strategy/experiments','POST',experimentInput(baseline),'b')).status,404);
+ const foreign=(await h.request('/api/strategy/metrics','POST',afterExperiment,'b')).body.metric;h.advance();
+ assert.equal((await h.request('/api/strategy/experiments/'+e.id+'/results','POST',{after_metric_id:foreign.id,observation_note:experimentObservation})).status,404);
+ assert.equal(h.strategy.exportData('b').some(record=>record.kind==='experiment'),false);
+ h.strategy.deleteData('b');assert.equal((await h.request('/api/strategy/experiments')).body.experiments.length,1);
+ h.strategy.deleteData('a');assert.equal((await h.request('/api/strategy/experiments')).body.experiments.length,0);h.db.close();
+});
+
+test('experiments require a new post after their start and reject future collection',async()=>{
+ const h=experimentHarness(),baseline=(await h.request('/api/strategy/metrics','POST',base)).body.metric;
+ const e=(await h.request('/api/strategy/experiments','POST',experimentInput(baseline))).body.experiment;
+ for(const metric of [base,{...base,external_post_id:'old-post'},{...afterExperiment,collected_at:'2026-10-07'}]){
+  const after=(await h.request('/api/strategy/metrics','POST',metric)).body.metric;
+  h.advance();
+  assert.equal((await h.request('/api/strategy/experiments/'+e.id+'/results','POST',{after_metric_id:after.id,observation_note:experimentObservation})).body.code,'EXPERIMENT_CHRONOLOGY');
+ }
+ assert.equal((await h.request('/api/strategy/experiments/'+e.id)).body.experiment.status,'active');h.db.close();
+});
+
+test('incomparable experiments keep real snapshots and conclude not evaluable',async()=>{
+ for(const change of [{platform:'tiktok'},{observation_window:'7d'},{definition_version:'different'},{shares:null},{video_duration_seconds:100}]){
+  const h=experimentHarness(),baseline=(await h.request('/api/strategy/metrics','POST',base)).body.metric;
+  const e=(await h.request('/api/strategy/experiments','POST',experimentInput(baseline))).body.experiment;
+  const after=(await h.request('/api/strategy/metrics','POST',{...afterExperiment,...change})).body.metric;h.advance();
+  const result=(await h.request('/api/strategy/experiments/'+e.id+'/results','POST',{after_metric_id:after.id,observation_note:experimentObservation})).body.experiment;
+  assert.equal(result.conclusion,'not_evaluable');assert.equal(result.delta_points,null);assert.ok(result.reasons.length);
+  assert.deepEqual(result.after_snapshot,after);h.db.close();
+ }
+});
+
+test('completed experiments are immutable and replaying their result is idempotent',async()=>{
+ const h=experimentHarness(),baseline=(await h.request('/api/strategy/metrics','POST',base)).body.metric;
+ const e=(await h.request('/api/strategy/experiments','POST',experimentInput(baseline))).body.experiment;
+ const after=(await h.request('/api/strategy/metrics','POST',{...afterExperiment,shares:0})).body.metric;h.advance();
+ const payload={after_metric_id:after.id,observation_note:experimentObservation};
+ const first=await h.request('/api/strategy/experiments/'+e.id+'/results','POST',payload);
+ assert.equal(first.body.experiment.conclusion,'worsened');assert.equal(first.body.experiment.delta_points,-.5);
+ const repeated=await h.request('/api/strategy/experiments/'+e.id+'/results','POST',{...payload,observation_note:'Tentative de remplacer la note historique.'});
+ assert.equal(repeated.status,200);assert.equal(repeated.body.duplicate,true);assert.deepEqual(repeated.body.experiment,first.body.experiment);
+ assert.equal((await h.request('/api/strategy/experiments/'+e.id+'/results','POST',{...payload,after_metric_id:baseline.id})).status,409);
+ assert.equal((await h.request('/api/strategy/experiments')).body.experiments.length,1);h.db.close();
+});
+
+
+test('concurrent experiment completions cannot replace the first saved result',async()=>{
+ const h=experimentHarness(),baseline=(await h.request('/api/strategy/metrics','POST',base)).body.metric;
+ const e=(await h.request('/api/strategy/experiments','POST',experimentInput(baseline))).body.experiment;
+ const first=(await h.request('/api/strategy/metrics','POST',afterExperiment)).body.metric;
+ const second=(await h.request('/api/strategy/metrics','POST',{...afterExperiment,external_post_id:'other-test',shares:0})).body.metric;h.advance();
+ const responses=await Promise.all([first,second].map(after=>h.request('/api/strategy/experiments/'+e.id+'/results','POST',{after_metric_id:after.id,observation_note:experimentObservation})));
+ assert.deepEqual(responses.map(r=>r.status).sort(),[201,409]);
+ const saved=(await h.request('/api/strategy/experiments/'+e.id)).body.experiment;
+ assert.deepEqual(saved,responses.find(r=>r.status===201).body.experiment);
+ h.db.close();
 });

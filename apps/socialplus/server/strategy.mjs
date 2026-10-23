@@ -144,6 +144,9 @@ export function compareMetrics(before,after){
  return {comparable:reasons.length===0,reasons,deltas,conclusion:reasons.length?'not_evaluable':'unclear',caveat:'Écart descriptif, sans attribution causale. Même une hausse ne démontre pas que l’action en est la cause.'};
 }
 
+export const EXPERIMENT_METRICS=Object.freeze({share_rate:'Partages / portée',save_rate:'Enregistrements / portée',engagement_rate:'Engagement complet / portée',watch_ratio:'Durée moyenne / durée vidéo',profile_action_rate:'Abonnements attribués / visites de profil',lead_conversion_rate:'Prospects qualifiés attribués / visiteurs suivis'});
+const EXPERIMENT_CAVEAT='Écart descriptif entre deux publications, sans attribution causale. Un seul test ne démontre pas l’efficacité de votre action ; vérifiez les différences de sujet, d’audience et de contexte avant de répliquer.';
+
 export function buildMetricTrend(rows){
  const groups=new Map();
  for(const row of rows){
@@ -242,7 +245,7 @@ async function body(req){
 }
 const send=(res,status,data)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(data));};
 
-export function createStrategy({db}){
+export function createStrategy({db,clock=Date.now}){
  db.exec(`CREATE TABLE IF NOT EXISTS strategy_records(id TEXT PRIMARY KEY,user_id TEXT NOT NULL,kind TEXT NOT NULL,data TEXT NOT NULL,checksum TEXT,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,UNIQUE(user_id,kind,checksum));CREATE INDEX IF NOT EXISTS strategy_records_user_kind ON strategy_records(user_id,kind,created_at);CREATE TABLE IF NOT EXISTS strategy_method_state(method_id TEXT PRIMARY KEY,version INTEGER NOT NULL DEFAULT 1,enabled INTEGER NOT NULL DEFAULT 1,data TEXT NOT NULL DEFAULT '{}');`);
  db.exec(`CREATE TABLE IF NOT EXISTS strategy_method_versions(method_id TEXT NOT NULL,version INTEGER NOT NULL,data TEXT NOT NULL,created_by TEXT NOT NULL,created_at TEXT NOT NULL,PRIMARY KEY(method_id,version));CREATE TABLE IF NOT EXISTS strategy_admin_audit(id TEXT PRIMARY KEY,actor_id TEXT NOT NULL,action TEXT NOT NULL,method_id TEXT NOT NULL,version INTEGER NOT NULL,created_at TEXT NOT NULL);`);
  for(const m of METHODS)db.prepare('INSERT OR IGNORE INTO strategy_method_versions(method_id,version,data,created_by,created_at) VALUES(?,?,?,?,?)').run(m.id,1,JSON.stringify(m),'system','2026-10-22T00:00:00.000Z');
@@ -334,6 +337,49 @@ export function createStrategy({db}){
    if(/^\/api\/strategy\/competitors\/[^/]+$/.test(path)&&req.method==='DELETE'){
     const id=path.split('/').pop();if(!get(uid,'competitor',id))throw fail('NOT_FOUND','Profil introuvable.',404);
     db.prepare("DELETE FROM strategy_records WHERE id=? AND user_id=? AND kind='competitor'").run(id,uid);send(res,200,{deleted:true});return true;
+   }
+   if(path==='/api/strategy/experiments'&&req.method==='GET'){send(res,200,{experiments:list(uid,'experiment'),goal_metrics:EXPERIMENT_METRICS});return true;}
+   if(path==='/api/strategy/experiments'&&req.method==='POST'){
+    const raw=await body(req),hypothesis=clean(raw.hypothesis,2000),changedVariable=clean(raw.changed_variable,1000);
+    if(hypothesis.length<20||changedVariable.length<10)throw fail('EXPERIMENT_INCOMPLETE','Décrivez votre hypothèse (20 caractères) et la seule variable modifiée (10 caractères).');
+    if(!Object.hasOwn(EXPERIMENT_METRICS,raw.goal_metric))throw fail('EXPERIMENT_METRIC','Choisissez un indicateur documenté.');
+    const baseline=get(uid,'metric',clean(raw.baseline_metric_id,100));
+    if(!baseline)throw fail('METRIC_NOT_FOUND','Mesure de référence personnelle introuvable.',404);
+    const readiness=compareMetrics(baseline,baseline),value=calculateRates(baseline)[raw.goal_metric],now=new Date(clock()).toISOString();
+    if(!readiness.comparable||value===null)throw fail('EXPERIMENT_BASELINE','Complétez le format, la fenêtre, la définition, la durée et les mesures nécessaires à cet indicateur avant de démarrer.');
+    if(!baseline.external_post_id||baseline.collected_at>now)throw fail('EXPERIMENT_BASELINE','La référence doit désigner une publication réelle déjà observée.');
+    const experiment={hypothesis,changed_variable:changedVariable,goal_metric:raw.goal_metric,goal_direction:'increase',baseline_metric_id:baseline.id,baseline_snapshot:baseline,baseline_value:value,started_at:now,ended_at:null,status:'active',conclusion:null,caveat:EXPERIMENT_CAVEAT};
+    send(res,201,{experiment:put(uid,'experiment',experiment)});return true;
+   }
+   const experimentMatch=/^\/api\/strategy\/experiments\/([^/]+)(?:\/(results))?$/.exec(path);
+   if(experimentMatch){
+    const experiment=get(uid,'experiment',experimentMatch[1]);
+    if(!experiment)throw fail('NOT_FOUND','Expérience introuvable.',404);
+    if(req.method==='GET'&&!experimentMatch[2]){send(res,200,{experiment});return true;}
+    if(req.method==='POST'&&experimentMatch[2]){
+     const raw=await body(req);
+     if(experiment.status==='completed'){
+      if(raw.after_metric_id!==experiment.after_metric_id)throw fail('EXPERIMENT_COMPLETED','Cette expérience est terminée. Démarrez un nouveau test pour conserver son historique.',409);
+      send(res,200,{experiment,duplicate:true});return true;
+     }
+     const after=get(uid,'metric',clean(raw.after_metric_id,100)),now=new Date(clock()).toISOString();
+     if(!after)throw fail('METRIC_NOT_FOUND','Mesure après expérience personnelle introuvable.',404);
+     if(!after.external_post_id||after.external_post_id===experiment.baseline_snapshot.external_post_id&&after.platform===experiment.baseline_snapshot.platform||after.publication_at<experiment.started_at||after.collected_at>now)throw fail('EXPERIMENT_CHRONOLOGY','Choisissez une autre publication réalisée après le début du test, avec une collecte déjà effectuée.');
+     const note=clean(raw.observation_note,2000);
+     if(note.length<20)throw fail('EXPERIMENT_OBSERVATION','Décrivez vos observations et les différences de contexte (20 caractères minimum).');
+     const comparison=compareMetrics(experiment.baseline_snapshot,after),afterValue=calculateRates(after)[experiment.goal_metric];
+     if(afterValue===null)comparison.reasons.push('Indicateur choisi non évaluable sur la publication après test.');
+     const comparable=comparison.comparable&&afterValue!==null,delta=comparable?Number((afterValue-experiment.baseline_value).toFixed(2)):null;
+     const completed={...experiment,after_metric_id:after.id,after_snapshot:after,after_value:afterValue,observation_note:note,ended_at:now,status:'completed',comparable,reasons:comparison.reasons,delta_points:delta,conclusion:!comparable?'not_evaluable':delta>0?'improved':delta<0?'worsened':'unclear'};
+     const changed=db.prepare("UPDATE strategy_records SET data=?,updated_at=? WHERE id=? AND user_id=? AND kind='experiment' AND json_extract(data,'$.status')='active'").run(JSON.stringify(completed),now,experiment.id,uid);
+     if(!changed.changes){
+      const persisted=get(uid,'experiment',experiment.id);
+      if(!persisted)throw fail('NOT_FOUND','Expérience introuvable.',404);
+      if(persisted.after_metric_id!==after.id)throw fail('EXPERIMENT_COMPLETED','Cette expérience est déjà terminée avec une autre publication. Son historique a été conservé.',409);
+      send(res,200,{experiment:persisted,duplicate:true});return true;
+     }
+     send(res,201,{experiment:get(uid,'experiment',experiment.id)});return true;
+    }
    }
    if(path==='/api/strategy/results'&&req.method==='GET'){send(res,200,{results:list(uid,'result')});return true;}
    if(path==='/api/strategy/results'&&req.method==='POST'){
