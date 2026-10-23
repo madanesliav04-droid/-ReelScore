@@ -50,3 +50,17 @@ test('six restored original compositors render visible MP4s on new technical fix
   }
  }finally{await rm(dir,{recursive:true,force:true});}
 });
+test('new portrait source keeps native 1080x1920 dimensions for Codie and Cinematic',async()=>{
+ const dir=await mkdtemp(join(tmpdir(),'socialplus-native-portrait-'));
+ try{
+  const source=join(dir,'new-portrait-technical-fixture.mp4');
+  await exec('ffmpeg',['-v','error','-f','lavfi','-i','color=c=0xE0E0DA:s=1080x1920:r=30:d=1.5','-f','lavfi','-i','sine=frequency=440:duration=1.5','-c:v','libx264','-threads','2','-pix_fmt','yuv420p','-c:a','aac','-shortest',source]);
+  for(const model of ['codie-omni-v60','cinematic-storytelling-v7']){
+   const output=join(dir,model+'.mp4');
+   const result=await renderVideo({sourcePath:source,outputPath:output,modelId:model,restoredInput:input});
+   assert.equal(result.metadata.width,1080);assert.equal(result.metadata.height,1920);
+   assert.equal(result.metadata.audioStreams,1);assert.equal(result.metadata.audioCodec,'aac');assert.equal(result.metadata.videoCodec,'h264');
+   assert.ok(Math.abs(result.metadata.durationMs-1500)<150);
+  }
+ }finally{await rm(dir,{recursive:true,force:true});}
+});

@@ -82,10 +82,12 @@ def main(config_path):
                     im=ImageOps.contain(Image.fromarray(scope['draw_scene'](t,scene)),(w,h),Image.Resampling.LANCZOS)
                     x+=(w-im.width)//2;y+=(h-im.height)//2
                 elif model=='cinematic-storytelling-v7':
-                    im=cinema_bg.copy()
-                    scope['mix_layer'](im,cinema_layers[i],t-a,delay=.12,dur=.36,dy=24)
-                    scope['mix_layer'](im,scope['under_rule'](340),t-a,delay=.34,dur=.4,dy=0)
-                    im=ImageOps.fit(im,(W,H),Image.Resampling.LANCZOS)
+                    im=ImageOps.fit(cinema_bg,(W,H),Image.Resampling.LANCZOS)
+                    content=Image.new('RGBA',(960,540))
+                    scope['mix_layer'](content,cinema_layers[i],t-a,delay=.12,dur=.36,dy=24)
+                    scope['mix_layer'](content,scope['under_rule'](340),t-a,delay=.34,dur=.4,dy=0)
+                    content=ImageOps.contain(content,(round(W*.9),round(H*.8)),Image.Resampling.LANCZOS)
+                    im.alpha_composite(content,((W-content.width)//2,(H-content.height)//2))
                     opacity=scope['fade_edge'](t-a,b-a,fin=.22,fout=.28)
                     im.putalpha(im.getchannel('A').point(lambda p:round(p*opacity)))
                     x=y=0

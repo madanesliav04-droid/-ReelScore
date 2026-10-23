@@ -12,7 +12,7 @@ const fail=message=>Object.assign(new Error(message),{code:'REFERENCE_INPUT_REQU
 export function restoredPlan(model,meta,input={}){
  if(!RESTORED_PREVIEWS.includes(model))throw fail('Ce modèle ne dispose pas de ce port de composants.');
  if(input.placementReviewed!==true)throw fail('Validez le placement des graphismes dans les zones libres du rush.');
- if(meta.width*meta.height>1280*720||meta.durationMs>60_000)throw fail('Le port de composants accepte actuellement des rushs jusqu’à 60 secondes et 720p natif.');
+ if(meta.width*meta.height>1920*1080||meta.durationMs>60_000)throw fail('Le port de composants accepte actuellement des rushs jusqu’à 60 secondes et 1080p natif.');
  if(!meta.hasAudio)throw fail('La voix originale est requise.');
  const base=buildLocalEdit({report:{metadata:meta,suggestions:[]},transcript:input.transcript,captionsReviewed:input.captionsReviewed});
  const words=input.transcript;
