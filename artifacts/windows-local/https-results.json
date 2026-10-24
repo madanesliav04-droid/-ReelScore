@@ -1,0 +1,58 @@
+{
+  "httpsCertificateVerified": true,
+  "authenticated": true,
+  "secureCookie": true,
+  "anonymousRejected": true,
+  "originRejected": true,
+  "sixPlans": [
+    {
+      "model": "codie-omni-v60",
+      "events": 0
+    },
+    {
+      "model": "leila-hormozi-v53",
+      "events": 1
+    },
+    {
+      "model": "apple-premium-spatial",
+      "events": 1
+    },
+    {
+      "model": "alex-hormozi-v16",
+      "events": 1
+    },
+    {
+      "model": "social-kinetic-v28",
+      "events": 1
+    },
+    {
+      "model": "cinematic-storytelling-v7",
+      "events": 1
+    }
+  ],
+  "analysisStable": true,
+  "sourceFormat": [
+    910,
+    512
+  ],
+  "renderModel": "leila-hormozi-v53",
+  "bytes": 733498,
+  "video": [
+    {
+      "codec": "h264",
+      "width": 910,
+      "height": 512
+    }
+  ],
+  "audio": [
+    {
+      "codec": "aac",
+      "channels": 2
+    }
+  ],
+  "mediaRange": true,
+  "fullDecode": true,
+  "transcriptionReused": true,
+  "windowsExecuted": false,
+  "physicalIphone": false
+}

@@ -19,7 +19,7 @@ npm test
 
 Le serveur de base utilise les modules Node.js. Les tests et le rendu Social Kinetic exigent les dépendances verrouillées installées par `npm ci`. Le script facultatif `scripts/browser-smoke.mjs` exige Playwright Core et Chromium déjà installés ; il peut utiliser `PLAYWRIGHT_MODULE_PATH` et `CHROMIUM_PATH`. Il crée uniquement une base temporaire et une vidéo technique générée, puis supprime les comptes de test. Il ne déploie rien.
 
-- [Guide Windows](../../docs/social-plus/WINDOWS_LOCAL.md)
+- [Installation Windows + iPhone : guide débutant](../../docs/social-plus/WINDOWS_IPHONE.md)
 - [Rapport des 97 scénarios](../../docs/social-plus/V18_ACCEPTANCE_REPORT.json)
 - [Sources indispensables manquantes](../../docs/social-plus/MISSING_SOURCES.md)
 - [Moteurs réemployés et vrais essais FFmpeg](../../docs/social-plus/ENGINE_IMPLEMENTATION.md)
@@ -62,3 +62,7 @@ Les deux espaces principaux sont **Montage** et **Analyse**. Les pages du profil
 Analyse importe et sauvegarde le rush dans un projet privé, mesure réellement l’audio avec FFmpeg, affiche les formules de ses deux indices acoustiques, les pauses horodatées et les actions à entreprendre. L’empreinte et la version `local-acoustic-v3` identifient le résultat mis en cache. Les critères éditoriaux restent non évaluables sans observations documentées : ces indices techniques ne représentent ni un score de viralité ni une analyse automatique du sens. **Monter cette vidéo** réemploie le même projet sans second envoi. Les tâches de rendu peuvent être retrouvées depuis les projets après navigation.
 
 Le serveur de développement local n’est pas une URL publique. Un test sur Safari iPhone physique nécessite une origine HTTPS privée accessible depuis le téléphone ; aucun tunnel ou hébergement externe n’est activé automatiquement.
+
+### Démarrage privé Windows + Safari iPhone
+
+Suivre le [guide débutant](../../docs/social-plus/WINDOWS_IPHONE.md). Après les prérequis gratuits, exécuter `powershell -NoProfile -ExecutionPolicy Bypass -File .\INSTALLER-SOCIALPLUS.ps1`, configurer la règle pare-feu locale documentée et installer le certificat public sur l’iPhone. Ensuite, double-cliquer `DEMARRER-SOCIALPLUS.cmd`. L’application écoute uniquement l’IPv4 privée choisie sur HTTPS 8443 ; les moteurs et l’authentification existants sont conservés. Aucun accès Internet entrant, tunnel ni déploiement n’est configuré. Les données et clés locales ne doivent jamais être commises dans Git.

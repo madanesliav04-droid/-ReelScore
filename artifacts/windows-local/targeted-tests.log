@@ -1,0 +1,10 @@
+✔ local HTTPS binds only an assigned RFC1918 address and fixed port (3.798428ms)
+✔ integrated HTTP: public legal, owner MFA, private projects, method admin and immediate member revocation (2451.597738ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3168.126842
