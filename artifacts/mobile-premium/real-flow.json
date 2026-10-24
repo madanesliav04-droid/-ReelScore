@@ -1,0 +1,39 @@
+{
+  "navigation": true,
+  "autoUpload": true,
+  "analysisStable": true,
+  "sameSource": true,
+  "sixModels": [
+    "codie-omni-v60",
+    "alex-hormozi-v16",
+    "leila-hormozi-v53",
+    "social-kinetic-v28",
+    "cinematic-storytelling-v7",
+    "apple-premium-spatial"
+  ],
+  "renderResume": true,
+  "playback": {
+    "time": 1.182618,
+    "width": 910,
+    "height": 512,
+    "error": null
+  },
+  "nativeFormat": true,
+  "singleAudio": true,
+  "fullDecode": true,
+  "audioCorrelation": 1,
+  "projectPreview": true,
+  "responsiveWidths": [
+    320,
+    390,
+    402,
+    440,
+    768,
+    1440
+  ],
+  "reducedMotion": true,
+  "portraitTechnical": true,
+  "javascriptErrors": [],
+  "physicalIphone": false,
+  "nativeWindows": false
+}

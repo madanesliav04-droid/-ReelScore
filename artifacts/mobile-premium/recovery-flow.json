@@ -1,0 +1,25 @@
+{
+  "controlledFailureFixture": true,
+  "notEngineCertification": true,
+  "pauseSelectionReused": true,
+  "networkRecovery": true,
+  "failedTaskVisible": true,
+  "sourceRetained": true,
+  "refreshResumes": true,
+  "deletion": true,
+  "faqPreserved": true,
+  "reducedMotion": true,
+  "themes": true,
+  "inputFontPx": 16,
+  "performance": {
+    "navigation": [
+      {
+        "domContentLoadedMs": 95.30000000074506,
+        "responseEndMs": 7.2000000001862645
+      }
+    ],
+    "fontSize": "14px"
+  },
+  "javascriptErrors": [],
+  "physicalIphone": false
+}

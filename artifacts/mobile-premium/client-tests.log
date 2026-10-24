@@ -1,0 +1,13 @@
+✔ API adapter fixes same-origin session policy and discards responses from an ended session (5.725911ms)
+✔ upload reports measured bytes, sends CSRF and cancels on session abort (5.669354ms)
+✔ presentation preserves uncertainty and escapes user words before rendering (9.790704ms)
+✔ technical score remains unavailable without measured criteria and is reproducible (1.93885ms)
+✔ project states expose failed/recoverable work and bound only genuine progress (89.668616ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 836.480588

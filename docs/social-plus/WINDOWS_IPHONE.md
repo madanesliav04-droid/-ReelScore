@@ -36,11 +36,22 @@ Pour une nouvelle installation, dans PowerShell :
 Set-Location $HOME
 New-Item -ItemType Directory -Force SocialPlus | Out-Null
 Set-Location SocialPlus
-git clone --branch codex/socialplus-windows-iphone-20261024 https://github.com/madanesliav04-droid/-ReelScore.git
+git clone --branch codex/socialplus-mobile-premium-20261024 https://github.com/madanesliav04-droid/-ReelScore.git
 Set-Location .\-ReelScore\apps\socialplus
 ```
 
 **Si vous avez déjà une installation avec des vidéos**, ne la supprimez pas et ne recopiez pas sa base pendant que le serveur fonctionne. Arrêtez-la avec Ctrl+C, sauvegardez ensemble `.data` et `.env.local`, puis utilisez la nouvelle branche dans ce même dépôt seulement si Git n’annonce aucune modification locale en conflit. Le lanceur conserve le dossier de données et les identifiants existants ; il n’efface et ne migre rien.
+
+### Mettre à jour une installation locale existante
+
+Après arrêt du serveur et sauvegarde privée, depuis le dossier du dépôt existant :
+
+```powershell
+git fetch origin
+git switch codex/socialplus-mobile-premium-20261024
+```
+
+Si Git signale des modifications en conflit, arrêtez-vous : ne forcez pas le changement de branche. Les dossiers privés ignorés par Git sont conservés. Si l’installation HTTPS fonctionnait déjà et que l’IP Wi-Fi n’a pas changé, il suffit ensuite de relancer `DEMARRER-SOCIALPLUS.cmd` et d’actualiser Safari ; les dépendances et certificats de la nouvelle interface n’ont pas changé.
 
 ## 3. Préparer le Wi-Fi et lancer l’installation
 
@@ -107,13 +118,13 @@ Pour un membre de test, créez une invitation personnelle dans l’administratio
 
 Commencez par un rush parlé de 10 à 30 secondes (maximum **60 secondes**, **1080p**, **200 Mo** pour les six adaptations), avec une seule personne et une voix audible. Le format natif et la voix originale sont conservés ; le port H.264 exige des dimensions paires.
 
-1. **Analyse** → choisir la vidéo → lancer la vérification. Attendez la fin de l’envoi et des mesures, sans verrouiller l’iPhone. Les indices acoustiques, leur formule et les pauses mesurées apparaissent. Hook, sens, CTA et autres critères non mesurés restent **non évaluables**, sauf observations manuelles documentées ; aucun score de viralité n’est inventé.
+1. **Analyse** → choisir la vidéo (enregistrement automatique) → **Analyser mon rush**. Attendez la fin de l’envoi et des mesures, sans verrouiller l’iPhone. Les indices acoustiques, leur formule et les pauses mesurées apparaissent. Hook, sens, CTA et autres critères non mesurés restent **non évaluables**, sauf observations manuelles documentées ; aucun score de viralité n’est inventé.
 2. **Monter cette vidéo** : le même projet s’ouvre dans Montage, sans nouvel import.
-3. Choisir l’un des **six modèles**, puis **Préparer automatiquement ce modèle**. La transcription CPU peut prendre plusieurs minutes selon le PC. Gardez la page ouverte.
+3. Choisir l’un des **six modèles**, puis **Préparer mon montage**. La transcription CPU peut prendre plusieurs minutes selon le PC. Gardez la page ouverte.
 4. Écouter le rush, vérifier la transcription et le placement. Les horaires et animations proposés ne sont pas certifiés. Garder le mode **prévisualisation avec transcription encore à relire** si des mots restent incertains ; ne pas confirmer des mots que vous n’avez pas vérifiés.
 5. Vérifier les zones graphiques et cocher la confirmation de placement, puis **Lancer le montage**. Cinematic utilise son planificateur autonome et reste marqué bêta.
 6. Après le traitement, toucher lecture puis **Télécharger le MP4**. Sur Safari, confirmer le téléchargement et le retrouver via le bouton Téléchargements ou **Fichiers → Téléchargements**. Ne fermez pas Safari pendant le transfert.
-7. Pour un autre modèle, le sélectionner et **préparer à nouveau ses animations** avant de relancer. Le dernier export du projet remplace le précédent : téléchargez chaque résultat avant le suivant. La limite par défaut est de dix traitements par jour ; analyse et transcription initiales comptent aussi, leur relecture en cache ne compte pas. Pour essayer les six modèles sur un seul rush, c’est suffisant si vous réutilisez ce même projet.
+7. Pour un autre modèle, le sélectionner et **vérifier ses nouvelles propositions d’animations** avant de relancer. Le dernier export du projet remplace le précédent : téléchargez chaque résultat avant le suivant. La limite par défaut est de dix traitements par jour ; analyse et transcription initiales comptent aussi, leur relecture en cache ne compte pas. Pour essayer les six modèles sur un seul rush, c’est suffisant si vous réutilisez ce même projet.
 
 Si un traitement échoue, copiez son message exact, le modèle et la durée du rush. Un moteur ou une dépendance manquante doit provoquer une erreur explicite, jamais un faux résultat.
 
@@ -129,3 +140,7 @@ Si un traitement échoue, copiez son message exact, le modèle et la durée du r
 ## Ce qui a été vérifié avant livraison
 
 Les deux parcours ont déjà été exécutés sur un vrai extrait parlé dans Chromium en émulation iPhone : analyse → même projet → Leila → MP4 lu et téléchargé, format 910×512 et piste audio stéréo uniques conservés. La reprise du rendu après navigation est également testée. Cela **ne remplace pas** un essai de votre installation Windows ni de Safari sur votre iPhone physique. Le nouveau transport HTTPS possède ses tests de restriction réseau ; les résultats complémentaires sont consignés dans le rapport livré avec cette branche.
+
+## Nouvelle navigation mobile
+
+Les quatre onglets sont **Accueil**, **Montage**, **Analyse** et **Projets**. L’import dans Montage ou Analyse crée et enregistre automatiquement un projet ; il n’est plus nécessaire de remplir un formulaire de sauvegarde avant de commencer. Renommer reste possible dans « Nom du projet ». Dans Analyse, le choix d’un rush enregistré évite un nouvel import. La bibliothèque Projets permet aussi de lire, télécharger et supprimer un projet ; les options de partage natif dépendent du navigateur. Les mots et points d’écoute sont accessibles dans « Paroles et synchronisation », avec le JSON réservé aux outils avancés.
