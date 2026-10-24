@@ -1,0 +1,18 @@
+✔ projects: measured reports are cached per source, isolated, invalidated on replacement and deleted with member data (81.382911ms)
+✔ projects: tenant boundary covers get update delete upload and job lookup (10.577431ms)
+✔ projects: metadata persists; unavailable model cannot produce fake job (19.776753ms)
+✔ projects: invalid probe and interrupted uploads leave no partial file (21.988639ms)
+✔ projects: byte limit is enforced even without Content-Length (15.248784ms)
+✔ projects: daily compute quota survives project deletion and remains scoped to its member (47.327053ms)
+✔ projects: deletion during asynchronous render metadata check leaves no orphaned private export (21.594425ms)
+✔ projects: offline transcripts cache by model and source, isolate tenants and follow privacy deletion (15.460694ms)
+✔ projects: missing offline model does not consume quota and deleted project leaves no ASR result (11.425725ms)
+✔ projects: Cinematic web route uses autonomous source planner and exposes review without certifying words (27.125963ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 639.855864

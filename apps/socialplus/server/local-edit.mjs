@@ -2,7 +2,7 @@ import {buildCaptionAss} from '../../worker/src/render.js';
 import {mapOriginalToOutput} from '../../worker/src/edit.js';
 
 const invalid=message=>Object.assign(new Error(message),{status:422,code:'INVALID_EDIT'});
-export const SIGNAL_VERSION='local-acoustic-v2';
+export const SIGNAL_VERSION='local-acoustic-v3';
 
 export function acousticReport(log,metadata,fingerprint){
   let windows=[];let start=null;
@@ -24,7 +24,12 @@ export function acousticReport(log,metadata,fingerprint){
   if(meanVolumeDb!==null&&meanVolumeDb< -25)recommendations.push('Le niveau moyen est faible. Comparez la voix à volume d’écoute constant avant de normaliser.');
   if(silenceRatio>.25)recommendations.push('Plus d’un quart du fichier est sous le seuil de −35 dBFS. Examinez ces pauses ; elles peuvent être narratives ou contenir une voix faible.');
   if(!recommendations.length)recommendations.push('Aucune alerte acoustique parmi les critères mesurés. Vérifiez toujours la voix, le sens et la lisibilité avant publication.');
-  return {engineVersion:SIGNAL_VERSION,fingerprint,metadata,meanVolumeDb,peakVolumeDb,silenceRatio,windows:windows.slice(0,200),suggestions,recommendations,
+  const criteria={
+    pauseDensity:{label:'Continuité acoustique',score:metadata.hasAudio?Math.round(100*(1-silenceRatio)):null,formula:'100 × (1 − proportion sous −35 dBFS)',notice:'Indice de pauses, sans jugement de rétention : une pause peut être intentionnelle.'},
+    voiceLevel:{label:'Niveau audio moyen',score:meanVolumeDb===null?null:Math.round(Math.max(0,Math.min(100,100-5*Math.max(0,-25-meanVolumeDb)))),formula:'100 − 5 × max(0, −25 − niveau moyen dBFS), borné de 0 à 100',notice:'Indice technique de niveau faible ; ne mesure ni la clarté du discours ni la qualité du micro.'}
+  };
+  const findings=suggestions.map(p=>({startMs:p.startMs,endMs:p.endMs,what:'Écouter cette pause avant de la raccourcir',why:'Intervalle mesuré sous −35 dBFS pendant au moins 0,8 seconde.',how:'Dans Montage, écouter le passage, puis sélectionner cette pause seulement si elle ne porte aucun mot ni intention.'}));
+  return {criteria,findings,engineVersion:SIGNAL_VERSION,fingerprint,metadata,meanVolumeDb,peakVolumeDb,silenceRatio,windows:windows.slice(0,200),suggestions,recommendations,
     notice:'Mesures locales du fichier, sans IA ni prédiction de viralité. Une pause acoustique ne prouve pas l’absence de parole. Les coupes proposées exigent votre validation après écoute.'};
 }
 

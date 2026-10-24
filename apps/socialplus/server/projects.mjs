@@ -1,3 +1,4 @@
+import {planCinematic,cinematicReviewItems} from './cinematic-plan.mjs';
 import {RESTORED_PREVIEWS,restoredPlan} from './restored-models.mjs';
 import {buildLocalEdit,SIGNAL_VERSION} from './local-edit.mjs';
 import { randomUUID } from 'node:crypto';
@@ -33,7 +34,7 @@ export function createProjects({ db, dataDir, render, maxUploadBytes = 200 * 102
   let running = false;
   const uploading = new Set();
   const uploadingUsers = new Set();
-  const publicProject = p => ({ id: p.id, name: p.name, style_id: p.style_id, state: p.state, source_name: p.source_name, source_bytes: p.source_bytes, metadata: p.metadata ? JSON.parse(p.metadata) : null, has_source: Boolean(p.source_path), has_output: Boolean(p.output_path), created_at: p.created_at, updated_at: p.updated_at });
+  const publicProject = p => ({ latestJob:db.prepare('SELECT id,state,progress,error_message FROM studio_jobs WHERE project_id=? AND user_id=? ORDER BY created_at DESC,rowid DESC LIMIT 1').get(p.id,p.user_id)||null, id: p.id, name: p.name, style_id: p.style_id, state: p.state, source_name: p.source_name, source_bytes: p.source_bytes, metadata: p.metadata ? JSON.parse(p.metadata) : null, has_source: Boolean(p.source_path), has_output: Boolean(p.output_path), created_at: p.created_at, updated_at: p.updated_at });
   const get = (userId, id) => { const p = db.prepare('SELECT * FROM studio_projects WHERE id=? AND user_id=?').get(id,userId); if (!p) throw fail(404,'PROJECT_NOT_FOUND','Projet introuvable.'); return p; };
   const list = userId => db.prepare('SELECT * FROM studio_projects WHERE user_id=? ORDER BY updated_at DESC LIMIT 100').all(userId).map(publicProject);
   const create = (userId, input = {}) => {
@@ -128,7 +129,14 @@ export function createProjects({ db, dataDir, render, maxUploadBytes = 200 * 102
     const restoredModel=preview||modelId;
     if (!['technical-export','guided-edit'].includes(modelId) && !isPreview && (!model || !model.available)) throw fail(422,'MODEL_UNAVAILABLE',model?.reason||'Le moteur de ce modèle est indisponible.');
     let localEdit,restoredInput;
-    if(isPreview){restoredInput={transcript:input.transcript,captionsReviewed:input.captionsReviewed===true,allowUnreviewedPreview:input.allowUnreviewedPreview===true,events:input.events,captionZones:input.captionZones,placementReviewed:input.placementReviewed===true};restoredPlan(restoredModel,JSON.parse(p.metadata),restoredInput);
+    if(isPreview&&restoredModel==='cinematic-storytelling-v7'){
+      if(input.placementReviewed!==true)throw fail(422,'PLACEMENT_REVIEW_REQUIRED','Confirmez les séquences graphiques plein écran avant de lancer Cinematic.');
+      const report=signalReport(userId,id);
+      if(!report)throw fail(409,'SOURCE_ANALYSIS_REQUIRED','Préparez automatiquement ce modèle ou analysez ce rush avant de lancer Cinematic.');
+      restoredInput=planCinematic(report,{words:input.transcript,captionsReviewed:input.captionsReviewed===true},{preview:input.allowUnreviewedPreview===true});
+      localEdit={report,approvedPauseIds:restoredInput.approvedPauseIds,transcript:restoredInput.transcript,captionsReviewed:restoredInput.captionsReviewed,previewOnly:restoredInput.allowUnreviewedPreview};
+    }
+    if(isPreview&&restoredModel!=='cinematic-storytelling-v7'){restoredInput={transcript:input.transcript,captionsReviewed:input.captionsReviewed===true,allowUnreviewedPreview:input.allowUnreviewedPreview===true,events:input.events,captionZones:input.captionZones,placementReviewed:input.placementReviewed===true};restoredPlan(restoredModel,JSON.parse(p.metadata),restoredInput);
       if(input.approvedPauseIds?.length){const report=signalReport(userId,id);if(!report)throw fail(409,'SOURCE_ANALYSIS_REQUIRED','Analysez cette source avant de couper ses pauses.');localEdit={report,approvedPauseIds:input.approvedPauseIds,transcript:input.transcript,captionsReviewed:input.captionsReviewed===true,previewOnly:input.allowUnreviewedPreview===true};buildLocalEdit(localEdit);}}
     if(modelId==='guided-edit'){
       const report=signalReport(userId,id);
@@ -158,7 +166,7 @@ export function createProjects({ db, dataDir, render, maxUploadBytes = 200 * 102
       // stat() above yields: deletion may have removed the account/project in
       // that interval. Never retain an output absent from the owner's records.
       if(updated.changes!==1){await rm(outputPath,{force:true});return;}
-      db.prepare("UPDATE studio_jobs SET state='complete',progress=100,audit=?,completed_at=? WHERE id=?").run(JSON.stringify(result||{}),now(),jobId);
+      db.prepare("UPDATE studio_jobs SET state='complete',progress=100,audit=?,completed_at=? WHERE id=?").run(JSON.stringify(restoredModel==='cinematic-storytelling-v7'?{...result,review:cinematicReviewItems(restoredInput),captionStatus:restoredInput.captionStatus,releaseApproved:false}:result||{}),now(),jobId);
       if (p.output_path) await rm(p.output_path,{force:true});
     }).catch(async error=>{
       await rm(outputPath,{force:true});

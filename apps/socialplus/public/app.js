@@ -1,11 +1,10 @@
 import {draftModelEvents} from './model-events.js';
-import { fingerprintFile } from './fingerprint.js';
 const $ = (selector, root = document) => root.querySelector(selector);
 const main = $('#main');
 const sheet = $('#sheet');
 const initialState = () => ({
   user: null, csrf: '', projects: [], styles: [], project: null,
-  selectedStyle: null, file: null, objectUrl: null, strategyTab: 'overview',
+  selectedStyle: null, file: null, objectUrl: null, strategyTab: 'video',
   preview: null, authMode: 'login', busy: false, jobTimer: null, abortController: new AbortController()
 });
 const state = initialState();
@@ -168,6 +167,7 @@ async function montage() {
   state.styles = catalog.styles || catalog;
   if (!Array.isArray(state.styles)) state.styles = [];
   if (!state.selectedStyle) state.selectedStyle = state.styles[0]?.style_id || state.styles[0]?.id;
+  if(state.project?.id){const {project}=await api('/api/projects/'+encodeURIComponent(state.project.id));state.project=project;}
   const project = state.project;
   main.innerHTML = `<section class="page">${heading('Montage', 'Votre voix. Votre style.', 'Importez votre vidéo et choisissez sa direction créative.')}
     <div class="workspace"><div>
@@ -177,18 +177,19 @@ async function montage() {
       <form class="form section" data-form="project-save">${field('title', 'Nom du projet', project?.name || project?.title || state.file?.name?.replace(/\.[^.]+$/, '') || '', 'text', 'required maxlength="120" placeholder="Donnez un nom à votre création"')}
         <button class="button secondary" type="submit" ${!state.file && !project ? 'disabled' : ''}>${icon('check')}Enregistrer le projet</button><p class="form-error" role="alert"></p></form>
       <div class="notice">${icon('info')}<span>La vidéo est d’abord lue sur cet appareil. L’enregistrement l’envoie à votre espace privé. Aucun service externe payant n’est appelé.</span></div>
-      <div class="panel section"><h3>Paroles et synchronisation</h3><p class="help-text">Transcrivez localement le rush enregistré, puis relisez les mots en écoutant la vidéo. Les horaires automatiques restent à vérifier.</p><button class="button secondary section" data-action="transcribe-source" ${!project?.has_source||!catalog.transcription?.configured?'disabled':''}>Transcrire localement</button><p class="help-text" id="transcription-status">${catalog.transcription?.configured?'Le fichier reste sur ce serveur local. Aucun service facturé appelé.':'Modèle de transcription locale non configuré sur cette installation.'}</p><label class="mt-15">Transcription alignée JSON · facultative<textarea id="transcript" rows="4" placeholder='[{"text":"Bonjour","start":0.2,"end":0.6}]'></textarea></label><label class="checkbox-label section"><input id="captions-reviewed" type="checkbox"><span>J’ai vérifié ces mots et leur synchronisation avec la voix.</span></label><label class="checkbox-label section"><input id="caption-preview-mode" type="checkbox"><span>Générer uniquement une prévisualisation avec la transcription encore à relire.</span></label></div>
+      <div class="panel section"><h3>Paroles et synchronisation</h3><button class="button section" data-action="prepare-model" ${!project?.has_source||!catalog.transcription?.configured?'disabled':''}>Préparer automatiquement ce modèle</button><p class="help-text">Transcrivez localement le rush enregistré, puis relisez les mots en écoutant la vidéo. Les horaires automatiques restent à vérifier.</p><button class="button secondary section" data-action="transcribe-source" ${!project?.has_source||!catalog.transcription?.configured?'disabled':''}>Transcrire localement</button><p class="help-text" id="transcription-status">${catalog.transcription?.configured?'Le fichier reste sur ce serveur local. Aucun service facturé appelé.':'Modèle de transcription locale non configuré sur cette installation.'}</p><label class="mt-15">Transcription alignée JSON · facultative<textarea id="transcript" rows="4" placeholder='[{"text":"Bonjour","start":0.2,"end":0.6}]'></textarea></label><label class="checkbox-label section"><input id="captions-reviewed" type="checkbox"><span>J’ai vérifié ces mots et leur synchronisation avec la voix.</span></label><label class="checkbox-label section"><input id="caption-preview-mode" type="checkbox"><span>Générer uniquement une prévisualisation avec la transcription encore à relire.</span></label></div>
       <div class="panel section"><h3>Préparer mon montage</h3><p>Mesurez le son, écoutez les pauses proposées et choisissez celles à raccourcir. Le rendu applique vos coupes et vos sous-titres en conservant une seule piste audio originale.</p><button class="button secondary section" data-action="analyze-source" ${!project?.has_source?'disabled':''}>Analyser mon rush</button><div id="source-signals" class="section" aria-live="polite"></div><button class="button full section" data-action="guided-edit" disabled>Créer mon montage MP4</button></div>
     </div><div><div class="row between mb-18"><h2>Direction créative</h2><span class="pill">6 modèles</span></div><div class="model-list">${state.styles.map((style, index) => {
       const id = style.style_id || style.id;
       const available = style.available || style.enabled || style.status === 'production';
-      return `<button class="model" data-action="select-style" data-id="${esc(id)}" aria-pressed="${id === state.selectedStyle}"><span class="model-number">0${index + 1}</span><span><strong>${esc(style.display_name || style.label || style.name)}</strong><small>${esc(style.version || '')}</small></span><span class="pill ${available ? 'good' : ''}">${available ? (style.status === 'production' ? 'Disponible' : 'Bêta') : 'Indisponible'}</span></button>`;
+      return `<button class="model" data-action="select-style" data-id="${esc(id)}" aria-pressed="${id === state.selectedStyle}"><span class="model-number">0${index + 1}</span><span><strong>${esc(style.display_name || style.label || style.name)}</strong><small>${esc(style.version || '')}</small></span><span class="pill ${available ? 'good' : ''}">${available ? (id === 'cinematic-storytelling-v7' ? 'Bêta — transcription à vérifier' : 'Bêta — connecté') : 'Indisponible'}</span></button>`;
     }).join('')}</div><div id="model-detail" class="model-detail"></div>
       <div id="restored-controls" class="panel section" hidden><h3>Préparer le modèle</h3><p>Le moteur adapte les éléments graphiques originaux à vos mots et aux zones libres du rush. Le résultat reste en bêta et doit être vérifié avant publication. Rush de 60 secondes maximum, jusqu’à 1080p natif.</p><div class="section"><label>Zone libre à vérifier<select id="graphic-zone"><option value="left">Mur à gauche</option><option value="right">Mur à droite</option></select></label><button class="button secondary section" data-action="draft-model-events">Préparer les animations depuis mes paroles</button><p class="help-text">Proposition modifiable, sans détection automatique du visage. Alex et Cinematic utilisent des scènes plein écran.</p></div><label class="section">Événements · indices des mots et zone libre normalisée<textarea id="reference-events" rows="4" placeholder='[{"wordIndex":0,"wordCount":1,"kind":"clock","rect":[0.1,0.1,0.2,0.3]}]'></textarea></label><p class="help-text">rect : position x, y, largeur et hauteur entre 0 et 1. Codie : clock sur « temps », euro sur « argent ». Social Kinetic : bubble ou hero. Alex : kind fullscreen, ou bande haute rect [0.15,0.05,0.7,0.2]. Cinematic : séquence plein écran. Les titres reprennent les mots désignés. Consultez le rush pour choisir une zone sans visage ni texte.</p><label class="checkbox-label section"><input id="placement-reviewed" type="checkbox"><span>J’ai vérifié les zones libres et les mots ; j’accepte les séquences plein écran de Cinematic, Alex ou Spatial si ce mode est choisi.</span></label></div>
-      <button class="button full section" data-action="render" ${!project?.id ? 'disabled' : ''}>${icon('spark')}Lancer le montage</button><div id="render-status" aria-live="polite"></div><div class="panel section"><h3>Exporter votre source</h3><p class="help-text">Convertissez votre vidéo en MP4 H.264/AAC avec son audio original et son format natif. Cette opération technique ne réalise aucun montage artistique.</p><button class="button secondary full section" data-action="technical-export" ${!project?.has_source ? 'disabled' : ''}>${icon('download')}Exporter la source en MP4</button></div>${project?.has_output ? `<a class="button secondary full section" href="/api/projects/${encodeURIComponent(project.id)}/output?download=1" download>${icon('download')}Télécharger mon dernier export</a>` : ''}${project?.id ? `<button class="text-button section" data-action="delete-project">Supprimer ce projet</button>` : ''}
+      <button class="button full section" data-action="render" ${!project?.id ? 'disabled' : ''}>${icon('spark')}Lancer le montage</button><div id="render-status" aria-live="polite"></div><div class="panel section"><h3>Exporter votre source</h3><p class="help-text">Convertissez votre vidéo en MP4 H.264/AAC avec son audio original et son format natif. Cette opération technique ne réalise aucun montage artistique.</p><button class="button secondary full section" data-action="technical-export" ${!project?.has_source ? 'disabled' : ''}>${icon('download')}Exporter la source en MP4</button></div>${project?.has_output ? `<div class="video-stage section"><video controls playsinline preload="metadata" src="/api/projects/${encodeURIComponent(project.id)}/output"></video></div><a class="button secondary full section" href="/api/projects/${encodeURIComponent(project.id)}/output?download=1" download>${icon('download')}Télécharger mon dernier export</a>` : ''}${project?.id ? `<button class="text-button section" data-action="delete-project">Supprimer ce projet</button>` : ''}
       <div class="notice">${icon('shield')}<span>Les modèles sont des références visuelles validées. Leur disponibilité dépend des sources et de la recette de chaque moteur.</span></div>
     </div></div></section>`;
   updateStyleDetail();
+  if(project?.latestJob)await pollJob(project.latestJob.id);
   if(project?.has_source){const {report}=await api('/api/projects/'+encodeURIComponent(project.id)+'/signals');if(report)showSourceSignals(report);const {transcript}=await api('/api/projects/'+encodeURIComponent(project.id)+'/transcript');if(transcript)showTranscript(transcript);}
 }
 
@@ -205,7 +206,7 @@ function showSourceSignals(report){
   $('[data-action=guided-edit]').disabled=false;
 }
 function signalSummary(report){
-  return `<p class="help-text">${esc(report.notice)}</p><div class="section">${stat('Pauses acoustiques',number(report.silenceRatio*100)+' %','Seuil mesuré : −35 dBFS')}${stat('Niveau moyen',report.meanVolumeDb==null?'Non disponible':number(report.meanVolumeDb)+' dBFS','Mesure du fichier source')}</div><ul>${report.recommendations.map(text=>`<li>${esc(text)}</li>`).join('')}</ul><small>Moteur ${esc(report.engineVersion)} · fichier ${esc(report.fingerprint.slice(0,12))}</small>`;
+  return `<p class="help-text">${esc(report.notice)}</p>${Object.values(report.criteria||{}).map(c=>`<details><summary>${esc(c.label)} · ${c.score==null?'Non évaluable':c.score+'/100'}</summary><p>${esc(c.notice)}</p><small>${esc(c.formula)}</small></details>`).join('')}${(report.findings||[]).map(f=>`<details><summary>${number(f.startMs/1000)}–${number(f.endMs/1000)} s · ${esc(f.what)}</summary><p>${esc(f.why)}</p><p>${esc(f.how)}</p></details>`).join('')}<p class="help-text"></p><div class="section">${stat('Pauses acoustiques',number(report.silenceRatio*100)+' %','Seuil mesuré : −35 dBFS')}${stat('Niveau moyen',report.meanVolumeDb==null?'Non disponible':number(report.meanVolumeDb)+' dBFS','Mesure du fichier source')}</div><ul>${report.recommendations.map(text=>`<li>${esc(text)}</li>`).join('')}</ul><small>Moteur ${esc(report.engineVersion)} · fichier ${esc(report.fingerprint.slice(0,12))}</small>`;
 }
 
 function updateStyleDetail() {
@@ -221,7 +222,7 @@ function updateStyleDetail() {
 }
 
 async function strategy() {
-  main.innerHTML = `<section class="page">${heading('Stratégie', 'Créez. Comprenez. Progressez.', 'Vos données, des constats explicables et les prochaines actions utiles.')}<div class="subnav" role="group" aria-label="Sections Stratégie">${[['overview','Vue d’ensemble'],['profile','Mon profil'],['metrics','Performances'],['video','Analyser une vidéo'],['methods','Méthodes'],['competitors','Concurrence'],['results','Résultats']].map(([id,label]) => `<button data-action="strategy-tab" data-id="${id}" class="${state.strategyTab === id ? 'active' : ''}">${label}</button>`).join('')}</div><div id="strategy-content"><div class="loading-screen"><span class="spinner"></span></div></div></section>`;
+  main.innerHTML = `<section class="page">${heading('Analyse', 'Créez. Comprenez. Progressez.', 'Vos données, des constats explicables et les prochaines actions utiles.')}<div class="subnav" role="group" aria-label="Sections Analyse">${[['overview','Vue d’ensemble'],['profile','Mon profil'],['metrics','Performances'],['video','Analyser une vidéo'],['methods','Méthodes'],['competitors','Concurrence'],['results','Résultats']].map(([id,label]) => `<button data-action="strategy-tab" data-id="${id}" class="${state.strategyTab === id ? 'active' : ''}">${label}</button>`).join('')}</div><div id="strategy-content"><div class="loading-screen"><span class="spinner"></span></div></div></section>`;
   const content = $('#strategy-content');
   if (state.strategyTab === 'profile') {
     const { profile = {} } = await api('/api/strategy/profile');
@@ -232,7 +233,7 @@ async function strategy() {
     const { methods = [] } = await api('/api/strategy/methods');
     content.innerHTML = `<div class="panel"><h2>Comprendre le processus.</h2><p>Des méthodes à appliquer vous-même, avec leurs sources et leurs limites.</p>${methods.filter(method => method.enabled !== false).map(method => `<details><summary>${esc(method.id)} · ${esc(method.title)}<span class="pill ml-10">v${esc(method.version)}</span></summary><ol>${(method.process_steps || []).map(step=>`<li>${esc(typeof step === 'string' ? step : step.description)}</li>`).join('')}</ol><p><strong>À pratiquer</strong><br>${esc(method.exercise)}</p><p><strong>Indicateur de réussite</strong><br>${esc(Array.isArray(method.success_metrics) ? method.success_metrics.join(' · ') : method.success_metrics)}</p><p>${esc(Array.isArray(method.pitfalls) ? method.pitfalls.join(' · ') : method.pitfalls)}</p>${safeSource(method.source_url)}</details>`).join('')}</div>`;
   } else if (state.strategyTab === 'video') {
-    content.innerHTML = `<div class="workspace"><div><label class="upload-area" for="analysis-video"><span class="icon-tile">${icon('film')}</span><h3>Avant de publier.</h3><p>Vérifiez les caractéristiques de votre vidéo. Le fichier reste sur cet appareil.</p><small>Aucun envoi vidéo pour ce précontrôle</small></label><input id="analysis-video" class="visually-hidden" type="file" accept="video/*"><div id="analysis-preview" class="section"></div></div><div class="panel"><h2>Un regard mesuré.</h2><p>Les critères qui ne peuvent pas être observés restent « non évaluables ».</p><form class="form" data-form="video-analysis"><label>Objectif<select name="goal_type"><option value="awareness">Visibilité</option><option value="community">Communauté</option><option value="leads">Prospects</option></select></label><p class="help-text">Sans transcription fiable et revue éditoriale, le précontrôle ne produit aucun score global. Il ne prédit jamais les vues ni la viralité.</p>${editorialReview()}<button type="submit" class="button" id="analyze-video-button" disabled>Vérifier ma vidéo${icon('arrow')}</button><p class="form-error" role="alert"></p></form><div id="video-analysis-result" class="section" aria-live="polite"></div></div></div>`;
+    content.innerHTML = `<div class="workspace"><div><label class="upload-area" for="analysis-video"><span class="icon-tile">${icon('film')}</span><h3>Avant de publier.</h3><p>Vérifiez les caractéristiques de votre vidéo. Le fichier est enregistré dans votre espace privé pour mesurer son audio réel.</p><small>Analyse locale sur le serveur, sans service payant</small></label><input id="analysis-video" class="visually-hidden" type="file" accept="video/*"><div id="analysis-preview" class="section"></div></div><div class="panel"><h2>Un regard mesuré.</h2><p>Les critères qui ne peuvent pas être observés restent « non évaluables ».</p><form class="form" data-form="video-analysis"><label>Objectif<select name="goal_type"><option value="awareness">Visibilité</option><option value="community">Communauté</option><option value="leads">Prospects</option></select></label><p class="help-text">Sans transcription fiable et revue éditoriale, le précontrôle ne produit aucun score global. Il ne prédit jamais les vues ni la viralité.</p>${editorialReview()}<button type="submit" class="button" id="analyze-video-button" disabled>Vérifier ma vidéo${icon('arrow')}</button><p class="form-error" role="alert"></p></form><div id="video-analysis-result" class="section" aria-live="polite"></div></div></div>`;
     const {projects}=await api('/api/projects');
     const sources=projects.filter(p=>p.has_source);
     content.insertAdjacentHTML('afterbegin',`<div class="panel section"><h2>Mesurer une vidéo enregistrée</h2><p>Analyse locale du son réel : niveau, pauses et recommandations explicables. Aucun score de viralité n’est déduit de ces signaux.</p>${sources.length?`<label class="section">Mon projet<select id="strategy-project">${sources.map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}</select></label><button class="button section" data-action="strategy-source-analysis">Analyser le fichier réel</button>`:'<p class="help-text">Enregistrez un rush dans Montage pour lancer ses mesures.</p>'}<div id="strategy-source-signals" class="section" aria-live="polite"></div></div>`);
@@ -344,7 +345,7 @@ async function methodAdmin() {
 async function route() {
   const controller=state.abortController;
   clearTimeout(state.jobTimer);
-  const target = location.hash.slice(1).split('?')[0] || 'home';
+  const target = location.hash.slice(1).split('?')[0] || 'montage';
   $('#main-nav').querySelectorAll('a').forEach(element => {
     if (element.dataset.tab === target) element.setAttribute('aria-current','page');
     else element.removeAttribute('aria-current');
@@ -417,11 +418,11 @@ async function pollJob(id) {
   if (!area) return;
   if (['complete','completed','succeeded','done'].includes(status)) {
     const url = job.export_url || job.download_url || '/api/projects/' + encodeURIComponent(state.project.id) + '/output';
-    area.innerHTML = `<div class="video-stage section"><video controls playsinline src="${esc(url)}"></video></div><a class="button full section" href="${esc(url)}?download=1" download> ${icon('download')}Télécharger le MP4</a><p class="help-text section">Vérifiez la synchronisation, la composition et l’audio avant publication.</p>`;
+    area.innerHTML = `<div class="video-stage section"><video controls playsinline src="${esc(url)}"></video></div><a class="button full section" href="${esc(url)}${url.includes('?')?'&':'?'}download=1" download> ${icon('download')}Télécharger le MP4</a><p class="help-text section">Vérifiez la synchronisation, la composition et l’audio avant publication.</p>`;
   } else if (['failed','error','blocked'].includes(status)) {
     area.innerHTML = `<p class="form-error section">${esc(job.error_message || job.error || job.message || 'Le moteur n’a pas pu produire le rendu.')}</p>`;
   } else {
-    area.innerHTML = '<div class="notice">' + icon('clock') + '<span>Rendu en cours… Le temps dépend de votre vidéo.</span></div><div class="progress-track"><span></span></div>';
+    area.innerHTML = `<div class="notice" role="status">${icon('clock')}<span>Rendu en cours · ${Math.max(0,Math.min(99,Number(job.progress)||0))} % · gardez cette page ouverte.</span></div><progress max="100" value="${Math.max(0,Math.min(99,Number(job.progress)||0))}" aria-label="Progression du montage"></progress>`;
     state.jobTimer = setTimeout(() => pollJob(id).catch(error => { if ($('#render-status')) $('#render-status').textContent = error.message; }), 2000);
   }
 }
@@ -430,6 +431,14 @@ document.addEventListener('click', async event => {
   const element = event.target.closest('[data-action]');
   if (!element) return;
   const action = element.dataset.action;
+  if(action==='analysis-to-montage'){state.project=state.analysisProject;state.file=null;if(state.objectUrl)URL.revokeObjectURL(state.objectUrl);state.objectUrl=null;location.hash='montage';return;}
+  if(action==='prepare-model'){
+    element.disabled=true;
+    try{$('#transcription-status').textContent='Analyse et transcription locales en cours…';const {report}=await post('/api/projects/'+encodeURIComponent(state.project.id)+'/signals');showSourceSignals(report);const {transcript}=await post('/api/projects/'+encodeURIComponent(state.project.id)+'/transcript');showTranscript(transcript);$('#reference-events').value=JSON.stringify(draftModelEvents(state.selectedStyle,transcript.words,$('#graphic-zone').value),null,2);$('#caption-preview-mode').checked=true;$('#placement-reviewed').checked=false;notify('Préparation terminée. Vérifiez les paroles et les zones, puis lancez la prévisualisation.');}
+    catch(error){$('#transcription-status').textContent=error.message;notify(error.message);}
+    finally{if(element.isConnected)element.disabled=false;}return;
+  }
+
   try {
     if (action === 'auth-login' || action === 'auth-activate') { state.authMode = action === 'auth-login' ? 'login' : 'activate'; auth(); }
     else if (action === 'new-project') { state.project=null;state.file=null;if(state.objectUrl)URL.revokeObjectURL(state.objectUrl);state.objectUrl=null;if(location.hash==='#montage') await montage();else location.hash='montage'; }
@@ -440,7 +449,7 @@ document.addEventListener('click', async event => {
     } else if (action === 'select-style') { state.selectedStyle=element.dataset.id;updateStyleDetail(); }
     else if(action==='restored-preview')await renderProject('restored-preview:'+state.selectedStyle);
     else if (action === 'render') await renderProject();
-    else if(action==='draft-model-events'){const words=JSON.parse($('#transcript').value||'[]');const events=draftModelEvents(state.selectedStyle,words,$('#graphic-zone').value);$('#reference-events').value=JSON.stringify(events,null,2);$('#placement-reviewed').checked=false;toast(events.length?`${events.length} animation(s) proposée(s). Vérifiez leur placement.`:'Aucun mot pertinent pour ce modèle : les sous-titres restent actifs.');}
+    else if(action==='draft-model-events'){const words=JSON.parse($('#transcript').value||'[]');const events=draftModelEvents(state.selectedStyle,words,$('#graphic-zone').value);$('#reference-events').value=JSON.stringify(events,null,2);$('#placement-reviewed').checked=false;notify(events.length?`${events.length} animation(s) proposée(s). Vérifiez leur placement.`:'Aucun mot pertinent pour ce modèle : les sous-titres restent actifs.');}
     else if(action==='transcribe-source'){element.disabled=true;const status=$('#transcription-status');status.textContent='Transcription locale en cours…';try{const {transcript}=await post('/api/projects/'+encodeURIComponent(state.project.id)+'/transcript');showTranscript(transcript);}catch(error){if(status.isConnected)status.textContent=error.message;throw error;}finally{if(element.isConnected)element.disabled=false;}}
     else if(action==='analyze-source'){element.disabled=true;try{const {report}=await post('/api/projects/'+encodeURIComponent(state.project.id)+'/signals');showSourceSignals(report);}finally{if(element.isConnected)element.disabled=false;}}
     else if(action==='guided-edit')await renderProject('guided-edit');
@@ -513,7 +522,7 @@ document.addEventListener('submit', async event => {
       case 'login': case 'activate': {
         if(form.dataset.form==='activate')values.acceptTerms=true;
         const data=await post('/api/auth/' + form.dataset.form,values);
-        resetPrivateState();state.user=data.user;state.csrf=data.csrf || data.user?.csrf;await session();history.replaceState(null,'','#home');await route();notify('Bienvenue dans votre espace.');break;
+        resetPrivateState();state.user=data.user;state.csrf=data.csrf || data.user?.csrf;await session();history.replaceState(null,'','#montage');await route();notify('Bienvenue dans votre espace.');break;
       }
       case 'reset-password': await post('/api/auth/reset',values);closeSheet();notify('Mot de passe modifié. Connectez-vous avec votre nouveau mot de passe.');break;
       case 'redeem-invite': await post('/api/gifts/redeem',values);closeSheet();await session();notify('Votre invitation a été activée.');break;
@@ -620,13 +629,21 @@ async function analyzeVideo(form,values) {
   const file=state.analysisFile;
   const video=$('#analysis-media');
   if(!file || !video?.videoWidth)throw new Error('Choisissez une vidéo lisible avant de continuer.');
-  const fingerprint=await fingerprintFile(file);
+  const resultArea=$('#video-analysis-result');
+  resultArea.innerHTML='<p role="status">Enregistrement et mesure du fichier réel… Gardez cette page ouverte.</p>';
+  if(state.analysisProjectFile!==file){
+    const created=await post('/api/projects',{name:file.name.replace(/\.[^.]+$/,'')});
+    const uploaded=await api('/api/projects/'+encodeURIComponent(created.project.id)+'/source',{method:'POST',body:file,headers:{'Content-Type':file.type||'application/octet-stream','X-Filename':encodeURIComponent(file.name)}});
+    state.analysisProject=uploaded.project;state.analysisProjectFile=file;
+  }
+  const {report}=await post('/api/projects/'+encodeURIComponent(state.analysisProject.id)+'/signals');
+  const fingerprint=report.fingerprint;
   ensureCurrentSession(controller);
   const {analysis}=await post('/api/strategy/video-analyses',{
     fingerprint,context:{goal_type:values.goal_type},metadata:{duration_seconds:video.duration,width:video.videoWidth,height:video.videoHeight,has_audio:form.elements.audioVerified.checked ? true : null},transcript:{text:values.transcript_text || ''},criteria:collectCriteria(values)
   });
   ensureCurrentSession(controller);
-  $('#video-analysis-result').innerHTML=`<h3>Précontrôle enregistré.</h3><div class="table-wrap"><table><tbody><tr><th>Format natif</th><td>${video.videoWidth} × ${video.videoHeight}</td></tr><tr><th>Durée</th><td>${number(video.duration)} s</td></tr><tr><th>Empreinte</th><td><code>${fingerprint.slice(0,16)}…</code></td></tr><tr><th>Score éditorial</th><td>${analysis.score==null?'Non évaluable':number(analysis.score) + ' / 100'}</td></tr><tr><th>Couverture des critères</th><td>${number(analysis.coverage)} %</td></tr></tbody></table></div><p class="help-text">${esc(analysis.notice || 'Le discours et les critères visuels ne sont pas évalués automatiquement. Aucun score global ne peut être attribué avec cette couverture.')}</p>${Object.entries(analysis.criteria || {}).map(([key,criterion])=>`<details><summary>${esc(REVIEW_CRITERIA.find(item=>item[0]===key)?.[1] || key)} · ${criterion.score}/100</summary><p>${esc(criterion.evidence)}</p><button class="text-button" data-action="seek-analysis" data-time="${criterion.start_sec}">Revoir à ${number(criterion.start_sec)} s${icon('arrow')}</button><small>Observation documentée par vous</small></details>`).join('')}<details><summary>Critères exclus (${analysis.excluded_criteria?.length || 0})</summary>${(analysis.excluded_criteria || []).map(item=>`<p><strong>${esc(REVIEW_CRITERIA.find(criterion=>criterion[0]===item.key)?.[1] || item.key)}</strong><br>${esc(item.reason)}</p>`).join('')}</details>`;
+  $('#video-analysis-result').innerHTML=signalSummary(report)+`<button class="button section" data-action="analysis-to-montage">Monter cette vidéo${icon('arrow')}</button><h3>Revue éditoriale enregistrée.</h3><div class="table-wrap"><table><tbody><tr><th>Format natif</th><td>${video.videoWidth} × ${video.videoHeight}</td></tr><tr><th>Durée</th><td>${number(video.duration)} s</td></tr><tr><th>Empreinte</th><td><code>${fingerprint.slice(0,16)}…</code></td></tr><tr><th>Score éditorial</th><td>${analysis.score==null?'Non évaluable':number(analysis.score) + ' / 100'}</td></tr><tr><th>Couverture des critères</th><td>${number(analysis.coverage)} %</td></tr></tbody></table></div><p class="help-text">${esc(analysis.notice || 'Le discours et les critères visuels ne sont pas évalués automatiquement. Aucun score global ne peut être attribué avec cette couverture.')}</p>${Object.entries(analysis.criteria || {}).map(([key,criterion])=>`<details><summary>${esc(REVIEW_CRITERIA.find(item=>item[0]===key)?.[1] || key)} · ${criterion.score}/100</summary><p>${esc(criterion.evidence)}</p><button class="text-button" data-action="seek-analysis" data-time="${criterion.start_sec}">Revoir à ${number(criterion.start_sec)} s${icon('arrow')}</button><small>Observation documentée par vous</small></details>`).join('')}<details><summary>Critères exclus (${analysis.excluded_criteria?.length || 0})</summary>${(analysis.excluded_criteria || []).map(item=>`<p><strong>${esc(REVIEW_CRITERIA.find(criterion=>criterion[0]===item.key)?.[1] || item.key)}</strong><br>${esc(item.reason)}</p>`).join('')}</details>`;
 }
 
 document.addEventListener('input',event=>{

@@ -71,3 +71,15 @@ test('an acoustic cut after the last supplied caption preserves that word and do
  assert.doesNotThrow(()=>buildLocalEdit({report,transcript,previewOnly:true}));
  assert.doesNotThrow(()=>buildLocalEdit({report,transcript:transcript.map(w=>({...w,confirmed:true})),captionsReviewed:true}));
  });
+
+test('measured criteria expose deterministic formulas and actionable source timestamps',()=>{
+ const a=acousticReport(log,metadata,'same-source');
+ assert.deepEqual(a,acousticReport(log,metadata,'same-source'));
+ assert.equal(a.criteria.pauseDensity.score,67);
+ assert.equal(a.criteria.voiceLevel.score,95);
+ assert.deepEqual(a.findings.map(f=>[f.startMs,f.endMs]),[[2250,3750]]);
+ assert.ok(a.findings.every(f=>f.what&&f.why&&f.how));
+ const silent=acousticReport('',{...metadata,hasAudio:false},'no-audio');
+ assert.equal(silent.criteria.pauseDensity.score,null);
+ assert.equal(silent.criteria.voiceLevel.score,null);
+});

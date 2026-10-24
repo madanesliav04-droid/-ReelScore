@@ -1,0 +1,30 @@
+✔ automatic cinematic plan is deterministic, source quoted and accepted by the existing compositor (31.299696ms)
+✔ new source identity, uncertain words and multiword timing cannot be silently confirmed (4.121311ms)
+✔ only measured complete-phrase pauses are cut and raw ASR spans protect quiet syllables (5.458616ms)
+✔ native format is preserved and cinematic limits do not loosen other model title limits (5.105492ms)
+✔ preview never reports merged timestamps as reviewed, even with a text confirmation (1.320437ms)
+✔ review entries expose exact source and edited times without changing text or timings (1.493742ms)
+✔ local acoustic analysis is deterministic and preserves safety margins (11.517684ms)
+✔ guided edit maps supplied words through approved cuts using inherited time mapping (5.914583ms)
+✔ guided edit rejects unsafe words, unreviewed timing and fabricated cuts (2.392021ms)
+✔ real local analysis and edited MP4 shorten only approved measured silence and retain original audio (3283.959141ms)
+✔ an acoustic cut after the last supplied caption preserves that word and does not require invented words (2.307338ms)
+✔ uncertain words require explicit confirmation even with a reviewed claim (3.721779ms)
+✔ measured criteria expose deterministic formulas and actionable source timestamps (1.536994ms)
+✔ projects: measured reports are cached per source, isolated, invalidated on replacement and deleted with member data (45.865578ms)
+✔ projects: tenant boundary covers get update delete upload and job lookup (4.61053ms)
+✔ projects: metadata persists; unavailable model cannot produce fake job (8.127606ms)
+✔ projects: invalid probe and interrupted uploads leave no partial file (8.933861ms)
+✔ projects: byte limit is enforced even without Content-Length (9.722016ms)
+✔ projects: daily compute quota survives project deletion and remains scoped to its member (34.856821ms)
+✔ projects: deletion during asynchronous render metadata check leaves no orphaned private export (16.960351ms)
+✔ projects: offline transcripts cache by model and source, isolate tenants and follow privacy deletion (12.662792ms)
+✔ projects: missing offline model does not consume quota and deleted project leaves no ASR result (5.86658ms)
+ℹ tests 22
+ℹ suites 0
+ℹ pass 22
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4311.772215

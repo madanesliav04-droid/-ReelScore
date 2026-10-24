@@ -120,3 +120,23 @@ test('projects: missing offline model does not consume quota and deleted project
  await assert.rejects(pending,{code:'PROJECT_REMOVED'});
  assert.equal(db.prepare('SELECT count(*) n FROM studio_transcripts').get().n,0);
 });
+
+test('projects: Cinematic web route uses autonomous source planner and exposes review without certifying words',async t=>{
+ const metadata={width:640,height:360,durationMs:2000,hasAudio:true};
+ const report={metadata,fingerprint:'new-source',suggestions:[]};
+ let received;
+ const {projects}=await fixture(t,{probeVideo:async()=>metadata,analyzeSource:async()=>report,renderVideo:async args=>{received=args;await writeFile(args.outputPath,'test-only-render');return {audit:{testDouble:true}};}});
+ const p=projects.create('alice');const req=Readable.from([Buffer.from('video')]);req.headers={'content-type':'video/mp4'};await projects.upload('alice',p.id,req);
+ const input={style_id:'cinematic-storytelling-v7',placementReviewed:true,allowUnreviewedPreview:true,transcript:[{text:'Bonjour.',startMs:100,endMs:650,probability:.6}]};
+ assert.throws(()=>projects.startRender('alice',p.id,input),{code:'SOURCE_ANALYSIS_REQUIRED'});
+ await projects.analyze('alice',p.id);
+ const job=projects.startRender('alice',p.id,input);
+ for(let i=0;i<100&&projects.job('alice',job.id).state==='rendering';i++)await delay(10);
+ assert.equal(projects.job('alice',job.id).state,'complete');
+ assert.equal(received.restoredInput.sourceSha256,'new-source');
+ assert.equal(received.restoredInput.engineVersion,'cinematic-v7-autonomous-1');
+ assert.equal(projects.job('alice',job.id).audit.review.length,1);
+ assert.equal(projects.job('alice',job.id).audit.releaseApproved,false);
+ assert.equal(projects.get('alice',p.id).latestJob.id,job.id);
+ assert.equal(projects.list('bob').length,0);
+});
