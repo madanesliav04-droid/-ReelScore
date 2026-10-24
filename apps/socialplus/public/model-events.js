@@ -6,8 +6,9 @@ export function draftModelEvents(model,words,zone='left'){
  const duration=end(words.at(-1)),rect=zone==='right'?[.73,.10,.22,.34]:[.05,.10,.22,.34];
  const picked=[];
  for(let i=0;i<words.length;i++){
-  const text=String(words[i].text).toLowerCase().replace(/[^\p{L}\p{N}]/gu,'');
-  const kind=model==='codie-omni-v60'?(text==='temps'?'clock':text==='argent'?'euro':null):null;
+  const raw=String(words[i].text).toLowerCase();
+  const text=raw.replace(/[^\p{L}\p{N}]/gu,'');
+  const kind=model==='codie-omni-v60'?(/\btemps\b/.test(raw)?'clock':/\bargent\b/.test(raw)?'euro':null):null;
   if(model==='codie-omni-v60'&&!kind)continue;
   if(words[i].reviewRequired&&!words[i].confirmed)continue;
   if(model!=='codie-omni-v60'&&(text.length<6||text.length>18||stop.has(text)))continue;

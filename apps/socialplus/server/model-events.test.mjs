@@ -10,3 +10,9 @@ test('automatic graphic drafts quote source words and pass each of the six model
  }
  assert.deepEqual(draftModelEvents('codie-omni-v60',transcript.slice(0,5)),[]);
 });
+
+test('Codie recognises spoken argent after an apostrophe without changing the supplied words',()=>{
+ const words=[{text:"l’argent",startMs:100,endMs:500},{text:'ensuite',startMs:2600,endMs:3000}];
+ const events=draftModelEvents('codie-omni-v60',words);
+ assert.equal(events[0].kind,'euro');assert.equal(events[0].wordIndex,0);assert.equal(words[0].text,'l’argent');
+});

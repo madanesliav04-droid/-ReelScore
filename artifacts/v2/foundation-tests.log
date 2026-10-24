@@ -1,0 +1,16 @@
+✔ editorial indicators quote timed source words and cannot invent semantic, retention or originality scores (11.469897ms)
+✔ missing transcript and malformed timings fail honestly, measured audio remains separate (0.526392ms)
+✔ automatic graphic drafts quote source words and pass each of the six model validators (4.949797ms)
+✔ Codie recognises spoken argent after an apostrophe without changing the supplied words (0.504439ms)
+✔ filesystem cleanup failure cannot invalidate a newly committed upload or export (52.291449ms)
+✔ empty or missing final files are never presented as completed exports (40.01303ms)
+✔ idempotency reuses the same task and quota while conflicts and other concurrent requests fail closed (37.327328ms)
+✔ real process termination resumes the same persisted job once, using FFmpeg and unchanged quota (814.62091ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1256.607397

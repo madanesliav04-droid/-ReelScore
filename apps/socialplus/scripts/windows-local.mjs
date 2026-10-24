@@ -29,8 +29,9 @@ export async function startLocal(config){
  for(const key of ['SOCIALPLUS_PYTHON','SOCIALPLUS_ASR_PYTHON','SOCIALPLUS_ASR_MODEL_DIR','SOCIALPLUS_CHROMIUM'])if(env[key])process.env[key]=env[key];
  process.env.SOCIALPLUS_ORIGIN=origin;
  if(!process.env.SOCIALPLUS_OWNER_ID||!process.env.SOCIALPLUS_OWNER_TOTP_SECRET)throw Error('Propriétaire absent : exécutez INSTALLER-SOCIALPLUS.ps1.');
+ const key=readFileSync(config.key),cert=readFileSync(config.cert);
  const app=await createApp({origin});
- const server=https.createServer({key:readFileSync(config.key),cert:readFileSync(config.cert),minVersion:'TLSv1.2'},(req,res)=>{
+ const server=https.createServer({key,cert,minVersion:'TLSv1.2'},(req,res)=>{
    // Reject connections outside RFC1918, even if a firewall is misconfigured.
    const address=req.socket.remoteAddress?.replace(/^::ffff:/,'');
    if(!privateIPv4(address)){res.writeHead(403);res.end('Accès réservé au réseau local.');return;}
@@ -41,7 +42,7 @@ export async function startLocal(config){
  await new Promise((done,reject)=>{server.once('error',reject);server.listen(config.port,config.ip,done);});
  console.log(`\nSocial+ : ${origin}\nPC et iPhone : ouvrez cette même adresse.\nConnexion avec votre compte et code MFA. Arrêt : Ctrl+C.\n`);
  let stopping=false;
- const stop=()=>{if(stopping)return;stopping=true;server.close(()=>{app.db.close();process.exit(0);});setTimeout(()=>process.exit(0),5000).unref();};
+ const stop=()=>{if(stopping)return;stopping=true;server.close(async()=>{await app.projects.shutdown();app.releaseRuntime();app.db.close();process.exit(0);});setTimeout(()=>process.exit(0),5000).unref();};
  process.once('SIGINT',stop);process.once('SIGTERM',stop);
  return {server,app};
 }

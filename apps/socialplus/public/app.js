@@ -411,13 +411,17 @@ async function renderProject(styleId = state.selectedStyle) {
   if($('#captions-reviewed')?.checked===true&&Array.isArray(aligned))aligned=aligned.map(w=>w?.reviewRequired===true?{...w,confirmed:true}:w);
   let events;
   if(styleId.startsWith('restored-preview:')||state.styles.some(s=>s.id===styleId&&s.previewAvailable)){try{events=JSON.parse($('#reference-events').value);}catch{throw new Error('Les événements graphiques doivent être un tableau JSON valide.');}}
+  const payload={style_id:styleId,transcript:aligned,events,allowUnreviewedPreview:$('#caption-preview-mode')?.checked===true,placementReviewed:$('#placement-reviewed')?.checked===true,approvedPauseIds:[...document.querySelectorAll('[data-pause-id]:checked')].map(input=>input.dataset.pauseId),captionsReviewed:$('#captions-reviewed')?.checked===true};
+  const serialized=JSON.stringify(payload);
+  if(state.renderRequest?.projectId!==projectId||state.renderRequest?.payload!==serialized)state.renderRequest={projectId,payload:serialized,key:crypto.randomUUID()};
+  payload.requestId=state.renderRequest.key;
   const area = $('#render-status');
   area.innerHTML = '<div class="notice">' + icon('clock') + '<span>Vérification du moteur et des sources…</span></div>';
   let acceptedJobId;
   state.renderStarting=true;
   const renderButton=$('[data-action=render]');if(renderButton)renderButton.disabled=true;
   try {
-    const data = await post('/api/projects/' + encodeURIComponent(projectId) + '/render', {style_id:styleId,transcript:aligned,events,allowUnreviewedPreview:$('#caption-preview-mode')?.checked===true,placementReviewed:$('#placement-reviewed')?.checked===true,approvedPauseIds:[...document.querySelectorAll('[data-pause-id]:checked')].map(input=>input.dataset.pauseId),captionsReviewed:$('#captions-reviewed')?.checked===true});
+    const data = await post('/api/projects/' + encodeURIComponent(projectId) + '/render', payload);
     const job = data.job || data;
     if (!job.id && !job.job_id) throw new Error('Le moteur n’a pas retourné de tâche de rendu.');
     acceptedJobId=job.id||job.job_id;
@@ -433,7 +437,7 @@ async function pollJob(id,projectId=state.project?.id,view=state.view) {
   if(view!==state.view||state.project?.id!==projectId||currentPage()!=='montage')return;
   const job = data.job || data;
   const status = job.state || job.status || job.job_state;
-  state.project.latestJob=job;state.project.state=status==='complete'?'complete':status==='rendering'?'rendering':'ready';
+  state.project.latestJob=job;state.project.state=status==='complete'?'complete':['rendering','queued'].includes(status)?'rendering':'ready';
   if(status==='complete')state.project.has_output=true;
   updateStyleDetail();
   const area = $('#render-status');
@@ -441,7 +445,8 @@ async function pollJob(id,projectId=state.project?.id,view=state.view) {
   if (['complete','completed','succeeded','done'].includes(status)) {
     const url = job.export_url || job.download_url || '/api/projects/' + encodeURIComponent(projectId) + '/output';
     area.innerHTML = `<div class="video-stage section"><video controls playsinline src="${esc(url)}"></video></div><a class="button full section" href="${esc(url)}${url.includes('?')?'&':'?'}download=1" download> ${icon('download')}Télécharger le MP4</a><button class="button secondary full section" data-action="share-output" data-id="${esc(projectId)}">${icon('share')}Partager le MP4</button><p class="help-text section">Vérifiez la synchronisation, la composition et l’audio avant publication.</p>`;
-  } else if (['failed','error','blocked'].includes(status)) {
+  } else if (['failed','error','blocked','superseded'].includes(status)) {
+    if(state.renderRequest?.projectId===projectId)state.renderRequest=null;
     area.innerHTML = `<div class="render-failure" role="alert"><h3>Ce montage est à reprendre.</h3><p>${esc(job.error_message || job.error || job.message || 'Le moteur n’a pas pu produire le rendu.')}</p><p class="help-text">Votre rush est conservé. Vérifiez les réglages puis relancez le montage.</p></div>`;
   } else {
     area.innerHTML = `<div class="notice" role="status">${icon('clock')}<span>Rendu en cours · ${Math.max(0,Math.min(99,Number(job.progress)||0))} % · gardez cette page ouverte.</span></div><progress max="100" value="${Math.max(0,Math.min(99,Number(job.progress)||0))}" aria-label="Progression du montage"></progress>`;
@@ -671,10 +676,15 @@ async function analysisView(content){
  content.innerHTML=`<div class="analysis-layout"><div>${project?`<div class="video-stage"><video id="analysis-media" controls playsinline preload="metadata" src="/api/projects/${encodeURIComponent(project.id)}/media"></video></div><div class="file-detail"><div><strong>${esc(project.name)}</strong><p>${esc(sourceMeta(project))}</p></div><label class="text-button" for="analysis-video">Changer</label></div>`:`<label class="upload-area" for="analysis-video"><span class="upload-symbol">${icon('chart')}</span><h3>Choisir une vidéo</h3><p>Repérez ce qui mérite votre attention.<br>Votre rush reste privé.</p><small>Photothèque ou Fichiers · 200 Mo maximum</small></label>`}<input id="analysis-video" class="visually-hidden" type="file" accept="video/*,.mov,.mp4,.m4v"><div id="analysis-upload-status" aria-live="polite"></div>${sources.length?`<label class="section">Réutiliser un rush enregistré<select id="analysis-project-select"><option value="">Choisir un projet</option>${sources.map(p=>`<option value="${esc(p.id)}" ${p.id===project?.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select></label>`:''}<div id="analysis-preview"></div></div><div><form class="form" data-form="video-analysis"><label>Votre objectif<select name="goal_type"><option value="awareness">Visibilité</option><option value="community">Communauté</option><option value="leads">Prospects</option></select></label><button type="submit" class="button full" id="analyze-video-button" ${!project?'disabled':''}>${icon('chart')}Analyser mon rush</button><p class="help-text">Mesures acoustiques réelles, sans prédiction de vues. Les critères non observables ne sont pas notés.</p>${editorialReview()}<p class="form-error" role="alert"></p></form><div id="video-analysis-result" class="section" aria-live="polite"></div></div></div>`;
  if(project){const {report}=await api('/api/projects/'+encodeURIComponent(project.id)+'/signals');if(view===state.view&&report)showAnalysisResult(report);}
 }
-function showAnalysisResult(report,analysis){
+function editorialView(editorial){
+ if(!editorial)return '';
+ const labels={hook:'Hook',clarity:'Clarté',structure:'Structure',rhythm:'Rythme',retention:'Rétention',captions:'Sous-titres',visuals:'Visuels',audio:'Audio',cta:'CTA',originality:'Originalité'};
+ return `<section class="section"><h3>Repères éditoriaux locaux</h3><p class="help-text">${esc(editorial.notice)}</p>${Object.entries(editorial.criteria).map(([id,c])=>`<details><summary>${esc(labels[id])} · ${c.status==='not_evaluable'?'non évaluable':c.status==='measured'?'mesuré':'indice textuel'}</summary><p>${esc(c.observation)}</p><p class="help-text">${esc(c.limit)}</p></details>`).join('')}${editorial.findings.map(f=>`<details><summary>${number(f.startMs/1000)}–${number(f.endMs/1000)} s · ${esc(f.what)}${f.provisional?' · à confirmer':''}</summary><p><strong>Pourquoi</strong><br>${esc(f.why)}</p><p><strong>Comment</strong><br>${esc(f.how)}</p><p><strong>Vérifier l’amélioration</strong><br>${esc(f.verify)}</p><p class="help-text">Preuve : ${esc(f.evidence)}</p><button class="text-button" data-action="seek-analysis" data-time="${f.startMs/1000}">Écouter ce passage</button></details>`).join('')}<small>${esc(editorial.engineVersion)} · ${esc(editorial.inputHash.slice(0,12))} · aucun appel payant</small></section>`;
+}
+function showAnalysisResult(report,analysis,editorial){
  if(state.analysisCuts?.projectId!==state.analysisProject.id||state.analysisCuts?.fingerprint!==report.fingerprint)state.analysisCuts={projectId:state.analysisProject.id,fingerprint:report.fingerprint,ids:[]};
  const score=acousticScore(report);
- $('#video-analysis-result').innerHTML=`<section class="score-summary" data-score-version="${ACOUSTIC_SUMMARY_VERSION}"><div><p class="eyebrow">Diagnostic acoustique</p><strong class="score-value">${score==null?'—':score}<small>/100</small></strong></div><p>Indice technique v1, moyenne des sous-scores disponibles. Il ne mesure pas la qualité éditoriale ni la viralité.</p></section>${signalSummary(report)}${report.suggestions.length?`<details><summary>Choisir les pauses à examiner dans Montage</summary><p class="help-text">Écoutez chaque passage avant de sélectionner une coupe. Les paroles et leurs marges restent protégées par le moteur.</p>${report.suggestions.map(p=>`<label class="checkbox-label section"><input type="checkbox" data-analysis-pause="${esc(p.id)}" ${state.analysisCuts.ids.includes(p.id)?'checked':''}><span>${number(p.startMs/1000)}–${number(p.endMs/1000)} s <button class="text-button" type="button" data-action="seek-analysis" data-time="${Math.max(0,p.startMs/1000-.5)}">Écouter</button></span></label>`).join('')}</details>`:''}<button class="button full section" data-action="analysis-to-montage">${icon('film')}Monter cette vidéo</button>${analysis?`<details><summary>Revue éditoriale · ${analysis.score==null?'non évaluable':analysis.score+'/100'}</summary><p>Couverture : ${number(analysis.coverage)} %. Notes fournies par vous, sans expertise automatique du discours.</p>${Object.entries(analysis.criteria||{}).map(([key,c])=>`<p><strong>${esc(REVIEW_CRITERIA.find(r=>r[0]===key)?.[1]||key)} · ${c.score}/100</strong><br>${esc(c.evidence)} · ${number(c.start_sec)} s</p>`).join('')}${(analysis.excluded_criteria||[]).map(c=>`<p>${esc(REVIEW_CRITERIA.find(r=>r[0]===c.key)?.[1]||c.key)} : ${esc(c.reason)}</p>`).join('')}</details>`:''}`;
+ $('#video-analysis-result').innerHTML=`<section class="score-summary" data-score-version="${ACOUSTIC_SUMMARY_VERSION}"><div><p class="eyebrow">Diagnostic acoustique</p><strong class="score-value">${score==null?'—':score}<small>/100</small></strong></div><p>Indice technique v1, moyenne des sous-scores disponibles. Il ne mesure pas la qualité éditoriale ni la viralité.</p></section>${signalSummary(report)}${editorialView(editorial)}${report.suggestions.length?`<details><summary>Choisir les pauses à examiner dans Montage</summary><p class="help-text">Écoutez chaque passage avant de sélectionner une coupe. Les paroles et leurs marges restent protégées par le moteur.</p>${report.suggestions.map(p=>`<label class="checkbox-label section"><input type="checkbox" data-analysis-pause="${esc(p.id)}" ${state.analysisCuts.ids.includes(p.id)?'checked':''}><span>${number(p.startMs/1000)}–${number(p.endMs/1000)} s <button class="text-button" type="button" data-action="seek-analysis" data-time="${Math.max(0,p.startMs/1000-.5)}">Écouter</button></span></label>`).join('')}</details>`:''}<button class="button full section" data-action="analysis-to-montage">${icon('film')}Monter cette vidéo</button>${analysis?`<details><summary>Revue éditoriale · ${analysis.score==null?'non évaluable':analysis.score+'/100'}</summary><p>Couverture : ${number(analysis.coverage)} %. Notes fournies par vous, sans expertise automatique du discours.</p>${Object.entries(analysis.criteria||{}).map(([key,c])=>`<p><strong>${esc(REVIEW_CRITERIA.find(r=>r[0]===key)?.[1]||key)} · ${c.score}/100</strong><br>${esc(c.evidence)} · ${number(c.start_sec)} s</p>`).join('')}${(analysis.excluded_criteria||[]).map(c=>`<p>${esc(REVIEW_CRITERIA.find(r=>r[0]===c.key)?.[1]||c.key)} : ${esc(c.reason)}</p>`).join('')}</details>`:''}`;
 }
 async function analyzeVideo(form,values) {
  const controller=state.abortController,view=state.view,project=state.analysisProject;
@@ -684,7 +694,9 @@ async function analyzeVideo(form,values) {
  ensureCurrentSession(controller);if(view!==state.view)return;
  const {analysis}=await post('/api/strategy/video-analyses',{fingerprint:report.fingerprint,context:{goal_type:values.goal_type},metadata:{duration_seconds:report.metadata.durationMs/1000,width:report.metadata.width,height:report.metadata.height,has_audio:report.metadata.hasAudio},transcript:{text:values.transcript_text||''},criteria:collectCriteria(values)});
  ensureCurrentSession(controller);if(view!==state.view)return;
- showAnalysisResult(report,analysis);
+ let editorial;try{({editorial}=await post('/api/projects/'+encodeURIComponent(project.id)+'/editorial',{goal:values.goal_type}));}catch(error){if(staleSession(error)||error.status===401)throw error;if(view===state.view){showAnalysisResult(report,analysis);$('#video-analysis-result').insertAdjacentHTML('beforeend',`<p class="form-error section" role="alert">Repères textuels indisponibles : ${esc(error.message)} Les mesures acoustiques restent disponibles.</p>`);}return;}
+ ensureCurrentSession(controller);if(view!==state.view)return;
+ showAnalysisResult(report,analysis,editorial);
 }
 async function importVideo(file,forAnalysis=false){
  if(!file)return;
