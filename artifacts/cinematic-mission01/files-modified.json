@@ -1,0 +1,18 @@
+[
+  "apps/socialplus/engines/cinematic_scenes.py",
+  "apps/socialplus/engines/test_cinematic_scenes.py",
+  "apps/socialplus/engines/reference_scenes.py",
+  "apps/socialplus/engines/render_components.py",
+  "apps/socialplus/server/cinematic-plan.mjs",
+  "apps/socialplus/server/cinematic-plan.test.mjs",
+  "apps/socialplus/server/restored-models.mjs",
+  "apps/socialplus/server/speech-captions.mjs",
+  "apps/socialplus/scripts/render-cinematic-v7.mjs",
+  "apps/socialplus/scripts/verify-cinematic-v7.py",
+  "docs/social-plus/CINEMATIC_V7_AUTONOME.md",
+  "artifacts/cinematic-mission01/node-tests.log",
+  "artifacts/cinematic-mission01/scene-tests.log",
+  "artifacts/cinematic-mission01/real-rush-qa.json",
+  "artifacts/cinematic-mission01/RESULTAT.md",
+  "artifacts/cinematic-mission01/files-modified.json"
+]

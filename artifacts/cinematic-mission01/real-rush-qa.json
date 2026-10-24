@@ -1,0 +1,90 @@
+{
+  "sourceSha256": "1a792344069c4fa698c7a1cb1682f7b11dea46b6854479546057c0a897470a67",
+  "mp4Sha256": "8d7b2bfd55d43fea1c8c01808cddd2f18abc4f8047d00e090746a3562ccd6d72",
+  "nativeSize": [
+    910,
+    512
+  ],
+  "durationMs": 45637,
+  "fullDecode": "pass",
+  "audioStreams": 1,
+  "audioChannels": 2,
+  "codecs": [
+    "h264",
+    "aac"
+  ],
+  "voiceCorrelation": [
+    {
+      "sourceMs": 600,
+      "outputMs": 600,
+      "lagMs": 0.0,
+      "correlation": 0.99971
+    },
+    {
+      "sourceMs": 4093,
+      "outputMs": 4093,
+      "lagMs": 0.0,
+      "correlation": 0.999592
+    },
+    {
+      "sourceMs": 6387,
+      "outputMs": 6387,
+      "lagMs": 0.0,
+      "correlation": 0.99983
+    },
+    {
+      "sourceMs": 10240,
+      "outputMs": 8787,
+      "lagMs": 0.0,
+      "correlation": 0.999501
+    },
+    {
+      "sourceMs": 28370,
+      "outputMs": 26917,
+      "lagMs": 0.0,
+      "correlation": 0.999869
+    },
+    {
+      "sourceMs": 45300,
+      "outputMs": 43847,
+      "lagMs": 0.0,
+      "correlation": 0.999476
+    }
+  ],
+  "retainedPictureChecks": [
+    {
+      "sourceMs": 600,
+      "outputMs": 600,
+      "bestFrameOffsetMs": 0,
+      "meanLumaError": 1.87854
+    },
+    {
+      "sourceMs": 4093,
+      "outputMs": 4093,
+      "bestFrameOffsetMs": 0,
+      "meanLumaError": 1.83134
+    },
+    {
+      "sourceMs": 45300,
+      "outputMs": 43847,
+      "bestFrameOffsetMs": -33.333,
+      "meanLumaError": 1.87004
+    }
+  ],
+  "cuts": [
+    {
+      "id": "pause-0",
+      "startMs": 8187,
+      "endMs": 9640
+    }
+  ],
+  "graphicSceneCount": 4,
+  "uncertainWords": 19,
+  "multiwordTokens": 4,
+  "historicalIO": {
+    "method": "strace openat during complete render",
+    "historicalMediaOrTimingRead": false
+  },
+  "phoneticCertification": false,
+  "releaseApproved": false
+}
