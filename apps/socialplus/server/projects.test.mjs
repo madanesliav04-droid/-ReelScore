@@ -140,3 +140,15 @@ test('projects: Cinematic web route uses autonomous source planner and exposes r
  assert.equal(projects.get('alice',p.id).latestJob.id,job.id);
  assert.equal(projects.list('bob').length,0);
 });
+
+test('editorial route uses only the owner source and cached local transcript, never client-supplied speech',async t=>{
+ let calls=0;
+ const metadata={width:640,height:360,durationMs:4000,hasAudio:true};
+ const report={metadata,fingerprint:'owned-source',engineVersion:'test-acoustic',suggestions:[],meanVolumeDb:-20,peakVolumeDb:-1,criteria:{voiceLevel:{score:100}}};
+ const {projects}=await fixture(t,{probeVideo:async()=>metadata,analyzeSource:async()=>report,transcriptionKey:()=> 'installed-model',transcribeSource:async()=>{calls++;return {reviewed:false,engineVersion:'test-asr',words:[{text:'Comment',startMs:100,endMs:600}]};}});
+ const p=projects.create('alice'),req=Readable.from([Buffer.from('fixture')]);req.headers={'content-type':'video/mp4'};await projects.upload('alice',p.id,req);
+ const first=await projects.editorial('alice',p.id,{goal:'leads',words:[{text:'INVENTED'}]});
+ const second=await projects.editorial('alice',p.id,{goal:'leads'});assert.deepEqual(first,second);assert.equal(calls,1);
+ assert.ok(first.criteria.hook.observation.includes('Comment'));assert.ok(!JSON.stringify(first).includes('INVENTED'));
+ await assert.rejects(projects.editorial('bob',p.id),{code:'PROJECT_NOT_FOUND'});
+});

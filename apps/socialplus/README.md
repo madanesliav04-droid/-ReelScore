@@ -87,3 +87,11 @@ node scripts/mobile-recovery-smoke.mjs
 Le premier script utilise un vrai rush et les moteurs réels. Le second injecte explicitement une panne de renderer pour tester l’ergonomie de récupération ; il ne certifie aucun moteur. Les anciens scripts de recette restent des traces des versions précédentes et ne constituent pas les instructions de recette de cette nouvelle interface.
 
 L’indice global automatique affiché est uniquement **acoustique**, moyenne des sous-scores disponibles avec leur formule et version. Il ne remplace pas le score de préparation éditoriale, qui exige des observations documentées. Les règles et scores des moteurs existants n’ont pas été modifiés. Pour la future coque iOS et les limites de l’orchestration locale : [plan App Store](../../docs/social-plus/IOS_PUBLICATION_PLAN.md).
+
+### V2 — fiabilité et repères éditoriaux locaux
+
+Les tâches nouvelles sont persistées avec leurs paramètres privés, une clé d’idempotence et une source SHA-256. Après arrêt du processus, une seule reprise automatique réencode depuis le début sans nouvelle unité de quota. Le fichier vide/absent n’est pas présenté comme terminé ; le nettoyage d’un ancien média ne peut plus invalider son remplacement validé. Les paramètres complets sont purgés du descripteur terminal. Une seule instance peut utiliser un dossier de données.
+
+L’analyse peut transcrire localement un fichier déjà enregistré puis produire des repères textuels déterministes (ouverture, phrases longues, hésitations, connecteurs, débit, marqueurs CTA). Chaque diagnostic donne preuve, moment, pourquoi/comment et vérification. Les citations ASR restent à confirmer ; aucun score global sémantique, chiffre de rétention ou preuve d’originalité n’est fabriqué. Le moteur ne transmet aucun média à un service externe. Si la transcription manque, les mesures acoustiques restent disponibles.
+
+[Recette iPhone et audit commercial V2](../../docs/social-plus/V2_IPHONE_ET_COMMERCIALISATION.md) · [Audit et preuves](../../artifacts/v2/AUDIT_APRES.md). La V2 n’est pas déclarée commercialisable. Aucun paiement, hébergement public ou migration native n’est activé.

@@ -28,7 +28,7 @@ export async function createApp(options={}) {
   await mkdir(dataDir,{recursive:true,mode:0o700});
   const db=options.db||new DatabaseSync(resolve(dataDir,'socialplus.sqlite'));
   db.exec('PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;');
-  const releaseRuntime=acquireRuntimeLock(db);
+  let releaseRuntime;try{releaseRuntime=acquireRuntimeLock(db);}catch(error){if(!options.db)db.close();throw error;}
   const strategy=createStrategy({db});
   const maxRendersPerDay=Number(process.env.SOCIALPLUS_MAX_RENDERS_PER_DAY??10);
   const projects=createProjects({db,dataDir,render:options.render||render,maxRendersPerDay});

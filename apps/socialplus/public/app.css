@@ -399,3 +399,9 @@
  }
  @media(prefers-reduced-motion:reduce) { *,*::before,*::after { animation:none!important;transition:none!important;scroll-behavior:auto!important; } }
 }
+
+@layer mobile {
+ .source-zone { position:absolute;z-index:1;border:1.5px dashed var(--accent);background:color-mix(in srgb,var(--accent) 8%,transparent);border-radius:7px;pointer-events:none; }
+ .toast { pointer-events:none; }
+ @supports not (background:color-mix(in srgb,white,black)) { .source-zone { background:transparent; } }
+}

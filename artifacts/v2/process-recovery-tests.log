@@ -1,0 +1,12 @@
+✔ filesystem cleanup failure cannot invalidate a newly committed upload or export (48.075031ms)
+✔ empty or missing final files are never presented as completed exports (36.325721ms)
+✔ idempotency reuses the same task and quota while conflicts and other concurrent requests fail closed (36.24728ms)
+✔ real process termination resumes the same persisted job once, using FFmpeg and unchanged quota (744.973602ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1046.41561

@@ -45,3 +45,14 @@ test('idempotency reuses the same task and quota while conflicts and other concu
  assert.equal(f.db.prepare('SELECT started_count n FROM studio_render_usage').get().n,1);
  assert.throws(()=>f.projects.job('bob',job.id),{code:'JOB_NOT_FOUND'});
 });
+
+test('publication transaction failure keeps the previous usable export and never advertises the new file',async t=>{
+ const f=await setup(t,async({outputPath})=>{await writeFile(outputPath,'new-export-fixture');return {};});
+ const previous=join(f.dataDir,'media','previous.mp4');await writeFile(previous,'previous-usable-fixture');
+ f.db.prepare("UPDATE studio_projects SET output_path=?,output_bytes=23,state='complete' WHERE id=?").run(previous,f.p.id);
+ const prepare=f.db.prepare.bind(f.db);
+ f.db.prepare=sql=>sql.startsWith("UPDATE studio_jobs SET state='complete'")?{run(){throw Error('Injected database publication failure');}}:prepare(sql);
+ const result=await f.finish(f.projects.startRender('alice',f.p.id,{style_id:'technical-export'}));
+ assert.equal(result.state,'failed');assert.equal(f.db.prepare('SELECT output_path FROM studio_projects').get().output_path,previous);
+ assert.ok((await stat(previous)).size>0);assert.equal(f.projects.get('alice',f.p.id).has_output,true);
+});

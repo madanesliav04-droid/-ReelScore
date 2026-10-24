@@ -155,8 +155,9 @@ export function createProjects({ db, dataDir, render, maxUploadBytes = 200 * 102
     if (!p.source_path||!fileAvailable(p.source_path)) throw fail(409,'SOURCE_REQUIRED','La source est absente. Importez une vidéo avant de continuer.');
     const requestKey=input.requestId??null;
     if(requestKey!==null&&(typeof requestKey!=='string'||!/^[-_a-zA-Z0-9]{16,128}$/.test(requestKey)))throw fail(422,'INVALID_REQUEST_ID','Identifiant de tentative invalide.');
-    const stable=value=>Array.isArray(value)?value.map(stable):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).filter(k=>k!=='requestId').sort().map(k=>[k,stable(value[k])])):value;
-    const payloadHash=createHash('sha256').update(JSON.stringify(stable(input))).digest('hex');
+    const stable=value=>Array.isArray(value)?value.map(stable):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().map(k=>[k,stable(value[k])])):value;
+    const {requestId:ignoredRequestId,...hashInput}=input;
+    const payloadHash=createHash('sha256').update(JSON.stringify(stable(hashInput))).digest('hex');
     if(requestKey){const existing=db.prepare('SELECT * FROM studio_render_requests WHERE user_id=? AND request_key=?').get(userId,requestKey);
       if(existing){if(existing.project_id!==id||existing.source_path!==p.source_path||existing.payload_hash!==payloadHash)throw fail(409,'REQUEST_CONFLICT','Cette tentative appartient à un autre fichier ou à des réglages différents.');return job(userId,existing.job_id);}}
     if (stopping||running || uploading.has(id)) throw fail(409,'RENDER_BUSY','Un traitement est en cours. Réessayez après sa fin.');
@@ -200,14 +201,15 @@ export function createProjects({ db, dataDir, render, maxUploadBytes = 200 * 102
   function launch(items){
     running=true;
     // Single local worker: persisted descriptors survive process termination.
-    (async()=>{for(const item of items){const controller=new AbortController();const promise=execute({...item,signal:controller.signal});activeJobs.set(item.jobId,{userId:item.userId,controller,promise});try{await promise;}finally{activeJobs.delete(item.jobId);}}})().catch(error=>process.stderr.write(JSON.stringify({event:'local_worker_error',code:error.code||'WORKER_FAILED'})+'\n')).finally(()=>{running=false;});
+    (async()=>{for(const item of items){if(stopping)break;const controller=new AbortController();const promise=execute({...item,signal:controller.signal});activeJobs.set(item.jobId,{userId:item.userId,controller,promise});try{await promise;}finally{activeJobs.delete(item.jobId);}}})().catch(error=>process.stderr.write(JSON.stringify({event:'local_worker_error',code:error.code||'WORKER_FAILED'})+'\n')).finally(()=>{running=false;});
   }
-  async function execute({jobId,userId,id,sourcePath,outputPath,execution,signal}){
+  async function execute({jobId,userId,id,sourcePath,outputPath,execution,signal,recovered=false}){
     const started=performance.now();
     let p,committed=false;
     try{
       p=get(userId,id);
       if(p.source_path!==sourcePath||!fileAvailable(sourcePath))throw fail(409,'SOURCE_CHANGED','Le rush d’origine de cette tâche est indisponible.');
+      if(recovered)db.prepare('UPDATE studio_render_requests SET attempts=attempts+1 WHERE job_id=?').run(jobId);
       db.prepare("UPDATE studio_jobs SET state='rendering',progress=0,error_code=NULL,error_message=NULL WHERE id=?").run(jobId);
       db.prepare("UPDATE studio_projects SET state='rendering' WHERE id=? AND user_id=?").run(id,userId);
       const result=await render.renderVideo({sourcePath,outputPath,...execution,signal,onProgress:value=>db.prepare('UPDATE studio_jobs SET progress=? WHERE id=?').run(Math.min(99,Math.max(0,Number(value)||0)),jobId)});
@@ -234,9 +236,11 @@ export function createProjects({ db, dataDir, render, maxUploadBytes = 200 * 102
       if(committed)return;
       await retireMedia([outputPath],userId);
       db.prepare("UPDATE studio_projects SET state='ready',updated_at=? WHERE id=? AND user_id=?").run(now(),id,userId);
-      if(stopping&&signal?.aborted)db.prepare("UPDATE studio_jobs SET state='queued',progress=0,error_code='PROCESS_STOPPED',error_message='Traitement suspendu pour arrêt du serveur ; reprise au prochain lancement.' WHERE id=?").run(jobId);
+      if(stopping&&signal?.aborted){db.prepare("UPDATE studio_jobs SET state='queued',progress=0,error_code='PROCESS_STOPPED',error_message='Traitement suspendu pour arrêt du serveur ; reprise au prochain lancement.' WHERE id=?").run(jobId);db.prepare("UPDATE studio_projects SET state='rendering' WHERE id=? AND user_id=?").run(id,userId);}
       else db.prepare("UPDATE studio_jobs SET state='failed',error_code=?,error_message=?,completed_at=? WHERE id=?").run(error.code||'RENDER_FAILED',String(error.publicMessage||error.message||'Échec du rendu.').slice(0,500),now(),jobId);
     }finally{
+      const state=db.prepare('SELECT state FROM studio_jobs WHERE id=?').get(jobId)?.state;
+      if(state&&!['queued','rendering'].includes(state))db.prepare("UPDATE studio_render_requests SET payload='{}' WHERE job_id=?").run(jobId);
       db.prepare('UPDATE studio_render_requests SET elapsed_ms=elapsed_ms+? WHERE job_id=?').run(Math.max(0,Math.round(performance.now()-started)),jobId);
     }
   }
@@ -262,9 +266,9 @@ export function createProjects({ db, dataDir, render, maxUploadBytes = 200 * 102
         if(hash.digest('hex')!==expected){db.prepare("UPDATE studio_jobs SET state='failed',error_code='SOURCE_CHANGED',error_message='Le fichier source a changé depuis la demande.' WHERE id=?").run(row.job_id);db.prepare("UPDATE studio_projects SET state='ready' WHERE id=?").run(p.id);continue;}}
       const outputPath=join(mediaDir,randomUUID()+'.mp4');
       await retireMedia([row.output_path],row.user_id);
-      db.prepare('UPDATE studio_render_requests SET attempts=attempts+1,output_path=? WHERE job_id=?').run(outputPath,row.job_id);
+      db.prepare('UPDATE studio_render_requests SET output_path=? WHERE job_id=?').run(outputPath,row.job_id);
       db.prepare("UPDATE studio_jobs SET state='queued',progress=0 WHERE id=?").run(row.job_id);
-      items.push({jobId:row.job_id,userId:row.user_id,id:row.project_id,sourcePath:row.source_path,outputPath,execution:JSON.parse(row.payload)});
+      items.push({jobId:row.job_id,userId:row.user_id,id:row.project_id,sourcePath:row.source_path,outputPath,execution:JSON.parse(row.payload),recovered:true});
     }
     if(items.length)launch(items);
   }

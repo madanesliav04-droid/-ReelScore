@@ -1,0 +1,21 @@
+✔ editorial indicators quote timed source words and cannot invent semantic, retention or originality scores (12.827681ms)
+✔ missing transcript and malformed timings fail honestly, measured audio remains separate (0.645259ms)
+✔ projects: measured reports are cached per source, isolated, invalidated on replacement and deleted with member data (32.903381ms)
+✔ projects: tenant boundary covers get update delete upload and job lookup (2.533143ms)
+✔ projects: metadata persists; unavailable model cannot produce fake job (3.91011ms)
+✔ projects: invalid probe and interrupted uploads leave no partial file (4.346859ms)
+✔ projects: byte limit is enforced even without Content-Length (4.947031ms)
+✔ projects: daily compute quota survives project deletion and remains scoped to its member (27.271873ms)
+✔ projects: deletion during asynchronous render metadata check leaves no orphaned private export (13.934907ms)
+✔ projects: offline transcripts cache by model and source, isolate tenants and follow privacy deletion (8.562573ms)
+✔ projects: missing offline model does not consume quota and deleted project leaves no ASR result (3.322928ms)
+✔ projects: Cinematic web route uses autonomous source planner and exposes review without certifying words (17.421762ms)
+✔ editorial route uses only the owner source and cached local transcript, never client-supplied speech (4.900702ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 269.505976

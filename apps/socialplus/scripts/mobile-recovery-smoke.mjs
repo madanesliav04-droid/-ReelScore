@@ -23,6 +23,10 @@ try{
  await page.goto('http://localhost:4335');await page.locator('[name=email]').fill('recovery@example.test');await page.locator('[name=password]').fill(password);await page.locator('[name=totp]').fill(totpCode(seed));await page.locator('form[data-form=login] button[type=submit]').click();await page.getByRole('heading',{name:'Bonjour, Camille.'}).waitFor();
  await page.screenshot({path:join(out,'iphone-home.png'),fullPage:true,animations:'disabled',style:'#toast{display:none!important}'});
  await page.locator('[data-action=new-project]').first().click();await page.locator('#video-input').setInputFiles(source);await page.locator('#source-preview').waitFor();
+ await page.waitForFunction(()=>document.querySelector('#source-preview')?.videoWidth>0);
+ const left=await page.locator('.source-zone').boundingBox();assert.ok(left&&left.width>0&&left.height>0);
+ await page.locator('#graphic-zone').selectOption('right');const right=await page.locator('.source-zone').boundingBox();assert.ok(right.x>left.x);
+ await page.locator('#graphic-zone').selectOption('left');
  await page.locator('[data-action=project-analysis]').click();await page.locator('#analyze-video-button').click();await page.locator('[data-analysis-pause]').waitFor({state:'attached'});
  await page.locator('details').filter({has:page.locator('[data-analysis-pause]')}).locator('summary').first().click();await page.locator('[data-analysis-pause]').first().check();
  await page.locator('[data-action=analysis-to-montage]').click();await page.locator('[data-pause-id]').waitFor({state:'attached'});assert.equal(await page.locator('[data-pause-id]').first().isChecked(),true);
@@ -53,6 +57,6 @@ try{
  const inputFontPx=await page.locator('#graphic-zone').evaluate(el=>parseFloat(getComputedStyle(el).fontSize));assert.ok(inputFontPx>=16);
  const performance=await page.evaluate(()=>({navigation:performance.getEntriesByType('navigation').map(n=>({domContentLoadedMs:n.domContentLoadedEventEnd,responseEndMs:n.responseEnd})),fontSize:getComputedStyle(document.querySelector('.button')).fontSize}));
  assert.deepEqual(errors,[]);
- const results={controlledFailureFixture:true,notEngineCertification:true,pauseSelectionReused:true,networkRecovery:true,failedTaskVisible:true,sourceRetained:true,refreshResumes:true,deletion:true,faqPreserved:true,reducedMotion:true,themes:true,inputFontPx,performance,javascriptErrors:errors,physicalIphone:false};
+ const results={controlledFailureFixture:true,notEngineCertification:true,zonePreview:true,pauseSelectionReused:true,networkRecovery:true,failedTaskVisible:true,sourceRetained:true,refreshResumes:true,deletion:true,faqPreserved:true,reducedMotion:true,themes:true,inputFontPx,performance,javascriptErrors:errors,physicalIphone:false};
  await writeFile(join(out,'recovery-results.json'),JSON.stringify(results,null,2));console.log(JSON.stringify(results));
 }finally{release();await browser?.close();await new Promise(r=>app.server.close(r));app.db.close();await rm(dataDir,{recursive:true,force:true});}
