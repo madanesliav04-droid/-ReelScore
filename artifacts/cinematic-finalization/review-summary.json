@@ -1,0 +1,190 @@
+{
+  "initialFlagCount": 19,
+  "humanConfirmed": 0,
+  "automaticallyConfirmed": 0,
+  "pending": 19,
+  "positiveTimingHypotheses": 13,
+  "multiwordGroups": 4,
+  "additionalIndicesToReview": [
+    52,
+    150
+  ],
+  "entries": [
+    {
+      "index": 0,
+      "sourceStartMs": 0,
+      "sourceEndMs": 720,
+      "outputStartMs": 0,
+      "outputEndMs": 720,
+      "status": "pending_human_listening",
+      "hasUnconfirmedTimingCandidate": true
+    },
+    {
+      "index": 1,
+      "sourceStartMs": 720,
+      "sourceEndMs": 740,
+      "outputStartMs": 720,
+      "outputEndMs": 740,
+      "status": "pending_human_listening",
+      "hasUnconfirmedTimingCandidate": true
+    },
+    {
+      "index": 2,
+      "sourceStartMs": 740,
+      "sourceEndMs": 960,
+      "outputStartMs": 740,
+      "outputEndMs": 960,
+      "status": "pending_human_listening",
+      "hasUnconfirmedTimingCandidate": true
+    },
+    {
+      "index": 5,
+      "sourceStartMs": 1820,
+      "sourceEndMs": 1920,
+      "outputStartMs": 1820,
+      "outputEndMs": 1920,
+      "status": "pending_human_listening",
+      "hasUnconfirmedTimingCandidate": true
+    },
+    {
+      "index": 6,
+      "sourceStartMs": 1920,
+      "sourceEndMs": 2000,
+      "outputStartMs": 1920,
+      "outputEndMs": 2000,
+      "status": "pending_human_listening",
+      "hasUnconfirmedTimingCandidate": false
+    },
+    {
+      "index": 13,
+      "sourceStartMs": 3720,
+      "sourceEndMs": 4060,
+      "outputStartMs": 3720,
+      "outputEndMs": 4060,
+      "status": "pending_human_listening",
+      "hasUnconfirmedTimingCandidate": true
+    },
+    {
+      "index": 19,
+      "sourceStartMs": 5800,
+      "sourceEndMs": 5900,
+      "outputStartMs": 5800,
+      "outputEndMs": 5900,
+      "status": "pending_human_listening",
+      "hasUnconfirmedTimingCandidate": true
+    },
+    {
+      "index": 36,
+      "sourceStartMs": 11820,
+      "sourceEndMs": 11880,
+      "outputStartMs": 10367,
+      "outputEndMs": 10427,
+      "status": "pending_human_listening",
+      "hasUnconfirmedTimingCandidate": false
+    },
+    {
+      "index": 50,
+      "sourceStartMs": 16460,
+      "sourceEndMs": 16980,
+      "outputStartMs": 15007,
+      "outputEndMs": 15527,
+      "status": "pending_human_listening",
+      "hasUnconfirmedTimingCandidate": false
+    },
+    {
+      "index": 55,
+      "sourceStartMs": 18000,
+      "sourceEndMs": 18700,
+      "outputStartMs": 16547,
+      "outputEndMs": 17247,
+      "status": "pending_human_listening",
+      "hasUnconfirmedTimingCandidate": true
+    },
+    {
+      "index": 69,
+      "sourceStartMs": 23280,
+      "sourceEndMs": 23420,
+      "outputStartMs": 21827,
+      "outputEndMs": 21967,
+      "status": "pending_human_listening",
+      "hasUnconfirmedTimingCandidate": true
+    },
+    {
+      "index": 71,
+      "sourceStartMs": 24365,
+      "sourceEndMs": 24640,
+      "outputStartMs": 22912,
+      "outputEndMs": 23187,
+      "status": "pending_human_listening",
+      "hasUnconfirmedTimingCandidate": false
+    },
+    {
+      "index": 81,
+      "sourceStartMs": 27400,
+      "sourceEndMs": 27540,
+      "outputStartMs": 25947,
+      "outputEndMs": 26087,
+      "status": "pending_human_listening",
+      "hasUnconfirmedTimingCandidate": true
+    },
+    {
+      "index": 84,
+      "sourceStartMs": 27820,
+      "sourceEndMs": 28200,
+      "outputStartMs": 26367,
+      "outputEndMs": 26747,
+      "status": "pending_human_listening",
+      "hasUnconfirmedTimingCandidate": true
+    },
+    {
+      "index": 111,
+      "sourceStartMs": 36100,
+      "sourceEndMs": 36500,
+      "outputStartMs": 34647,
+      "outputEndMs": 35047,
+      "status": "pending_human_listening",
+      "hasUnconfirmedTimingCandidate": true
+    },
+    {
+      "index": 117,
+      "sourceStartMs": 38440,
+      "sourceEndMs": 38540,
+      "outputStartMs": 36987,
+      "outputEndMs": 37087,
+      "status": "pending_human_listening",
+      "hasUnconfirmedTimingCandidate": true
+    },
+    {
+      "index": 132,
+      "sourceStartMs": 41120,
+      "sourceEndMs": 41240,
+      "outputStartMs": 39667,
+      "outputEndMs": 39787,
+      "status": "pending_human_listening",
+      "hasUnconfirmedTimingCandidate": false
+    },
+    {
+      "index": 143,
+      "sourceStartMs": 44060,
+      "sourceEndMs": 44340,
+      "outputStartMs": 42607,
+      "outputEndMs": 42887,
+      "status": "pending_human_listening",
+      "hasUnconfirmedTimingCandidate": false
+    },
+    {
+      "index": 151,
+      "sourceStartMs": 45780,
+      "sourceEndMs": 46020,
+      "outputStartMs": 44327,
+      "outputEndMs": 44567,
+      "status": "pending_human_listening",
+      "hasUnconfirmedTimingCandidate": true
+    }
+  ],
+  "mp4Sha256": "8d7b2bfd55d43fea1c8c01808cddd2f18abc4f8047d00e090746a3562ccd6d72",
+  "mp4Unchanged": true,
+  "recognizer": "same local faster-whisper-small; eight cropped contexts",
+  "independentPhoneticValidation": false,
+  "audioListeningTool": "unsupported_audio_input"
+}

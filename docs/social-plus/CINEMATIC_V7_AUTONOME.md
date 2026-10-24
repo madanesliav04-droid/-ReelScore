@@ -55,3 +55,17 @@ Le dernier script vérifie le décodage intégral, la définition native, les co
 Port actuel : rushs de 60 secondes au plus, dimensions paires jusqu’à 1080p, graphismes à 30 images/s. Le test réel de cette mission est horizontal 910×512. La lisibilité portrait n’est pas certifiée. Les métriques des polices libres peuvent différer des fontes historiques.
 
 `--preview` ne confirme aucun mot. Une probabilité ASR faible, une entrée contenant plusieurs mots sans frontières distinctes ou un drapeau `reviewRequired` restent signalés. Sans `--preview`, une transcription réellement relue est exigée, avec des mots individuels horodatés et les ambiguïtés explicitement confirmées. Ni cette case ni une corrélation audio ne remplacent une validation phonétique indépendante. Le score commercial et `releaseApproved` restent non validés.
+
+## Contrôle des entrées incertaines
+
+La commande écrit aussi `cinematic.mp4.review.json` : chaque mot signalé porte son index, son texte, ses horaires source et après coupe, la raison de révision et un état explicitement non confirmé. Confirmer le texte d’un groupe contenant plusieurs mots ne valide jamais ses frontières individuelles, même en prévisualisation.
+
+Une reprise locale ciblée est possible sans régénérer la vidéo :
+
+```bash
+python apps/socialplus/engines/review_cinematic_words.py rush.mov cinematic.mp4.plan.json dossier_prive
+```
+
+Cette commande exige le modèle ASR local existant et les variables déjà décrites. Elle génère des extraits MP3 du rush et `word-review.json`, sans réécrire les mots, leurs horaires ou le MP4. Les nouvelles frontières ne sont que des propositions. Les frontières nulles, chevauchantes et les occurrences voisines d’un même mot sont rejetées comme correspondances de timing. Les désaccords liés au découpage des apostrophes ou aux mots tronqués aux bords des fenêtres ne sont pas présentés comme des erreurs lexicales.
+
+La confirmation humaine et l’alignement phonétique ne sont pas remplacés par un score de confiance, une répétition du même reconnaisseur ou une case de confirmation. Si l’écoute n’est pas disponible, le moteur reste en prévisualisation ; le rapport doit le préciser. Voir `artifacts/cinematic-finalization/FINALISATION.md` pour les preuves et limites de cette passe.

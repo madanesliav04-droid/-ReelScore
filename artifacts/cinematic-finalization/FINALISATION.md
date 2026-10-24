@@ -1,0 +1,15 @@
+# Cinematic V7 — finalisation bloquée sur la validation des paroles
+
+**Score de validation : 50/100, 50 points non validés. Non commercialisable en l’état.** Ce score décrit les preuves acquises ; il ne mesure pas le taux de mots corrects. Détail et sous-critères : `score.json`.
+
+Les 19 entrées initiales sont toutes identifiées avec les intervalles source et après coupe. Huit reconnaissances locales ciblées ont été exécutées en réutilisant les poids existants ; 13 entrées ont des propositions de frontières positives et ordonnées. Aucune proposition n’est transformée en correction validée. Les quatre groupes multi-mots restent non résolus. Deux désaccords supplémentaires apparaissent à 17,220–17,560 s et 45,700–45,780 s ; ce ne sont pas des erreurs prouvées.
+
+L’outil audio renvoie « audio content omitted because you do not support audio input ». Il n’y a donc eu aucune réécoute humaine dans cette session. La comparaison de fenêtres avec le même reconnaisseur n’est pas un alignement indépendant. Les reconnaissances tronquées aux bords et les simples différences de découpage d’apostrophes sont exclues du détecteur de désaccords. Une occurrence voisine du mot « de » ne peut pas fournir abusivement le timestamp d’une autre occurrence.
+
+Correction minimale : en mode prévisualisation, confirmer le texte d’un groupe multi-mots ne permet plus de marquer ses frontières comme relues. Le moteur écrit désormais un `.review.json` automatique avec les entrées non résolues et leurs timecodes source/sortie. Aucun graphisme, rythme, transition, habillage ou montage n’a été modifié. Les cinq autres modèles et la PR #53 sont intacts.
+
+Tests de cette passe : dix tests Node ; quatre tests Python du diagnostic ; refus réel de la commande normale sur le rush non validé, sans création de MP4. Le test graphique Python inchangé et les preuves audio/vidéo de la passe précédente sont conservés ; l’identité SHA-256 du MP4 et du rush est vérifiée. Pas de nouveau rendu ni de nouvelle inférence complète inutile.
+
+Le MP4 existant reste une prévisualisation H.264/AAC 910×512, 45,637 s, une piste stéréo originale. Décodage intégral, six comparaisons audio et contrôle des anciens fichiers V6 ont été exécutés lors de sa génération, pas faussement réannoncés comme une nouvelle recette ici.
+
+Les extraits, la transcription et le rapport nominatif des 19 entrées restent privés dans `cinematic-finalization/review`. Le rapport JSON public ne contient que les indices, timecodes et états. La prochaine étape indispensable est une écoute humaine des extraits et la validation des mots et frontières avant tout nouveau rendu final ou mise en commerce. Le MP4 a aussi été chargé et lu sur un serveur de test HTTP uniquement local dans Chromium en émulation iPhone : 78 images décodées, lecture avancée à 2,44 s, aucune erreur. Il ne s’agit pas d’un test matériel Safari/iPhone. La première tentative `file://` était bloquée par la politique du navigateur ; aucun contrôle de sécurité n’a été désactivé. Aucun service payant, déploiement ou fusion.

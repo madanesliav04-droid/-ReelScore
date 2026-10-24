@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {planCinematic} from './cinematic-plan.mjs';
+import {planCinematic,cinematicReviewItems} from './cinematic-plan.mjs';
 import {restoredPlan} from './restored-models.mjs';
 const words='Tu peux résoudre un problème concret. Ensuite tu peux aider les personnes autour de toi.'.split(' ').map((text,i)=>({text,startMs:1800+i*350,endMs:2000+i*350,probability:.99}));
 const report={fingerprint:'rush-only',metadata:{width:910,height:512,hasAudio:true,durationMs:13000},suggestions:[]};
@@ -32,4 +32,16 @@ test('native format is preserved and cinematic limits do not loosen other model 
  assert.throws(()=>planCinematic({...report,metadata:{...report.metadata,width:911}},{words,reviewed:true}),/impaires/);
  const p=planCinematic(report,{words,reviewed:true});assert.equal(p.events[0].wordCount,6);
  assert.throws(()=>restoredPlan('codie-omni-v60',report.metadata,{...p,events:[{...p.events[0],kind:'clock',rect:[.05,.05,.3,.3]}]}));
+});
+
+test('preview never reports merged timestamps as reviewed, even with a text confirmation',()=>{
+ const data={words:[{text:'deux mots',start:0,end:1,confirmed:true}],reviewed:true};
+ const plan=planCinematic(report,data,{preview:true});
+ assert.equal(plan.captionsReviewed,false);assert.equal(plan.captionStatus,'unreviewed_preview');
+ const [item]=cinematicReviewItems(plan);assert.equal(item.requiresIndividualWordBoundaries,true);assert.equal(item.automaticallyConfirmed,false);
+});
+test('review entries expose exact source and edited times without changing text or timings',()=>{
+ const input={reviewed:false,words:[{text:'Avant.',startMs:500,endMs:1500,probability:.95},{text:'Après.',startMs:3500,endMs:4000,probability:.95},{text:'incertain',startMs:5000,endMs:5500,probability:.2}]};
+ const plan=planCinematic({...report,suggestions:[{id:'p',startMs:1750,endMs:3250}]},input,{preview:true});
+ const [item]=cinematicReviewItems(plan);assert.equal(item.wordIndex,2);assert.equal(item.sourceStartMs,5000);assert.equal(item.outputStartMs,3500);assert.equal(item.text,'incertain');assert.equal(item.status,'pending_human_review');
 });

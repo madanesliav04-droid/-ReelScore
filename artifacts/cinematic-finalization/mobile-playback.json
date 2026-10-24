@@ -1,0 +1,15 @@
+{
+  "width": 910,
+  "height": 512,
+  "duration": 45.637007,
+  "currentTime": 2.444517,
+  "readyState": 4,
+  "paused": false,
+  "ended": false,
+  "playbackRate": 1,
+  "visibility": "visible",
+  "frames": 78,
+  "error": null,
+  "test": "Chromium iPhone viewport/UA emulation, not real Safari hardware",
+  "fullFileDecode": "covered by existing unchanged MP4 SHA and earlier FFmpeg check"
+}

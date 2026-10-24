@@ -1,0 +1,52 @@
+{
+  "type": "points_de_validation_acquis_not_measured_accuracy",
+  "commercialReady": false,
+  "criteria": [
+    {
+      "criterion": "Fidélité de transcription",
+      "earned": 0,
+      "maximum": 25,
+      "reason": "Pas de transcription de vérité indépendante ni écoute humaine ; 19 entrées initiales non confirmées. Zéro point attribué ne signifie pas zéro mot correct."
+    },
+    {
+      "criterion": "Synchronisation mot à mot",
+      "earned": 10,
+      "maximum": 20,
+      "reason": "10 points pour bornes ASS, conversion après coupe et non-chevauchement testés ; 10 points phonétiques non attribués, dont quatre groupes sans frontières distinctes."
+    },
+    {
+      "criterion": "Fluidité et transitions",
+      "earned": 10,
+      "maximum": 15,
+      "reason": "5 points profil smoothstep original ; 5 points captures entrée/milieu/sortie ; 5 points de lecture continue humaine non attribués."
+    },
+    {
+      "criterion": "Qualité graphique",
+      "earned": 10,
+      "maximum": 15,
+      "reason": "5 points zones et textes contrôlés ; 5 points séparation graphismes/sous-titres ; 5 points de fidélité visuelle intégrale aux masters et métriques typographiques non attribués."
+    },
+    {
+      "criterion": "Audio original",
+      "earned": 10,
+      "maximum": 10,
+      "reason": "5 points piste source unique stéréo et chaîne sans doublage/pitch ; 5 points six corrélations de voix >0,9994, décalages mesurés nuls."
+    },
+    {
+      "criterion": "Cuts intelligents",
+      "earned": 5,
+      "maximum": 10,
+      "reason": "5 points pause mesurée hors des intervalles ASR avec marges ; 5 points de vérification phonétique et narrative humaine non attribués."
+    },
+    {
+      "criterion": "Autonomie technique",
+      "earned": 5,
+      "maximum": 5,
+      "reason": "Commande complète réellement exécutée sur le nouveau rush ; trace I/O sans ancien média ou fichier de timing V6."
+    }
+  ],
+  "notice": "Barème conservateur de validation, pas une estimation subjective de beauté, un WER ou une probabilité de qualité commerciale. Les points non vérifiables restent non attribués.",
+  "totalEarned": 50,
+  "totalMaximum": 100,
+  "unvalidatedPoints": 50
+}

@@ -20,7 +20,7 @@ export function normalizeCinematicTranscript(input,report,{preview=false}={}){
  buildLocalEdit({report,transcript:words,captionsReviewed:false,previewOnly:true});
  const reviewed=data.reviewed===true||data.captionsReviewed===true;
  if(!preview&&(!reviewed||words.some(w=>pending(w)||/\s/.test(w.text))))throw invalid('Transcription non confirmée : relisez les mots et horaires, ou utilisez --preview pour un export explicitement non validé.');
- return {words,reviewed:reviewed&&!words.some(pending),warnings:words.flatMap((w,i)=>[
+ return {words,reviewed:reviewed&&!words.some(w=>pending(w)||/\s/.test(w.text)),warnings:words.flatMap((w,i)=>[
   ...(pending(w)?[{code:'WORD_REVIEW_REQUIRED',wordIndex:i}]:[]),
   ...(/\s/.test(w.text)?[{code:'MULTIWORD_ASR_TOKEN',wordIndex:i}]:[])
  ])};
@@ -93,4 +93,13 @@ export function planCinematic(report,transcription,{preview=false}={}){
   transcriptionEngine:{version:transcription.transcriptionEngine?.version??transcription.engineVersion??'supplied_timestamps',modelSha256:transcription.transcriptionEngine?.modelSha256??transcription.modelSha256??null,timingMethod:transcription.transcriptionEngine?.timingMethod??transcription.timingMethod??'supplied_not_independently_verified'},
   placementPolicy:'Native camera unchanged; V7 full-screen graphics replace camera only during derived scenes. No face/hand tracking claimed.',
   captionStatus:reviewed?'user_confirmed_not_independently_phonetic':'unreviewed_preview',releaseApproved:false};
+}
+
+// Diagnostic only: no ASR confidence or user checkbox proves phonetic alignment.
+export function cinematicReviewItems(plan){
+ return plan.transcript.flatMap((w,i)=>{
+  const multiword=/\s/.test(w.text);if(!pending(w)&&!multiword)return [];
+  const mapped=plan.mappedWords[i];
+  return [{wordIndex:i,text:w.text,sourceStartMs:w.startMs,sourceEndMs:w.endMs,outputStartMs:mapped.outputStartMs,outputEndMs:mapped.outputEndMs,probability:w.probability??null,requiresTextReview:pending(w),requiresIndividualWordBoundaries:multiword,status:'pending_human_review',automaticallyConfirmed:false}];
+ });
 }
