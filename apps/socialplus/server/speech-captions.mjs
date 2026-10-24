@@ -15,12 +15,21 @@ const clean=text=>String(text).replace(/[{}\\\r\n]/g,' ');
 // min-60ms active-word loop, which could overlap fast spoken tokens.
 export function speechCaptionAss(base,model,meta,events=[]){
  const style=styles[model]||styles['leila-hormozi-v53'];
- const scale=Math.min(meta.width/910,meta.height/512),fontPx=Math.max(20,Math.round(style.size*scale));
+ const scale=model==='cinematic-storytelling-v7'?Math.min(meta.width/960,meta.height/540):Math.min(meta.width/910,meta.height/512),fontPx=Math.max(20,Math.round(style.size*scale));
  const sizeScale=Math.max(.55,Math.min(1.15,meta.height/1920));
  const config={...base.captionConfig,fontFamily:renderFont(model==='codie-omni-v60'?'InterDisplay-SemiBold.otf':'Inter-SemiBold.otf').family,fontSize:fontPx/sizeScale,stroke:style.stroke,fontWeight:600};
  const header=buildCaptionAss({...base,captions:[],captionConfig:config},meta.width,meta.height);
  const lines=[];
- for(const caption of base.captions){
+ let captions=base.captions;
+ if(model==='cinematic-storytelling-v7')captions=base.captions.flatMap(c=>{
+  let camera=[[c.startMs,c.endMs]];
+  for(const e of events)camera=camera.flatMap(([a,b])=>e.endMs<=a||e.startMs>=b?[[a,b]]:[...(a<e.startMs?[[a,e.startMs]]:[]),...(b>e.endMs?[[e.endMs,b]]:[])]);
+  return camera.flatMap(([a,b])=>{
+   const words=c.words.filter(w=>w.startMs<b&&w.endMs>a).map(w=>({...w,startMs:Math.max(a,w.startMs),endMs:Math.min(b,w.endMs)}));
+   return words.length?[{...c,startMs:words[0].startMs,endMs:words.at(-1).endMs,words}]:[];
+  });
+ });
+ for(const caption of captions){
   for(let i=0;i<caption.words.length;i++){
    const word=caption.words[i],next=caption.words[i+1];
    let start=Math.max(caption.startMs,word.startMs);
@@ -31,7 +40,7 @@ export function speechCaptionAss(base,model,meta,events=[]){
    const fullscreen=model==='alex-hormozi-v16'&&events.some(e=>e.kind==='fullscreen'&&start<e.endMs&&end>e.startMs);
    const primary=fullscreen?'#202632':'#FFFFFF';
    const text=caption.words.map((w,j)=>`{\\c${color(j===i?style.accent:primary)}}${clean(w.text)}`).join(' ');
-   lines.push(`Dialogue: 0,${time(start)},${time(end)},Default,,0,0,0,,${fullscreen?'{\\bord0\\shad0}':''}${text}`);
+   lines.push(`Dialogue: 0,${time(start)},${time(end)},Default,,0,0,0,,${model==='cinematic-storytelling-v7'?`{\\an2\\pos(${Math.round(meta.width/2)},${Math.round(meta.height*.875)})}`:fullscreen?'{\\bord0\\shad0}':''}${text}`);
   }
  }
  return header+'\n'+lines.join('\n')+'\n';

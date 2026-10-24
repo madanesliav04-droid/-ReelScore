@@ -1,0 +1,16 @@
+✔ automatic cinematic plan is deterministic, source quoted and accepted by the existing compositor (23.109615ms)
+✔ new source identity, uncertain words and multiword timing cannot be silently confirmed (3.94674ms)
+✔ only measured complete-phrase pauses are cut and raw ASR spans protect quiet syllables (1.952339ms)
+✔ native format is preserved and cinematic limits do not loosen other model title limits (4.37919ms)
+✔ word captions retain 20ms words without overlapping ASS events (3.934109ms)
+✔ cinematic scene only suppresses its covered intervals, preserving adjacent camera captions (0.87447ms)
+✔ real acoustic pauses merge and narrow conservatively around words (4.909427ms)
+✔ caption edge refinements cannot widen a cut into the original ASR speech interval (1.612609ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 541.716939

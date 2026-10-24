@@ -150,7 +150,8 @@ def main(config_path):
                     d=ImageDraw.Draw(content)
                     d.line((52,505,908,505),fill=(185,204,215,38),width=1)
                     d.line((52,505,52+round(856*min(1,(t-a)/(b-a))),505),fill=scope['GOLD'],width=2)
-                    content=ImageOps.contain(content,(round(W*.9),round(H*.8)),Image.Resampling.LANCZOS)
+                    inset=.98 if str(e.get('kind','')).startswith('cinematic-') else None
+                    content=ImageOps.contain(content,(round(W*(inset or .9)),round(H*(inset or .8))),Image.Resampling.LANCZOS)
                     im.alpha_composite(content,((W-content.width)//2,(H-content.height)//2))
                     opacity=scope['fade_edge'](t-a,b-a,fin=.22,fout=.22)
                     im.putalpha(im.getchannel('A').point(lambda p:round(p*opacity)))

@@ -25,6 +25,9 @@ class Bindings(ast.NodeTransformer):
 def label(text):return text.strip().rstrip('.,!?;:')
 
 def cinematic_layers(e,index,count,scope,load,root):
+ if str(e.get('kind','')).startswith('cinematic-'):
+  from cinematic_scenes import autonomous_layers
+  return autonomous_layers(e,index,count,scope,load,root)
  groups=e.get('details') or ([e['secondary']] if e.get('secondary') else [])
  primary=label(e['text']);a=e['startMs']/1000
  # Reuse the exact original chapter/header/scene drawing functions. Historical
