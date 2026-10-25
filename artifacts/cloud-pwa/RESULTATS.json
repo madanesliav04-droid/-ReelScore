@@ -1,0 +1,27 @@
+{
+  "pwaPrepared": true,
+  "pwaBrowserTestsPassed": 1,
+  "manifest": "standalone, start_url=/, same origin",
+  "privateDataCachedByWorker": false,
+  "offlineResultsSimulated": false,
+  "offlineProcessingSupported": false,
+  "existingInterfaceBodyUnchanged": true,
+  "sixEnginesChanged": false,
+  "lockedV28Unchanged": true,
+  "cloudImagePrepared": true,
+  "cloudImageBuilt": false,
+  "cloudDeployment": false,
+  "physicalSafariTested": false,
+  "iphoneHomeScreenInstalled": false,
+  "previewUrl": null,
+  "paidServicesActivated": false,
+  "billingAccountAndCreditsKnown": false,
+  "costZeroGuaranteed": false,
+  "selectedArchitecture": "isolated Railway app/API/worker with persistent volume and single HTTPS origin, pending explicit budget approval",
+  "pricesVerified20261025": {
+    "railwayHobbyMinimumUsdMonthly": 5,
+    "render2GbUsdMonthly": 25,
+    "oracleAlwaysFreeInstanceAvailable": null,
+    "huggingFaceDockerSpaceCreationRequiresPaidPlan": true
+  }
+}

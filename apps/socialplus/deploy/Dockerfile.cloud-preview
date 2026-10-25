@@ -1,0 +1,31 @@
+# Isolated cloud preview image. Preparation only: no deployment is triggered.
+# Build context: repository root. No private app credentials or user videos.
+FROM node:24-bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg fonts-dejavu-core ca-certificates python3 python3-venv python3-pip python3-numpy python3-pil chromium \
+    && rm -rf /var/lib/apt/lists/*
+COPY apps/socialplus/engines/requirements-asr.txt /tmp/requirements-asr.txt
+RUN python3 -m venv --system-site-packages /opt/socialplus-asr \
+    && /opt/socialplus-asr/bin/pip install --no-cache-dir -r /tmp/requirements-asr.txt
+WORKDIR /app/apps/socialplus
+COPY --chown=node:node apps/worker/package.json /app/apps/worker/package.json
+COPY --chown=node:node apps/worker/src /app/apps/worker/src
+COPY --chown=node:node apps/worker/hyperframes/social-kinetic-v28-speech-timed/index.html /app/apps/worker/hyperframes/social-kinetic-v28-speech-timed/index.html
+COPY --chown=node:node apps/socialplus/package.json apps/socialplus/package-lock.json ./
+RUN npm ci --omit=dev --ignore-scripts --no-audit --no-fund
+COPY --chown=node:node apps/socialplus/server ./server
+COPY --chown=node:node apps/socialplus/public ./public
+COPY --chown=node:node apps/socialplus/scripts ./scripts
+COPY --chown=node:node apps/socialplus/engines ./engines
+# Fetch only public model weights during the explicitly authorized image build.
+# Reject a changed model rather than silently altering the approved transcription.
+RUN /opt/socialplus-asr/bin/python scripts/download-local-model.py /opt/socialplus-models/whisper-small \
+    && echo '3e305921506d8872816023e4c273e75d2419fb89b24da97b4fe7bce14170d671  /opt/socialplus-models/whisper-small/model.bin' | sha256sum -c - \
+    && chmod -R a+rX /opt/socialplus-models
+ENV SOCIALPLUS_ASR_PYTHON=/opt/socialplus-asr/bin/python SOCIALPLUS_ASR_MODEL_DIR=/opt/socialplus-models/whisper-small HF_HUB_OFFLINE=1
+RUN mkdir -p /data && chown -R node:node /data /app/apps/socialplus
+USER node
+ENV NODE_ENV=production SOCIALPLUS_HOST=0.0.0.0 PORT=4318 SOCIALPLUS_DATA_DIR=/data
+EXPOSE 4318
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s \
+  CMD node -e "fetch('http://127.0.0.1:'+process.env.PORT+'/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+CMD ["sh", "-c", "npm run preflight && exec npm start"]

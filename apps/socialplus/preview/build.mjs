@@ -6,7 +6,7 @@ const root=fileURLToPath(new URL('../',import.meta.url));
 const output=resolve(process.argv[2]||join(root,'.preview-build'));
 if(output===root||root.startsWith(output+'/'))throw Error('Invalid build output');
 await mkdir(output,{recursive:true});
-const html=(await readFile(join(root,'public/index.html'),'utf8')).replace('src="/app.js"','src="/interface-preview.js"').replace('Espace privé','Aperçu privé').replace('<main id="main"','<main data-preview="interface-only" id="main"');
+const html=(await readFile(join(root,'public/index.html'),'utf8')).replace(/<!-- SOCIALPLUS_PWA_START -->[\s\S]*?<!-- SOCIALPLUS_PWA_END -->/,'').replace('src="/app.js"','src="/interface-preview.js"').replace('Espace privé','Aperçu privé').replace('<main id="main"','<main data-preview="interface-only" id="main"');
 await writeFile(join(output,'index.html'),html);
 await copyFile(join(root,'public/app.css'),join(output,'app.css'));
 await copyFile(join(root,'preview/interface-preview.js'),join(output,'interface-preview.js'));
