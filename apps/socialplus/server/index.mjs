@@ -1,3 +1,4 @@
+import {createBeta} from './beta.mjs';
 import {acquireRuntimeLock} from './runtime-lock.mjs';
 import http from 'node:http';
 import { DatabaseSync } from 'node:sqlite';
@@ -32,15 +33,17 @@ export async function createApp(options={}) {
   const strategy=createStrategy({db});
   const maxRendersPerDay=Number(process.env.SOCIALPLUS_MAX_RENDERS_PER_DAY??10);
   const projects=createProjects({db,dataDir,render:options.render||render,maxRendersPerDay});
+  let beta;
   const security=createSecurity({db,config:{
     origin:options.origin||process.env.SOCIALPLUS_ORIGIN||'http://localhost:4318',
     ownerId:process.env.SOCIALPLUS_OWNER_ID,
     ownerTotpSecret:process.env.SOCIALPLUS_OWNER_TOTP_SECRET,
     secureCookies:process.env.NODE_ENV==='production',
     ...options.securityConfig,
-    exportUserData: async userId=>({...projects.exportData(userId),strategy:strategy.exportData(userId)}),
+    exportUserData: async userId=>({...projects.exportData(userId),strategy:strategy.exportData(userId),beta_activity:beta.exportData(userId)}),
     deleteUserData: async userId=>{await projects.deleteUserData(userId);await strategy.deleteData(userId);}
   }});
+  beta=createBeta({db,ownerId:options.securityConfig?.ownerId||process.env.SOCIALPLUS_OWNER_ID});
   seedInitialFaq(db);
   await projects.recover();
   const server=http.createServer(async(req,res)=>{
@@ -57,6 +60,7 @@ export async function createApp(options={}) {
       if(url.pathname.startsWith('/api/')){
         const legalMatch=/^\/api\/privacy\/(privacy|terms|legal|cookies)$/.exec(url.pathname);
         if(legalMatch&&req.method==='GET'){json(res,200,legalDocument(legalMatch[1]));return;}
+        if(url.pathname==='/api/admin/beta'&&req.method==='GET'){security.requireOwner(req);json(res,200,beta.summary());return;}
         if(url.pathname==='/api/admin/usage'&&req.method==='GET'){
           security.requireOwner(req);
           const usage=db.prepare('SELECT count(*) projects, COALESCE(sum(source_bytes+output_bytes),0) storage_bytes FROM studio_projects').get();
@@ -70,6 +74,7 @@ export async function createApp(options={}) {
         if(await security.handle(req,res,url))return;
         const user=security.requireUser(req);
         if(!['GET','HEAD','OPTIONS'].includes(req.method))security.checkCsrf(req);
+        beta.touch(user.id);
         if(await strategy.handle(req,res,url,user))return;
         if(url.pathname==='/api/studio/styles'&&req.method==='GET'){json(res,200,{styles:render.MODEL_CATALOG,transcription:{configured:Boolean(render.transcriptionKey())}});return;}
         if(url.pathname==='/api/projects'){
@@ -114,7 +119,7 @@ export async function createApp(options={}) {
   });
   server.once('close',releaseRuntime);
   server.requestTimeout=10*60*1000;
-  return {server,db,security,strategy,projects,releaseRuntime};
+  return {server,db,security,strategy,projects,beta,releaseRuntime};
 }
 
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
