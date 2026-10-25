@@ -100,3 +100,32 @@ Exécution réussie : https://github.com/madanesliav04-droid/-ReelScore/actions/
 Xcode 16.4 (16F6), runner macOS standard arm64, simulateur iPhone 16 Pro / iOS 18.5 : compilation, installation et commande de lancement réussies. Premier essai : arrêt au lancement ; ajout d’une signature ad hoc locale au binaire simulateur, puis second essai réussi. La santé continue de l’application n’est pas contrôlée par cette simple commande de lancement.
 
 Aucun rush privé fourni au runner, aucun export exécuté et aucun artefact stocké. La capture WebKit, le MP4 et la fidélité restent **non testés**. Le point de terminaison des secrets Actions renvoie également 403 à l’intégration actuelle. Prochaine intervention nécessaire : permettre une configuration de secret Actions pour un canal temporaire privé de transfert, avant tout envoi des médias. Ne pas envoyer le secret dans une conversation ou le committer. Les accès doivent rester limités à ce test, sans toucher aux secrets de production.
+
+## Export synthétique réellement exécuté — 25 octobre 2026
+
+**Succès :** https://github.com/madanesliav04-droid/-ReelScore/actions/runs/40226896297
+
+Commit testé `8d35128df684c1e95e24104032f2785869d15a3b`, Xcode 16.4, simulateur **iPhone 17 Pro / iOS 26.2**. Ce résultat complète les anciens résultats de lancement ; il ne valide pas iOS 18.5.
+
+Le runner génère une mire vidéo et un son sinusoïdal à 440 Hz. Les libellés artificiels ne prétendent pas être une transcription. Le préparateur réutilise le HTML V28/GSAP existant ; les modèles ne changent pas. L’application reçoit `--synthetic-ci`, exécute le même `LocalRenderer.run` que l’import manuel et écrit le résultat dans son propre conteneur iOS. Aucun MP4 de secours n’est fourni par FFmpeg.
+
+Le MP4 final a été produit par WKWebView → Core Image → AVAssetWriter H.264 → AVAssetExportSession avec audio source, en **13,4317 secondes**. FFmpeg est utilisé uniquement hors application pour créer la source artificielle et contrôler indépendamment le résultat.
+
+Contrôles réussis sur le runner : **3,000 secondes, 320 × 568 natif, H.264/AAC, une piste vidéo et une piste audio, décodage complet, PCM source/sortie identique**. La variation dans les zones prévues confirme la présence du titre à 0,7 s et de la bulle à 1,7 s ; ce contrôle ne certifie pas les courbes d’animation ni la fidélité au master. Après récupération ici, le SHA-256 et le décodage ont été revérifiés, et les deux images ont été inspectées.
+
+Fichier : `SocialPlus-synthetic-iOS.mp4`, **696 218 octets**, SHA-256 `126201129dde3d1bdf54466777baff3bb1761fc2daf61e30043d1a6a5c976c47`.
+
+### Erreurs rencontrées et corrections isolées
+
+- Verrou HTML : le fichier GitHub historique omettait **un seul LF final**. Le préparateur accepte désormais le hash verrouillé exact, ou celui obtenu en ajoutant exactement ce LF ; aucune autre différence n’est acceptée. Aucun fichier moteur n’a été changé.
+- Arrêt après lancement : `Library not loaded: /usr/lib/swift/libswiftWebKit.dylib` sur le runtime iOS 18.5. Sélection du runtime disponible le plus récent, intégration des bibliothèques Swift et désactivation du debug dylib dans le projet du laboratoire. L’ancien test de simple lancement ne suffisait pas à détecter cet arrêt.
+- La vue de capture est maintenant visible dans le laboratoire ; les attentes de frames/captures sont bornées et l’étape native courante est enregistrée. Le premier essai expirait sans résultat d’export : ces changements ne constituent pas une modification des animations.
+- La fin de session AVAssetWriter est fixée à la durée source.
+
+### Récupération et confidentialité
+
+Aucun `upload-artifact` ni cache : quota de stockage inaccessible, et dépôt déjà public. On ne peut donc pas promettre un artefact privé gratuit ici. **Seulement pour ce test artificiel**, le MP4 est encodé entre `SYNTHETIC_MP4_BASE64_BEGIN` et `SYNTHETIC_MP4_BASE64_END` dans les logs de vérification. Les logs sont publics ; ne jamais employer ce procédé pour un rush personnel, une transcription réelle ou un master privé.
+
+Le fichier a été récupéré dans `/workspace/socialplus-private-renders/ios-synthetic-export/SocialPlus-synthetic-iOS.mp4`, hors Git. Le rapport sans média est `SYNTHETIC_RESULTS.json`.
+
+**Limites :** aucun iPhone physique testé, aucun test de parole ou de transcription dans cette mire, aucune comparaison au master privé, aucune certification artistique V28. La preuve acquise porte sur la génération native effective d’un MP4 synthétique dans le simulateur, sans moteur de montage serveur.

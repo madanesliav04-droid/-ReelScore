@@ -1,0 +1,57 @@
+{
+  "run": "https://github.com/madanesliav04-droid/-ReelScore/actions/runs/40226896297",
+  "verifiedCommit": "8d35128df684c1e95e24104032f2785869d15a3b",
+  "xcode": "16.4",
+  "simulator": "iPhone 17 Pro / iOS 26.2",
+  "elapsedSeconds": 13.431668996810913,
+  "file": "SocialPlus-synthetic-iOS.mp4",
+  "physicalIPhone": false,
+  "success": true,
+  "synthetic": true,
+  "verification": {
+    "duration": "3.000000",
+    "width": 320,
+    "height": 568,
+    "fullDecode": true,
+    "audioPcmIdentical": true,
+    "heroChangedFraction": 0.4254815816154106,
+    "bubbleChangedFraction": 0.7793478260869565,
+    "physicalIPhone": false,
+    "approvedMasterFidelityTested": false,
+    "sha256": "126201129dde3d1bdf54466777baff3bb1761fc2daf61e30043d1a6a5c976c47",
+    "bytes": 696218
+  },
+  "localRecoveredFile": "/workspace/socialplus-private-renders/ios-synthetic-export/SocialPlus-synthetic-iOS.mp4",
+  "localSha256Verified": true,
+  "localFullDecodePassed": true,
+  "representativeFramesVisuallyInspected": [
+    0.7,
+    1.7
+  ],
+  "privateMediaUsed": false,
+  "artifactsUploaded": 0,
+  "cachesCreated": 0,
+  "engineFilesChanged": [],
+  "nativeUsesFFmpeg": false,
+  "ffmpegOnlyUsedForSyntheticSourceAndIndependentVerification": true,
+  "knownFailures": [
+    {
+      "run": 40225821400,
+      "error": "Locked source changed: ../worker/hyperframes/social-kinetic-v28-speech-timed/index.html",
+      "cause": "Exactly one terminal LF omitted in historical remote upload; content otherwise identical.",
+      "fix": "Prototype preparer accepts only exact locked hash or exact hash with one final LF appended."
+    },
+    {
+      "run": 40225980726,
+      "error": "Library not loaded: /usr/lib/swift/libswiftWebKit.dylib",
+      "cause": "Runtime iOS 18.5 lacks linked Swift WebKit overlay.",
+      "fix": "Newest installed iOS runtime selected, Swift libraries embedded, debug dylib disabled."
+    }
+  ],
+  "limits": [
+    "Synthetic video and tone only; no real speech/transcription test.",
+    "Does not establish visual fidelity to owner-approved master.",
+    "No physical iPhone test, no iOS 18.5 compatibility claim.",
+    "No private Actions artifact possible to guarantee with existing public repository and inaccessible storage quota."
+  ]
+}
