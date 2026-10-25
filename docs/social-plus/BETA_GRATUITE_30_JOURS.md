@@ -33,6 +33,6 @@ Seule une ligne membre/jour est ajoutée pour l’activité : aucun nouvel ident
 
 ## Aperçu Vercel et périmètre
 
-Voir `apps/socialplus/preview/README.md` : aperçu statique isolé, actuellement mis en pause après classification automatique du premier envoi en production. Le second déploiement de staging est bloqué par cette pause. Il ne faut pas le présenter comme une bêta de montage/analyse active. Les améliorations serveur ci-dessus ne sont pas déployées sur cet aperçu statique.
+Voir `apps/socialplus/preview/README.md` : aperçu statique isolé, réactivé après accord explicite du propriétaire le 25 octobre malgré la classification initiale production par Vercel. URL privée vérifiée : https://socialplus-beta-interface-dmaf8mkut-dceo.vercel.app . Le second envoi de staging reste BLOCKED et n’est pas utilisé. Cet aperçu ne doit pas être présenté comme une bêta de montage/analyse active. Les améliorations serveur ci-dessus ne sont pas déployées sur cet aperçu statique.
 
 Avant l’ouverture de la bêta fonctionnelle : hébergement privé compatible, recette Safari matériel et informations juridiques réelles restent nécessaires. Aucun serveur payant n’est activé.
