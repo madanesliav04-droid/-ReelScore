@@ -1,0 +1,40 @@
+name: Social+ isolated iOS V28 simulator lab
+on:
+  push:
+    branches: [codex/ios-v28-actions-20261025]
+    paths: ['prototypes/ios-v28/**', '.github/workflows/socialplus-ios-v28-lab.yml']
+permissions:
+  contents: read
+concurrency:
+  group: socialplus-ios-v28-lab
+  cancel-in-progress: true
+jobs:
+  compile:
+    # Standard runner only. No larger runner, no cache, no artifact storage.
+    if: github.repository == 'madanesliav04-droid/-ReelScore' && github.event.repository.private == false
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Record Apple tools
+        run: |
+          xcodebuild -version
+          xcrun simctl list devices available
+      - name: Generate standalone Xcode project
+        run: |
+          command -v xcodegen >/dev/null || brew install xcodegen
+          cd prototypes/ios-v28
+          xcodegen generate
+      - name: Compile for iOS Simulator without signing
+        run: |
+          set -o pipefail
+          xcodebuild -project prototypes/ios-v28/SocialPlusV28Lab.xcodeproj -scheme SocialPlusV28Lab -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath "$RUNNER_TEMP/v28-build" CODE_SIGNING_ALLOWED=NO build > "$RUNNER_TEMP/v28-build.log" 2>&1 || { tail -100 "$RUNNER_TEMP/v28-build.log"; exit 1; }
+          echo 'Swift simulator build succeeded. Private-rush export NOT tested.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Boot simulator and launch actual app
+        run: |
+          python3 prototypes/ios-v28/simulator-smoke.py "$RUNNER_TEMP/v28-build/Build/Products/Debug-iphonesimulator/SocialPlusV28Lab.app"
+      - name: Remove transient build files
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/v28-build" "$RUNNER_TEMP/v28-build.log"

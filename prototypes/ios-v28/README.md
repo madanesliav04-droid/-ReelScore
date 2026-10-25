@@ -84,3 +84,11 @@ Apple Developer payant n’est pas nécessaire à ce premier essai personnel sur
 - WebKit, export iOS, écoute, comparaison des images iOS, mémoire, chauffe : **non exécutés**.
 
 Verdict : candidat technique préparé ; fidélité et faisabilité sur appareil encore à établir. Aucun MP4 iOS produit ni score de qualité attribué.
+
+## GitHub Actions — vérification préalable du 25 octobre 2026
+
+Le dépôt cible est **déjà public** (`private:false` obtenu par API), sans changement de visibilité. Selon https://docs.github.com/en/billing/concepts/product-billing/github-actions, les runners GitHub standard y sont gratuits. Les quotas/factures du compte ne sont pas consultables avec l’intégration actuelle (`GET /users/madanesliav04-droid/settings/billing/usage` → 403), ni les permissions Actions (`GET /repos/.../actions/permissions` → 403).
+
+Le workflow isolé utilise uniquement `macos-15` standard, 20 minutes maximum, aucun cache, aucun upload d’artefact, aucun secret et aucun déploiement. Il refuse de s’exécuter si le dépôt devient privé : dans ce cas, contrôler les quotas gratuits et le blocage des dépenses avant toute adaptation. Il compile puis installe/lance l’application sur un simulateur disponible. Ce lancement ne vérifie pas la capture ni l’export.
+
+**Confidentialité :** rush, plan de transcription et master restent hors Git. Ils ne sont donc pas disponibles sur le runner. Ne pas les ajouter au dépôt public ni à des artefacts publics pour contourner ce blocage. Le test complet nécessite un transfert privé autorisé et temporaire des trois ressources, puis un mécanisme de récupération privée du MP4. Aucun stockage ni transfert externe supplémentaire n’est activé par ce workflow.
