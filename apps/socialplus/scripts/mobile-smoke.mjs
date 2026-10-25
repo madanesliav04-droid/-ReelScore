@@ -67,7 +67,7 @@ try{
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
  // Touch targets and font size on mobile; no native Safari claim.
  assert.ok(await page.locator('#main-nav a').evaluateAll(rows=>rows.every(r=>r.getBoundingClientRect().height>=44)));
- await page.locator('#main-nav [data-tab=home]').click();await page.locator('.project-row').waitFor();await page.screenshot({path:join(out,'iphone-home.png'),fullPage:true,animations:'disabled'});
+ await page.locator('#main-nav [data-tab=home]').click();await page.locator('.project-row').waitFor();assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'project filename must not widen the home grid');await page.screenshot({path:join(out,'iphone-home.png'),fullPage:true,animations:'disabled'});
  await page.locator('#main-nav [data-tab=projects]').click();await page.locator('[data-action=project-options]').first().click();await page.locator('#sheet video').waitFor();assert.equal(await page.locator('#sheet a[download]').count(),1);await page.locator('#close-sheet').click();checks.projectPreview=true;
  await page.screenshot({path:join(out,'iphone-projects.png'),fullPage:true,animations:'disabled'});
  for(const width of [320,390,402,440,768,1440]){

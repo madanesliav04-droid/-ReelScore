@@ -12,11 +12,12 @@ test('word captions retain 20ms words without overlapping ASS events',()=>{
  assert.equal(events.length,5);
  for(let i=0;i<events.length;i++){assert.ok(ms(events[i][2])>ms(events[i][1]));if(i)assert.ok(ms(events[i][1])>=ms(events[i-1][2]));}
 });
-test('cinematic scene only suppresses its covered intervals, preserving adjacent camera captions',()=>{
+test('cinematic emphasis scenes preserve all word captions in the reserved bottom zone',()=>{
  const output=lines(speechCaptionAss(base,'cinematic-storytelling-v7',meta,[{startMs:200,endMs:650}]));
- assert.ok(output.some(l=>l.includes('0:00:00.14,0:00:00.20')));
- assert.ok(output.some(l=>l.includes('0:00:00.65,0:00:00.70')));
- assert.ok(output.some(l=>l.includes('0:00:00.70,0:00:00.90')));
+ const camera=lines(speechCaptionAss(base,'cinematic-storytelling-v7',meta,[]));
+ assert.deepEqual(output,camera);
+ assert.equal(output.length,words.length);
+ assert.ok(output.every(l=>l.includes('\\an2\\pos(455,448)')));
 });
 test('real acoustic pauses merge and narrow conservatively around words',()=>{
  const report=acousticReport('silence_start: 1\nsilence_end: 1.5\nsilence_start: 1.5\nsilence_end: 2.1',meta,'fixture');

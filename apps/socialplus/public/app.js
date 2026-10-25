@@ -1,7 +1,7 @@
 import {createApiClient} from './api-client.js';
 import {MODEL_ORDER,projectStatus,sourceMeta,transcriptRows,acousticScore,ACOUSTIC_SUMMARY_VERSION} from './studio-ui.js';
 import {uploadSource,loadShareFile} from './media-client.js';
-import {draftModelEvents} from './model-events.js';
+import {draftModelEvents,graphicDraftRect} from './model-events.js';
 const $ = (selector, root = document) => root.querySelector(selector);
 const main = $('#main');
 const sheet = $('#sheet');
@@ -199,10 +199,12 @@ function updateZoneGuide(){
   if(!video.isConnected||!video.videoWidth)return;
   const box=video.getBoundingClientRect(),parent=stage.getBoundingClientRect(),ratio=video.videoWidth/video.videoHeight;
   const width=Math.min(box.width,box.height*ratio),height=width/ratio;
-  const x=$('#graphic-zone')?.value==='right'?0.73:0.05;
+  const zone=$('#graphic-zone'),portrait=video.videoHeight>video.videoWidth;
+  if(zone){zone.options[0].textContent=portrait?'Bande haute (portrait)':'À gauche du sujet';zone.options[1].disabled=portrait;if(portrait)zone.value='left';}
+  const [x,y,w,h]=graphicDraftRect(zone?.value,{width:video.videoWidth,height:video.videoHeight});
   guide.style.left=(box.left-parent.left+(box.width-width)/2+x*width)+'px';
-  guide.style.top=(box.top-parent.top+(box.height-height)/2+.1*height)+'px';
-  guide.style.width=(width*.22)+'px';guide.style.height=(height*.34)+'px';
+  guide.style.top=(box.top-parent.top+(box.height-height)/2+y*height)+'px';
+  guide.style.width=(width*w)+'px';guide.style.height=(height*h)+'px';
  };
  if(!video.dataset.zoneReady){video.dataset.zoneReady='true';video.addEventListener('loadedmetadata',update);}
  state.zoneObserver?.disconnect();state.zoneObserver=new ResizeObserver(update);state.zoneObserver.observe(video);update();
@@ -214,7 +216,7 @@ function refreshWordEditor(){
 function rebuildEvents(){
  const input=$('#transcript');if(!input)return;
  const words=JSON.parse(input.value||'[]');
- $('#reference-events').value=JSON.stringify(words.length?draftModelEvents(state.selectedStyle,words,$('#graphic-zone').value):[],null,2);
+ $('#reference-events').value=JSON.stringify(words.length?draftModelEvents(state.selectedStyle,words,$('#graphic-zone').value,state.project?.metadata||{}):[],null,2);
  $('#placement-reviewed').checked=false;
  readDraft();
 }
@@ -500,7 +502,7 @@ document.addEventListener('click', async event => {
     } else if (action === 'select-style') { const previous=state.selectedStyle;try{state.selectedStyle=element.dataset.id;rebuildEvents();updateStyleDetail();}catch(e){state.selectedStyle=previous;throw e;} }
     else if(action==='restored-preview')await renderProject('restored-preview:'+state.selectedStyle);
     else if (action === 'render') await renderProject();
-    else if(action==='draft-model-events'){const words=JSON.parse($('#transcript').value||'[]');const events=draftModelEvents(state.selectedStyle,words,$('#graphic-zone').value);$('#reference-events').value=JSON.stringify(events,null,2);$('#placement-reviewed').checked=false;notify(events.length?`${events.length} animation(s) proposée(s). Vérifiez leur placement.`:'Aucun mot pertinent pour ce modèle : les sous-titres restent actifs.');}
+    else if(action==='draft-model-events'){const words=JSON.parse($('#transcript').value||'[]');const events=draftModelEvents(state.selectedStyle,words,$('#graphic-zone').value,state.project?.metadata||{});$('#reference-events').value=JSON.stringify(events,null,2);$('#placement-reviewed').checked=false;notify(events.length?`${events.length} animation(s) proposée(s). Vérifiez leur placement.`:'Aucun mot pertinent pour ce modèle : les sous-titres restent actifs.');}
     else if(action==='transcribe-source'){element.disabled=true;const status=$('#transcription-status');status.textContent='Transcription locale en cours…';try{const {transcript}=await post('/api/projects/'+encodeURIComponent(state.project.id)+'/transcript');showTranscript(transcript);}catch(error){if(status.isConnected)status.textContent=error.message;throw error;}finally{if(element.isConnected)element.disabled=false;}}
     else if(action==='analyze-source'){element.disabled=true;try{const {report}=await post('/api/projects/'+encodeURIComponent(state.project.id)+'/signals');showSourceSignals(report);}finally{if(element.isConnected)element.disabled=false;}}
     else if(action==='guided-edit')await renderProject('guided-edit');

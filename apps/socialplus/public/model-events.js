@@ -1,9 +1,15 @@
 // Drafts reference only actual supplied words. Layout always requires review.
 const stop=new Set(['beaucoup','personnes','vraiment','souvent','derrière','encore','pourquoi','réellement','quand','comme','cette','c’est','c\'est','parce','domaine']);
-export function draftModelEvents(model,words,zone='left'){
+export function graphicDraftRect(zone='left',meta={}){
+ // Portrait keeps a readable wide header rather than shrinking a landscape
+ // sidebar over the speaker. This proposal still requires placement review.
+ if(meta.width>0&&meta.height>meta.width)return [.08,.055,.84,.20];
+ return zone==='right'?[.73,.10,.22,.34]:[.05,.10,.22,.34];
+}
+export function draftModelEvents(model,words,zone='left',meta={}){
  if(!Array.isArray(words)||!words.length)throw Error('Transcrivez ce rush avant de préparer les événements.');
  const start=w=>w.startMs??Math.round(w.start*1000),end=w=>w.endMs??Math.round(w.end*1000);
- const duration=end(words.at(-1)),rect=zone==='right'?[.73,.10,.22,.34]:[.05,.10,.22,.34];
+ const duration=end(words.at(-1)),rect=graphicDraftRect(zone,meta);
  const picked=[];
  for(let i=0;i<words.length;i++){
   const raw=String(words[i].text).toLowerCase();
