@@ -1,0 +1,15 @@
+✔ automatic graphic drafts quote source words and pass each of the six model validators (6.084106ms)
+✔ Codie recognises spoken argent after an apostrophe without changing the supplied words (0.526282ms)
+✔ portrait drafts keep readable graphic regions above the portrait subject, with explicit review still required (0.818115ms)
+✔ word captions retain 20ms words without overlapping ASS events (1.109258ms)
+✔ cinematic emphasis scenes preserve all word captions in the reserved bottom zone (0.78099ms)
+✔ real acoustic pauses merge and narrow conservatively around words (0.717947ms)
+✔ caption edge refinements cannot widen a cut into the original ASR speech interval (0.430359ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 151.632829

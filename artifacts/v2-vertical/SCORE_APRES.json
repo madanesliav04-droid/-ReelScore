@@ -1,0 +1,55 @@
+{
+  "validationPoints": 80,
+  "maximum": 100,
+  "unvalidatedPoints": 20,
+  "method": "Couverture de preuves de validation, pas un taux de fidélité ou une certification commerciale. Aucun point acquis pour une fonction simulée ou non exécutée.",
+  "categories": [
+    {
+      "criterion": "Parcours fonctionnels",
+      "earned": 25,
+      "maximum": 30,
+      "proof": "Quatre vues, import automatique, même source, six choix, rendu Leila réel, bibliothèque/lecture/export/suppression.",
+      "pending": "Partage natif sur iPhone réel : 5 points."
+    },
+    {
+      "criterion": "Analyse reproductible",
+      "earned": 15,
+      "maximum": 20,
+      "proof": "Mesures acoustiques réelles, répétition stable, pauses horodatées et sélection transmise.",
+      "pending": "Analyse éditoriale automatique non disponible : 5 points. La revue manuelle conservée ne la remplace pas."
+    },
+    {
+      "criterion": "Médias et moteurs",
+      "earned": 13,
+      "maximum": 15,
+      "proof": "Horizontal antérieur 4/4 ; vrai vertical natif parlé 4/4 ; piste originale intégralement identique en PCM 3/3 ; décodage complet 2/2.",
+      "pending": "Fidélité artistique aux masters : 2 points non acquis."
+    },
+    {
+      "criterion": "Récupération des traitements",
+      "earned": 10,
+      "maximum": 10,
+      "proof": "Reprise d’une même tâche après arrêt réel du processus, nouvel export FFmpeg valide, quota inchangé, deux tentatives maximum ; clé d’idempotence et verrou d’instance testés.",
+      "pending": "La reprise recommence l’encodage ; le service local mono-processus ne remplace pas une infrastructure supervisée de production."
+    },
+    {
+      "criterion": "Ergonomie et compatibilité",
+      "earned": 12,
+      "maximum": 20,
+      "proof": "Six largeurs sans débordement 4/4 ; navigation tactile >=44px 4/4 ; thèmes et mouvement réduit 4/4.",
+      "pending": "Safari/Dynamic Island/VoiceOver/clavier sur matériel 4 points ; performance sur téléphone réel 4 points."
+    },
+    {
+      "criterion": "Sécurité",
+      "earned": 5,
+      "maximum": 5,
+      "proof": "Sessions/MFA/CSRF/cloisonnement couverts par la suite existante ; adaptateur refuse URL externe et réponses d’ancienne session.",
+      "pending": "Cette recette locale ne constitue pas un audit de sécurité de production."
+    }
+  ],
+  "commerciallyCertified": false,
+  "productionDeployed": false,
+  "nativeMigrationStarted": false,
+  "previousValidationPoints": 79,
+  "note": "Un point acquis : vrai rush vertical parlé traité par les six moteurs, décodé, lu et téléchargé sous authentification. La fidélité artistique reste non approuvée. Ce score fonctionnel ne remplace pas les scores stricts des modèles."
+}

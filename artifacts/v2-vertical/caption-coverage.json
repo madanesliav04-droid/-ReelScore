@@ -1,0 +1,50 @@
+[
+  {
+    "modelId": "codie-omni-v60",
+    "sourceAsrEntries": 107,
+    "wordTimedCaptionEntries": 107,
+    "allSourceEntriesScheduled": true,
+    "phoneticConfirmation": false,
+    "captionTiming": "ASR with acoustic bounds; ASS 10 ms or GSAP frame sampling, not independent forced alignment"
+  },
+  {
+    "modelId": "alex-hormozi-v16",
+    "sourceAsrEntries": 107,
+    "wordTimedCaptionEntries": 107,
+    "allSourceEntriesScheduled": true,
+    "phoneticConfirmation": false,
+    "captionTiming": "ASR with acoustic bounds; ASS 10 ms or GSAP frame sampling, not independent forced alignment"
+  },
+  {
+    "modelId": "leila-hormozi-v53",
+    "sourceAsrEntries": 107,
+    "wordTimedCaptionEntries": 107,
+    "allSourceEntriesScheduled": true,
+    "phoneticConfirmation": false,
+    "captionTiming": "ASR with acoustic bounds; ASS 10 ms or GSAP frame sampling, not independent forced alignment"
+  },
+  {
+    "modelId": "social-kinetic-v28",
+    "sourceAsrEntries": 107,
+    "wordTimedCaptionEntries": 107,
+    "allSourceEntriesScheduled": true,
+    "phoneticConfirmation": false,
+    "captionTiming": "ASR with acoustic bounds; ASS 10 ms or GSAP frame sampling, not independent forced alignment"
+  },
+  {
+    "modelId": "apple-premium-spatial",
+    "sourceAsrEntries": 107,
+    "wordTimedCaptionEntries": 107,
+    "allSourceEntriesScheduled": true,
+    "phoneticConfirmation": false,
+    "captionTiming": "ASR with acoustic bounds; ASS 10 ms or GSAP frame sampling, not independent forced alignment"
+  },
+  {
+    "modelId": "cinematic-storytelling-v7",
+    "sourceAsrEntries": 107,
+    "wordTimedCaptionEntries": 107,
+    "allSourceEntriesScheduled": true,
+    "phoneticConfirmation": false,
+    "captionTiming": "ASR with acoustic bounds; ASS 10 ms or GSAP frame sampling, not independent forced alignment"
+  }
+]

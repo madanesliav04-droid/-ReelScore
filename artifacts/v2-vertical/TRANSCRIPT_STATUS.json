@@ -1,0 +1,37 @@
+{
+  "entries": 107,
+  "lowConfidence": [
+    {
+      "wordIndex": 5,
+      "sourceStartMs": 1300,
+      "sourceEndMs": 1460,
+      "status": "pending_human_review"
+    },
+    {
+      "wordIndex": 9,
+      "sourceStartMs": 2407,
+      "sourceEndMs": 2520,
+      "status": "pending_human_review"
+    },
+    {
+      "wordIndex": 17,
+      "sourceStartMs": 4620,
+      "sourceEndMs": 4700,
+      "status": "pending_human_review"
+    },
+    {
+      "wordIndex": 73,
+      "sourceStartMs": 18420,
+      "sourceEndMs": 18980,
+      "status": "pending_human_review"
+    },
+    {
+      "wordIndex": 80,
+      "sourceStartMs": 20440,
+      "sourceEndMs": 20560,
+      "status": "pending_human_review"
+    }
+  ],
+  "timingMethod": "whisper_word_timestamps_acoustic_bounds",
+  "reviewed": false
+}
