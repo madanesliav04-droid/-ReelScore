@@ -66,6 +66,15 @@
     "physicalSafariTested": false,
     "productionChanged": false,
     "pr55Changed": false,
-    "releaseApproved": false
+    "releaseApproved": false,
+    "lowConfidenceWords": 5,
+    "acousticBoundaryWarnings": 7
+  },
+  "tests": {
+    "distinctPassed": 9,
+    "referenceDirectionAndBrowserReflow": 2,
+    "existingKineticTimingAndPortrait": 5,
+    "originalSourceIntegrity": 1,
+    "httpAuthenticationAndIsolationIntegration": 1
   }
 }
