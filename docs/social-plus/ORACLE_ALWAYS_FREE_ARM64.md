@@ -122,3 +122,17 @@ Caddy obtient/renouvelle le certificat ACME gratuit sur le domaine approuvé ; D
 6. Mesurer temps, RAM/CPU/disque sur l’Ampere réelle. Comparer le rendu et les mots à la référence privée ; ne jamais envoyer les médias dans les logs/actions publics.
 
 Aucune URL Oracle n’existe encore. Le test sur iPhone physique et le montage réel hébergé ne peuvent être déclarés réussis avant création autorisée, configuration HTTPS/auth et exécution de cette recette.
+
+## Résultats réellement exécutés
+
+Preuve : https://github.com/madanesliav04-droid/-ReelScore/actions/runs/40240203425 — commit testé `01850130e615a861c2cffdb054db274693d84d9f`.
+
+- Build Linux ARM64 natif réussi, Node **24.22.1**.
+- Préflight complet réussi sous racine en lecture seule, capacités retirées, no-new-privileges, 2 CPU / 9 Gio.
+- Composition V28 originale verrouillée : vrai MP4 synthétique de 2 s, **320 × 568, H.264/AAC, 207 042 octets**, rendu en **3,2848 s**, décodage intégral et audio PCM identique. SHA-256 `e1c0d31d07f53872247b7f0e6446a6d652b7e42e350aef30f2d7b7e5f2702631`.
+- `faster-whisper 1.2.1`, CTranslate2 4.8.3, PyAV 16.0.1 et ONNX Runtime 1.31.0 chargés sur aarch64 ; inférence CPU int8 locale exécutée sur silence synthétique. **Pas de test de précision sur voix réelle.**
+- SQLite/API et refus d’accès anonyme vérifiés ; **21 tests de sécurité/authentification réussis, zéro échec** sur ARM64.
+- Configuration Caddy et Compose validée ; unités de maintenance et Python contrôlés statiquement. Aucune sauvegarde/restauration réelle sur OCI n’a été exécutée.
+- Correction technique du profil : `HOME=/tmp`, `XDG_CONFIG_HOME=/tmp/.config`, `XDG_CACHE_HOME=/tmp/.cache` évitent l’échec Chromium `chrome_crashpad_handler: --database is required` avec racine en lecture seule. Aucun fichier moteur validé changé.
+
+Les résultats ne constituent ni un benchmark Ampere A1, ni un test Safari physique, ni une certification de fidélité sur rush personnel. Le rapport structuré est `artifacts/oracle-arm64/RESULTATS.json`. Aucun compte/serveur Oracle n’a été créé et aucune production n’a été déployée.

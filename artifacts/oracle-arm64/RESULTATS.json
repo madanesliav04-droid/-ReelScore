@@ -1,0 +1,86 @@
+{
+  "date": "2026-10-25",
+  "run": "https://github.com/madanesliav04-droid/-ReelScore/actions/runs/40240203425",
+  "verifiedCommit": "01850130e615a861c2cffdb054db274693d84d9f",
+  "runner": "ubuntu-24.04-arm standard; native ARM64, not Oracle Ampere",
+  "resourceLimits": {
+    "cpu": 2,
+    "memoryGiB": 9,
+    "readOnlyRoot": true,
+    "capabilitiesDropped": "ALL",
+    "noNewPrivileges": true,
+    "pidsLimit": 512
+  },
+  "runtime": {
+    "synthetic": true,
+    "architecture": "arm64",
+    "node": "v24.22.1",
+    "renderSeconds": 3.284820788,
+    "metadata": {
+      "width": 320,
+      "height": 568,
+      "durationMs": 2000,
+      "videoCodec": "h264",
+      "audioCodec": "aac",
+      "hasAudio": true,
+      "audioStreams": 1,
+      "audioChannels": 1,
+      "container": "mov,mp4,m4a,3gp,3g2,mj2",
+      "mime_type": "video/mp4",
+      "bytes": 207042,
+      "rotation": 0,
+      "rawFrameRate": "30/1"
+    },
+    "fullDecode": true,
+    "audioPcmIdentical": true,
+    "lockedReleaseVerified": true,
+    "sqliteAndUnauthorizedAccessChecked": true,
+    "asr": {
+      "platform": "aarch64",
+      "fasterWhisper": "1.2.1",
+      "ctranslate2": "4.8.3",
+      "av": "16.0.1",
+      "onnxruntime": "1.31.0",
+      "localInt8Inference": true,
+      "realSpeechAccuracyTested": false
+    },
+    "outputSha256": "e1c0d31d07f53872247b7f0e6446a6d652b7e42e350aef30f2d7b7e5f2702631",
+    "realRushOrSafariTested": false
+  },
+  "securityTests": {
+    "passed": 21,
+    "failed": 0
+  },
+  "caddyConfigurationValidated": true,
+  "composeConfigurationValidated": true,
+  "maintenancePythonSyntaxValidated": true,
+  "maintenanceTimersSyntaxValidated": true,
+  "oracleResourcesCreated": false,
+  "oracleDeployment": false,
+  "physicalSafariTest": false,
+  "realSpeechAccuracyValidated": false,
+  "backupRestoreOnOracleTested": false,
+  "queuedConcurrentSubmissionsImplemented": false,
+  "persistedRecoveryExisting": true,
+  "validatedEnginesModified": false,
+  "existingPRsModified": false,
+  "productionModified": false,
+  "privateMediaUploaded": false,
+  "oracleCostMeasured": false,
+  "alwaysFreeLimitsObserved": {
+    "ocpuHoursPerMonth": 1500,
+    "memoryGbHoursPerMonth": 9000,
+    "shape": "VM.Standard.A1.Flex",
+    "proposedOcpu": 2,
+    "proposedMemoryGb": 12,
+    "proposedBootDiskGb": 100,
+    "capacityAndIdleReclamationLimits": true
+  },
+  "remaining": [
+    "Owner Oracle registration and verified Always Free quotas, home-region A1 availability",
+    "Existing dedicated DNS hostname and authorized HTTPS activation",
+    "Real spoken-rush ASR/render comparison on Oracle and physical Safari test",
+    "True FIFO admission for multiple concurrent beta users; current running-job exclusion remains",
+    "Backup/restore and disk-guard execution on the actual target"
+  ]
+}
