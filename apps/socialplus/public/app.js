@@ -1,16 +1,21 @@
-import {draftModelEvents} from './model-events.js';
+import {createApiClient} from './api-client.js';
+import {MODEL_ORDER,projectStatus,sourceMeta,transcriptRows,acousticScore,ACOUSTIC_SUMMARY_VERSION} from './studio-ui.js';
+import {uploadSource,loadShareFile} from './media-client.js';
+import {draftModelEvents,graphicDraftRect} from './model-events.js';
 const $ = (selector, root = document) => root.querySelector(selector);
 const main = $('#main');
 const sheet = $('#sheet');
 const initialState = () => ({
   user: null, csrf: '', projects: [], styles: [], project: null,
   selectedStyle: null, file: null, objectUrl: null, strategyTab: 'video',
-  preview: null, authMode: 'login', busy: false, jobTimer: null, abortController: new AbortController()
+  view:0, drafts:{}, filter:'all', preview: null, authMode: 'login', busy: false, jobTimer: null, abortController: new AbortController()
 });
 const state = initialState();
 
 const paths = {
   home: '<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z"/>',
+  projects: '<rect x="3" y="4" width="18" height="16" rx="3"/><path d="M8 4v16M3 10h18"/>',
+  share: '<path d="M12 15V3m-4 4 4-4 4 4M7 10H4v11h16V10h-3"/>',
   film: '<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M7 3v18M17 3v18M3 8h4M3 16h4M17 8h4M17 16h4"/>',
   chart: '<path d="M4 3v17h17M8 14l4-5 4 2 5-7"/>',
   arrow: '<path d="M4 12h16m-6-6 6 6-6 6"/>',
@@ -41,6 +46,8 @@ const empty = (title, text, action = '') => `<div class="empty-state"><div class
 
 function resetPrivateState() {
   clearTimeout(state.jobTimer);
+  try{if(state.user)sessionStorage.removeItem('socialplus-project-'+state.user.id);}catch{}
+  state.zoneObserver?.disconnect();
   state.abortController.abort();
   if(state.analysisUrl)URL.revokeObjectURL(state.analysisUrl);
   if(state.objectUrl)URL.revokeObjectURL(state.objectUrl);
@@ -61,27 +68,7 @@ function ensureCurrentSession(controller) {
 }
 const staleSession = error => error.name==='AbortError' || error.code==='SESSION_CHANGED';
 
-async function api(path, options = {}) {
-  const controller=state.abortController;
-  const requestUser=state.user?.id,requestSession=state.csrf;
-  const headers = { ...(options.body instanceof Blob ? {} : { 'Content-Type': 'application/json' }), ...options.headers };
-  if (state.csrf) headers['X-CSRF-Token'] = state.csrf;
-  const response = await fetch(path, { credentials: 'same-origin', signal:controller.signal, ...options, headers });
-  const data = await response.json().catch(() => ({}));
-  ensureCurrentSession(controller);
-  if (!response.ok) {
-    const error = new Error(data.message || `La demande a échoué (${response.status}).`);
-    const trace=data.trace_id || response.headers.get('X-Trace-Id');
-    if(response.status>=500 && trace)error.message+=` Référence : ${trace}`;
-    error.code = data.code;
-    error.status = response.status;
-    if(response.status===401 && requestUser && state.user?.id===requestUser && state.csrf===requestSession)setTimeout(()=>{
-      if(state.user?.id===requestUser && state.csrf===requestSession){resetPrivateState();auth();}
-    },0);
-    throw error;
-  }
-  return data;
-}
+const api=createApiClient(()=>state,{onExpired:()=>{resetPrivateState();auth();}});
 
 const post = (path, data = {}) => api(path, { method: 'POST', body: JSON.stringify(data) });
 function notify(message) {
@@ -96,7 +83,7 @@ function openSheet(title, content) {
   hydrateIcons(sheet);
   if (!sheet.open) sheet.showModal();
 }
-function closeSheet() { sheet.close(); }
+function closeSheet() { sheet.querySelectorAll('video').forEach(v=>v.pause());sheet.close();state.shareFile=null; }
 function setBusy(form, busy) {
   form.querySelectorAll('button[type="submit"]').forEach(element => {
     element.disabled = busy;
@@ -146,63 +133,107 @@ function heading(eyebrow, title, description = '') {
 }
 
 function projectCard(project) {
-  return `<button class="project" data-action="open-project" data-id="${esc(project.id)}"><div class="project-media">${project.source_name || project.has_source ? `<video src="/api/projects/${encodeURIComponent(project.id)}/media#t=0.1" muted playsinline preload="metadata"></video>` : icon('film')}</div><div class="project-info"><h3>${esc(project.title || project.name || 'Sans titre')}</h3><p>${date(project.updated_at || project.created_at)}</p><span class="pill">${esc(({draft:'Brouillon',ready:'Source importée',rendering:'Rendu en cours',complete:'Export prêt'})[project.state] || project.status || 'Brouillon')}</span></div></button>`;
+  const status=projectStatus(project);
+  return `<article class="project-row"><button class="project-open" data-action="open-project" data-id="${esc(project.id)}"><span class="project-symbol">${icon(project.has_output?'check':'film')}</span><span class="project-copy"><strong>${esc(project.name)}</strong><small>${esc(sourceMeta(project))}</small><span class="pill ${status.tone}">${esc(status.label)}</span></span>${icon('arrow')}</button><button class="icon-button" data-action="project-options" data-id="${esc(project.id)}" aria-label="Options de ${esc(project.name)}">${icon('projects')}</button></article>`;
 }
-
 async function home() {
-  const data = await api('/api/projects');
-  state.projects = data.projects || [];
-  const firstName = (state.user.display_name || state.user.displayName || '').split(' ')[0];
-  const latest = state.projects[0];
-  main.innerHTML = `<section class="page">${heading('Votre espace de création', `Bonjour${firstName ? `, ${esc(firstName)}` : ''}.`, 'Une idée à faire grandir ? Commencez ici.')}
-    <div class="hero-layout"><article class="hero"><div><p class="eyebrow">${latest ? 'Reprendre votre élan' : 'Tout commence par une idée'}</p><h2>${latest ? esc(latest.title || latest.name || 'Votre dernier projet') : 'Votre prochain<br>contenu commence ici.'}</h2><p>${latest ? `Enregistré le ${date(latest.updated_at || latest.created_at)}. Votre projet vous attend.` : 'Un rush. Une direction créative. Votre voix, mise en valeur.'}</p></div>${button(`${icon(latest ? 'film' : 'plus')}${latest ? 'Reprendre le projet' : 'Nouveau montage'}`, latest ? 'open-project' : 'new-project', false, latest ? `data-id="${esc(latest.id)}"` : '')}</article>
-    <article class="action-card"><div><div class="icon-tile">${icon('chart')}</div><h2>Créez avec<br>une direction.</h2><p>Un diagnostic clair et des actions concrètes à partir de vos propres données.</p></div><a href="#strategy" class="text-button">Analyser mon compte${icon('arrow')}</a></article></div>
-    <div class="section-heading"><div><h2>Vos projets</h2><p>${state.projects.length ? `${state.projects.length} projet${state.projects.length > 1 ? 's' : ''} enregistré${state.projects.length > 1 ? 's' : ''}` : 'Un espace pour vos prochaines créations.'}</p></div>${button(`${icon('plus')}Nouveau`, 'new-project', true)}</div>
-    ${state.projects.length ? `<div class="project-list">${state.projects.map(projectCard).join('')}</div>` : empty('Votre première création, bientôt ici.', 'Importez un rush pour créer un projet. Il sera enregistré dans votre espace privé.', '<a href="#montage" class="text-button">Ouvrir Montage' + icon('arrow') + '</a>')}
-    <div class="notice">${icon('lock')}<span>Votre espace est privé. Les statistiques et les projets affichés proviennent uniquement de vos propres données.</span></div></section>`;
+  const view=state.view;
+  const {projects=[]}=await api('/api/projects');if(view!==state.view)return;state.projects=projects;
+  const name=(state.user.display_name||'').split(' ')[0];
+  const active=projects.filter(p=>p.state==='rendering');
+  const latest=projects[0];
+  main.innerHTML=`<section class="page home-page">${heading('Votre studio personnel',`Bonjour${name?', '+esc(name):''}.`,'Une idée. Votre voix. Un contenu qui vous ressemble.')}<div class="quick-actions"><button class="quick-action" data-action="new-project"><span class="action-symbol">${icon('plus')}</span><span><strong>Nouveau montage</strong><small>Donnez une direction à votre vidéo</small></span>${icon('arrow')}</button><a class="quick-action" href="#analysis"><span class="action-symbol">${icon('chart')}</span><span><strong>Analyser une vidéo</strong><small>Comprendre avant de publier</small></span>${icon('arrow')}</a></div>${active.length?`<section class="section"><div class="section-heading"><h2>En cours</h2><span class="pill working">${active.length}</span></div>${active.map(projectCard).join('')}</section>`:''}${latest?`<div class="resume-line section"><span>Votre dernier projet</span><button class="text-button" data-action="open-project" data-id="${esc(latest.id)}">Reprendre ${icon('arrow')}</button></div>`:''}<div class="section-heading"><h2>Récemment</h2><a class="text-button" href="#projects">Tout voir ${icon('arrow')}</a></div>${projects.length?`<div class="project-rows">${projects.slice(0,3).map(projectCard).join('')}</div>`:empty('Votre studio est prêt.','Importez votre premier rush. Il sera enregistré dans votre espace privé.',button('Choisir une vidéo','new-project'))}<p class="privacy-footnote">${icon('lock')} Vos fichiers restent dans votre espace privé.</p></section>`;
+  refreshProjectList('home');
+}
+async function projectLibrary(){
+ const view=state.view;
+ const {projects=[]}=await api('/api/projects');if(view!==state.view)return;state.projects=projects;
+ const filtered=projects.filter(p=>state.filter==='all'||(state.filter==='rendering'?p.state==='rendering':p.has_output));
+ main.innerHTML=`<section class="page">${heading('Votre bibliothèque','Projets.','Vos rushs, vos montages et leurs résultats.')}<div class="library-toolbar"><div class="segmented" aria-label="Filtrer les projets">${[['all','Tous'],['rendering','En cours'],['complete','Exports']].map(([id,label])=>`<button data-action="filter-projects" data-id="${id}" aria-pressed="${state.filter===id}" class="${state.filter===id?'active':''}">${label}</button>`).join('')}</div><button class="icon-button" data-action="new-project" aria-label="Nouveau projet">${icon('plus')}</button></div><div class="project-rows">${filtered.map(projectCard).join('')||empty('Aucun projet ici.','Vos vidéos enregistrées apparaîtront ici.')}</div></section>`;
+ refreshProjectList('projects');
+}
+function refreshProjectList(target){
+ clearTimeout(state.jobTimer);
+ if(state.projects.some(p=>p.state==='rendering'))state.jobTimer=setTimeout(()=>{if(currentPage()===target)(target==='home'?home():projectLibrary()).catch(e=>notify(e.message));},4000);
+}
+function currentPage(){return (location.hash.slice(1).split('?')[0]||'home').replace(/^strategy$/,'analysis');}
+function rememberProject(){try{if(state.user&&state.project)sessionStorage.setItem('socialplus-project-'+state.user.id,state.project.id);}catch{}}
+function readDraft(){
+ if(!state.project||$('.studio-page')?.dataset.projectId!==state.project.id)return;
+ const transcript=$('#transcript');if(!transcript)return;
+ state.drafts[state.project.id]={transcript:transcript.value,events:$('#reference-events')?.value||'[]',style:state.selectedStyle,preview:$('#caption-preview-mode')?.checked===true,placement:$('#placement-reviewed')?.checked===true,reviewed:$('#captions-reviewed')?.checked===true,pauseIds:[...document.querySelectorAll('[data-pause-id]:checked')].map(el=>el.dataset.pauseId)};
+}
+async function openProjectOptions(id){
+ const {project}=await api('/api/projects/'+encodeURIComponent(id));
+ openSheet(project.name,`<p class="help-text">${esc(sourceMeta(project))}</p><div class="video-stage section"><video controls playsinline preload="metadata" src="/api/projects/${encodeURIComponent(id)}/${project.has_output?'output':'media'}"></video></div><div class="menu-list"><button data-action="open-project" data-id="${esc(id)}">${icon('film')}Ouvrir dans Montage</button>${project.has_source?`<button data-action="project-analysis" data-id="${esc(id)}">${icon('chart')}Analyser ce rush</button>`:''}${project.has_output?`<a href="/api/projects/${encodeURIComponent(id)}/output?download=1" download>${icon('download')}Télécharger le MP4</a><button data-action="share-output" data-id="${esc(id)}">${icon('share')}Partager le MP4</button>`:''}<button class="danger-text" data-action="remove-project" data-id="${esc(id)}">${icon('close')}Supprimer ce projet</button></div>`);
 }
 
 async function montage() {
-  const catalog = await api('/api/studio/styles');
-  state.styles = catalog.styles || catalog;
-  if (!Array.isArray(state.styles)) state.styles = [];
-  if (!state.selectedStyle) state.selectedStyle = state.styles[0]?.style_id || state.styles[0]?.id;
-  if(state.project?.id){const {project}=await api('/api/projects/'+encodeURIComponent(state.project.id));state.project=project;}
-  const project = state.project;
-  main.innerHTML = `<section class="page">${heading('Montage', 'Votre voix. Votre style.', 'Importez votre vidéo et choisissez sa direction créative.')}
-    <div class="workspace"><div>
-      ${project?.source_name || project?.has_source || state.objectUrl ? `<div class="video-stage"><video id="source-preview" controls playsinline preload="metadata" src="${state.objectUrl || '/api/projects/' + encodeURIComponent(project.id) + '/media'}"></video></div><div class="file-detail"><div><strong>${esc(state.file?.name || project.source_name || project.name || project.title)}</strong><p>${state.file ? number(state.file.size / 1048576) + ' Mo · aperçu local' : 'Source enregistrée dans votre espace'}</p></div><label class="text-button" for="video-input">Changer</label></div>` : `<label class="upload-area" for="video-input"><span class="icon-tile">${icon('upload')}</span><h3>Choisir votre rush</h3><p>Photothèque, caméra ou fichiers.<br>Votre vidéo conserve son format natif.</p><small>MP4, MOV, WebM · jusqu’à 200 Mo</small></label>`}
-      <input class="visually-hidden" id="video-input" type="file" accept="video/mp4,video/quicktime,video/webm,video/*">
-      <div id="upload-status" aria-live="polite"></div>${project?.metadata ? `<p class="help-text">${project.metadata.width} × ${project.metadata.height} · ${number(project.metadata.durationMs/1000)} s · ${project.metadata.hasAudio?'Piste audio détectée':'Audio non détecté'} · format natif</p>` : ''}${project?.has_source ? `<a class="text-button" href="/api/projects/${encodeURIComponent(project.id)}/media" download="${esc(project.source_name || 'rush-source')}">${icon('download')}Télécharger ma source</a>` : ''}
-      <form class="form section" data-form="project-save">${field('title', 'Nom du projet', project?.name || project?.title || state.file?.name?.replace(/\.[^.]+$/, '') || '', 'text', 'required maxlength="120" placeholder="Donnez un nom à votre création"')}
-        <button class="button secondary" type="submit" ${!state.file && !project ? 'disabled' : ''}>${icon('check')}Enregistrer le projet</button><p class="form-error" role="alert"></p></form>
-      <div class="notice">${icon('info')}<span>La vidéo est d’abord lue sur cet appareil. L’enregistrement l’envoie à votre espace privé. Aucun service externe payant n’est appelé.</span></div>
-      <div class="panel section"><h3>Paroles et synchronisation</h3><button class="button section" data-action="prepare-model" ${!project?.has_source||!catalog.transcription?.configured?'disabled':''}>Préparer automatiquement ce modèle</button><p class="help-text">Transcrivez localement le rush enregistré, puis relisez les mots en écoutant la vidéo. Les horaires automatiques restent à vérifier.</p><button class="button secondary section" data-action="transcribe-source" ${!project?.has_source||!catalog.transcription?.configured?'disabled':''}>Transcrire localement</button><p class="help-text" id="transcription-status">${catalog.transcription?.configured?'Le fichier reste sur ce serveur local. Aucun service facturé appelé.':'Modèle de transcription locale non configuré sur cette installation.'}</p><label class="mt-15">Transcription alignée JSON · facultative<textarea id="transcript" rows="4" placeholder='[{"text":"Bonjour","start":0.2,"end":0.6}]'></textarea></label><label class="checkbox-label section"><input id="captions-reviewed" type="checkbox"><span>J’ai vérifié ces mots et leur synchronisation avec la voix.</span></label><label class="checkbox-label section"><input id="caption-preview-mode" type="checkbox"><span>Générer uniquement une prévisualisation avec la transcription encore à relire.</span></label></div>
-      <div class="panel section"><h3>Préparer mon montage</h3><p>Mesurez le son, écoutez les pauses proposées et choisissez celles à raccourcir. Le rendu applique vos coupes et vos sous-titres en conservant une seule piste audio originale.</p><button class="button secondary section" data-action="analyze-source" ${!project?.has_source?'disabled':''}>Analyser mon rush</button><div id="source-signals" class="section" aria-live="polite"></div><button class="button full section" data-action="guided-edit" disabled>Créer mon montage MP4</button></div>
-    </div><div><div class="row between mb-18"><h2>Direction créative</h2><span class="pill">6 modèles</span></div><div class="model-list">${state.styles.map((style, index) => {
-      const id = style.style_id || style.id;
-      const available = style.available || style.enabled || style.status === 'production';
-      return `<button class="model" data-action="select-style" data-id="${esc(id)}" aria-pressed="${id === state.selectedStyle}"><span class="model-number">0${index + 1}</span><span><strong>${esc(style.display_name || style.label || style.name)}</strong><small>${esc(style.version || '')}</small></span><span class="pill ${available ? 'good' : ''}">${available ? (id === 'cinematic-storytelling-v7' ? 'Bêta — transcription à vérifier' : 'Bêta — connecté') : 'Indisponible'}</span></button>`;
-    }).join('')}</div><div id="model-detail" class="model-detail"></div>
-      <div id="restored-controls" class="panel section" hidden><h3>Préparer le modèle</h3><p>Le moteur adapte les éléments graphiques originaux à vos mots et aux zones libres du rush. Le résultat reste en bêta et doit être vérifié avant publication. Rush de 60 secondes maximum, jusqu’à 1080p natif.</p><div class="section"><label>Zone libre à vérifier<select id="graphic-zone"><option value="left">Mur à gauche</option><option value="right">Mur à droite</option></select></label><button class="button secondary section" data-action="draft-model-events">Préparer les animations depuis mes paroles</button><p class="help-text">Proposition modifiable, sans détection automatique du visage. Alex et Cinematic utilisent des scènes plein écran.</p></div><label class="section">Événements · indices des mots et zone libre normalisée<textarea id="reference-events" rows="4" placeholder='[{"wordIndex":0,"wordCount":1,"kind":"clock","rect":[0.1,0.1,0.2,0.3]}]'></textarea></label><p class="help-text">rect : position x, y, largeur et hauteur entre 0 et 1. Codie : clock sur « temps », euro sur « argent ». Social Kinetic : bubble ou hero. Alex : kind fullscreen, ou bande haute rect [0.15,0.05,0.7,0.2]. Cinematic : séquence plein écran. Les titres reprennent les mots désignés. Consultez le rush pour choisir une zone sans visage ni texte.</p><label class="checkbox-label section"><input id="placement-reviewed" type="checkbox"><span>J’ai vérifié les zones libres et les mots ; j’accepte les séquences plein écran de Cinematic, Alex ou Spatial si ce mode est choisi.</span></label></div>
-      <button class="button full section" data-action="render" ${!project?.id ? 'disabled' : ''}>${icon('spark')}Lancer le montage</button><div id="render-status" aria-live="polite"></div><div class="panel section"><h3>Exporter votre source</h3><p class="help-text">Convertissez votre vidéo en MP4 H.264/AAC avec son audio original et son format natif. Cette opération technique ne réalise aucun montage artistique.</p><button class="button secondary full section" data-action="technical-export" ${!project?.has_source ? 'disabled' : ''}>${icon('download')}Exporter la source en MP4</button></div>${project?.has_output ? `<div class="video-stage section"><video controls playsinline preload="metadata" src="/api/projects/${encodeURIComponent(project.id)}/output"></video></div><a class="button secondary full section" href="/api/projects/${encodeURIComponent(project.id)}/output?download=1" download>${icon('download')}Télécharger mon dernier export</a>` : ''}${project?.id ? `<button class="text-button section" data-action="delete-project">Supprimer ce projet</button>` : ''}
-      <div class="notice">${icon('shield')}<span>Les modèles sont des références visuelles validées. Leur disponibilité dépend des sources et de la recette de chaque moteur.</span></div>
-    </div></div></section>`;
+  const view=state.view;
+  const catalog=await api('/api/studio/styles');if(view!==state.view)return;
+  state.styles=[...(catalog.styles||[])].sort((a,b)=>MODEL_ORDER.indexOf(a.id)-MODEL_ORDER.indexOf(b.id));
+  if(!state.selectedStyle)state.selectedStyle=state.styles[0]?.id;
+  if(!state.project&&!state.file){try{const id=sessionStorage.getItem('socialplus-project-'+state.user.id);if(id)state.project=(await api('/api/projects/'+encodeURIComponent(id))).project;}catch(e){if(e.status!==404)throw e;}}
+  if(state.project?.id){const {project}=await api('/api/projects/'+encodeURIComponent(state.project.id));if(view!==state.view)return;state.project=project;rememberProject();}
+  const project=state.project;
+  if(project&&state.drafts[project.id]?.style)state.selectedStyle=state.drafts[project.id].style;
+  main.innerHTML=`<section class="page studio-page" data-project-id="${esc(project?.id||'')}">${heading('Montage','Votre prochain montage.','Votre format. Votre voix. Votre signature.')}<div class="studio-layout"><div class="studio-source"><div class="step-heading"><span>01</span><h2>Votre vidéo</h2>${project?.has_source?'<span class="pill good">Enregistrée</span>':''}</div>${project?.has_source||state.objectUrl?`<div class="video-stage"><video id="source-preview" controls playsinline preload="metadata" src="${state.objectUrl||'/api/projects/'+encodeURIComponent(project.id)+'/media'}"></video></div><div class="file-detail"><div><strong>${esc(state.file?.name||project?.source_name||'Vidéo')}</strong><p>${esc(sourceMeta(project))}</p></div><label class="text-button" for="video-input">Changer</label></div>`:`<label class="upload-area" for="video-input"><span class="upload-symbol">${icon('plus')}</span><h3>Ajouter votre vidéo</h3><p>Photothèque ou Fichiers.<br>Le format natif et la voix sont conservés.</p><small>60 s · 1080p · 200 Mo maximum pour les modèles</small></label>`}<input class="visually-hidden" id="video-input" type="file" accept="video/*,.mov,.mp4,.m4v"><div id="upload-status" aria-live="polite"></div>${project?`<div class="source-shortcuts"><button class="text-button" data-action="project-analysis" data-id="${esc(project.id)}">${icon('chart')}Analyser ce rush</button><details><summary>Nom du projet</summary><form class="form section" data-form="project-save">${field('title','Nom',project.name,'text','required maxlength="120"')}<button class="button secondary" type="submit">Enregistrer</button><p class="form-error" role="alert"></p></form></details></div>`:''}</div><div class="studio-controls"><div class="step-heading"><span>02</span><h2>Votre modèle</h2><span class="pill">6 signatures</span></div><div class="model-list" role="group" aria-label="Modèles de montage">${state.styles.map((style,index)=>`<button class="model" data-action="select-style" data-id="${esc(style.id)}" aria-pressed="${style.id===state.selectedStyle}"><span class="model-number">${String(index+1).padStart(2,'0')}</span><span class="model-copy"><strong>${esc(style.label)}</strong><small>${esc(style.version)} · ${style.available?'Bêta connectée':'Indisponible'}</small></span><span class="model-check" aria-hidden="true">${icon('check')}</span></button>`).join('')}</div><div id="model-detail" class="model-detail"></div><div class="step-heading section"><span>03</span><h2>Préparer et vérifier</h2></div><button class="button secondary full" data-action="prepare-model" ${!project?.has_source||!catalog.transcription?.configured?'disabled':''}>${icon('spark')}Préparer mon montage</button><p class="help-text section" id="transcription-status">${catalog.transcription?.configured?'La transcription est locale. Vérifiez les mots avant publication.':'Transcription locale non configurée. Consultez le guide d’installation.'}</p><details class="review-section"><summary>Paroles et synchronisation <span id="word-count"></span></summary><div id="word-review"></div><label class="checkbox-label section"><input id="captions-reviewed" type="checkbox"><span>J’ai écouté et vérifié tous les mots et leurs horaires.</span></label><details><summary>Horaires avancés (JSON)</summary><textarea id="transcript" rows="5" aria-label="Transcription horodatée JSON"></textarea><button class="text-button" data-action="refresh-words">Afficher ces mots</button><button class="text-button" data-action="transcribe-source" ${!project?.has_source||!catalog.transcription?.configured?'disabled':''}>Relancer la transcription</button></details></details><div id="restored-controls"><label class="section">Zone libre pour les graphismes<select id="graphic-zone"><option value="left">À gauche du sujet</option><option value="right">À droite du sujet</option></select></label><p class="help-text">La zone proposée est indiquée sur l’aperçu pour Codie, Leila et Kinetic. Vérifiez toute la vidéo, y compris les gestes : aucune détection de visage ou de main. Alex, Cinematic et Spatial peuvent utiliser tout l’écran.</p><label class="checkbox-label section"><input id="placement-reviewed" type="checkbox"><span>J’ai vérifié les zones libres et accepté les scènes plein écran de ce modèle.</span></label><details class="advanced-controls"><summary>Animations avancées</summary><button class="text-button" data-action="draft-model-events">Recalculer les propositions</button><label>Événements du rush (JSON)<textarea id="reference-events" rows="4">[]</textarea></label></details></div><label class="checkbox-label section"><input id="caption-preview-mode" type="checkbox" checked><span>Prévisualisation bêta, transcription à vérifier.</span></label><div class="render-action"><button class="button full" data-action="render" ${!project?.has_source?'disabled':''}>${icon('film')}Lancer le montage</button><p class="help-text">Format natif · audio original · MP4 H.264/AAC</p></div><div id="render-status" aria-live="polite"></div><details class="section"><summary>Coupes et export technique</summary><button class="text-button" data-action="analyze-source" ${!project?.has_source?'disabled':''}>Mesurer les pauses</button><div id="source-signals" aria-live="polite"></div><button class="button secondary full section" data-action="guided-edit" disabled>Appliquer uniquement mes coupes</button><button class="text-button" data-action="technical-export" ${!project?.has_source?'disabled':''}>Exporter la source sans habillage</button></details></div></div></section>`;
   updateStyleDetail();
-  if(project?.latestJob)await pollJob(project.latestJob.id);
-  if(project?.has_source){const {report}=await api('/api/projects/'+encodeURIComponent(project.id)+'/signals');if(report)showSourceSignals(report);const {transcript}=await api('/api/projects/'+encodeURIComponent(project.id)+'/transcript');if(transcript)showTranscript(transcript);}
+  if(project?.has_source){
+    const [{report},{transcript}]=await Promise.all([api('/api/projects/'+encodeURIComponent(project.id)+'/signals'),api('/api/projects/'+encodeURIComponent(project.id)+'/transcript')]);
+    if(view!==state.view)return;
+    if(report)showSourceSignals(report);if(transcript)showTranscript(transcript);
+    const draft=state.drafts[project.id];
+    if(draft){$('#transcript').value=draft.transcript;$('#reference-events').value=draft.events;$('#caption-preview-mode').checked=draft.preview;$('#placement-reviewed').checked=draft.placement;$('#captions-reviewed').checked=draft.reviewed;refreshWordEditor();for(const el of document.querySelectorAll('[data-pause-id]'))el.checked=(state.analysisCuts?.projectId===project.id&&state.analysisCuts?.fingerprint===report?.fingerprint?state.analysisCuts.ids:draft.pauseIds||[]).includes(el.dataset.pauseId);}
+    else if(transcript)rebuildEvents();
+    if(project.latestJob)await pollJob(project.latestJob.id,project.id,view);
+  }
+}
+function updateZoneGuide(){
+ const video=$('#source-preview');if(!video)return;
+ const stage=video.closest('.video-stage');let guide=stage.querySelector('.source-zone');
+ if(!guide){guide=document.createElement('div');guide.className='source-zone';guide.setAttribute('aria-hidden','true');stage.append(guide);}
+ const fullscreen=['alex-hormozi-v16','cinematic-storytelling-v7','apple-premium-spatial'].includes(state.selectedStyle);
+ guide.hidden=fullscreen;
+ const update=()=>{
+  if(!video.isConnected||!video.videoWidth)return;
+  const box=video.getBoundingClientRect(),parent=stage.getBoundingClientRect(),ratio=video.videoWidth/video.videoHeight;
+  const width=Math.min(box.width,box.height*ratio),height=width/ratio;
+  const zone=$('#graphic-zone'),portrait=video.videoHeight>video.videoWidth;
+  if(zone){zone.options[0].textContent=portrait?'Bande haute (portrait)':'À gauche du sujet';zone.options[1].disabled=portrait;if(portrait)zone.value='left';}
+  const [x,y,w,h]=graphicDraftRect(zone?.value,{width:video.videoWidth,height:video.videoHeight});
+  guide.style.left=(box.left-parent.left+(box.width-width)/2+x*width)+'px';
+  guide.style.top=(box.top-parent.top+(box.height-height)/2+y*height)+'px';
+  guide.style.width=(width*w)+'px';guide.style.height=(height*h)+'px';
+ };
+ if(!video.dataset.zoneReady){video.dataset.zoneReady='true';video.addEventListener('loadedmetadata',update);}
+ state.zoneObserver?.disconnect();state.zoneObserver=new ResizeObserver(update);state.zoneObserver.observe(video);update();
+}
+function refreshWordEditor(){
+ const words=JSON.parse($('#transcript').value||'[]');
+ $('#word-review').innerHTML=transcriptRows(words);$('#word-count').textContent=words.length?`${words.length} mots / groupes`:'';
+}
+function rebuildEvents(){
+ const input=$('#transcript');if(!input)return;
+ const words=JSON.parse(input.value||'[]');
+ $('#reference-events').value=JSON.stringify(words.length?draftModelEvents(state.selectedStyle,words,$('#graphic-zone').value,state.project?.metadata||{}):[],null,2);
+ $('#placement-reviewed').checked=false;
+ readDraft();
 }
 
 function showTranscript(transcript){
   const input=$('#transcript');if(!input)return;
   input.value=JSON.stringify(transcript.words,null,2);
   $('#captions-reviewed').checked=false;
+  refreshWordEditor();
   const warnings=transcript.warnings||[];
   $('#transcription-status').textContent=`${transcript.words.length} mots ou groupes horodatés · ${warnings.length} point(s) à vérifier. ${transcript.notice}`;
 }
 function showSourceSignals(report){
   const target=$('#source-signals');if(!target)return;
   target.innerHTML=signalSummary(report)+`<p class="help-text section">Écoutez chaque passage avant de cocher. Les 250 ms aux bords de chaque pause sont conservées.</p>${report.suggestions.map(p=>`<label class="checkbox-label section"><input type="checkbox" data-pause-id="${esc(p.id)}"><span>Raccourcir ${number(p.startMs/1000)}–${number(p.endMs/1000)} s <button class="text-button" type="button" data-action="seek-source" data-time="${Math.max(0,p.startMs/1000-.5)}">Écouter</button></span></label>`).join('') || '<p class="help-text">Aucune pause intérieure de plus de 0,8 seconde détectée. Vous pouvez conserver le rush et ajouter vos sous-titres.</p>'}`;
+  const choices=state.analysisCuts;
+  if(choices?.projectId===state.project?.id&&choices.fingerprint===report.fingerprint)for(const el of document.querySelectorAll('[data-pause-id]'))el.checked=choices.ids.includes(el.dataset.pauseId);
   $('[data-action=guided-edit]').disabled=false;
 }
 function signalSummary(report){
@@ -213,16 +244,17 @@ function updateStyleDetail() {
   const style = state.styles.find(item => (item.style_id || item.id) === state.selectedStyle);
   if (!style || !$('#model-detail')) return;
   const available = style.available || style.enabled || style.status === 'production';
-  $('#model-detail').innerHTML = `<p>${esc(style.description || style.reason || style.unavailable_reason || (available ? 'Moteur disponible pour essais. Les contrôles qualité restent requis.' : 'Sources ou dépendances de rendu non disponibles. Aucun rendu de remplacement ne sera généré.'))}</p>${(style.missingSources || style.missing)?.length ? `<p class="mt-8">Éléments requis : ${(style.missingSources || style.missing).map(esc).join(', ')}</p>` : ''}`;
+  $('#model-detail').innerHTML = `<p>${state.selectedStyle==='cinematic-storytelling-v7'?'<strong>Bêta — transcription à vérifier.</strong> ':''}${esc(style.description || style.reason || style.unavailable_reason || (available ? 'Moteur disponible pour essais. Les contrôles qualité restent requis.' : 'Sources ou dépendances de rendu non disponibles. Aucun rendu de remplacement ne sera généré.'))}</p>${(style.missingSources || style.missing)?.length ? `<p class="mt-8">Éléments requis : ${(style.missingSources || style.missing).map(esc).join(', ')}</p>` : ''}`;
   $('#restored-controls').hidden=!style.previewAvailable;
   const previewButton=$('[data-action=restored-preview]');if(previewButton)previewButton.disabled=!state.project?.has_source;
   const renderButton = $('[data-action="render"]');
-  if (renderButton) renderButton.disabled = !available || !state.project?.id;
+  if (renderButton) renderButton.disabled = !available || !state.project?.has_source || state.project.state==='rendering';
   document.querySelectorAll('.model').forEach(element => element.setAttribute('aria-pressed', String(element.dataset.id === state.selectedStyle)));
+  updateZoneGuide();
 }
 
 async function strategy() {
-  main.innerHTML = `<section class="page">${heading('Analyse', 'Créez. Comprenez. Progressez.', 'Vos données, des constats explicables et les prochaines actions utiles.')}<div class="subnav" role="group" aria-label="Sections Analyse">${[['overview','Vue d’ensemble'],['profile','Mon profil'],['metrics','Performances'],['video','Analyser une vidéo'],['methods','Méthodes'],['competitors','Concurrence'],['results','Résultats']].map(([id,label]) => `<button data-action="strategy-tab" data-id="${id}" class="${state.strategyTab === id ? 'active' : ''}">${label}</button>`).join('')}</div><div id="strategy-content"><div class="loading-screen"><span class="spinner"></span></div></div></section>`;
+  main.innerHTML = `<section class="page">${heading('Analyse', 'Comprendre. Puis créer.', 'Des constats mesurés. Des corrections expliquées.')}<details class="analysis-library"><summary>Profil, statistiques et méthodes</summary><div class="subnav" role="group" aria-label="Sections Analyse">${[['overview','Vue d’ensemble'],['profile','Mon profil'],['metrics','Performances'],['video','Analyser une vidéo'],['methods','Méthodes'],['competitors','Concurrence'],['results','Résultats']].map(([id,label]) => `<button data-action="strategy-tab" data-id="${id}" class="${state.strategyTab === id ? 'active' : ''}">${label}</button>`).join('')}</div></details><div id="strategy-content"><div class="loading-screen"><span class="spinner"></span></div></div></section>`;
   const content = $('#strategy-content');
   if (state.strategyTab === 'profile') {
     const { profile = {} } = await api('/api/strategy/profile');
@@ -233,10 +265,7 @@ async function strategy() {
     const { methods = [] } = await api('/api/strategy/methods');
     content.innerHTML = `<div class="panel"><h2>Comprendre le processus.</h2><p>Des méthodes à appliquer vous-même, avec leurs sources et leurs limites.</p>${methods.filter(method => method.enabled !== false).map(method => `<details><summary>${esc(method.id)} · ${esc(method.title)}<span class="pill ml-10">v${esc(method.version)}</span></summary><ol>${(method.process_steps || []).map(step=>`<li>${esc(typeof step === 'string' ? step : step.description)}</li>`).join('')}</ol><p><strong>À pratiquer</strong><br>${esc(method.exercise)}</p><p><strong>Indicateur de réussite</strong><br>${esc(Array.isArray(method.success_metrics) ? method.success_metrics.join(' · ') : method.success_metrics)}</p><p>${esc(Array.isArray(method.pitfalls) ? method.pitfalls.join(' · ') : method.pitfalls)}</p>${safeSource(method.source_url)}</details>`).join('')}</div>`;
   } else if (state.strategyTab === 'video') {
-    content.innerHTML = `<div class="workspace"><div><label class="upload-area" for="analysis-video"><span class="icon-tile">${icon('film')}</span><h3>Avant de publier.</h3><p>Vérifiez les caractéristiques de votre vidéo. Le fichier est enregistré dans votre espace privé pour mesurer son audio réel.</p><small>Analyse locale sur le serveur, sans service payant</small></label><input id="analysis-video" class="visually-hidden" type="file" accept="video/*"><div id="analysis-preview" class="section"></div></div><div class="panel"><h2>Un regard mesuré.</h2><p>Les critères qui ne peuvent pas être observés restent « non évaluables ».</p><form class="form" data-form="video-analysis"><label>Objectif<select name="goal_type"><option value="awareness">Visibilité</option><option value="community">Communauté</option><option value="leads">Prospects</option></select></label><p class="help-text">Sans transcription fiable et revue éditoriale, le précontrôle ne produit aucun score global. Il ne prédit jamais les vues ni la viralité.</p>${editorialReview()}<button type="submit" class="button" id="analyze-video-button" disabled>Vérifier ma vidéo${icon('arrow')}</button><p class="form-error" role="alert"></p></form><div id="video-analysis-result" class="section" aria-live="polite"></div></div></div>`;
-    const {projects}=await api('/api/projects');
-    const sources=projects.filter(p=>p.has_source);
-    content.insertAdjacentHTML('afterbegin',`<div class="panel section"><h2>Mesurer une vidéo enregistrée</h2><p>Analyse locale du son réel : niveau, pauses et recommandations explicables. Aucun score de viralité n’est déduit de ces signaux.</p>${sources.length?`<label class="section">Mon projet<select id="strategy-project">${sources.map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}</select></label><button class="button section" data-action="strategy-source-analysis">Analyser le fichier réel</button>`:'<p class="help-text">Enregistrez un rush dans Montage pour lancer ses mesures.</p>'}<div id="strategy-source-signals" class="section" aria-live="polite"></div></div>`);
+    await analysisView(content);
   } else if (state.strategyTab === 'results') {
     await resultsPanel(content);
   } else if (state.strategyTab === 'competitors') {
@@ -345,7 +374,9 @@ async function methodAdmin() {
 async function route() {
   const controller=state.abortController;
   clearTimeout(state.jobTimer);
-  const target = location.hash.slice(1).split('?')[0] || 'montage';
+  readDraft();
+  const view=++state.view;
+  const target = currentPage();
   $('#main-nav').querySelectorAll('a').forEach(element => {
     if (element.dataset.tab === target) element.setAttribute('aria-current','page');
     else element.removeAttribute('aria-current');
@@ -353,12 +384,13 @@ async function route() {
   if (!state.user) return auth();
   try {
     if (target === 'montage') await montage();
-    else if (target === 'strategy') await strategy();
+    else if (target === 'analysis') await strategy();
+    else if(target==='projects')await projectLibrary();
     else if (target === 'admin') await admin();
     else await home();
     main.focus({ preventScroll:true });
   } catch (error) {
-    if(staleSession(error) || controller!==state.abortController)return;
+    if(staleSession(error) || controller!==state.abortController || view!==state.view)return;
     main.innerHTML = `<section class="page">${heading('Votre espace','Une action à reprendre.')}<div class="panel"><p class="form-error">${esc(error.message)}</p><button class="button secondary section" data-action="retry">Réessayer</button></div></section>`;
   }
 }
@@ -392,38 +424,55 @@ async function saveProject(form) {
 }
 
 async function renderProject(styleId = state.selectedStyle) {
+  const projectId=state.project?.id,view=state.view;
+  if(state.renderStarting)return;
+  readDraft();
   const transcript = $('#transcript')?.value.trim();
   let aligned;
   if (transcript) { try { aligned = JSON.parse(transcript); } catch { throw new Error('La transcription doit être un tableau JSON valide.'); } }
   if($('#captions-reviewed')?.checked===true&&Array.isArray(aligned))aligned=aligned.map(w=>w?.reviewRequired===true?{...w,confirmed:true}:w);
   let events;
   if(styleId.startsWith('restored-preview:')||state.styles.some(s=>s.id===styleId&&s.previewAvailable)){try{events=JSON.parse($('#reference-events').value);}catch{throw new Error('Les événements graphiques doivent être un tableau JSON valide.');}}
+  const payload={style_id:styleId,transcript:aligned,events,allowUnreviewedPreview:$('#caption-preview-mode')?.checked===true,placementReviewed:$('#placement-reviewed')?.checked===true,approvedPauseIds:[...document.querySelectorAll('[data-pause-id]:checked')].map(input=>input.dataset.pauseId),captionsReviewed:$('#captions-reviewed')?.checked===true};
+  const serialized=JSON.stringify(payload);
+  if(state.renderRequest?.projectId!==projectId||state.renderRequest?.payload!==serialized)state.renderRequest={projectId,payload:serialized,key:crypto.randomUUID()};
+  payload.requestId=state.renderRequest.key;
   const area = $('#render-status');
   area.innerHTML = '<div class="notice">' + icon('clock') + '<span>Vérification du moteur et des sources…</span></div>';
+  let acceptedJobId;
+  state.renderStarting=true;
+  const renderButton=$('[data-action=render]');if(renderButton)renderButton.disabled=true;
   try {
-    const data = await post('/api/projects/' + encodeURIComponent(state.project.id) + '/render', {style_id:styleId,transcript:aligned,events,allowUnreviewedPreview:$('#caption-preview-mode')?.checked===true,placementReviewed:$('#placement-reviewed')?.checked===true,approvedPauseIds:[...document.querySelectorAll('[data-pause-id]:checked')].map(input=>input.dataset.pauseId),captionsReviewed:$('#captions-reviewed')?.checked===true});
+    const data = await post('/api/projects/' + encodeURIComponent(projectId) + '/render', payload);
     const job = data.job || data;
     if (!job.id && !job.job_id) throw new Error('Le moteur n’a pas retourné de tâche de rendu.');
-    await pollJob(job.id || job.job_id);
+    acceptedJobId=job.id||job.job_id;
+    await pollJob(acceptedJobId,projectId,view);
   } catch (error) {
-    area.innerHTML = `<p class="form-error section">${esc(error.message)}</p>`;
-  }
+    if(area.isConnected)area.innerHTML = `<p class="form-error section" role="alert">${esc(error.message)}</p>${acceptedJobId?`<button class="button secondary" data-action="resume-job" data-id="${esc(acceptedJobId)}">Vérifier à nouveau</button><p class="help-text">La tâche est enregistrée sur le serveur. Vous pouvez aussi la retrouver dans Projets.</p>`:''}`;
+  }finally{state.renderStarting=false;if(renderButton?.isConnected)updateStyleDetail();}
 }
 
-async function pollJob(id) {
+async function pollJob(id,projectId=state.project?.id,view=state.view) {
+  if(view!==state.view||state.project?.id!==projectId||currentPage()!=='montage')return;
   const data = await api('/api/jobs/' + encodeURIComponent(id));
+  if(view!==state.view||state.project?.id!==projectId||currentPage()!=='montage')return;
   const job = data.job || data;
   const status = job.state || job.status || job.job_state;
+  state.project.latestJob=job;state.project.state=status==='complete'?'complete':['rendering','queued'].includes(status)?'rendering':'ready';
+  if(status==='complete')state.project.has_output=true;
+  updateStyleDetail();
   const area = $('#render-status');
   if (!area) return;
   if (['complete','completed','succeeded','done'].includes(status)) {
-    const url = job.export_url || job.download_url || '/api/projects/' + encodeURIComponent(state.project.id) + '/output';
-    area.innerHTML = `<div class="video-stage section"><video controls playsinline src="${esc(url)}"></video></div><a class="button full section" href="${esc(url)}${url.includes('?')?'&':'?'}download=1" download> ${icon('download')}Télécharger le MP4</a><p class="help-text section">Vérifiez la synchronisation, la composition et l’audio avant publication.</p>`;
-  } else if (['failed','error','blocked'].includes(status)) {
-    area.innerHTML = `<p class="form-error section">${esc(job.error_message || job.error || job.message || 'Le moteur n’a pas pu produire le rendu.')}</p>`;
+    const url = job.export_url || job.download_url || '/api/projects/' + encodeURIComponent(projectId) + '/output';
+    area.innerHTML = `<div class="video-stage section"><video controls playsinline src="${esc(url)}"></video></div><a class="button full section" href="${esc(url)}${url.includes('?')?'&':'?'}download=1" download> ${icon('download')}Télécharger le MP4</a><button class="button secondary full section" data-action="share-output" data-id="${esc(projectId)}">${icon('share')}Partager le MP4</button><p class="help-text section">Vérifiez la synchronisation, la composition et l’audio avant publication.</p>`;
+  } else if (['failed','error','blocked','superseded'].includes(status)) {
+    if(state.renderRequest?.projectId===projectId)state.renderRequest=null;
+    area.innerHTML = `<div class="render-failure" role="alert"><h3>Ce montage est à reprendre.</h3><p>${esc(job.error_message || job.error || job.message || 'Le moteur n’a pas pu produire le rendu.')}</p><p class="help-text">Votre rush est conservé. Vérifiez les réglages puis relancez le montage.</p></div>`;
   } else {
     area.innerHTML = `<div class="notice" role="status">${icon('clock')}<span>Rendu en cours · ${Math.max(0,Math.min(99,Number(job.progress)||0))} % · gardez cette page ouverte.</span></div><progress max="100" value="${Math.max(0,Math.min(99,Number(job.progress)||0))}" aria-label="Progression du montage"></progress>`;
-    state.jobTimer = setTimeout(() => pollJob(id).catch(error => { if ($('#render-status')) $('#render-status').textContent = error.message; }), 2000);
+    state.jobTimer = setTimeout(() => pollJob(id,projectId,view).catch(error => { if(view===state.view&&$('#render-status'))$('#render-status').innerHTML=`<p class="form-error">${esc(error.message)}</p><button class="button secondary" data-action="resume-job" data-id="${esc(id)}">Vérifier à nouveau</button><p class="help-text">Le traitement continue sur le serveur s’il est toujours actif.</p>`; }), document.hidden?6000:2000);
   }
 }
 
@@ -431,25 +480,29 @@ document.addEventListener('click', async event => {
   const element = event.target.closest('[data-action]');
   if (!element) return;
   const action = element.dataset.action;
-  if(action==='analysis-to-montage'){state.project=state.analysisProject;state.file=null;if(state.objectUrl)URL.revokeObjectURL(state.objectUrl);state.objectUrl=null;location.hash='montage';return;}
-  if(action==='prepare-model'){
-    element.disabled=true;
-    try{$('#transcription-status').textContent='Analyse et transcription locales en cours…';const {report}=await post('/api/projects/'+encodeURIComponent(state.project.id)+'/signals');showSourceSignals(report);const {transcript}=await post('/api/projects/'+encodeURIComponent(state.project.id)+'/transcript');showTranscript(transcript);$('#reference-events').value=JSON.stringify(draftModelEvents(state.selectedStyle,transcript.words,$('#graphic-zone').value),null,2);$('#caption-preview-mode').checked=true;$('#placement-reviewed').checked=false;notify('Préparation terminée. Vérifiez les paroles et les zones, puis lancez la prévisualisation.');}
-    catch(error){$('#transcription-status').textContent=error.message;notify(error.message);}
-    finally{if(element.isConnected)element.disabled=false;}return;
-  }
+  if(action==='analysis-to-montage'){state.project=state.analysisProject;rememberProject();location.hash='montage';return;}
 
   try {
+    if(action==='prepare-model'){await prepareModel(element);return;}
+    if(action==='project-options'){await openProjectOptions(element.dataset.id);return;}
+    if(action==='filter-projects'){state.filter=element.dataset.id;await projectLibrary();return;}
+    if(action==='project-analysis'){readDraft();state.analysisProject=(await api('/api/projects/'+encodeURIComponent(element.dataset.id))).project;state.strategyTab='video';closeSheet();if(currentPage()==='analysis')await strategy();else location.hash='analysis';return;}
+    if(action==='remove-project'){if(confirm('Supprimer ce projet et ses fichiers ?')){await api('/api/projects/'+encodeURIComponent(element.dataset.id),{method:'DELETE'});if(state.project?.id===element.dataset.id){state.project=null;try{sessionStorage.removeItem('socialplus-project-'+state.user.id);}catch{}}if(state.analysisProject?.id===element.dataset.id)state.analysisProject=null;delete state.drafts[element.dataset.id];closeSheet();if(currentPage()==='projects')await projectLibrary();else await route();}return;}
+    if(action==='retry-upload'){await importVideo(state.file,element.dataset.analysis==='true');return;}
+    if(action==='refresh-words'){refreshWordEditor();rebuildEvents();return;}
+    if(action==='resume-job'){await pollJob(element.dataset.id);return;}
+    if(action==='share-output'){await prepareShare(element.dataset.id,element);return;}
+    if(action==='share-ready'){if(state.shareFile)await navigator.share({files:[state.shareFile],title:'Social+'});return;}
     if (action === 'auth-login' || action === 'auth-activate') { state.authMode = action === 'auth-login' ? 'login' : 'activate'; auth(); }
-    else if (action === 'new-project') { state.project=null;state.file=null;if(state.objectUrl)URL.revokeObjectURL(state.objectUrl);state.objectUrl=null;if(location.hash==='#montage') await montage();else location.hash='montage'; }
+    else if (action === 'new-project') { readDraft();state.project=null;try{sessionStorage.removeItem('socialplus-project-'+state.user.id);}catch{}state.file=null;if(state.objectUrl)URL.revokeObjectURL(state.objectUrl);state.objectUrl=null;if(location.hash==='#montage') await montage();else location.hash='montage'; }
     else if (action === 'open-project') {
       const data = await api('/api/projects/' + encodeURIComponent(element.dataset.id));
-      state.project=data.project || data;state.file=null;if(state.objectUrl)URL.revokeObjectURL(state.objectUrl);state.objectUrl=null;
+      readDraft();state.project=data.project || data;state.selectedStyle=state.project.style_id||state.selectedStyle;rememberProject();closeSheet();state.file=null;if(state.objectUrl)URL.revokeObjectURL(state.objectUrl);state.objectUrl=null;
       if(location.hash==='#montage')await montage();else location.hash='montage';
-    } else if (action === 'select-style') { state.selectedStyle=element.dataset.id;updateStyleDetail(); }
+    } else if (action === 'select-style') { const previous=state.selectedStyle;try{state.selectedStyle=element.dataset.id;rebuildEvents();updateStyleDetail();}catch(e){state.selectedStyle=previous;throw e;} }
     else if(action==='restored-preview')await renderProject('restored-preview:'+state.selectedStyle);
     else if (action === 'render') await renderProject();
-    else if(action==='draft-model-events'){const words=JSON.parse($('#transcript').value||'[]');const events=draftModelEvents(state.selectedStyle,words,$('#graphic-zone').value);$('#reference-events').value=JSON.stringify(events,null,2);$('#placement-reviewed').checked=false;notify(events.length?`${events.length} animation(s) proposée(s). Vérifiez leur placement.`:'Aucun mot pertinent pour ce modèle : les sous-titres restent actifs.');}
+    else if(action==='draft-model-events'){const words=JSON.parse($('#transcript').value||'[]');const events=draftModelEvents(state.selectedStyle,words,$('#graphic-zone').value,state.project?.metadata||{});$('#reference-events').value=JSON.stringify(events,null,2);$('#placement-reviewed').checked=false;notify(events.length?`${events.length} animation(s) proposée(s). Vérifiez leur placement.`:'Aucun mot pertinent pour ce modèle : les sous-titres restent actifs.');}
     else if(action==='transcribe-source'){element.disabled=true;const status=$('#transcription-status');status.textContent='Transcription locale en cours…';try{const {transcript}=await post('/api/projects/'+encodeURIComponent(state.project.id)+'/transcript');showTranscript(transcript);}catch(error){if(status.isConnected)status.textContent=error.message;throw error;}finally{if(element.isConnected)element.disabled=false;}}
     else if(action==='analyze-source'){element.disabled=true;try{const {report}=await post('/api/projects/'+encodeURIComponent(state.project.id)+'/signals');showSourceSignals(report);}finally{if(element.isConnected)element.disabled=false;}}
     else if(action==='guided-edit')await renderProject('guided-edit');
@@ -507,8 +560,28 @@ document.addEventListener('click', async event => {
     else if (action === 'seek-analysis') {const video=$('#analysis-media');if(video){video.currentTime=Number(element.dataset.time);video.scrollIntoView({block:'center'});}}
     else if (action === 'delete-competitor') {await api('/api/strategy/competitors/' + encodeURIComponent(element.dataset.id),{method:'DELETE'});await strategy();notify('Observation supprimée.');}
     else if (action === 'retry') {await session();await route();}
-  } catch(error) { element.disabled=false;notify(error.message); }
+  } catch(error) { element.disabled=false;if(error.name!=='AbortError')notify(error.message); }
 });
+
+async function prepareModel(element){
+ const controller=state.abortController,view=state.view,id=state.project.id;
+ element.disabled=true;$('#transcription-status').textContent='Mesure du son et transcription locale…';
+ try{
+  const {report}=await post('/api/projects/'+encodeURIComponent(id)+'/signals');
+  const {transcript}=await post('/api/projects/'+encodeURIComponent(id)+'/transcript');
+  ensureCurrentSession(controller);if(view!==state.view||state.project?.id!==id)return;
+  showSourceSignals(report);showTranscript(transcript);rebuildEvents();$('#caption-preview-mode').checked=true;readDraft();
+  $('#transcription-status').textContent+= ' Préparation terminée : ouvrez la revue des paroles, puis vérifiez les zones.';
+  notify('Montage préparé. Vérifiez les paroles et les zones.');
+ }catch(e){if(view===state.view&&$('#transcription-status'))$('#transcription-status').textContent=e.message;throw e;}
+ finally{if(element.isConnected)element.disabled=false;}
+}
+async function prepareShare(id,element){
+ if(!navigator.share||!navigator.canShare){notify('Téléchargez le MP4, puis partagez-le depuis Fichiers.');return;}
+ element.disabled=true;
+ try{const file=await loadShareFile(id,{signal:state.abortController.signal});if(!navigator.canShare({files:[file]})){notify('Le partage de fichiers n’est pas disponible. Utilisez Télécharger.');return;}state.shareFile=file;openSheet('Partager votre montage',`<p>Le MP4 est prêt pour le partage. Choisissez ensuite son destinataire dans la feuille de partage de votre appareil.</p><button class="button full section" data-action="share-ready">${icon('share')}Ouvrir le partage</button>`);}
+ finally{if(element.isConnected)element.disabled=false;}
+}
 
 document.addEventListener('submit', async event => {
   const form=event.target.closest('[data-form]');
@@ -522,7 +595,7 @@ document.addEventListener('submit', async event => {
       case 'login': case 'activate': {
         if(form.dataset.form==='activate')values.acceptTerms=true;
         const data=await post('/api/auth/' + form.dataset.form,values);
-        resetPrivateState();state.user=data.user;state.csrf=data.csrf || data.user?.csrf;await session();history.replaceState(null,'','#montage');await route();notify('Bienvenue dans votre espace.');break;
+        resetPrivateState();state.user=data.user;state.csrf=data.csrf || data.user?.csrf;await session();history.replaceState(null,'','#home');await route();notify('Bienvenue dans votre espace.');break;
       }
       case 'reset-password': await post('/api/auth/reset',values);closeSheet();notify('Mot de passe modifié. Connectez-vous avec votre nouveau mot de passe.');break;
       case 'redeem-invite': await post('/api/gifts/redeem',values);closeSheet();await session();notify('Votre invitation a été activée.');break;
@@ -570,27 +643,18 @@ document.addEventListener('change',async event=>{
     const mission=state.missions?.find(item=>item.id===event.target.dataset.missionId);if(!mission)return;
     const steps=mission.steps.map((step,index)=>({...step,completed:index===Number(event.target.dataset.missionStep)?event.target.checked:step.completed}));
     try {const result=await api('/api/strategy/missions/' + encodeURIComponent(mission.id),{method:'PATCH',body:JSON.stringify({steps})});Object.assign(mission,result.mission);notify('Étape enregistrée.');}catch(error){event.target.checked=!event.target.checked;notify(error.message);}
-  } else if(event.target.id==='video-input') {
-    const file=event.target.files?.[0];
-    if(!file)return;
-    if(!file.type.startsWith('video/') && !(file.type==='' && /\.(mp4|mov|m4v|webm)$/i.test(file.name)))return notify('Choisissez un fichier vidéo.');
-    if(file.size>200*1048576)return notify('Cette vidéo dépasse 200 Mo. Réduisez le fichier avant de l’importer.');
-    if(state.objectUrl)URL.revokeObjectURL(state.objectUrl);
-    clearTimeout(state.jobTimer);state.file=file;state.objectUrl=URL.createObjectURL(file);
-    try {await montage();}catch(error){if(!staleSession(error))notify(error.message);}
-  } else if(event.target.id==='analysis-video') {
-    const file=event.target.files?.[0];
-    if(!file)return;
-    if(file.size>200*1048576)return notify('Cette vidéo dépasse 200 Mo. Choisissez un extrait plus petit.');
-    state.analysisFile=file;
-    if(state.analysisUrl)URL.revokeObjectURL(state.analysisUrl);
-    state.analysisUrl=URL.createObjectURL(file);
-    $('#analysis-preview').innerHTML=`<div class="video-stage"><video id="analysis-media" controls playsinline preload="metadata" src="${state.analysisUrl}"></video></div><p class="help-text section">${esc(file.name)} · ${number(file.size/1048576)} Mo</p>`;
-    const video=$('#analysis-media');
-    const analysisUrl=state.analysisUrl;
-    video.addEventListener('loadedmetadata',()=>{const button=$('#analyze-video-button');if(analysisUrl===state.analysisUrl && button)button.disabled=false;},{once:true});
-    video.addEventListener('error',()=>notify('Ce format ne peut pas être lu par votre navigateur.'),{once:true});
+  } else if(event.target.id==='video-input'||event.target.id==='analysis-video'){
+    try{await importVideo(event.target.files?.[0],event.target.id==='analysis-video');}catch(e){if(!staleSession(e))notify(e.message);}
+  } else if(event.target.id==='analysis-project-select'){
+    try{state.analysisProject=event.target.value?(await api('/api/projects/'+encodeURIComponent(event.target.value))).project:null;await strategy();}catch(e){notify(e.message);}
+  } else if(event.target.matches('[data-analysis-pause]')){state.analysisCuts.ids=[...document.querySelectorAll('[data-analysis-pause]:checked')].map(el=>el.dataset.analysisPause);const draft=state.drafts[state.analysisCuts.projectId];if(draft)draft.pauseIds=[...state.analysisCuts.ids];}
+  else if(event.target.id==='graphic-zone'){rebuildEvents();updateZoneGuide();}
+  else if(event.target.matches('[data-word-index]')){
+    const words=JSON.parse($('#transcript').value||'[]');const index=Number(event.target.dataset.wordIndex);
+    words[index]={...words[index],text:event.target.value,reviewRequired:true,confirmed:false};
+    $('#transcript').value=JSON.stringify(words,null,2);$('#captions-reviewed').checked=false;rebuildEvents();
   }
+  if(event.target.matches('#captions-reviewed,#caption-preview-mode,#placement-reviewed,#reference-events,#transcript,[data-pause-id]'))readDraft();
 });
 
 const REVIEW_CRITERIA = [
@@ -612,7 +676,7 @@ function editorialReview() {
 function collectCriteria(values) {
   const criteria={};
   for(const [key] of REVIEW_CRITERIA) {
-    if(values[key+'_score']==='')continue;
+    if(values[key+'_score']===''||values[key+'_score']==null)continue;
     criteria[key]={score:Number(values[key+'_score']),source_kind:'manual',evidence:values[key+'_evidence'],start_sec:values[key+'_start']===''?null:Number(values[key+'_start']),end_sec:values[key+'_end']===''?null:Number(values[key+'_end'])};
   }
   return criteria;
@@ -624,26 +688,59 @@ async function resultsPanel(content) {
   const after=$('[name="after_metric_id"]',content);if(after && after.options.length>1)after.selectedIndex=1;
 }
 
+async function analysisView(content){
+ const view=state.view;
+ const {projects=[]}=await api('/api/projects');if(view!==state.view||!content.isConnected)return;
+ const sources=projects.filter(p=>p.has_source);
+ if(!state.analysisProject&&state.project?.has_source)state.analysisProject=state.project;
+ if(state.analysisProject&&!sources.some(p=>p.id===state.analysisProject.id))state.analysisProject=null;
+ const project=state.analysisProject;
+ content.innerHTML=`<div class="analysis-layout"><div>${project?`<div class="video-stage"><video id="analysis-media" controls playsinline preload="metadata" src="/api/projects/${encodeURIComponent(project.id)}/media"></video></div><div class="file-detail"><div><strong>${esc(project.name)}</strong><p>${esc(sourceMeta(project))}</p></div><label class="text-button" for="analysis-video">Changer</label></div>`:`<label class="upload-area" for="analysis-video"><span class="upload-symbol">${icon('chart')}</span><h3>Choisir une vidéo</h3><p>Repérez ce qui mérite votre attention.<br>Votre rush reste privé.</p><small>Photothèque ou Fichiers · 200 Mo maximum</small></label>`}<input id="analysis-video" class="visually-hidden" type="file" accept="video/*,.mov,.mp4,.m4v"><div id="analysis-upload-status" aria-live="polite"></div>${sources.length?`<label class="section">Réutiliser un rush enregistré<select id="analysis-project-select"><option value="">Choisir un projet</option>${sources.map(p=>`<option value="${esc(p.id)}" ${p.id===project?.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select></label>`:''}<div id="analysis-preview"></div></div><div><form class="form" data-form="video-analysis"><label>Votre objectif<select name="goal_type"><option value="awareness">Visibilité</option><option value="community">Communauté</option><option value="leads">Prospects</option></select></label><button type="submit" class="button full" id="analyze-video-button" ${!project?'disabled':''}>${icon('chart')}Analyser mon rush</button><p class="help-text">Mesures acoustiques réelles, sans prédiction de vues. Les critères non observables ne sont pas notés.</p>${editorialReview()}<p class="form-error" role="alert"></p></form><div id="video-analysis-result" class="section" aria-live="polite"></div></div></div>`;
+ if(project){const {report}=await api('/api/projects/'+encodeURIComponent(project.id)+'/signals');if(view===state.view&&report)showAnalysisResult(report);}
+}
+function editorialView(editorial){
+ if(!editorial)return '';
+ const labels={hook:'Hook',clarity:'Clarté',structure:'Structure',rhythm:'Rythme',retention:'Rétention',captions:'Sous-titres',visuals:'Visuels',audio:'Audio',cta:'CTA',originality:'Originalité'};
+ return `<section class="section"><h3>Repères éditoriaux locaux</h3><p class="help-text">${esc(editorial.notice)}</p>${Object.entries(editorial.criteria).map(([id,c])=>`<details><summary>${esc(labels[id])} · ${c.status==='not_evaluable'?'non évaluable':c.status==='measured'?'mesuré':'indice textuel'}</summary><p>${esc(c.observation)}</p><p class="help-text">${esc(c.limit)}</p></details>`).join('')}${editorial.findings.map(f=>`<details><summary>${number(f.startMs/1000)}–${number(f.endMs/1000)} s · ${esc(f.what)}${f.provisional?' · à confirmer':''}</summary><p><strong>Pourquoi</strong><br>${esc(f.why)}</p><p><strong>Comment</strong><br>${esc(f.how)}</p><p><strong>Vérifier l’amélioration</strong><br>${esc(f.verify)}</p><p class="help-text">Preuve : ${esc(f.evidence)}</p><button class="text-button" data-action="seek-analysis" data-time="${f.startMs/1000}">Écouter ce passage</button></details>`).join('')}<small>${esc(editorial.engineVersion)} · ${esc(editorial.inputHash.slice(0,12))} · aucun appel payant</small></section>`;
+}
+function showAnalysisResult(report,analysis,editorial){
+ if(state.analysisCuts?.projectId!==state.analysisProject.id||state.analysisCuts?.fingerprint!==report.fingerprint)state.analysisCuts={projectId:state.analysisProject.id,fingerprint:report.fingerprint,ids:[]};
+ const score=acousticScore(report);
+ $('#video-analysis-result').innerHTML=`<section class="score-summary" data-score-version="${ACOUSTIC_SUMMARY_VERSION}"><div><p class="eyebrow">Diagnostic acoustique</p><strong class="score-value">${score==null?'—':score}<small>/100</small></strong></div><p>Indice technique v1, moyenne des sous-scores disponibles. Il ne mesure pas la qualité éditoriale ni la viralité.</p></section>${signalSummary(report)}${editorialView(editorial)}${report.suggestions.length?`<details><summary>Choisir les pauses à examiner dans Montage</summary><p class="help-text">Écoutez chaque passage avant de sélectionner une coupe. Les paroles et leurs marges restent protégées par le moteur.</p>${report.suggestions.map(p=>`<label class="checkbox-label section"><input type="checkbox" data-analysis-pause="${esc(p.id)}" ${state.analysisCuts.ids.includes(p.id)?'checked':''}><span>${number(p.startMs/1000)}–${number(p.endMs/1000)} s <button class="text-button" type="button" data-action="seek-analysis" data-time="${Math.max(0,p.startMs/1000-.5)}">Écouter</button></span></label>`).join('')}</details>`:''}<button class="button full section" data-action="analysis-to-montage">${icon('film')}Monter cette vidéo</button>${analysis?`<details><summary>Revue éditoriale · ${analysis.score==null?'non évaluable':analysis.score+'/100'}</summary><p>Couverture : ${number(analysis.coverage)} %. Notes fournies par vous, sans expertise automatique du discours.</p>${Object.entries(analysis.criteria||{}).map(([key,c])=>`<p><strong>${esc(REVIEW_CRITERIA.find(r=>r[0]===key)?.[1]||key)} · ${c.score}/100</strong><br>${esc(c.evidence)} · ${number(c.start_sec)} s</p>`).join('')}${(analysis.excluded_criteria||[]).map(c=>`<p>${esc(REVIEW_CRITERIA.find(r=>r[0]===c.key)?.[1]||c.key)} : ${esc(c.reason)}</p>`).join('')}</details>`:''}`;
+}
 async function analyzeVideo(form,values) {
-  const controller=state.abortController;
-  const file=state.analysisFile;
-  const video=$('#analysis-media');
-  if(!file || !video?.videoWidth)throw new Error('Choisissez une vidéo lisible avant de continuer.');
-  const resultArea=$('#video-analysis-result');
-  resultArea.innerHTML='<p role="status">Enregistrement et mesure du fichier réel… Gardez cette page ouverte.</p>';
-  if(state.analysisProjectFile!==file){
-    const created=await post('/api/projects',{name:file.name.replace(/\.[^.]+$/,'')});
-    const uploaded=await api('/api/projects/'+encodeURIComponent(created.project.id)+'/source',{method:'POST',body:file,headers:{'Content-Type':file.type||'application/octet-stream','X-Filename':encodeURIComponent(file.name)}});
-    state.analysisProject=uploaded.project;state.analysisProjectFile=file;
-  }
-  const {report}=await post('/api/projects/'+encodeURIComponent(state.analysisProject.id)+'/signals');
-  const fingerprint=report.fingerprint;
+ const controller=state.abortController,view=state.view,project=state.analysisProject;
+ if(!project?.has_source)throw Error('Importez ou choisissez un rush enregistré.');
+ $('#video-analysis-result').innerHTML='<div class="notice" role="status"><span class="spinner"></span><span>Mesure du son et des pauses…</span></div>';
+ const {report}=await post('/api/projects/'+encodeURIComponent(project.id)+'/signals');
+ ensureCurrentSession(controller);if(view!==state.view)return;
+ const {analysis}=await post('/api/strategy/video-analyses',{fingerprint:report.fingerprint,context:{goal_type:values.goal_type},metadata:{duration_seconds:report.metadata.durationMs/1000,width:report.metadata.width,height:report.metadata.height,has_audio:report.metadata.hasAudio},transcript:{text:values.transcript_text||''},criteria:collectCriteria(values)});
+ ensureCurrentSession(controller);if(view!==state.view)return;
+ let editorial;try{({editorial}=await post('/api/projects/'+encodeURIComponent(project.id)+'/editorial',{goal:values.goal_type}));}catch(error){if(staleSession(error)||error.status===401)throw error;if(view===state.view){showAnalysisResult(report,analysis);$('#video-analysis-result').insertAdjacentHTML('beforeend',`<p class="form-error section" role="alert">Repères textuels indisponibles : ${esc(error.message)} Les mesures acoustiques restent disponibles.</p>`);}return;}
+ ensureCurrentSession(controller);if(view!==state.view)return;
+ showAnalysisResult(report,analysis,editorial);
+}
+async function importVideo(file,forAnalysis=false){
+ if(!file)return;
+ if(state.uploading)throw Error('Un import est déjà en cours.');
+ if(!file.type.startsWith('video/')&&!(file.type===''&&/\.(mp4|mov|m4v|webm)$/i.test(file.name)))throw Error('Choisissez un fichier vidéo.');
+ if(file.size>200*1048576)throw Error('Cette vidéo dépasse 200 Mo. Choisissez un rush plus court.');
+ const controller=state.abortController,view=state.view;
+ state.uploading=true;state.file=file;
+ const status=forAnalysis?$('#analysis-upload-status'):$('#upload-status');
+ if(status)status.innerHTML='<div class="notice" role="status"><span class="spinner"></span><span>Import de votre rush…</span></div><progress max="100" value="0" aria-label="Envoi de la vidéo"></progress><p class="help-text">Gardez le Wi-Fi et cette page ouverts.</p>';
+ try{
+  const created=state.retryFile===file&&state.retryProject?{project:state.retryProject}:await post('/api/projects',{name:file.name.replace(/\.[^.]+$/,'')});
+  state.retryFile=file;state.retryProject=created.project;
+  const uploaded=await uploadSource({projectId:created.project.id,file,csrf:state.csrf,signal:controller.signal,onProgress:value=>{if(status?.isConnected){status.querySelector('progress').value=value;status.querySelector('.notice span:last-child').textContent=value===100?'Vérification du fichier…':`Import · ${value} %`;}}});
   ensureCurrentSession(controller);
-  const {analysis}=await post('/api/strategy/video-analyses',{
-    fingerprint,context:{goal_type:values.goal_type},metadata:{duration_seconds:video.duration,width:video.videoWidth,height:video.videoHeight,has_audio:form.elements.audioVerified.checked ? true : null},transcript:{text:values.transcript_text || ''},criteria:collectCriteria(values)
-  });
-  ensureCurrentSession(controller);
-  $('#video-analysis-result').innerHTML=signalSummary(report)+`<button class="button section" data-action="analysis-to-montage">Monter cette vidéo${icon('arrow')}</button><h3>Revue éditoriale enregistrée.</h3><div class="table-wrap"><table><tbody><tr><th>Format natif</th><td>${video.videoWidth} × ${video.videoHeight}</td></tr><tr><th>Durée</th><td>${number(video.duration)} s</td></tr><tr><th>Empreinte</th><td><code>${fingerprint.slice(0,16)}…</code></td></tr><tr><th>Score éditorial</th><td>${analysis.score==null?'Non évaluable':number(analysis.score) + ' / 100'}</td></tr><tr><th>Couverture des critères</th><td>${number(analysis.coverage)} %</td></tr></tbody></table></div><p class="help-text">${esc(analysis.notice || 'Le discours et les critères visuels ne sont pas évalués automatiquement. Aucun score global ne peut être attribué avec cette couverture.')}</p>${Object.entries(analysis.criteria || {}).map(([key,criterion])=>`<details><summary>${esc(REVIEW_CRITERIA.find(item=>item[0]===key)?.[1] || key)} · ${criterion.score}/100</summary><p>${esc(criterion.evidence)}</p><button class="text-button" data-action="seek-analysis" data-time="${criterion.start_sec}">Revoir à ${number(criterion.start_sec)} s${icon('arrow')}</button><small>Observation documentée par vous</small></details>`).join('')}<details><summary>Critères exclus (${analysis.excluded_criteria?.length || 0})</summary>${(analysis.excluded_criteria || []).map(item=>`<p><strong>${esc(REVIEW_CRITERIA.find(criterion=>criterion[0]===item.key)?.[1] || item.key)}</strong><br>${esc(item.reason)}</p>`).join('')}</details>`;
+  state.project=uploaded.project;state.analysisProject=uploaded.project;state.file=null;state.retryFile=null;state.retryProject=null;
+  if(state.objectUrl)URL.revokeObjectURL(state.objectUrl);state.objectUrl=null;rememberProject();
+  if(view===state.view){if(forAnalysis)await strategy();else await montage();}
+ }catch(error){
+  if(status?.isConnected)status.innerHTML=`<p class="form-error" role="alert">${esc(error.message)}</p><button class="button secondary" data-action="retry-upload" data-analysis="${forAnalysis}">Réessayer l’import</button>`;
+  throw error;
+ }finally{state.uploading=false;}
 }
 
 document.addEventListener('input',event=>{
@@ -651,10 +748,12 @@ document.addEventListener('input',event=>{
 });
 $('#account-button').addEventListener('click',account);
 $('#close-sheet').addEventListener('click',closeSheet);
+sheet.addEventListener('close',()=>{if(!sheet.open){sheet.querySelectorAll('video').forEach(v=>v.pause());state.shareFile=null;}});
 sheet.addEventListener('click',event=>{if(event.target===sheet){const box=sheet.getBoundingClientRect();if(event.clientX<box.left||event.clientX>box.right||event.clientY<box.top||event.clientY>box.bottom)closeSheet();}});
-window.addEventListener('hashchange',()=>{closeSheet();route();window.scrollTo({top:0});});
+window.addEventListener('hashchange',()=>{document.querySelectorAll('video').forEach(v=>v.pause());closeSheet();route();window.scrollTo({top:0});});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&state.user&&currentPage()==='montage'&&state.project?.latestJob?.state==='rendering'){clearTimeout(state.jobTimer);pollJob(state.project.latestJob.id).catch(e=>notify(e.message));}});
 window.addEventListener('offline',()=>notify('Vous êtes hors ligne. Les actions seront disponibles au retour de la connexion.'));
-try {document.documentElement.dataset.theme=localStorage.getItem('socialplus-theme') || 'dark';} catch {document.documentElement.dataset.theme='dark';}
+try {document.documentElement.dataset.theme=localStorage.getItem('socialplus-theme') || (matchMedia('(prefers-color-scheme: light)').matches?'light':'dark');} catch {document.documentElement.dataset.theme='dark';}
 hydrateIcons();
 try { await session();if(new URLSearchParams(location.search).has('invite'))state.authMode='activate';await route(); }
 catch(error) { main.innerHTML=`<div class="loading-screen"><h2>Votre espace est indisponible.</h2><p>${esc(error.message)}</p><button class="button secondary" data-action="retry">Réessayer</button></div>`; }

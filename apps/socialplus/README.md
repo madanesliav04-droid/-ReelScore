@@ -66,3 +66,32 @@ Le serveur de développement local n’est pas une URL publique. Un test sur Saf
 ### Démarrage privé Windows + Safari iPhone
 
 Suivre le [guide débutant](../../docs/social-plus/WINDOWS_IPHONE.md). Après les prérequis gratuits, exécuter `powershell -NoProfile -ExecutionPolicy Bypass -File .\INSTALLER-SOCIALPLUS.ps1`, configurer la règle pare-feu locale documentée et installer le certificat public sur l’iPhone. Ensuite, double-cliquer `DEMARRER-SOCIALPLUS.cmd`. L’application écoute uniquement l’IPv4 privée choisie sur HTTPS 8443 ; les moteurs et l’authentification existants sont conservés. Aucun accès Internet entrant, tunnel ni déploiement n’est configuré. Les données et clés locales ne doivent jamais être commises dans Git.
+
+### Expérience mobile premium (quatre espaces)
+
+Accueil, Montage, Analyse et Projets utilisent les API existantes. L’import enregistre automatiquement un nouveau projet privé et affiche les octets réellement envoyés. Le même rush peut passer d’Analyse à Montage sans nouvel envoi ; des pauses explicitement choisies sont proposées au montage. Les mots sont relisibles et modifiables avec leurs points d’écoute ; les horaires JSON restent dans les outils avancés. Un changement de modèle recalcule ses propositions et exige une nouvelle confirmation des zones. Aucun mot incertain n’est certifié automatiquement.
+
+La bibliothèque retrouve les tâches, affiche le dernier MP4 et permet téléchargement, suppression ou préparation du partage OS quand le navigateur le permet. Un rafraîchissement retrouve le projet courant via son identifiant seul ; médias, transcription et secrets ne sont pas persistés dans le stockage navigateur. La fermeture d’une session interrompt son envoi en cours. Un échec réseau permet de relire la tâche serveur sans lancer un deuxième rendu.
+
+Tests spécifiques, avec artefacts dans un dossier privé :
+
+```powershell
+$env:SOCIALPLUS_TEST_RUSH = 'C:\MesVideos\rush-parle.mov'
+$env:SOCIALPLUS_BROWSER_ARTIFACT_DIR = 'C:\SocialPlus-tests-prives'
+$env:CHROMIUM_PATH = 'C:\Program Files\Google\Chrome\Application\chrome.exe'
+# Charger aussi les paramètres ASR locaux avant ce test opt-in si nécessaire.
+node scripts/mobile-smoke.mjs
+node scripts/mobile-recovery-smoke.mjs
+```
+
+Le premier script utilise un vrai rush et les moteurs réels. Le second injecte explicitement une panne de renderer pour tester l’ergonomie de récupération ; il ne certifie aucun moteur. Les anciens scripts de recette restent des traces des versions précédentes et ne constituent pas les instructions de recette de cette nouvelle interface.
+
+L’indice global automatique affiché est uniquement **acoustique**, moyenne des sous-scores disponibles avec leur formule et version. Il ne remplace pas le score de préparation éditoriale, qui exige des observations documentées. Les règles et scores des moteurs existants n’ont pas été modifiés. Pour la future coque iOS et les limites de l’orchestration locale : [plan App Store](../../docs/social-plus/IOS_PUBLICATION_PLAN.md).
+
+### V2 — fiabilité et repères éditoriaux locaux
+
+Les tâches nouvelles sont persistées avec leurs paramètres privés, une clé d’idempotence et une source SHA-256. Après arrêt du processus, une seule reprise automatique réencode depuis le début sans nouvelle unité de quota. Le fichier vide/absent n’est pas présenté comme terminé ; le nettoyage d’un ancien média ne peut plus invalider son remplacement validé. Les paramètres complets sont purgés du descripteur terminal. Une seule instance peut utiliser un dossier de données.
+
+L’analyse peut transcrire localement un fichier déjà enregistré puis produire des repères textuels déterministes (ouverture, phrases longues, hésitations, connecteurs, débit, marqueurs CTA). Chaque diagnostic donne preuve, moment, pourquoi/comment et vérification. Les citations ASR restent à confirmer ; aucun score global sémantique, chiffre de rétention ou preuve d’originalité n’est fabriqué. Le moteur ne transmet aucun média à un service externe. Si la transcription manque, les mesures acoustiques restent disponibles.
+
+[Recette iPhone et audit commercial V2](../../docs/social-plus/V2_IPHONE_ET_COMMERCIALISATION.md) · [Audit et preuves](../../artifacts/v2/AUDIT_APRES.md). La V2 n’est pas déclarée commercialisable. Aucun paiement, hébergement public ou migration native n’est activé.

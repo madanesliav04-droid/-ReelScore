@@ -1,0 +1,621 @@
+[
+  {
+    "modelId": "codie-omni-v60",
+    "metadata": {
+      "width": 512,
+      "height": 910,
+      "durationMs": 27167,
+      "videoCodec": "h264",
+      "audioCodec": "aac",
+      "hasAudio": true,
+      "audioStreams": 1,
+      "audioChannels": 1,
+      "container": "mov,mp4,m4a,3gp,3g2,mj2",
+      "mime_type": "video/mp4",
+      "bytes": 2732215,
+      "rotation": 0,
+      "rawFrameRate": "30/1"
+    },
+    "cuts": [],
+    "sourceSha256": "53de1e48bb02b3fa7d086154f374e7f4ca38a346c2305038bc2b211c29d5716a",
+    "outputSha256": "eb0139247bcf49f3cd04feeb97e87e6bc3c329603207c7fa8e4266e0c3c1491c",
+    "fullDecode": true,
+    "transcriptionConfirmed": false,
+    "nativeVerticalSpeechTest": true,
+    "graphicEvents": 0,
+    "originalAudio": {
+      "modelId": "codie-omni-v60",
+      "entireDecodedAudioIdentical": true,
+      "sourcePcmSha256": "0f9a529d9115cb1ec7f5cfa926772155879ce8f441438b2ba40572c8a3597d2c",
+      "outputPcmSha256": "0f9a529d9115cb1ec7f5cfa926772155879ce8f441438b2ba40572c8a3597d2c",
+      "sourceSamples": 1302919,
+      "outputSamples": 1302919
+    },
+    "previewAndAuthenticatedDownload": {
+      "modelId": "codie-omni-v60",
+      "time": 0.268631,
+      "width": 512,
+      "height": 910,
+      "frames": 13,
+      "error": null,
+      "authenticatedDownloadSha256": "eb0139247bcf49f3cd04feeb97e87e6bc3c329603207c7fa8e4266e0c3c1491c",
+      "physicalSafari": false
+    },
+    "cameraSamples": [
+      {
+        "outputSeconds": 18,
+        "bestOffsetMs": 0,
+        "meanLumaError": 0.9145833333333333,
+        "withinOneFrame": true
+      },
+      {
+        "outputSeconds": 23,
+        "bestOffsetMs": 0,
+        "meanLumaError": 0.8561458333333334,
+        "withinOneFrame": true
+      },
+      {
+        "outputSeconds": 25,
+        "bestOffsetMs": 0,
+        "meanLumaError": 0.573125,
+        "withinOneFrame": true
+      }
+    ],
+    "uncertainNewAsrEntries": 5,
+    "phoneticAlignmentCertified": false,
+    "soundEffectsAdded": false,
+    "score": 45,
+    "scoreBreakdown": {
+      "transcription": {
+        "earned": 0,
+        "max": 25
+      },
+      "word_sync": {
+        "earned": 10,
+        "max": 20
+      },
+      "transitions": {
+        "earned": 5,
+        "max": 15
+      },
+      "graphics": {
+        "earned": 10,
+        "max": 15
+      },
+      "original_audio": {
+        "earned": 10,
+        "max": 10
+      },
+      "cuts": {
+        "earned": 5,
+        "max": 10
+      },
+      "autonomy": {
+        "earned": 5,
+        "max": 5
+      }
+    },
+    "scoreScope": "Points de validation cumulés avec les preuves horizontales V2 antérieures ; pas un taux mesuré de qualité ni une certification artistique.",
+    "remainingDefects": [
+      "Aucun déclencheur temps/argent dans ce rush : aucun pictogramme ajouté artificiellement. Le MP4 est sous-titré mais ce test ne couvre pas les animations Codie.",
+      "Grammaire V60 complète et choix narratifs non certifiés ; aucun B-roll artificiel ajouté."
+    ],
+    "commercialApproved": false
+  },
+  {
+    "modelId": "alex-hormozi-v16",
+    "metadata": {
+      "width": 512,
+      "height": 910,
+      "durationMs": 27167,
+      "videoCodec": "h264",
+      "audioCodec": "aac",
+      "hasAudio": true,
+      "audioStreams": 1,
+      "audioChannels": 1,
+      "container": "mov,mp4,m4a,3gp,3g2,mj2",
+      "mime_type": "video/mp4",
+      "bytes": 2058502,
+      "rotation": 0,
+      "rawFrameRate": "30/1"
+    },
+    "cuts": [],
+    "sourceSha256": "53de1e48bb02b3fa7d086154f374e7f4ca38a346c2305038bc2b211c29d5716a",
+    "outputSha256": "4df9ca9a201d711a7877d2a367452fc50559c98c214e7dcdad45cc9df72aa3ae",
+    "fullDecode": true,
+    "transcriptionConfirmed": false,
+    "nativeVerticalSpeechTest": true,
+    "graphicEvents": 3,
+    "originalAudio": {
+      "modelId": "alex-hormozi-v16",
+      "entireDecodedAudioIdentical": true,
+      "sourcePcmSha256": "0f9a529d9115cb1ec7f5cfa926772155879ce8f441438b2ba40572c8a3597d2c",
+      "outputPcmSha256": "0f9a529d9115cb1ec7f5cfa926772155879ce8f441438b2ba40572c8a3597d2c",
+      "sourceSamples": 1302919,
+      "outputSamples": 1302919
+    },
+    "previewAndAuthenticatedDownload": {
+      "modelId": "alex-hormozi-v16",
+      "time": 0.262378,
+      "width": 512,
+      "height": 910,
+      "frames": 12,
+      "error": null,
+      "authenticatedDownloadSha256": "4df9ca9a201d711a7877d2a367452fc50559c98c214e7dcdad45cc9df72aa3ae",
+      "physicalSafari": false
+    },
+    "cameraSamples": [
+      {
+        "outputSeconds": 18,
+        "bestOffsetMs": 0,
+        "meanLumaError": 1.8716666666666666,
+        "withinOneFrame": true
+      },
+      {
+        "outputSeconds": 23,
+        "bestOffsetMs": 0,
+        "meanLumaError": 1.8684375,
+        "withinOneFrame": true
+      },
+      {
+        "outputSeconds": 25,
+        "bestOffsetMs": 0,
+        "meanLumaError": 2.0777083333333333,
+        "withinOneFrame": true
+      }
+    ],
+    "uncertainNewAsrEntries": 5,
+    "phoneticAlignmentCertified": false,
+    "soundEffectsAdded": false,
+    "score": 45,
+    "scoreBreakdown": {
+      "transcription": {
+        "earned": 0,
+        "max": 25
+      },
+      "word_sync": {
+        "earned": 10,
+        "max": 20
+      },
+      "transitions": {
+        "earned": 5,
+        "max": 15
+      },
+      "graphics": {
+        "earned": 10,
+        "max": 15
+      },
+      "original_audio": {
+        "earned": 10,
+        "max": 10
+      },
+      "cuts": {
+        "earned": 5,
+        "max": 10
+      },
+      "autonomy": {
+        "earned": 5,
+        "max": 5
+      }
+    },
+    "scoreScope": "Points de validation cumulés avec les preuves horizontales V2 antérieures ; pas un taux mesuré de qualité ni une certification artistique.",
+    "remainingDefects": [
+      "Palette, nœuds et transitions raccordés, mais les titres lexicaux isolés ne démontrent pas la construction explicative des masters.",
+      "Composition plein écran très espacée en portrait ; hiérarchie narrative à approuver."
+    ],
+    "commercialApproved": false
+  },
+  {
+    "modelId": "leila-hormozi-v53",
+    "metadata": {
+      "width": 512,
+      "height": 910,
+      "durationMs": 27167,
+      "videoCodec": "h264",
+      "audioCodec": "aac",
+      "hasAudio": true,
+      "audioStreams": 1,
+      "audioChannels": 1,
+      "container": "mov,mp4,m4a,3gp,3g2,mj2",
+      "mime_type": "video/mp4",
+      "bytes": 2764107,
+      "rotation": 0,
+      "rawFrameRate": "30/1"
+    },
+    "cuts": [],
+    "sourceSha256": "53de1e48bb02b3fa7d086154f374e7f4ca38a346c2305038bc2b211c29d5716a",
+    "outputSha256": "ee67a9b25071c166881f34cf003bb1b5ece7f453081a2be089fcd430b09bef0e",
+    "fullDecode": true,
+    "transcriptionConfirmed": false,
+    "nativeVerticalSpeechTest": true,
+    "graphicEvents": 3,
+    "originalAudio": {
+      "modelId": "leila-hormozi-v53",
+      "entireDecodedAudioIdentical": true,
+      "sourcePcmSha256": "0f9a529d9115cb1ec7f5cfa926772155879ce8f441438b2ba40572c8a3597d2c",
+      "outputPcmSha256": "0f9a529d9115cb1ec7f5cfa926772155879ce8f441438b2ba40572c8a3597d2c",
+      "sourceSamples": 1302919,
+      "outputSamples": 1302919
+    },
+    "previewAndAuthenticatedDownload": {
+      "modelId": "leila-hormozi-v53",
+      "time": 0.302798,
+      "width": 512,
+      "height": 910,
+      "frames": 13,
+      "error": null,
+      "authenticatedDownloadSha256": "ee67a9b25071c166881f34cf003bb1b5ece7f453081a2be089fcd430b09bef0e",
+      "physicalSafari": false
+    },
+    "cameraSamples": [
+      {
+        "outputSeconds": 18,
+        "bestOffsetMs": 0,
+        "meanLumaError": 1.8671875,
+        "withinOneFrame": true
+      },
+      {
+        "outputSeconds": 23,
+        "bestOffsetMs": 0,
+        "meanLumaError": 1.7888541666666666,
+        "withinOneFrame": true
+      },
+      {
+        "outputSeconds": 25,
+        "bestOffsetMs": 0,
+        "meanLumaError": 1.8644791666666667,
+        "withinOneFrame": true
+      }
+    ],
+    "uncertainNewAsrEntries": 5,
+    "phoneticAlignmentCertified": false,
+    "soundEffectsAdded": false,
+    "score": 45,
+    "scoreBreakdown": {
+      "transcription": {
+        "earned": 0,
+        "max": 25
+      },
+      "word_sync": {
+        "earned": 10,
+        "max": 20
+      },
+      "transitions": {
+        "earned": 5,
+        "max": 15
+      },
+      "graphics": {
+        "earned": 10,
+        "max": 15
+      },
+      "original_audio": {
+        "earned": 10,
+        "max": 10
+      },
+      "cuts": {
+        "earned": 5,
+        "max": 10
+      },
+      "autonomy": {
+        "earned": 5,
+        "max": 5
+      }
+    },
+    "scoreScope": "Points de validation cumulés avec les preuves horizontales V2 antérieures ; pas un taux mesuré de qualité ni une certification artistique.",
+    "remainingDefects": [
+      "Bande haute élargie : titres plus lisibles et hors du visage sur les images contrôlées.",
+      "Contraste du gris sur le mur clair et détails secondaires encore à approuver ; absence de suivi automatique visage/mains."
+    ],
+    "commercialApproved": false
+  },
+  {
+    "modelId": "apple-premium-spatial",
+    "metadata": {
+      "width": 512,
+      "height": 910,
+      "durationMs": 27167,
+      "videoCodec": "h264",
+      "audioCodec": "aac",
+      "hasAudio": true,
+      "audioStreams": 1,
+      "audioChannels": 1,
+      "container": "mov,mp4,m4a,3gp,3g2,mj2",
+      "mime_type": "video/mp4",
+      "bytes": 2875561,
+      "rotation": 0,
+      "rawFrameRate": "30/1"
+    },
+    "cuts": [],
+    "sourceSha256": "53de1e48bb02b3fa7d086154f374e7f4ca38a346c2305038bc2b211c29d5716a",
+    "outputSha256": "f004b84fb4fdfd5d00d70ac20f6ee422804c10237b90561750be380cecbd1fc5",
+    "fullDecode": true,
+    "transcriptionConfirmed": false,
+    "nativeVerticalSpeechTest": true,
+    "graphicEvents": 3,
+    "originalAudio": {
+      "modelId": "apple-premium-spatial",
+      "entireDecodedAudioIdentical": true,
+      "sourcePcmSha256": "0f9a529d9115cb1ec7f5cfa926772155879ce8f441438b2ba40572c8a3597d2c",
+      "outputPcmSha256": "0f9a529d9115cb1ec7f5cfa926772155879ce8f441438b2ba40572c8a3597d2c",
+      "sourceSamples": 1302919,
+      "outputSamples": 1302919
+    },
+    "previewAndAuthenticatedDownload": {
+      "modelId": "apple-premium-spatial",
+      "time": 0.299715,
+      "width": 512,
+      "height": 910,
+      "frames": 14,
+      "error": null,
+      "authenticatedDownloadSha256": "f004b84fb4fdfd5d00d70ac20f6ee422804c10237b90561750be380cecbd1fc5",
+      "physicalSafari": false
+    },
+    "cameraSamples": [
+      {
+        "outputSeconds": 18,
+        "bestOffsetMs": 0,
+        "meanLumaError": 1.3635416666666667,
+        "withinOneFrame": true
+      },
+      {
+        "outputSeconds": 23,
+        "bestOffsetMs": 0,
+        "meanLumaError": 1.3179166666666666,
+        "withinOneFrame": true
+      },
+      {
+        "outputSeconds": 25,
+        "bestOffsetMs": 0,
+        "meanLumaError": 1.3265625,
+        "withinOneFrame": true
+      }
+    ],
+    "uncertainNewAsrEntries": 5,
+    "phoneticAlignmentCertified": false,
+    "soundEffectsAdded": false,
+    "score": 40,
+    "scoreBreakdown": {
+      "transcription": {
+        "earned": 0,
+        "max": 25
+      },
+      "word_sync": {
+        "earned": 10,
+        "max": 20
+      },
+      "transitions": {
+        "earned": 5,
+        "max": 15
+      },
+      "graphics": {
+        "earned": 5,
+        "max": 15
+      },
+      "original_audio": {
+        "earned": 10,
+        "max": 10
+      },
+      "cuts": {
+        "earned": 5,
+        "max": 10
+      },
+      "autonomy": {
+        "earned": 5,
+        "max": 5
+      }
+    },
+    "scoreScope": "Points de validation cumulés avec les preuves horizontales V2 antérieures ; pas un taux mesuré de qualité ni une certification artistique.",
+    "remainingDefects": [
+      "Ancrage haut adapté au portrait ; animations focus et flou existants conservés.",
+      "Titre de focus superposé à la zone du visage et flou global plus présents que les compositions murales discrètes échantillonnées dans le master."
+    ],
+    "commercialApproved": false
+  },
+  {
+    "modelId": "social-kinetic-v28",
+    "metadata": {
+      "width": 512,
+      "height": 910,
+      "durationMs": 27167,
+      "videoCodec": "h264",
+      "audioCodec": "aac",
+      "hasAudio": true,
+      "audioStreams": 1,
+      "audioChannels": 1,
+      "container": "mov,mp4,m4a,3gp,3g2,mj2",
+      "mime_type": "video/mp4",
+      "bytes": 2888963,
+      "rotation": 0,
+      "rawFrameRate": "30/1"
+    },
+    "cuts": [],
+    "sourceSha256": "53de1e48bb02b3fa7d086154f374e7f4ca38a346c2305038bc2b211c29d5716a",
+    "outputSha256": "b329e873a6278b823af99dbca0c45e94a5979ea2b39efe34e30011d789ab2966",
+    "fullDecode": true,
+    "transcriptionConfirmed": false,
+    "nativeVerticalSpeechTest": true,
+    "graphicEvents": 3,
+    "originalAudio": {
+      "modelId": "social-kinetic-v28",
+      "entireDecodedAudioIdentical": true,
+      "sourcePcmSha256": "0f9a529d9115cb1ec7f5cfa926772155879ce8f441438b2ba40572c8a3597d2c",
+      "outputPcmSha256": "0f9a529d9115cb1ec7f5cfa926772155879ce8f441438b2ba40572c8a3597d2c",
+      "sourceSamples": 1302919,
+      "outputSamples": 1302919
+    },
+    "previewAndAuthenticatedDownload": {
+      "modelId": "social-kinetic-v28",
+      "time": 0.284968,
+      "width": 512,
+      "height": 910,
+      "frames": 13,
+      "error": null,
+      "authenticatedDownloadSha256": "b329e873a6278b823af99dbca0c45e94a5979ea2b39efe34e30011d789ab2966",
+      "physicalSafari": false
+    },
+    "cameraSamples": [
+      {
+        "outputSeconds": 18,
+        "bestOffsetMs": 0,
+        "meanLumaError": 1.8675,
+        "withinOneFrame": true
+      },
+      {
+        "outputSeconds": 23,
+        "bestOffsetMs": 0,
+        "meanLumaError": 1.85,
+        "withinOneFrame": true
+      },
+      {
+        "outputSeconds": 25,
+        "bestOffsetMs": 0,
+        "meanLumaError": 1.8644791666666667,
+        "withinOneFrame": true
+      }
+    ],
+    "uncertainNewAsrEntries": 5,
+    "phoneticAlignmentCertified": false,
+    "soundEffectsAdded": false,
+    "score": 40,
+    "scoreBreakdown": {
+      "transcription": {
+        "earned": 0,
+        "max": 25
+      },
+      "word_sync": {
+        "earned": 10,
+        "max": 20
+      },
+      "transitions": {
+        "earned": 5,
+        "max": 15
+      },
+      "graphics": {
+        "earned": 5,
+        "max": 15
+      },
+      "original_audio": {
+        "earned": 10,
+        "max": 10
+      },
+      "cuts": {
+        "earned": 5,
+        "max": 10
+      },
+      "autonomy": {
+        "earned": 5,
+        "max": 5
+      }
+    },
+    "scoreScope": "Points de validation cumulés avec les preuves horizontales V2 antérieures ; pas un taux mesuré de qualité ni une certification artistique.",
+    "remainingDefects": [
+      "Police portrait augmentée et bulle ajustée au texte ; le défaut de barre bleue étirée est corrigé.",
+      "Les bulles sélectionnées ne démontrent pas toute la grammaire latérale de phrases du master ; sélection éditoriale encore lexicale."
+    ],
+    "commercialApproved": false
+  },
+  {
+    "modelId": "cinematic-storytelling-v7",
+    "metadata": {
+      "width": 512,
+      "height": 910,
+      "durationMs": 27167,
+      "videoCodec": "h264",
+      "audioCodec": "aac",
+      "hasAudio": true,
+      "audioStreams": 1,
+      "audioChannels": 1,
+      "container": "mov,mp4,m4a,3gp,3g2,mj2",
+      "mime_type": "video/mp4",
+      "bytes": 2811760,
+      "rotation": 0,
+      "rawFrameRate": "30/1"
+    },
+    "cuts": [],
+    "sourceSha256": "53de1e48bb02b3fa7d086154f374e7f4ca38a346c2305038bc2b211c29d5716a",
+    "outputSha256": "56c9a8100cd7dbeb3ac36dd1d63acd3c3f254f375b9b51469df192cb8600a900",
+    "fullDecode": true,
+    "transcriptionConfirmed": false,
+    "nativeVerticalSpeechTest": true,
+    "graphicEvents": 4,
+    "originalAudio": {
+      "modelId": "cinematic-storytelling-v7",
+      "entireDecodedAudioIdentical": true,
+      "sourcePcmSha256": "0f9a529d9115cb1ec7f5cfa926772155879ce8f441438b2ba40572c8a3597d2c",
+      "outputPcmSha256": "0f9a529d9115cb1ec7f5cfa926772155879ce8f441438b2ba40572c8a3597d2c",
+      "sourceSamples": 1302919,
+      "outputSamples": 1302919
+    },
+    "previewAndAuthenticatedDownload": {
+      "modelId": "cinematic-storytelling-v7",
+      "time": 0.290785,
+      "width": 512,
+      "height": 910,
+      "frames": 14,
+      "error": null,
+      "authenticatedDownloadSha256": "56c9a8100cd7dbeb3ac36dd1d63acd3c3f254f375b9b51469df192cb8600a900",
+      "physicalSafari": false
+    },
+    "cameraSamples": [
+      {
+        "outputSeconds": 18,
+        "bestOffsetMs": 0,
+        "meanLumaError": 1.8315625,
+        "withinOneFrame": true
+      },
+      {
+        "outputSeconds": 23,
+        "bestOffsetMs": 0,
+        "meanLumaError": 1.8319791666666667,
+        "withinOneFrame": true
+      },
+      {
+        "outputSeconds": 25,
+        "bestOffsetMs": 0,
+        "meanLumaError": 2.0920833333333335,
+        "withinOneFrame": true
+      }
+    ],
+    "uncertainNewAsrEntries": 5,
+    "phoneticAlignmentCertified": false,
+    "soundEffectsAdded": false,
+    "score": 50,
+    "scoreBreakdown": {
+      "transcription": {
+        "earned": 0,
+        "max": 25
+      },
+      "word_sync": {
+        "earned": 10,
+        "max": 20
+      },
+      "transitions": {
+        "earned": 10,
+        "max": 15
+      },
+      "graphics": {
+        "earned": 10,
+        "max": 15
+      },
+      "original_audio": {
+        "earned": 10,
+        "max": 10
+      },
+      "cuts": {
+        "earned": 5,
+        "max": 10
+      },
+      "autonomy": {
+        "earned": 5,
+        "max": 5
+      }
+    },
+    "scoreScope": "Points de validation cumulés avec les preuves horizontales V2 antérieures ; pas un taux mesuré de qualité ni une certification artistique.",
+    "remainingDefects": [
+      "Quatre scènes dérivées du nouveau rush par le planificateur autonome effectivement utilisé dans la route web ; pas de timings V6.",
+      "Les sous-titres ne disparaissent plus pendant les scènes ; direction graphique de référence non entièrement reproduite (échantillons master avec texte superposé à la caméra versus scènes plein écran).",
+      "Validation phonétique manquante ; aucune des 19 anciennes entrées confirmée automatiquement."
+    ],
+    "commercialApproved": false
+  }
+]

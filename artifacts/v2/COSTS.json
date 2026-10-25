@@ -1,0 +1,65 @@
+{
+  "externalPaidCalls": 0,
+  "activatedServices": [],
+  "measurements": [
+    {
+      "modelId": "codie-omni-v60",
+      "fullValidationWallSeconds": 14.638810665000001,
+      "outputBytes": 5738388,
+      "sourceSeconds": 47.1,
+      "reusedExistingOutput": false
+    },
+    {
+      "modelId": "alex-hormozi-v16",
+      "fullValidationWallSeconds": 16.836085301,
+      "outputBytes": 5001197,
+      "sourceSeconds": 47.1,
+      "reusedExistingOutput": false
+    },
+    {
+      "modelId": "leila-hormozi-v53",
+      "fullValidationWallSeconds": 16.244203937,
+      "outputBytes": 5639692,
+      "sourceSeconds": 47.1,
+      "reusedExistingOutput": false
+    },
+    {
+      "modelId": "social-kinetic-v28",
+      "fullValidationWallSeconds": 46.954055235,
+      "outputBytes": 5790196,
+      "sourceSeconds": 47.1,
+      "reusedExistingOutput": false
+    },
+    {
+      "modelId": "apple-premium-spatial",
+      "fullValidationWallSeconds": 30.31087212,
+      "outputBytes": 5703759,
+      "sourceSeconds": 47.1,
+      "reusedExistingOutput": false
+    },
+    {
+      "modelId": "cinematic-storytelling-v7",
+      "fullValidationWallSeconds": null,
+      "outputBytes": 5354883,
+      "sourceSeconds": 47.1,
+      "reusedExistingOutput": true
+    }
+  ],
+  "meaning": "Temps du cycle rendu + contrôles locaux, pas des secondes CPU facturables. Cinematic réutilisé n’a pas de nouveau temps de rendu.",
+  "costPerUserEuros": null,
+  "costPerRenderEuros": null,
+  "missingForCostCalculation": [
+    "coût machine/hébergement choisi",
+    "consommation électrique mesurée",
+    "prix énergie réel",
+    "volume et durée de conservation réels",
+    "concurrence attendue"
+  ],
+  "limits": {
+    "concurrentRenderWorkers": 1,
+    "maxSourceUploadBytes": 209715200,
+    "logicalStorageBytesPerUser": 1073741824,
+    "initialTreatmentsPerDayPerUser": 10,
+    "automaticRecoveryAttempts": 1
+  }
+}

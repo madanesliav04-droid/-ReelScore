@@ -1,0 +1,154 @@
+[
+  {
+    "index": 0,
+    "sourceStartSeconds": 0.0,
+    "sourceEndSeconds": 0.72,
+    "existingAudioClipSha256": "9bdca14d93ec0851a4ed6a5ed50c9a4b1548dd5a7ea184e358b1ed579eb66751",
+    "status": "pending_human_review",
+    "automaticallyConfirmed": false
+  },
+  {
+    "index": 1,
+    "sourceStartSeconds": 0.72,
+    "sourceEndSeconds": 0.74,
+    "existingAudioClipSha256": "16beb2ecc563bbc5613b69750874ea6338f07816a3870c6cd39b632cd17f7364",
+    "status": "pending_human_review",
+    "automaticallyConfirmed": false
+  },
+  {
+    "index": 2,
+    "sourceStartSeconds": 0.74,
+    "sourceEndSeconds": 0.96,
+    "existingAudioClipSha256": "be9d6c1d47d2ce6d6e808093f34428de7f16f000c6dc11afd637c51d5347892f",
+    "status": "pending_human_review",
+    "automaticallyConfirmed": false
+  },
+  {
+    "index": 5,
+    "sourceStartSeconds": 1.82,
+    "sourceEndSeconds": 1.92,
+    "existingAudioClipSha256": "03e9281761f57d8218ea54cba62bef37c0a29dc197eddb9200c5292fab92a1cd",
+    "status": "pending_human_review",
+    "automaticallyConfirmed": false
+  },
+  {
+    "index": 6,
+    "sourceStartSeconds": 1.92,
+    "sourceEndSeconds": 2.0,
+    "existingAudioClipSha256": "680e28439a58c5f60d2dabd0ad86eb22c731913a8dc35407f34f7b60051ddbe6",
+    "status": "pending_human_review",
+    "automaticallyConfirmed": false
+  },
+  {
+    "index": 13,
+    "sourceStartSeconds": 3.72,
+    "sourceEndSeconds": 4.06,
+    "existingAudioClipSha256": "146dfdb3c303557a120558deeef7a0bead9c94d8605a25e4ef2797855eb9bbb0",
+    "status": "pending_human_review",
+    "automaticallyConfirmed": false
+  },
+  {
+    "index": 19,
+    "sourceStartSeconds": 5.8,
+    "sourceEndSeconds": 5.9,
+    "existingAudioClipSha256": "a25cc44ef26381c1cb4c281c3b3a8f9c17764988007470a8e49af4d20e03046a",
+    "status": "pending_human_review",
+    "automaticallyConfirmed": false
+  },
+  {
+    "index": 36,
+    "sourceStartSeconds": 11.82,
+    "sourceEndSeconds": 11.88,
+    "existingAudioClipSha256": "1d593d49e78d19718dfde3a300ad95d46cfa91d464333cab72b45a65f916de29",
+    "status": "pending_human_review",
+    "automaticallyConfirmed": false
+  },
+  {
+    "index": 50,
+    "sourceStartSeconds": 16.46,
+    "sourceEndSeconds": 16.98,
+    "existingAudioClipSha256": "d20234e1232447d21e27a15ba378c69611e4f201e2bd6f03a22bd3906b775173",
+    "status": "pending_human_review",
+    "automaticallyConfirmed": false
+  },
+  {
+    "index": 55,
+    "sourceStartSeconds": 18.0,
+    "sourceEndSeconds": 18.7,
+    "existingAudioClipSha256": "1630ad1a272cf797503067533ea707fb312ce54730acbad92d902477a792b1b5",
+    "status": "pending_human_review",
+    "automaticallyConfirmed": false
+  },
+  {
+    "index": 69,
+    "sourceStartSeconds": 23.28,
+    "sourceEndSeconds": 23.42,
+    "existingAudioClipSha256": "1015649b3bdfd674f70879586adeefdfde072e333db3037dc16cec326c69b770",
+    "status": "pending_human_review",
+    "automaticallyConfirmed": false
+  },
+  {
+    "index": 71,
+    "sourceStartSeconds": 24.365,
+    "sourceEndSeconds": 24.64,
+    "existingAudioClipSha256": "cb799fabcd8a29ff75448475ebd27d7e56350c8bbcb1af044f413aeb253e33ca",
+    "status": "pending_human_review",
+    "automaticallyConfirmed": false
+  },
+  {
+    "index": 81,
+    "sourceStartSeconds": 27.4,
+    "sourceEndSeconds": 27.54,
+    "existingAudioClipSha256": "9545bcc22f4fa05c045fea809975260c60de2feb60b25982800beef55e9e0d7e",
+    "status": "pending_human_review",
+    "automaticallyConfirmed": false
+  },
+  {
+    "index": 84,
+    "sourceStartSeconds": 27.82,
+    "sourceEndSeconds": 28.2,
+    "existingAudioClipSha256": "0e41cdd1c2e8c5a370a430f8ea228c0416cd94a8eaab234ac06453775cbfe170",
+    "status": "pending_human_review",
+    "automaticallyConfirmed": false
+  },
+  {
+    "index": 111,
+    "sourceStartSeconds": 36.1,
+    "sourceEndSeconds": 36.5,
+    "existingAudioClipSha256": "5401453f58266fac3bc05ebe435b81d649ffd4c5eea077f24c8e91ced9c30830",
+    "status": "pending_human_review",
+    "automaticallyConfirmed": false
+  },
+  {
+    "index": 117,
+    "sourceStartSeconds": 38.44,
+    "sourceEndSeconds": 38.54,
+    "existingAudioClipSha256": "220000853ad673aadc753ae15a8408577b361453949b751c338dc17bba097422",
+    "status": "pending_human_review",
+    "automaticallyConfirmed": false
+  },
+  {
+    "index": 132,
+    "sourceStartSeconds": 41.12,
+    "sourceEndSeconds": 41.24,
+    "existingAudioClipSha256": "0d8b79e3edf45e4f93d0d32603c5ac0f3e64227b2c4c48380c73ceb0dfdec24c",
+    "status": "pending_human_review",
+    "automaticallyConfirmed": false
+  },
+  {
+    "index": 143,
+    "sourceStartSeconds": 44.06,
+    "sourceEndSeconds": 44.34,
+    "existingAudioClipSha256": "e78aea8240788871d313fc248d314451ff0764defe7c9db3ae3baa82deaa0569",
+    "status": "pending_human_review",
+    "automaticallyConfirmed": false
+  },
+  {
+    "index": 151,
+    "sourceStartSeconds": 45.78,
+    "sourceEndSeconds": 46.02,
+    "existingAudioClipSha256": "75553cc847329b08fcf8d8b437ee120f1152880fa4cd65a0e408684b107ac6ad",
+    "status": "pending_human_review",
+    "automaticallyConfirmed": false
+  }
+]

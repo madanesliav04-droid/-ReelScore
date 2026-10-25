@@ -10,3 +10,19 @@ test('automatic graphic drafts quote source words and pass each of the six model
  }
  assert.deepEqual(draftModelEvents('codie-omni-v60',transcript.slice(0,5)),[]);
 });
+
+test('Codie recognises spoken argent after an apostrophe without changing the supplied words',()=>{
+ const words=[{text:"l’argent",startMs:100,endMs:500},{text:'ensuite',startMs:2600,endMs:3000}];
+ const events=draftModelEvents('codie-omni-v60',words);
+ assert.equal(events[0].kind,'euro');assert.equal(events[0].wordIndex,0);assert.equal(words[0].text,'l’argent');
+});
+
+test('portrait drafts keep readable graphic regions above the portrait subject, with explicit review still required',()=>{
+ const meta={width:512,height:910,durationMs:8000,hasAudio:true};
+ for(const model of ['leila-hormozi-v53','social-kinetic-v28','codie-omni-v60']){
+  const events=draftModelEvents(model,transcript,'left',meta);
+  assert.ok(events.every(e=>e.rect[2]===.84&&e.rect[1]+e.rect[3]<.27));
+  assert.throws(()=>restoredPlan(model,meta,{transcript,events,allowUnreviewedPreview:true}));
+  restoredPlan(model,meta,{transcript,events,placementReviewed:true,allowUnreviewedPreview:true});
+ }
+});

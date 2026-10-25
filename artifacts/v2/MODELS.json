@@ -1,0 +1,566 @@
+[
+  {
+    "modelId": "codie-omni-v60",
+    "technicalStatus": "mp4_exported_and_decoded",
+    "preview": {
+      "modelId": "codie-omni-v60",
+      "time": 0.300072,
+      "width": 910,
+      "height": 512,
+      "frames": 14,
+      "error": null,
+      "physicalSafari": false
+    },
+    "nativeFormat": [
+      910,
+      512
+    ],
+    "audioStreams": 1,
+    "durationMs": 45637,
+    "outputBytes": 5738388,
+    "cuts": [
+      {
+        "id": "pause-0",
+        "startMs": 8187,
+        "endMs": 9640
+      }
+    ],
+    "audioCorrelations": [
+      0.9997653451902947,
+      0.9995904575970637
+    ],
+    "cameraSamples": [
+      {
+        "outputSeconds": 37,
+        "bestOffsetMs": 0,
+        "meanLumaError": 1.8555208333333333,
+        "withinOneFrame": true
+      },
+      {
+        "outputSeconds": 41.5,
+        "bestOffsetMs": 0,
+        "meanLumaError": 1.9183333333333332,
+        "withinOneFrame": true
+      },
+      {
+        "outputSeconds": 43.5,
+        "bestOffsetMs": 0,
+        "meanLumaError": 1.8686458333333333,
+        "withinOneFrame": true
+      }
+    ],
+    "reusedCinematic": false,
+    "sourceSha256": "1a792344069c4fa698c7a1cb1682f7b11dea46b6854479546057c0a897470a67",
+    "outputSha256": "c885e6180aa5de80e741d559528bd675d5d89b02479d7c379014c51c69c4181b",
+    "initialUncertainEntries": 19,
+    "transcriptionConfirmed": false,
+    "nativeVerticalSpeechTest": false,
+    "commercialApproved": false,
+    "score": 45,
+    "scoreBreakdown": {
+      "transcription": {
+        "earned": 0,
+        "max": 25
+      },
+      "word_sync": {
+        "earned": 10,
+        "max": 20
+      },
+      "transitions": {
+        "earned": 5,
+        "max": 15
+      },
+      "graphics": {
+        "earned": 10,
+        "max": 15
+      },
+      "original_audio": {
+        "earned": 10,
+        "max": 10
+      },
+      "cuts": {
+        "earned": 5,
+        "max": 10
+      },
+      "autonomy": {
+        "earned": 5,
+        "max": 5
+      }
+    },
+    "remainingDefects": [
+      "Icônes déclenchées sur les mots du rush ; la chaîne visuelle complète V60 n’est pas certifiée.",
+      "Écarts d’habillage et de rythme visuel possibles face aux échantillons du master ; pas de B-roll ajouté."
+    ],
+    "scoreMeaning": "Points de validation acquis, pas un pourcentage de mots corrects ni une note de fidélité globale. Lecture phonétique et animation complète restent non validées."
+  },
+  {
+    "modelId": "alex-hormozi-v16",
+    "technicalStatus": "mp4_exported_and_decoded",
+    "preview": {
+      "modelId": "alex-hormozi-v16",
+      "time": 0.281822,
+      "width": 910,
+      "height": 512,
+      "frames": 13,
+      "error": null,
+      "physicalSafari": false
+    },
+    "nativeFormat": [
+      910,
+      512
+    ],
+    "audioStreams": 1,
+    "durationMs": 45637,
+    "outputBytes": 5001197,
+    "cuts": [
+      {
+        "id": "pause-0",
+        "startMs": 8187,
+        "endMs": 9640
+      }
+    ],
+    "audioCorrelations": [
+      0.9997653451902947,
+      0.9995904575856469
+    ],
+    "cameraSamples": [
+      {
+        "outputSeconds": 37,
+        "bestOffsetMs": 0,
+        "meanLumaError": 1.850625,
+        "withinOneFrame": true
+      },
+      {
+        "outputSeconds": 41.5,
+        "bestOffsetMs": 0,
+        "meanLumaError": 1.8502083333333332,
+        "withinOneFrame": true
+      },
+      {
+        "outputSeconds": 43.5,
+        "bestOffsetMs": 0,
+        "meanLumaError": 1.8988541666666667,
+        "withinOneFrame": true
+      }
+    ],
+    "reusedCinematic": false,
+    "sourceSha256": "1a792344069c4fa698c7a1cb1682f7b11dea46b6854479546057c0a897470a67",
+    "outputSha256": "c2b407493659014d6a58fc4414aa96ebc1078c3f95e67c1528fc22a70f11f803",
+    "initialUncertainEntries": 19,
+    "transcriptionConfirmed": false,
+    "nativeVerticalSpeechTest": false,
+    "commercialApproved": false,
+    "score": 45,
+    "scoreBreakdown": {
+      "transcription": {
+        "earned": 0,
+        "max": 25
+      },
+      "word_sync": {
+        "earned": 10,
+        "max": 20
+      },
+      "transitions": {
+        "earned": 5,
+        "max": 15
+      },
+      "graphics": {
+        "earned": 10,
+        "max": 15
+      },
+      "original_audio": {
+        "earned": 10,
+        "max": 10
+      },
+      "cuts": {
+        "earned": 5,
+        "max": 10
+      },
+      "autonomy": {
+        "earned": 5,
+        "max": 5
+      }
+    },
+    "remainingDefects": [
+      "Les compositions échantillonnées reprennent fond clair et formes, mais les titres/détails issus de mots isolés ne prouvent pas une narration explicative équivalente au master.",
+      "La composition doit être inspectée sur toute sa durée, pas seulement au début des scènes."
+    ],
+    "scoreMeaning": "Points de validation acquis, pas un pourcentage de mots corrects ni une note de fidélité globale. Lecture phonétique et animation complète restent non validées."
+  },
+  {
+    "modelId": "leila-hormozi-v53",
+    "technicalStatus": "mp4_exported_and_decoded",
+    "preview": {
+      "modelId": "leila-hormozi-v53",
+      "time": 0.278321,
+      "width": 910,
+      "height": 512,
+      "frames": 13,
+      "error": null,
+      "physicalSafari": false
+    },
+    "nativeFormat": [
+      910,
+      512
+    ],
+    "audioStreams": 1,
+    "durationMs": 45637,
+    "outputBytes": 5639692,
+    "cuts": [
+      {
+        "id": "pause-0",
+        "startMs": 8187,
+        "endMs": 9640
+      }
+    ],
+    "audioCorrelations": [
+      0.9997653451902947,
+      0.9995904575970637
+    ],
+    "cameraSamples": [
+      {
+        "outputSeconds": 37,
+        "bestOffsetMs": 0,
+        "meanLumaError": 1.8640625,
+        "withinOneFrame": true
+      },
+      {
+        "outputSeconds": 41.5,
+        "bestOffsetMs": 0,
+        "meanLumaError": 1.9210416666666668,
+        "withinOneFrame": true
+      },
+      {
+        "outputSeconds": 43.5,
+        "bestOffsetMs": 0,
+        "meanLumaError": 1.911875,
+        "withinOneFrame": true
+      }
+    ],
+    "reusedCinematic": false,
+    "sourceSha256": "1a792344069c4fa698c7a1cb1682f7b11dea46b6854479546057c0a897470a67",
+    "outputSha256": "db84832f97892f2436c4ea526c9c56c011ca5ccccdb5308bd9a177fc9c50540f",
+    "initialUncertainEntries": 19,
+    "transcriptionConfirmed": false,
+    "nativeVerticalSpeechTest": false,
+    "commercialApproved": false,
+    "score": 40,
+    "scoreBreakdown": {
+      "transcription": {
+        "earned": 0,
+        "max": 25
+      },
+      "word_sync": {
+        "earned": 10,
+        "max": 20
+      },
+      "transitions": {
+        "earned": 5,
+        "max": 15
+      },
+      "graphics": {
+        "earned": 5,
+        "max": 15
+      },
+      "original_audio": {
+        "earned": 10,
+        "max": 10
+      },
+      "cuts": {
+        "earned": 5,
+        "max": 10
+      },
+      "autonomy": {
+        "earned": 5,
+        "max": 5
+      }
+    },
+    "remainingDefects": [
+      "Sur un échantillon, une main occupe la zone murale choisie ; l’ancrage statique ne garantit pas la lisibilité pendant les gestes.",
+      "Les groupes de mots et la hiérarchie doivent être validés sur tout le rendu."
+    ],
+    "scoreMeaning": "Points de validation acquis, pas un pourcentage de mots corrects ni une note de fidélité globale. Lecture phonétique et animation complète restent non validées."
+  },
+  {
+    "modelId": "social-kinetic-v28",
+    "technicalStatus": "mp4_exported_and_decoded",
+    "preview": {
+      "modelId": "social-kinetic-v28",
+      "time": 0.269154,
+      "width": 910,
+      "height": 512,
+      "frames": 13,
+      "error": null,
+      "physicalSafari": false
+    },
+    "nativeFormat": [
+      910,
+      512
+    ],
+    "audioStreams": 1,
+    "durationMs": 45637,
+    "outputBytes": 5790196,
+    "cuts": [
+      {
+        "id": "pause-0",
+        "startMs": 8187,
+        "endMs": 9640
+      }
+    ],
+    "audioCorrelations": [
+      0.9997653451902947,
+      0.9995904575970637
+    ],
+    "cameraSamples": [
+      {
+        "outputSeconds": 37,
+        "bestOffsetMs": 0,
+        "meanLumaError": 1.836875,
+        "withinOneFrame": true
+      },
+      {
+        "outputSeconds": 41.5,
+        "bestOffsetMs": 0,
+        "meanLumaError": 1.9383333333333332,
+        "withinOneFrame": true
+      },
+      {
+        "outputSeconds": 43.5,
+        "bestOffsetMs": 0,
+        "meanLumaError": 1.8751041666666666,
+        "withinOneFrame": true
+      }
+    ],
+    "reusedCinematic": false,
+    "sourceSha256": "1a792344069c4fa698c7a1cb1682f7b11dea46b6854479546057c0a897470a67",
+    "outputSha256": "3c0d793407489fcaf28287ee721d370cd9406f3defc2d7e847c3b0bbbe6ef89a",
+    "initialUncertainEntries": 19,
+    "transcriptionConfirmed": false,
+    "nativeVerticalSpeechTest": false,
+    "commercialApproved": false,
+    "score": 40,
+    "scoreBreakdown": {
+      "transcription": {
+        "earned": 0,
+        "max": 25
+      },
+      "word_sync": {
+        "earned": 10,
+        "max": 20
+      },
+      "transitions": {
+        "earned": 5,
+        "max": 15
+      },
+      "graphics": {
+        "earned": 5,
+        "max": 15
+      },
+      "original_audio": {
+        "earned": 10,
+        "max": 10
+      },
+      "cuts": {
+        "earned": 5,
+        "max": 10
+      },
+      "autonomy": {
+        "earned": 5,
+        "max": 5
+      }
+    },
+    "remainingDefects": [
+      "Les échantillons de référence montrent des phrases latérales ; le preset testé affiche aussi des bulles courtes et une ligne basse. Équivalence complète non démontrée.",
+      "La zone proposée peut être occupée par une main ; pas de suivi automatique du sujet."
+    ],
+    "scoreMeaning": "Points de validation acquis, pas un pourcentage de mots corrects ni une note de fidélité globale. Lecture phonétique et animation complète restent non validées."
+  },
+  {
+    "modelId": "apple-premium-spatial",
+    "technicalStatus": "mp4_exported_and_decoded",
+    "preview": {
+      "modelId": "apple-premium-spatial",
+      "time": 0.290478,
+      "width": 910,
+      "height": 512,
+      "frames": 14,
+      "error": null,
+      "physicalSafari": false
+    },
+    "nativeFormat": [
+      910,
+      512
+    ],
+    "audioStreams": 1,
+    "durationMs": 45637,
+    "outputBytes": 5703759,
+    "cuts": [
+      {
+        "id": "pause-0",
+        "startMs": 8187,
+        "endMs": 9640
+      }
+    ],
+    "audioCorrelations": [
+      0.9997653451902947,
+      0.9995904575970637
+    ],
+    "cameraSamples": [
+      {
+        "outputSeconds": 37,
+        "bestOffsetMs": 0,
+        "meanLumaError": 1.3847916666666666,
+        "withinOneFrame": true
+      },
+      {
+        "outputSeconds": 41.5,
+        "bestOffsetMs": 0,
+        "meanLumaError": 1.5977083333333333,
+        "withinOneFrame": true
+      },
+      {
+        "outputSeconds": 43.5,
+        "bestOffsetMs": 0,
+        "meanLumaError": 1.45,
+        "withinOneFrame": true
+      }
+    ],
+    "reusedCinematic": false,
+    "sourceSha256": "1a792344069c4fa698c7a1cb1682f7b11dea46b6854479546057c0a897470a67",
+    "outputSha256": "5cbbabd332c3e6a8cce5216906b1b9e2f0974b1f482cf3509ab1acfd0b6875fc",
+    "initialUncertainEntries": 19,
+    "transcriptionConfirmed": false,
+    "nativeVerticalSpeechTest": false,
+    "commercialApproved": false,
+    "score": 40,
+    "scoreBreakdown": {
+      "transcription": {
+        "earned": 0,
+        "max": 25
+      },
+      "word_sync": {
+        "earned": 10,
+        "max": 20
+      },
+      "transitions": {
+        "earned": 5,
+        "max": 15
+      },
+      "graphics": {
+        "earned": 5,
+        "max": 15
+      },
+      "original_audio": {
+        "earned": 10,
+        "max": 10
+      },
+      "cuts": {
+        "earned": 5,
+        "max": 10
+      },
+      "autonomy": {
+        "earned": 5,
+        "max": 5
+      }
+    },
+    "remainingDefects": [
+      "Le preset testé utilise trois séquences focus plein écran ; les échantillons du master inspectés montrent des éléments muraux plus discrets.",
+      "Le flou/focus et la hiérarchie sont techniquement présents, mais la fidélité de leur usage narratif n’est pas certifiée."
+    ],
+    "scoreMeaning": "Points de validation acquis, pas un pourcentage de mots corrects ni une note de fidélité globale. Lecture phonétique et animation complète restent non validées."
+  },
+  {
+    "modelId": "cinematic-storytelling-v7",
+    "technicalStatus": "mp4_exported_and_decoded",
+    "preview": {
+      "modelId": "cinematic-storytelling-v7",
+      "time": 0.284061,
+      "width": 910,
+      "height": 512,
+      "frames": 13,
+      "error": null,
+      "physicalSafari": false
+    },
+    "nativeFormat": [
+      910,
+      512
+    ],
+    "audioStreams": 1,
+    "durationMs": 45637,
+    "outputBytes": 5354883,
+    "cuts": [
+      {
+        "id": "pause-0",
+        "startMs": 8187,
+        "endMs": 9640
+      }
+    ],
+    "audioCorrelations": [
+      0.9997653451902947,
+      0.9995904574900993
+    ],
+    "cameraSamples": [
+      {
+        "outputSeconds": 37,
+        "bestOffsetMs": 0,
+        "meanLumaError": 1.8214583333333334,
+        "withinOneFrame": true
+      },
+      {
+        "outputSeconds": 41.5,
+        "bestOffsetMs": 0,
+        "meanLumaError": 1.8140625,
+        "withinOneFrame": true
+      },
+      {
+        "outputSeconds": 43.5,
+        "bestOffsetMs": 0,
+        "meanLumaError": 1.9575,
+        "withinOneFrame": true
+      }
+    ],
+    "reusedCinematic": true,
+    "sourceSha256": "1a792344069c4fa698c7a1cb1682f7b11dea46b6854479546057c0a897470a67",
+    "outputSha256": "8d7b2bfd55d43fea1c8c01808cddd2f18abc4f8047d00e090746a3562ccd6d72",
+    "initialUncertainEntries": 19,
+    "transcriptionConfirmed": false,
+    "nativeVerticalSpeechTest": false,
+    "commercialApproved": false,
+    "score": 50,
+    "scoreBreakdown": {
+      "transcription": {
+        "earned": 0,
+        "max": 25
+      },
+      "word_sync": {
+        "earned": 10,
+        "max": 20
+      },
+      "transitions": {
+        "earned": 10,
+        "max": 15
+      },
+      "graphics": {
+        "earned": 10,
+        "max": 15
+      },
+      "original_audio": {
+        "earned": 10,
+        "max": 10
+      },
+      "cuts": {
+        "earned": 5,
+        "max": 10
+      },
+      "autonomy": {
+        "earned": 5,
+        "max": 5
+      }
+    },
+    "remainingDefects": [
+      "MP4 existant inchangé, quatre séquences graphiques et aucune nouvelle inférence phonétique.",
+      "19 entrées initiales et quatre groupes fusionnés restent à confirmer ; les deux désaccords supplémentaires antérieurs ne sont pas des corrections prouvées."
+    ],
+    "scoreMeaning": "Points de validation acquis, pas un pourcentage de mots corrects ni une note de fidélité globale. Lecture phonétique et animation complète restent non validées."
+  }
+]

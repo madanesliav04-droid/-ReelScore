@@ -7,6 +7,13 @@ import {once} from 'node:events';
 import {socialKineticV28Html} from '../../worker/src/social-kinetic-v28-engine.js';
 const require=createRequire(import.meta.url);
 
+// Adapt only the integration sizing; original V28 compositor remains intact.
+export function kineticPortraitStyles({width,height}){
+ if(height<=width)return '';
+ const font=Math.max(22,Math.round(width*.047));
+ return `.caption .inner{font-size:${font}px}.bubble .inner{font-size:${font}px;width:fit-content;max-width:100%;box-sizing:border-box}`;
+}
+
 // Reuses the V28 HTML/GSAP compositor, entirely offline. The caller supplies
 // reviewed text and rectangles; no independent tracking evidence is invented.
 export async function captureKinetic(plan,outputPath,{signal}={}){
@@ -18,7 +25,7 @@ export async function captureKinetic(plan,outputPath,{signal}={}){
    .replace(/<script src="https:[^"]+"><\/script>/,()=>'<script>'+gsap.replace(/<\/script/gi,'<\\/script')+'</script>');
  const fontAliases=['Inter-SemiBold.otf','Inter-Medium.otf','Inter-ExtraBold.otf'];
  const embedded=await Promise.all(fontAliases.map(async alias=>{const f=renderFont(alias);return `@font-face{font-family:"${f.family}";src:url(data:font/ttf;base64,${(await readFile(f.path)).toString('base64')})}`;}));
- html=html.replace('</style>',embedded.join('')+`.caption .inner{font-family:"${renderFont(fontAliases[0]).family}"}.bubble .inner{font-family:"${renderFont(fontAliases[1]).family}"}.hero .inner{font-family:"${renderFont(fontAliases[2]).family}"}</style>`);
+ html=html.replace('</style>',embedded.join('')+`.caption .inner{font-family:"${renderFont(fontAliases[0]).family}"}.bubble .inner{font-family:"${renderFont(fontAliases[1]).family}"}.hero .inner{font-family:"${renderFont(fontAliases[2]).family}"}`+kineticPortraitStyles(plan)+'</style>');
  const browser=await chromium.launch({headless:true,...(process.env.SOCIALPLUS_CHROMIUM?{executablePath:process.env.SOCIALPLUS_CHROMIUM}:process.platform==='linux'?{executablePath:'/usr/bin/chromium'}:{}),args:['--disable-dev-shm-usage']});
  const frameDir=outputPath+'.frames';await mkdir(frameDir,{recursive:true});
  let child,stderr='',processError;

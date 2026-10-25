@@ -1,0 +1,164 @@
+[
+  {
+    "modelId": "cinematic-storytelling-v7",
+    "streamingFastStart": true,
+    "media": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "profile": "High",
+          "codec_type": "video",
+          "width": 512,
+          "height": 910,
+          "pix_fmt": "yuv420p",
+          "level": 31
+        },
+        {
+          "codec_name": "aac",
+          "profile": "LC",
+          "codec_type": "audio"
+        }
+      ],
+      "format": {
+        "duration": "27.166667"
+      }
+    }
+  },
+  {
+    "modelId": "alex-hormozi-v16",
+    "streamingFastStart": true,
+    "media": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "profile": "High",
+          "codec_type": "video",
+          "width": 512,
+          "height": 910,
+          "pix_fmt": "yuv420p",
+          "level": 31
+        },
+        {
+          "codec_name": "aac",
+          "profile": "LC",
+          "codec_type": "audio"
+        }
+      ],
+      "format": {
+        "duration": "27.166667"
+      }
+    }
+  },
+  {
+    "modelId": "social-kinetic-v28",
+    "streamingFastStart": true,
+    "media": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "profile": "High",
+          "codec_type": "video",
+          "width": 512,
+          "height": 910,
+          "pix_fmt": "yuv420p",
+          "level": 31
+        },
+        {
+          "codec_name": "aac",
+          "profile": "LC",
+          "codec_type": "audio"
+        }
+      ],
+      "format": {
+        "duration": "27.166667"
+      }
+    }
+  },
+  {
+    "modelId": "codie-omni-v60",
+    "streamingFastStart": true,
+    "media": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "profile": "High",
+          "codec_type": "video",
+          "width": 512,
+          "height": 910,
+          "pix_fmt": "yuv420p",
+          "level": 31
+        },
+        {
+          "codec_name": "aac",
+          "profile": "LC",
+          "codec_type": "audio"
+        }
+      ],
+      "format": {
+        "duration": "27.166667"
+      }
+    }
+  },
+  {
+    "modelId": "leila-hormozi-v53",
+    "streamingFastStart": true,
+    "media": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "profile": "High",
+          "codec_type": "video",
+          "width": 512,
+          "height": 910,
+          "pix_fmt": "yuv420p",
+          "level": 31
+        },
+        {
+          "codec_name": "aac",
+          "profile": "LC",
+          "codec_type": "audio"
+        }
+      ],
+      "format": {
+        "duration": "27.166667"
+      }
+    }
+  },
+  {
+    "modelId": "apple-premium-spatial",
+    "streamingFastStart": true,
+    "media": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "profile": "High",
+          "codec_type": "video",
+          "width": 512,
+          "height": 910,
+          "pix_fmt": "yuv420p",
+          "level": 31
+        },
+        {
+          "codec_name": "aac",
+          "profile": "LC",
+          "codec_type": "audio"
+        }
+      ],
+      "format": {
+        "duration": "27.166667"
+      }
+    }
+  }
+]

@@ -1,0 +1,487 @@
+[
+  {
+    "path": "apps/socialplus/CONFIGURER-PAREFEU.ps1",
+    "bytes": 1040,
+    "sha256": "7d6e04444598d06f9ea210a5ae729432deaf8677ba833b738ed6ef7a1830f5b2"
+  },
+  {
+    "path": "apps/socialplus/Dockerfile",
+    "bytes": 1299,
+    "sha256": "aeff6bcbb63dcc8d6459cf2336ef58ba61c08fff47ba085e851abbd00e633447"
+  },
+  {
+    "path": "apps/socialplus/DEMARRER-SOCIALPLUS.cmd",
+    "bytes": 77,
+    "sha256": "b317fc2960a31f5772497ffe2feafbb9eaf49165e9790af98162929c28b618d2"
+  },
+  {
+    "path": "apps/socialplus/package.json",
+    "bytes": 476,
+    "sha256": "7f4fa8c76fb9147a61adf5e6fd8ac5a9d7a17d6ba2eda0e56ef3418c828fc068"
+  },
+  {
+    "path": "apps/socialplus/package-lock.json",
+    "bytes": 1065,
+    "sha256": "82cd1c61208a766ce9b426a28be94dfede4709380341316e5b83b2d26230e39d"
+  },
+  {
+    "path": "apps/socialplus/compose.yaml",
+    "bytes": 500,
+    "sha256": "ff18addac8f2fb6cdc360f3a7344a8981003a94a58071ae13363cef53b076956"
+  },
+  {
+    "path": "apps/socialplus/INSTALLER-SOCIALPLUS.ps1",
+    "bytes": 4835,
+    "sha256": "5f014b9731bb08f40ebeefd44b8d18a20c650f34b066cccc471d8503ccbdd847"
+  },
+  {
+    "path": "apps/socialplus/public/app.css",
+    "bytes": 20529,
+    "sha256": "15dd40e75a306c7fd558f8a89d77759746c8f53e8bd94fda697f3943430c4de6"
+  },
+  {
+    "path": "apps/socialplus/public/model-events.js",
+    "bytes": 2183,
+    "sha256": "709ea83d950a03f80fe46b3f4b091b1199f2c02907d3cc95ac3a10376eeeb954"
+  },
+  {
+    "path": "apps/socialplus/public/fingerprint.js",
+    "bytes": 3938,
+    "sha256": "b2caf04a4536287a6b7ed5c8abcec3df1e5c71f8d68486ce3187276b7a12ee58"
+  },
+  {
+    "path": "apps/socialplus/public/index.html",
+    "bytes": 1703,
+    "sha256": "46251680034091f6469a10b63494dd869456b1c40704845c05a58c65bad0b82c"
+  },
+  {
+    "path": "apps/socialplus/public/app.js",
+    "bytes": 99938,
+    "sha256": "995080725246881b2c3b2d0bb1ff7459fac02c3b0969f79da2c3e9c8de766454"
+  },
+  {
+    "path": "apps/socialplus/server/integration.test.mjs",
+    "bytes": 4752,
+    "sha256": "9c669a5d0984bdcbfdb2f013a9d71ae1832ab4bedbe1d59f3d31af47b934568d"
+  },
+  {
+    "path": "apps/socialplus/server/strategy.test.mjs",
+    "bytes": 17340,
+    "sha256": "e79c3da86912865820ca97d02faa42b76d0085a80210ece1dcd4f11c57966974"
+  },
+  {
+    "path": "apps/socialplus/server/projects.mjs",
+    "bytes": 21069,
+    "sha256": "7564738198a248b971eb8a33dc7dab506eeb9a16ea7ead1bcddb6b8264c1d2e6"
+  },
+  {
+    "path": "apps/socialplus/server/cinematic-plan.test.mjs",
+    "bytes": 4317,
+    "sha256": "1e25dc33b7fa2ff993620d72e00e33934016c8853242cc926cec992836c82bd8"
+  },
+  {
+    "path": "apps/socialplus/server/kinetic-timing.test.mjs",
+    "bytes": 3198,
+    "sha256": "cc4f044180a5c952754c4c2dc8891b1a63ce9eac7d3a628c40023813eed15700"
+  },
+  {
+    "path": "apps/socialplus/server/render-fonts.mjs",
+    "bytes": 481,
+    "sha256": "d055747a2bb70e25589003e0cbed799d00a249c012afebb7bd7e9d288b1ebfc3"
+  },
+  {
+    "path": "apps/socialplus/server/transcription.mjs",
+    "bytes": 1334,
+    "sha256": "cdffafb352c75e98a9638c1189aac5220281616900f1d252d2b341a061518281"
+  },
+  {
+    "path": "apps/socialplus/server/kinetic-capture.mjs",
+    "bytes": 4180,
+    "sha256": "8411f639ef40a5a424169fbede516d1944f0ece0279fd17bef4125dc3e410b5b"
+  },
+  {
+    "path": "apps/socialplus/server/model-fidelity.test.mjs",
+    "bytes": 4726,
+    "sha256": "f217232c38a9e8b1b1f58ed10f9d3df07164763cc7dbe272afc5f4f0b1e92773"
+  },
+  {
+    "path": "apps/socialplus/server/fingerprint.test.mjs",
+    "bytes": 1021,
+    "sha256": "77ee6c073df583f50a0429009700ff3b3e9e711beccafe88c1c0628e083ad041"
+  },
+  {
+    "path": "apps/socialplus/server/cinematic-plan.mjs",
+    "bytes": 8630,
+    "sha256": "a95e28776a8dba0904891857ec50138180190f58cb8435c0d302921d638132da"
+  },
+  {
+    "path": "apps/socialplus/server/audio-timing.test.mjs",
+    "bytes": 2205,
+    "sha256": "42dcbe6a3e5299293f4d450e1b2bd782ca89bf569ee23c757c2c12b9ef9b7414"
+  },
+  {
+    "path": "apps/socialplus/server/local-edit.mjs",
+    "bytes": 8388,
+    "sha256": "d1f583587279ae5357971669c6804cefeb6ae9de1f2fe4d5a8b1e84d76c2dc07"
+  },
+  {
+    "path": "apps/socialplus/server/security.mjs",
+    "bytes": 37525,
+    "sha256": "5eb217b86c3d7cc1988734e4a0d7c700e76942fce0282409c8deb254823cd6e3"
+  },
+  {
+    "path": "apps/socialplus/server/index.mjs",
+    "bytes": 9128,
+    "sha256": "ff10c4e0cf9f696d149fafb88e552e052cf4efed6161096129ec82f68f5a87b7"
+  },
+  {
+    "path": "apps/socialplus/server/speech-captions.test.mjs",
+    "bytes": 2807,
+    "sha256": "380991983b8c606707f43a6d1a5c0ce406a8f64e1523a36ce8d82a892edf84fb"
+  },
+  {
+    "path": "apps/socialplus/server/security.test.mjs",
+    "bytes": 21227,
+    "sha256": "9c9ee3cd37b92b9f1e240897a5df60315fbc382193fdc5ba03a0721b54362f7c"
+  },
+  {
+    "path": "apps/socialplus/server/legal.mjs",
+    "bytes": 5468,
+    "sha256": "ecea9764642185ef3d2c436f74c92c6dcf424c04afee65db7b55b2164a0544e1"
+  },
+  {
+    "path": "apps/socialplus/server/render.mjs",
+    "bytes": 19423,
+    "sha256": "cb40df8640a9df1a64ebabd87923d5353832971d5f5bcc1beb445aa982247774"
+  },
+  {
+    "path": "apps/socialplus/server/bootstrap.test.mjs",
+    "bytes": 1576,
+    "sha256": "32790686af72e5e84fb45ec19ac6d617c45d53be2f207df9d16bb0130bc18024"
+  },
+  {
+    "path": "apps/socialplus/server/restored-models.test.mjs",
+    "bytes": 5406,
+    "sha256": "4dbecd02061e5bbd15fab6e99b20ea79ebc436862f5664ebb8e4ba9ee3aa1417"
+  },
+  {
+    "path": "apps/socialplus/server/bootstrap.mjs",
+    "bytes": 2423,
+    "sha256": "ff22945bca9c461a96405363b22937d8504403f784a7060e165193908ab03ef9"
+  },
+  {
+    "path": "apps/socialplus/server/local-edit.test.mjs",
+    "bytes": 5934,
+    "sha256": "692cac163f7d544ff8deb86626d909e339c6346ee8184c5f943d8bdf74ddd1fb"
+  },
+  {
+    "path": "apps/socialplus/server/model-events.test.mjs",
+    "bytes": 907,
+    "sha256": "95e534c565741271dd856d91de5e4598ad155689c693595911ade26429ec5936"
+  },
+  {
+    "path": "apps/socialplus/server/projects.test.mjs",
+    "bytes": 11432,
+    "sha256": "5ccafcd322447826f7d9a25462959ab42873083269273d9dc6b74583a7d95d88"
+  },
+  {
+    "path": "apps/socialplus/server/focus-envelope.mjs",
+    "bytes": 759,
+    "sha256": "7b2c22a65d04a540d00124e289f55c5b82abc638eda591b931289a54250e1d2c"
+  },
+  {
+    "path": "apps/socialplus/server/speech-captions.mjs",
+    "bytes": 3291,
+    "sha256": "32c0034654085dc75fe1717e6da753a4e02ae12eb23ff95fcf7c3748a476bdce"
+  },
+  {
+    "path": "apps/socialplus/server/edit-boundaries.mjs",
+    "bytes": 371,
+    "sha256": "2cc4713841c63e2ea6e743cad93c71ceee63198ceb4178067240d7227e51be5c"
+  },
+  {
+    "path": "apps/socialplus/server/restored-models.mjs",
+    "bytes": 9850,
+    "sha256": "b611b22785971d3211c0dce71206fb04244a0f5379a8bac8aec892edd747b860"
+  },
+  {
+    "path": "apps/socialplus/server/strategy.mjs",
+    "bytes": 47138,
+    "sha256": "86e3e7fab421cd4e530d831f10dea8018322d2dfc5379d7325823c8a80966f21"
+  },
+  {
+    "path": "apps/socialplus/test/render.test.mjs",
+    "bytes": 5580,
+    "sha256": "e7150bbea23344bad534b190d9f346ee9e965822721521af96b50057b2803b3d"
+  },
+  {
+    "path": "apps/socialplus/engines/test_render_fonts.py",
+    "bytes": 1058,
+    "sha256": "8f91424b2fd5cfb32681430751fd26818dc0b99a180e4c4659cade8a91d4c014"
+  },
+  {
+    "path": "apps/socialplus/engines/test_cinematic_review.py",
+    "bytes": 1415,
+    "sha256": "53ad45432389f389b40d2df91c89a734d6e40c54c4cb4423b5146f1ccece30a9"
+  },
+  {
+    "path": "apps/socialplus/engines/reference_scenes.py",
+    "bytes": 4378,
+    "sha256": "06eb0ce9b52d714ddd55010f03acab68086ff8b263e6f9a1f24a9d28c97e241c"
+  },
+  {
+    "path": "apps/socialplus/engines/build_fonts.py",
+    "bytes": 3685,
+    "sha256": "445dc41a88c63a146eae3911d4f5a9d1c552d27490d0f12d1cdc1ed9ef678439"
+  },
+  {
+    "path": "apps/socialplus/engines/cinematic_scenes.py",
+    "bytes": 4312,
+    "sha256": "4e55cf53e154ff4a1861e94ed3c98946231870c62330b2661d14e353d5433e14"
+  },
+  {
+    "path": "apps/socialplus/engines/review_cinematic_words.py",
+    "bytes": 6534,
+    "sha256": "379216732336e2d21c490319b4feb684caf634a8718d7081aae06a22fe363141"
+  },
+  {
+    "path": "apps/socialplus/engines/test_cinematic_scenes.py",
+    "bytes": 1938,
+    "sha256": "6785296c73718fa4886939eed5dcb465f11404aa49bcbe291d88bdec4a4f4e8a"
+  },
+  {
+    "path": "apps/socialplus/engines/transcribe_local.py",
+    "bytes": 5568,
+    "sha256": "1333fa3a8326392584806e4a4714ca4c0d954410696adec410c6ee408c66ead2"
+  },
+  {
+    "path": "apps/socialplus/engines/REFERENCE_MANIFEST.json",
+    "bytes": 1899,
+    "sha256": "9ea36416b6b7446ecd7842cfdf8fa36ae4c1e112f8fea501edf4dc8b4a4d3b0d"
+  },
+  {
+    "path": "apps/socialplus/engines/render_components.py",
+    "bytes": 14462,
+    "sha256": "d78f65dd1477be868c5412c64f5110df7d8e40d26388984f0f428821be954778"
+  },
+  {
+    "path": "apps/socialplus/engines/test_transcription.py",
+    "bytes": 1988,
+    "sha256": "c9aefd99d6b46eed94d7f4716a03cf2b79b416bd08a385b8636601051701e1a6"
+  },
+  {
+    "path": "apps/socialplus/scripts/windows-local.test.mjs",
+    "bytes": 983,
+    "sha256": "e9c4d9e59c0bb43e329837780cbcb744d85ccd9ec6297141f2e3387decc667e0"
+  },
+  {
+    "path": "apps/socialplus/scripts/verify-render.mjs",
+    "bytes": 3309,
+    "sha256": "991a5b4ecc1c5b5892b35521db3f7f7eeb3974b21b5f7e86be221a6df9a9b7d1"
+  },
+  {
+    "path": "apps/socialplus/scripts/windows-local.mjs",
+    "bytes": 3880,
+    "sha256": "6c0f871a8a4e915c2cc34f9e95d560e005c5538f56abef06025a8b54019d56e3"
+  },
+  {
+    "path": "apps/socialplus/scripts/render-cinematic-v7.mjs",
+    "bytes": 3201,
+    "sha256": "9a1d6a9206f80f6245e417cd33813e16d57dbcd16d950a9e13a1c53a5b0b03ad"
+  },
+  {
+    "path": "apps/socialplus/scripts/render-real-rush.mjs",
+    "bytes": 2377,
+    "sha256": "7bb518670aecb7cbd07334998af003ae9cd6a1c050b6dc1f8b6551865bfda918"
+  },
+  {
+    "path": "apps/socialplus/scripts/check-runtime.mjs",
+    "bytes": 2982,
+    "sha256": "94be88d340c5084997847b94cb85e3d5e21fbae4c4bfd165937229f7ff2e16fc"
+  },
+  {
+    "path": "apps/socialplus/scripts/browser-spoken-rush.mjs",
+    "bytes": 6002,
+    "sha256": "662f3a17f2c294befbbdfaf6b373d2f88630fd060c2e1e4a4bbbdb375d0d1f94"
+  },
+  {
+    "path": "apps/socialplus/scripts/provision-owner.mjs",
+    "bytes": 5627,
+    "sha256": "b7b870e6f286cd853b1d3402fac7338f10286bb10f53a51065abe434aca85aae"
+  },
+  {
+    "path": "apps/socialplus/scripts/download-local-model.py",
+    "bytes": 897,
+    "sha256": "7b18bbd572d68a1a4abde2e8882f065bf42714e906651a6285717e2160cd9989"
+  },
+  {
+    "path": "apps/socialplus/scripts/verify-cinematic-v7.py",
+    "bytes": 5715,
+    "sha256": "06c9b7c48cc1cada1ddcbd9903aa5bd7eeaaf3b72ae779094763cdef43b08cf0"
+  },
+  {
+    "path": "apps/socialplus/scripts/browser-smoke.mjs",
+    "bytes": 16693,
+    "sha256": "5c5d839d9ed33f1dff810c3b6a7ea276c7a86c18478e8b8adc19927fedfd28d1"
+  },
+  {
+    "path": "apps/socialplus/scripts/verify-spoken-rush.py",
+    "bytes": 5273,
+    "sha256": "150466f4e01bdf2fb480c6e0d10dda8494fc080056ea09dda7488f822fb8eb86"
+  },
+  {
+    "path": "apps/socialplus/server/legacy/viral-quality.js",
+    "bytes": 10852,
+    "sha256": "9f8163e87b384562dd9736fcf518c48262bcdf29f40593bc4737fbe0b536e8e1"
+  },
+  {
+    "path": "apps/socialplus/server/legacy/viral-personalization.js",
+    "bytes": 10716,
+    "sha256": "4a3a14d37df499e0ab29025e47dff3e5820ccdfefb211fed46d8c2459a49e943"
+  },
+  {
+    "path": "apps/socialplus/engines/fonts/manifest.json",
+    "bytes": 4089,
+    "sha256": "970bd1c7aa954089a5ea6775a6efe2b09d3361b74242d497c05ec6801c901bf3"
+  },
+  {
+    "path": "apps/socialplus/engines/originals/IMPORTED_SHA256.json",
+    "bytes": 4157,
+    "sha256": "b540c0e3e2f18f63ef37b2fa0e52319d53c659a2b5f8f25b68c1518b3de056e5"
+  },
+  {
+    "path": "apps/socialplus/engines/originals/MANIFEST_SHA256_COMPLET.json",
+    "bytes": 3009,
+    "sha256": "6ac74f7bae1423c210638798a68f468e584f8f3d71e2d1f655b75617b2075eda"
+  },
+  {
+    "path": "apps/socialplus/engines/originals/codie-v60/build_v60.py",
+    "bytes": 6952,
+    "sha256": "0127903c5b2a7674cf669730d0f1c73d466510572e034e2c4c3c80cf0b60a205"
+  },
+  {
+    "path": "apps/socialplus/engines/originals/codie-v60/V60_AUDIT.json",
+    "bytes": 1674,
+    "sha256": "046e8f0423d80f762b08f53017813561991d157d4a4f1eedff2bb53a4b6197d6"
+  },
+  {
+    "path": "apps/socialplus/engines/originals/codie-v60/V60_CHANGELOG.json",
+    "bytes": 837,
+    "sha256": "154669be2644509bdf7d15ac330805a50af0feda71a27c6215c72494ef63f8a1"
+  },
+  {
+    "path": "apps/socialplus/engines/originals/spatial-v10/MANIFEST.json",
+    "bytes": 1076,
+    "sha256": "95359b57eddb164151dda2b1898bf4e39a5ecbc3af6f6c44a7e4dc0885caf2ab"
+  },
+  {
+    "path": "apps/socialplus/engines/originals/spatial-v10/run_v10.py",
+    "bytes": 1264,
+    "sha256": "6ca7f84ba62c5487ee3ea450cc20a97de23d49d0674de8ba7fe10fb025f65455"
+  },
+  {
+    "path": "apps/socialplus/engines/originals/leila-v53/V53_AUDIT_TECHNIQUE.json",
+    "bytes": 3963,
+    "sha256": "f0629be1bae4b37c7c6e40d5e346dee2e1725c281fce9516b4a7e6c15afec473"
+  },
+  {
+    "path": "apps/socialplus/engines/originals/leila-v53/render_leila_v51_ticks_aligned.py",
+    "bytes": 6570,
+    "sha256": "0725de1cb32d299cd438242610c64c14a5728af2392f823a3d91304074e663ea"
+  },
+  {
+    "path": "apps/socialplus/engines/originals/leila-v53/render_leila_v53.py",
+    "bytes": 5265,
+    "sha256": "94850709d19a917c33e9fa710769dc03332e1b3b390239904ed7048a395cd50c"
+  },
+  {
+    "path": "apps/socialplus/engines/originals/leila-v53/render_leila_v46.py",
+    "bytes": 9290,
+    "sha256": "dc93ca95890b87b1298aefd7452641fd77470625484ef4a57432717c70d5059d"
+  },
+  {
+    "path": "apps/socialplus/engines/originals/spatial-v10/code/editplus_spatial_ui_v8_pipeline.py",
+    "bytes": 13979,
+    "sha256": "61f3791ee29d7bdc8177e326e5acf0ea15427c6f93d1cf42875d1662a5ee639b"
+  },
+  {
+    "path": "apps/socialplus/engines/originals/spatial-v10/code/portable_editplus_spatial_ui_v9_motion_flow.py",
+    "bytes": 13729,
+    "sha256": "6bd682a4cdd6c67e8646803d71a01e0c7155e3d929ee3e3fa462a11a29d3f78e"
+  },
+  {
+    "path": "apps/socialplus/engines/originals/spatial-v10/code/editplus_spatial_ui_v10_focus.py",
+    "bytes": 6807,
+    "sha256": "5015172e4a50ebc75886df962afe36cc6dcfa28ff5de6d04162aa424e96b70f6"
+  },
+  {
+    "path": "apps/socialplus/engines/originals/spatial-v10/code/editplus_spatial_ui_v9_motion_flow.py",
+    "bytes": 13598,
+    "sha256": "80f028b865c0db0bc45b25d7b3dc72e68ccf723ecb7b0bffb84439fc55525696"
+  },
+  {
+    "path": "apps/socialplus/engines/originals/spatial-v10/code/portable_editplus_spatial_ui_v8_pipeline.py",
+    "bytes": 14176,
+    "sha256": "58993a0d034c97781d6aaf09854e064a65a49bacb5d1f7f88d319c17c2bfc4d7"
+  },
+  {
+    "path": "apps/socialplus/engines/originals/spatial-v10/code/portable_editplus_spatial_ui_v10_focus.py",
+    "bytes": 6943,
+    "sha256": "becb988a0d5e157c26f37c565da451656452e7578f8f54f491762200b385472f"
+  },
+  {
+    "path": "apps/socialplus/engines/originals/cinematic-v7/reference_hyperframes/timeline_initiale.json",
+    "bytes": 1916,
+    "sha256": "08cb4ea3da56559e4d5473feefe96b6b5af5e270fb201dd82beba19ec7a89500"
+  },
+  {
+    "path": "apps/socialplus/engines/originals/cinematic-v7/reference_hyperframes/index_prototype.html",
+    "bytes": 7853,
+    "sha256": "da19e45bb9e1f4feebfca4a2d3f3a0434d9b9ff9f1ad5870dadcfd59ed276ba7"
+  },
+  {
+    "path": "apps/socialplus/engines/originals/cinematic-v7/src/render_v6_historique.py",
+    "bytes": 15946,
+    "sha256": "143f4ff81f2c15f0f9b8d77cdace1b264fc0099ec6876dd5b2acb12ddaa758d2"
+  },
+  {
+    "path": "apps/socialplus/engines/originals/cinematic-v7/src/render_v7.py",
+    "bytes": 9671,
+    "sha256": "8cf4c0257804a276c68e2eea54d424fe20396309890da52409d6aaedcfca267b"
+  },
+  {
+    "path": "apps/socialplus/engines/originals/cinematic-v7/src/render_v7_original_reference.py",
+    "bytes": 8222,
+    "sha256": "47dcfa52aa818648f4991d9d81cd83ca75eb7aebdc59a9bb61adaaa4d4ecaf0e"
+  },
+  {
+    "path": "apps/socialplus/engines/originals/cinematic-v7/config/IMG_0506_CINEMATIC_V6_TIMING.json",
+    "bytes": 12497,
+    "sha256": "724aa22aa9fd6a4e19d4bbc76e87574ebe50e872a28c363d844bc8a05bc704e0"
+  },
+  {
+    "path": "apps/socialplus/engines/originals/cinematic-v7/config/modele_v7.json",
+    "bytes": 1467,
+    "sha256": "2df4f0e92c1f9f4c2e83ef2469861411d0f22a43e7917cfa4dd014ef7c86e9d1"
+  },
+  {
+    "path": "apps/socialplus/engines/originals/received-20261023/ALEX_HORMOZI_V16/QA_V16.json",
+    "bytes": 2908,
+    "sha256": "4b45101a32606b247be03c0970ccee6700fac96fe44c86c725436237254ea38c"
+  },
+  {
+    "path": "apps/socialplus/engines/originals/received-20261023/SOCIAL_KINETIC_V28/V27_STACK_TRANSITION_QA.json",
+    "bytes": 4655,
+    "sha256": "398c54cc8e65a73006f809b99458bdd0900e1e2c9669f03d0c298d3a623adebf"
+  },
+  {
+    "path": "apps/socialplus/engines/originals/received-20261023/CODIE_OMNI_V60_FICHIER_UNIQUE/V60_AUDIT.json",
+    "bytes": 1674,
+    "sha256": "046e8f0423d80f762b08f53017813561991d157d4a4f1eedff2bb53a4b6197d6"
+  },
+  {
+    "path": "apps/socialplus/engines/originals/received-20261023/APPLE_SPATIAL_V10_FICHIER_UNIQUE/MANIFEST.json",
+    "bytes": 1076,
+    "sha256": "95359b57eddb164151dda2b1898bf4e39a5ecbc3af6f6c44a7e4dc0885caf2ab"
+  }
+]

@@ -20,22 +20,15 @@ export function speechCaptionAss(base,model,meta,events=[]){
  const config={...base.captionConfig,fontFamily:renderFont(model==='codie-omni-v60'?'InterDisplay-SemiBold.otf':'Inter-SemiBold.otf').family,fontSize:fontPx/sizeScale,stroke:style.stroke,fontWeight:600};
  const header=buildCaptionAss({...base,captions:[],captionConfig:config},meta.width,meta.height);
  const lines=[];
- let captions=base.captions;
- if(model==='cinematic-storytelling-v7')captions=base.captions.flatMap(c=>{
-  let camera=[[c.startMs,c.endMs]];
-  for(const e of events)camera=camera.flatMap(([a,b])=>e.endMs<=a||e.startMs>=b?[[a,b]]:[...(a<e.startMs?[[a,e.startMs]]:[]),...(b>e.endMs?[[e.endMs,b]]:[])]);
-  return camera.flatMap(([a,b])=>{
-   const words=c.words.filter(w=>w.startMs<b&&w.endMs>a).map(w=>({...w,startMs:Math.max(a,w.startMs),endMs:Math.min(b,w.endMs)}));
-   return words.length?[{...c,startMs:words[0].startMs,endMs:words.at(-1).endMs,words}]:[];
-  });
- });
+ // Fullscreen graphics are emphasis, not a transcript: keep every spoken
+ // word in the reserved bottom caption zone, including during V7 scenes.
+ const captions=base.captions;
  for(const caption of captions){
   for(let i=0;i<caption.words.length;i++){
    const word=caption.words[i],next=caption.words[i+1];
    let start=Math.max(caption.startMs,word.startMs);
    let end=Math.min(caption.endMs,word.endMs,next?.startMs??Infinity);
    if(next&&next.startMs-end<=60)end=next.startMs;
-   if(model==='cinematic-storytelling-v7')for(const event of events){if(start>=event.startMs&&start<event.endMs)start=event.endMs;else if(start<event.startMs&&end>event.startMs)end=event.startMs;}
    if(Math.round(end/10)<=Math.round(start/10))continue;
    const fullscreen=model==='alex-hormozi-v16'&&events.some(e=>e.kind==='fullscreen'&&start<e.endMs&&end>e.startMs);
    const primary=fullscreen?'#202632':'#FFFFFF';

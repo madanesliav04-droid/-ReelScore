@@ -1,0 +1,13 @@
+✔ V28 fast speech fades finish inside word durations; the last word stays visible until its release (3.353342ms)
+✔ V28 a single short word no longer persists past the next caption (0.801421ms)
+✔ V28 existing bubble entrance and exit stay unchanged (0.676956ms)
+✔ V28 Chromium actually displays a one-frame word and clears it at the timed boundary (928.587001ms)
+✔ portrait adapter keeps a readable bubble fitted to its text rather than stretching a thin bar (564.745185ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1565.26375

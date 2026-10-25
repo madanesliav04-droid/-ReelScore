@@ -1,0 +1,29 @@
+✔ integrated HTTP: public legal, owner MFA, private projects, method admin and immediate member revocation (374.633793ms)
+✔ password hashes are salted scrypt and invalid passwords fail (295.205865ms)
+✔ TOTP implements RFC6238 public SHA1 vector (0.880107ms)
+✔ owner requires MFA, TOTP replay fails, member cannot elevate (370.045847ms)
+✔ owner identity and MFA fail closed outside server configuration (1.073996ms)
+✔ targeted invitations require attestation, email match and terms; secret only shown once (212.367662ms)
+✔ exact expiry, 30 days/permanent and immediate revoke are enforced on each request (495.205745ms)
+✔ single-use codes redeem atomically, replay is idempotent and unverified email cannot register (358.866437ms)
+✔ Origin and CSRF protect writes; HttpOnly Strict cookie used; credentials do not leak (213.013746ms)
+✔ feedback remains tenant-private, owner can triage and FAQ publication is explicit (284.95045ms)
+✔ privacy export contains own data; confirmed deletion purges hooks, account and sessions (350.651335ms)
+✔ password recovery tokens expire/revoke sessions and are one use (361.806948ms)
+✔ authentication attempts are rate limited by socket identity, not spoofable forwarding headers (147.780727ms)
+✔ a new invitation can renew an expired verified account with its current password (280.544981ms)
+✔ publication consent is separate, revocable and ownership checked (279.985068ms)
+✔ owner can complete a strongly verified deletion request through the purge hook (280.204655ms)
+✔ FAQ ordering and archiving affect only published client entries (139.740394ms)
+✔ expired and revoked invitation codes fail with auditable generic denial (218.477279ms)
+✔ feedback rejects blank, overlong, executable HTML and repeated spam (214.10003ms)
+✔ admin status distinguishes revoked/expired accounts and external admin routes remain owner-gated (351.048835ms)
+✔ public support stores unverified contact privately, bounds abuse and purges authenticated messages with account (294.436553ms)
+ℹ tests 21
+ℹ suites 0
+ℹ pass 21
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5694.14891
