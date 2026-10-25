@@ -1,0 +1,33 @@
+name: Social+ native ARM64 compatibility only
+on:
+  push:
+    branches: [codex/oracle-arm64-free-preparation-20261025]
+    paths:
+      - apps/socialplus/deploy/Dockerfile.oracle-arm64*
+      - apps/socialplus/deploy/oracle/**
+      - apps/socialplus/scripts/arm64-runtime-smoke.mjs
+      - apps/socialplus/scripts/verify-locked-runtime.mjs
+      - .github/workflows/socialplus-oracle-arm64-check.yml
+permissions:
+  contents: read
+concurrency:
+  group: socialplus-oracle-arm64-check
+  cancel-in-progress: true
+jobs:
+  compatibility:
+    # Standard ARM runner in the existing public repo: free compute; no artifacts/cache.
+    if: github.event.repository.private == false
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Build actual Linux ARM64 runtime with public model weights
+        run: |
+          test "$(uname -m)" = aarch64
+          docker build -f apps/socialplus/deploy/Dockerfile.oracle-arm64 -t socialplus-arm-candidate .
+      - name: Exercise original V28 compositor and local Whisper inference
+        run: docker run --rm --cpus=2 --memory=9g --shm-size=256m socialplus-arm-candidate node scripts/arm64-runtime-smoke.mjs
+      - name: Validate HTTPS proxy configuration without starting a public listener
+        run: docker run --rm -e SOCIALPLUS_DOMAIN=example.invalid -v "$PWD/apps/socialplus/deploy/oracle/Caddyfile:/etc/caddy/Caddyfile:ro" caddy:2.10.2-alpine caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile

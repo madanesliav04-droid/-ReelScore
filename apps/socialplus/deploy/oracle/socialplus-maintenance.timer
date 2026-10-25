@@ -1,0 +1,8 @@
+[Unit]
+Description=Daily Social+ private maintenance
+[Timer]
+OnCalendar=*-*-* 04:00:00 UTC
+Persistent=true
+RandomizedDelaySec=10m
+[Install]
+WantedBy=timers.target

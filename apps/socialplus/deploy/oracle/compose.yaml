@@ -1,0 +1,48 @@
+name: socialplus-oracle-test
+services:
+  app:
+    image: socialplus-oracle:arm64-verified
+    platform: linux/arm64
+    # Build explicitly from the repository root after compatibility approval.
+    env_file: /etc/socialplus/app.env
+    environment:
+      NODE_ENV: production
+      SOCIALPLUS_HOST: 0.0.0.0
+      SOCIALPLUS_DATA_DIR: /data
+      SOCIALPLUS_CHROMIUM: /usr/bin/chromium
+      SOCIALPLUS_MAX_RENDERS_PER_DAY: '6'
+      OMP_NUM_THREADS: '2'
+      OPENBLAS_NUM_THREADS: '2'
+    volumes:
+      - /var/lib/socialplus/data:/data
+      - /var/lib/socialplus/tmp:/tmp
+    restart: unless-stopped
+    init: true
+    cpus: 1.8
+    mem_limit: 9g
+    pids_limit: 512
+    shm_size: 256m
+    read_only: true
+    security_opt: ['no-new-privileges:true']
+    cap_drop: [ALL]
+    stop_grace_period: 60s
+    logging:
+      driver: json-file
+      options: {max-size: '10m', max-file: '3'}
+  https:
+    image: caddy:2.10.2-alpine
+    platform: linux/arm64
+    env_file: /etc/socialplus/https.env
+    ports: ['80:80', '443:443', '443:443/udp']
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - /var/lib/socialplus/caddy-data:/data
+      - /var/lib/socialplus/caddy-config:/config
+    restart: unless-stopped
+    cpus: 0.2
+    mem_limit: 384m
+    depends_on:
+      app: {condition: service_healthy}
+    logging:
+      driver: json-file
+      options: {max-size: '5m', max-file: '2'}
