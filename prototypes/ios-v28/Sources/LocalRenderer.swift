@@ -148,6 +148,7 @@ struct WebSurface: UIViewRepresentable {
             status = "Composition locale : \(frames) images"
         }
         guard reader.status == .completed, frames > 0 else { throw reader.error ?? fail("Décodage incomplet.") }
+        writer.endSession(atSourceTime: duration)
         sink.markAsFinished(); await writer.finishWriting()
         guard writer.status == .completed else { throw writer.error ?? fail("Vidéo incomplète.") }
         let composition = AVMutableComposition()
