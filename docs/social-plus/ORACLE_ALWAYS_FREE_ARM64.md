@@ -42,7 +42,7 @@ Aucun NAT Gateway, load balancer, base managée, registre privé payant, stockag
 
 ## Compatibilité ARM : méthode et critères
 
-Le profil `apps/socialplus/deploy/Dockerfile.oracle-arm64` emploie Node 24 Debian bookworm, Chromium et FFmpeg Debian natifs, Python 3.11, Pillow/NumPy, GSAP/Playwright existants. Pas de binaire Chromium x86 téléchargé par Playwright : chemin `/usr/bin/chromium`.
+Le profil `apps/socialplus/deploy/Dockerfile.oracle-arm64` emploie Node 24 Debian bookworm, Chromium et FFmpeg Debian natifs, Python 3.11, Pillow/NumPy, GSAP/Playwright existants. HOME/XDG de Chromium sont placés dans `/tmp` pour permettre crashpad/cache malgré la racine en lecture seule. Pas de binaire Chromium x86 téléchargé par Playwright : chemin `/usr/bin/chromium`.
 
 `faster-whisper==1.2.1` est conservé. CTranslate2 4.8.3 (même version que le précédent environnement local), ONNX Runtime 1.31.0 et PyAV 16.0.1 sont sélectionnés avec wheels Python 3.11 ARM64 disponibles sur PyPI. PyAV diffère de la version Python 3.12 précédente ; l’audio est déjà décodé par FFmpeg dans le script existant. Poids Whisper small inchangés, SHA-256 `3e305921506d8872816023e4c273e75d2419fb89b24da97b4fe7bce14170d671`. Aucun changement du script ASR ou des moteurs graphiques.
 

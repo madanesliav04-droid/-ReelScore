@@ -26,6 +26,8 @@ ENV SOCIALPLUS_ASR_PYTHON=/opt/socialplus-asr/bin/python SOCIALPLUS_ASR_MODEL_DI
 RUN node scripts/verify-locked-runtime.mjs --restore-terminal-lf \
     && mkdir -p /data && chown -R node:node /data /app/apps/socialplus
 USER node
+# Chromium crashpad/cache need a writable home even with a read-only rootfs.
+ENV HOME=/tmp XDG_CONFIG_HOME=/tmp/.config XDG_CACHE_HOME=/tmp/.cache
 ENV NODE_ENV=production SOCIALPLUS_HOST=0.0.0.0 PORT=4318 SOCIALPLUS_DATA_DIR=/data
 EXPOSE 4318
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s \

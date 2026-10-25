@@ -14,7 +14,7 @@ try:
     tmp=base/'tmp'
     if tmp.exists():
         for p in tmp.iterdir():
-            if p.is_dir() and p.name.startswith('socialplus-render-') and time.time()-p.stat().st_mtime>86400:
+            if p.is_dir() and p.name.startswith(('socialplus-render-','playwright_chromiumdev_profile-','playwright-artifacts-')) and time.time()-p.stat().st_mtime>86400:
                 shutil.rmtree(p)
     stamp=time.strftime('%Y%m%dT%H%M%SZ',time.gmtime())
     dbfile=base/'data/socialplus.sqlite'
