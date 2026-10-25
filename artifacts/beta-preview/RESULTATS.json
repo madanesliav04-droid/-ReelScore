@@ -1,0 +1,12 @@
+{
+  "scope": "Free 30-day beta preparation; isolated interface preview, no video-engine changes",
+  "nodeSuite": {"passed":126,"failed":0,"note":"After the final ordering of the CSRF check, the HTTP integration test and the real beta browser flow also passed."},
+  "interfacePreview": {"fourSections":true,"sixModelsSelectable":true,"localVideoPlayback":true,"sameLocalVideoAcrossViews":true,"backendConnected":false,"noSimulatedScoresOrRenders":true,"widths":[320,390,402,440,768,1440]},
+  "betaBackend": {"invitationDefaultDays":30,"ratingOutOf":5,"experienceAndSatisfaction":true,"optionalTestimonial":true,"separateRevocableConsent":true,"ownerOnlyMetrics":true,"activityRetentionDays":30,"activityUnit":"one member/day, no new IP or device tracking","metricsUseStoredRealData":true,"realBrowserFlowVerified":true},
+  "vercel": {"plan":"hobby","project":"socialplus-beta-interface","projectId":"prj_Wkh4h5DSZo3bPfeEMvX7elWkvCZt","authentication":"Vercel Authentication, all_except_custom_domains","projectPaused":true,"firstRequestedTarget":"staging","firstActualTarget":"production","firstDeployment":"dpl_GZLDDEKUmqxgJjzPKWj2AYUw6tEz","firstAutomaticClassificationHandledBy":"project paused; no existing production project changed","secondTarget":"staging","secondState":"BLOCKED","secondDeployment":"dpl_BJRFsvno5rfGpiLuJAatrJAbdj6n","needsApproval":"Unpausing also reactivates the first automatically classified production deployment of this isolated preview-only project."},
+  "physicalSafariVerified":false,
+  "paidServicesActivated":false,
+  "paymentsImplemented":false,
+  "existingProductionProjectsChanged":false,
+  "pullRequestsMerged":false
+}

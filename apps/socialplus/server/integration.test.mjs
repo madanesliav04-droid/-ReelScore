@@ -50,6 +50,10 @@ test('integrated HTTP: public legal, owner MFA, private projects, method admin a
   assert.equal((await request(app,'/api/projects/'+id,{cookie:memberCookie})).status,404);
   assert.equal((await request(app,'/api/admin/method-versions',{cookie:memberCookie})).status,403);
   assert.equal((await request(app,'/admin',{cookie:memberCookie})).status,403);
+  assert.equal((await request(app,'/api/admin/beta')).status,401);
+  assert.equal((await request(app,'/api/admin/beta',{cookie:memberCookie})).status,403);
+  const beta=await request(app,'/api/admin/beta',{cookie});assert.equal(beta.status,200);assert.equal(beta.body.testers,1);assert.equal(beta.body.active7Days,1);
+  const memberData=await request(app,'/api/privacy/export',{cookie:memberCookie});assert.equal(memberData.body.beta_activity.length,1);
   await request(app,'/api/admin/members/'+activation.body.user.id+'/revoke',{method:'POST',cookie,csrf,body:{}});
   assert.equal((await request(app,'/api/projects',{cookie:memberCookie})).status,401);
 });

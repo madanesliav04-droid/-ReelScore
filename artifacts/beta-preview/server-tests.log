@@ -1,0 +1,32 @@
+✔ beta counts real stored data, excludes owner, and does not invent an empty average or return rate (2.156842ms)
+✔ beta uses distinct UTC days, prunes its 30-day activity window and cascades member deletion (1.329675ms)
+✔ integrated HTTP: public legal, owner MFA, private projects, method admin and immediate member revocation (307.469286ms)
+✔ password hashes are salted scrypt and invalid passwords fail (277.469426ms)
+✔ TOTP implements RFC6238 public SHA1 vector (0.875831ms)
+✔ owner requires MFA, TOTP replay fails, member cannot elevate (354.19425ms)
+✔ owner identity and MFA fail closed outside server configuration (1.494659ms)
+✔ targeted invitations require attestation, email match and terms; secret only shown once (212.09164ms)
+✔ exact expiry, 30 days/permanent and immediate revoke are enforced on each request (492.956523ms)
+✔ single-use codes redeem atomically, replay is idempotent and unverified email cannot register (352.013955ms)
+✔ Origin and CSRF protect writes; HttpOnly Strict cookie used; credentials do not leak (210.601538ms)
+✔ feedback remains tenant-private, owner can triage and FAQ publication is explicit (285.69841ms)
+✔ privacy export contains own data; confirmed deletion purges hooks, account and sessions (349.374867ms)
+✔ password recovery tokens expire/revoke sessions and are one use (348.860923ms)
+✔ authentication attempts are rate limited by socket identity, not spoofable forwarding headers (143.492776ms)
+✔ a new invitation can renew an expired verified account with its current password (282.598418ms)
+✔ publication consent is separate, revocable and ownership checked (283.468089ms)
+✔ owner can complete a strongly verified deletion request through the purge hook (281.730098ms)
+✔ FAQ ordering and archiving affect only published client entries (143.121885ms)
+✔ expired and revoked invitation codes fail with auditable generic denial (212.538133ms)
+✔ feedback rejects blank, overlong, executable HTML and repeated spam (213.112807ms)
+✔ admin status distinguishes revoked/expired accounts and external admin routes remain owner-gated (352.434008ms)
+✔ public support stores unverified contact privately, bounds abuse and purges authenticated messages with account (282.31425ms)
+✔ beta feedback records experience, satisfaction and optional testimony privately with separate revocable consent (288.815674ms)
+ℹ tests 24
+ℹ suites 0
+ℹ pass 24
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5858.667176

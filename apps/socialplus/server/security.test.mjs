@@ -147,3 +147,14 @@ test('public support stores unverified contact privately, bounds abuse and purge
   assert.equal((await f.request('/api/support',{method:'POST',ip:'192.0.2.10',data:{body:'Un quatrième message de test.'}})).status,429);
   await f.request('/api/privacy/delete',{method:'POST',...a,data:{password:PASSWORD,confirm:'SUPPRIMER'}});assert.equal(f.db.prepare('SELECT count(*) n FROM security_support WHERE user_id=?').get(a.id).n,0);f.db.close();
 });
+
+test('beta feedback records experience, satisfaction and optional testimony privately with separate revocable consent',async()=>{
+ const f=await fixture(),member=await f.member('beta@example.test',30);
+ const saved=await f.request('/api/feedback',{...member,method:'POST',data:{category:'avis',rating:4,body:'Le montage est utile mais certains mots restent à corriger.',experience:'montage',satisfaction:'partiel',testimonial:'Mon retour de bêta.',publicationConsent:false}});
+ assert.equal(saved.status,201);
+ const own=await f.request('/api/feedback',member);assert.equal(own.body.entries[0].experience,'montage');assert.equal(own.body.entries[0].satisfaction,'partiel');assert.equal(own.body.entries[0].testimonial,'Mon retour de bêta.');assert.equal(own.body.entries[0].publication_consent,0);
+ const other=await f.member('other-beta@example.test',30);assert.deepEqual((await f.request('/api/feedback',other)).body.entries,[]);
+ const invalid=await f.request('/api/feedback',{...member,method:'POST',data:{category:'avis',rating:5,body:'Retour assez long pour être accepté.',experience:'montage',satisfaction:'invented'}});assert.equal(invalid.status,400);
+ assert.equal((await f.request('/api/privacy/export',member)).body.feedback[0].testimonial,'Mon retour de bêta.');
+ f.db.close();
+});
