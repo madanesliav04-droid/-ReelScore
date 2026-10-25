@@ -81,9 +81,10 @@ export async function createApp(options={}) {
           if(req.method==='GET'){json(res,200,{projects:projects.list(user.id)});return;}
           if(req.method==='POST'){json(res,201,{project:projects.create(user.id,await readJson(req))});return;}
         }
-        const projectMatch=/^\/api\/projects\/([^/]+)(?:\/(source|media|render|output|signals|transcript|editorial))?$/.exec(url.pathname);
+        const projectMatch=/^\/api\/projects\/([^/]+)(?:\/(source|media|render|output|signals|transcript|editorial|kinetic-direction))?$/.exec(url.pathname);
         if(projectMatch){
           const [,id,action]=projectMatch;
+          if(action==='kinetic-direction'&&req.method==='POST'){json(res,200,projects.kineticDirection(user.id,id,await readJson(req)));return;}
           if(action==='editorial'&&req.method==='POST'){json(res,200,{editorial:await projects.editorial(user.id,id,await readJson(req))});return;}
           if(action==='transcript'&&req.method==='POST'){json(res,200,{transcript:await projects.transcribe(user.id,id)});return;}
           if(action==='transcript'&&req.method==='GET'){json(res,200,{transcript:projects.transcript(user.id,id)});return;}

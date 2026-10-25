@@ -185,7 +185,7 @@ async function montage() {
     if(report)showSourceSignals(report);if(transcript)showTranscript(transcript);
     const draft=state.drafts[project.id];
     if(draft){$('#transcript').value=draft.transcript;$('#reference-events').value=draft.events;$('#caption-preview-mode').checked=draft.preview;$('#placement-reviewed').checked=draft.placement;$('#captions-reviewed').checked=draft.reviewed;refreshWordEditor();for(const el of document.querySelectorAll('[data-pause-id]'))el.checked=(state.analysisCuts?.projectId===project.id&&state.analysisCuts?.fingerprint===report?.fingerprint?state.analysisCuts.ids:draft.pauseIds||[]).includes(el.dataset.pauseId);}
-    else if(transcript)rebuildEvents();
+    else if(transcript)await rebuildEvents();
     if(project.latestJob)await pollJob(project.latestJob.id,project.id,view);
   }
 }
@@ -213,9 +213,17 @@ function refreshWordEditor(){
  const words=JSON.parse($('#transcript').value||'[]');
  $('#word-review').innerHTML=transcriptRows(words);$('#word-count').textContent=words.length?`${words.length} mots / groupes`:'';
 }
-function rebuildEvents(){
+async function rebuildEvents(){
  const input=$('#transcript');if(!input)return;
  const words=JSON.parse(input.value||'[]');
+ if(state.selectedStyle==='social-kinetic-v28'){
+  const id=state.project?.id,view=state.view;$('#reference-events').value='{}';$('#placement-reviewed').checked=false;
+  if(!id||!words.length){readDraft();return;}
+  state.directionLoading=true;updateStyleDetail();
+  try{const result=await post('/api/projects/'+encodeURIComponent(id)+'/kinetic-direction',{transcript:words});if(view!==state.view||state.project?.id!==id||state.selectedStyle!=='social-kinetic-v28')return;$('#reference-events').value=JSON.stringify(result.direction||{},null,2);$('#transcription-status').textContent=result.notice;readDraft();}
+  finally{state.directionLoading=false;updateStyleDetail();}
+  return;
+ }
  $('#reference-events').value=JSON.stringify(words.length?draftModelEvents(state.selectedStyle,words,$('#graphic-zone').value,state.project?.metadata||{}):[],null,2);
  $('#placement-reviewed').checked=false;
  readDraft();
@@ -244,11 +252,12 @@ function updateStyleDetail() {
   const style = state.styles.find(item => (item.style_id || item.id) === state.selectedStyle);
   if (!style || !$('#model-detail')) return;
   const available = style.available || style.enabled || style.status === 'production';
+  const directionButton=$('[data-action=draft-model-events]');if(directionButton)directionButton.textContent=state.selectedStyle==='social-kinetic-v28'?'Retrouver la direction V28':'Recalculer les propositions';
   $('#model-detail').innerHTML = `<p>${state.selectedStyle==='cinematic-storytelling-v7'?'<strong>Bêta — transcription à vérifier.</strong> ':''}${esc(style.description || style.reason || style.unavailable_reason || (available ? 'Moteur disponible pour essais. Les contrôles qualité restent requis.' : 'Sources ou dépendances de rendu non disponibles. Aucun rendu de remplacement ne sera généré.'))}</p>${(style.missingSources || style.missing)?.length ? `<p class="mt-8">Éléments requis : ${(style.missingSources || style.missing).map(esc).join(', ')}</p>` : ''}`;
   $('#restored-controls').hidden=!style.previewAvailable;
   const previewButton=$('[data-action=restored-preview]');if(previewButton)previewButton.disabled=!state.project?.has_source;
   const renderButton = $('[data-action="render"]');
-  if (renderButton) renderButton.disabled = !available || !state.project?.has_source || state.project.state==='rendering';
+  if (renderButton) renderButton.disabled = !available || !state.project?.has_source || state.project.state==='rendering' || (state.selectedStyle==='social-kinetic-v28'&&state.directionLoading);
   document.querySelectorAll('.model').forEach(element => element.setAttribute('aria-pressed', String(element.dataset.id === state.selectedStyle)));
   updateZoneGuide();
 }
@@ -438,9 +447,13 @@ async function renderProject(styleId = state.selectedStyle) {
   let aligned;
   if (transcript) { try { aligned = JSON.parse(transcript); } catch { throw new Error('La transcription doit être un tableau JSON valide.'); } }
   if($('#captions-reviewed')?.checked===true&&Array.isArray(aligned))aligned=aligned.map(w=>w?.reviewRequired===true?{...w,confirmed:true}:w);
-  let events;
-  if(styleId.startsWith('restored-preview:')||state.styles.some(s=>s.id===styleId&&s.previewAvailable)){try{events=JSON.parse($('#reference-events').value);}catch{throw new Error('Les événements graphiques doivent être un tableau JSON valide.');}}
-  const payload={style_id:styleId,transcript:aligned,events,allowUnreviewedPreview:$('#caption-preview-mode')?.checked===true,placementReviewed:$('#placement-reviewed')?.checked===true,approvedPauseIds:[...document.querySelectorAll('[data-pause-id]:checked')].map(input=>input.dataset.pauseId),captionsReviewed:$('#captions-reviewed')?.checked===true};
+  let events,kineticDirection;
+  if(styleId.replace('restored-preview:','')==='social-kinetic-v28'){
+    try{kineticDirection=JSON.parse($('#reference-events').value);}catch{throw Error('La direction V28 doit être un objet JSON valide.');}
+    if(!kineticDirection?.layout||Array.isArray(kineticDirection))throw Error('Préparez la direction contextuelle V28 avant le rendu. Aucun preset générique ne sera lancé.');
+    events=[];
+  }else if(styleId.startsWith('restored-preview:')||state.styles.some(s=>s.id===styleId&&s.previewAvailable)){try{events=JSON.parse($('#reference-events').value);}catch{throw new Error('Les événements graphiques doivent être un tableau JSON valide.');}}
+  const payload={style_id:styleId,transcript:aligned,events,...(kineticDirection?{kineticDirection}:{}),allowUnreviewedPreview:$('#caption-preview-mode')?.checked===true,placementReviewed:$('#placement-reviewed')?.checked===true,approvedPauseIds:[...document.querySelectorAll('[data-pause-id]:checked')].map(input=>input.dataset.pauseId),captionsReviewed:$('#captions-reviewed')?.checked===true};
   const serialized=JSON.stringify(payload);
   if(state.renderRequest?.projectId!==projectId||state.renderRequest?.payload!==serialized)state.renderRequest={projectId,payload:serialized,key:crypto.randomUUID()};
   payload.requestId=state.renderRequest.key;
@@ -496,7 +509,7 @@ document.addEventListener('click', async event => {
     if(action==='project-analysis'){readDraft();state.analysisProject=(await api('/api/projects/'+encodeURIComponent(element.dataset.id))).project;state.strategyTab='video';closeSheet();if(currentPage()==='analysis')await strategy();else location.hash='analysis';return;}
     if(action==='remove-project'){if(confirm('Supprimer ce projet et ses fichiers ?')){await api('/api/projects/'+encodeURIComponent(element.dataset.id),{method:'DELETE'});if(state.project?.id===element.dataset.id){state.project=null;try{sessionStorage.removeItem('socialplus-project-'+state.user.id);}catch{}}if(state.analysisProject?.id===element.dataset.id)state.analysisProject=null;delete state.drafts[element.dataset.id];closeSheet();if(currentPage()==='projects')await projectLibrary();else await route();}return;}
     if(action==='retry-upload'){await importVideo(state.file,element.dataset.analysis==='true');return;}
-    if(action==='refresh-words'){refreshWordEditor();rebuildEvents();return;}
+    if(action==='refresh-words'){refreshWordEditor();await rebuildEvents();return;}
     if(action==='resume-job'){await pollJob(element.dataset.id);return;}
     if(action==='share-output'){await prepareShare(element.dataset.id,element);return;}
     if(action==='share-ready'){if(state.shareFile)await navigator.share({files:[state.shareFile],title:'Social+'});return;}
@@ -506,10 +519,10 @@ document.addEventListener('click', async event => {
       const data = await api('/api/projects/' + encodeURIComponent(element.dataset.id));
       readDraft();state.project=data.project || data;state.selectedStyle=state.project.style_id||state.selectedStyle;rememberProject();closeSheet();state.file=null;if(state.objectUrl)URL.revokeObjectURL(state.objectUrl);state.objectUrl=null;
       if(location.hash==='#montage')await montage();else location.hash='montage';
-    } else if (action === 'select-style') { const previous=state.selectedStyle;try{state.selectedStyle=element.dataset.id;rebuildEvents();updateStyleDetail();}catch(e){state.selectedStyle=previous;throw e;} }
+    } else if (action === 'select-style') { const previous=state.selectedStyle;try{state.selectedStyle=element.dataset.id;await rebuildEvents();updateStyleDetail();}catch(e){state.selectedStyle=previous;throw e;} }
     else if(action==='restored-preview')await renderProject('restored-preview:'+state.selectedStyle);
     else if (action === 'render') await renderProject();
-    else if(action==='draft-model-events'){const words=JSON.parse($('#transcript').value||'[]');const events=draftModelEvents(state.selectedStyle,words,$('#graphic-zone').value,state.project?.metadata||{});$('#reference-events').value=JSON.stringify(events,null,2);$('#placement-reviewed').checked=false;notify(events.length?`${events.length} animation(s) proposée(s). Vérifiez leur placement.`:'Aucun mot pertinent pour ce modèle : les sous-titres restent actifs.');}
+    else if(action==='draft-model-events'){if(state.selectedStyle==='social-kinetic-v28'){await rebuildEvents();return;}const words=JSON.parse($('#transcript').value||'[]');const events=draftModelEvents(state.selectedStyle,words,$('#graphic-zone').value,state.project?.metadata||{});$('#reference-events').value=JSON.stringify(events,null,2);$('#placement-reviewed').checked=false;notify(events.length?`${events.length} animation(s) proposée(s). Vérifiez leur placement.`:'Aucun mot pertinent pour ce modèle : les sous-titres restent actifs.');}
     else if(action==='transcribe-source'){element.disabled=true;const status=$('#transcription-status');status.textContent='Transcription locale en cours…';try{const {transcript}=await post('/api/projects/'+encodeURIComponent(state.project.id)+'/transcript');showTranscript(transcript);}catch(error){if(status.isConnected)status.textContent=error.message;throw error;}finally{if(element.isConnected)element.disabled=false;}}
     else if(action==='analyze-source'){element.disabled=true;try{const {report}=await post('/api/projects/'+encodeURIComponent(state.project.id)+'/signals');showSourceSignals(report);}finally{if(element.isConnected)element.disabled=false;}}
     else if(action==='guided-edit')await renderProject('guided-edit');
@@ -577,7 +590,7 @@ async function prepareModel(element){
   const {report}=await post('/api/projects/'+encodeURIComponent(id)+'/signals');
   const {transcript}=await post('/api/projects/'+encodeURIComponent(id)+'/transcript');
   ensureCurrentSession(controller);if(view!==state.view||state.project?.id!==id)return;
-  showSourceSignals(report);showTranscript(transcript);rebuildEvents();$('#caption-preview-mode').checked=true;readDraft();
+  showSourceSignals(report);showTranscript(transcript);await rebuildEvents();$('#caption-preview-mode').checked=true;readDraft();
   $('#transcription-status').textContent+= ' Préparation terminée : ouvrez la revue des paroles, puis vérifiez les zones.';
   notify('Montage préparé. Vérifiez les paroles et les zones.');
  }catch(e){if(view===state.view&&$('#transcription-status'))$('#transcription-status').textContent=e.message;throw e;}
@@ -655,11 +668,11 @@ document.addEventListener('change',async event=>{
   } else if(event.target.id==='analysis-project-select'){
     try{state.analysisProject=event.target.value?(await api('/api/projects/'+encodeURIComponent(event.target.value))).project:null;await strategy();}catch(e){notify(e.message);}
   } else if(event.target.matches('[data-analysis-pause]')){state.analysisCuts.ids=[...document.querySelectorAll('[data-analysis-pause]:checked')].map(el=>el.dataset.analysisPause);const draft=state.drafts[state.analysisCuts.projectId];if(draft)draft.pauseIds=[...state.analysisCuts.ids];}
-  else if(event.target.id==='graphic-zone'){rebuildEvents();updateZoneGuide();}
+  else if(event.target.id==='graphic-zone'){rebuildEvents().catch(e=>notify(e.message));updateZoneGuide();}
   else if(event.target.matches('[data-word-index]')){
     const words=JSON.parse($('#transcript').value||'[]');const index=Number(event.target.dataset.wordIndex);
     words[index]={...words[index],text:event.target.value,reviewRequired:true,confirmed:false};
-    $('#transcript').value=JSON.stringify(words,null,2);$('#captions-reviewed').checked=false;rebuildEvents();
+    $('#transcript').value=JSON.stringify(words,null,2);$('#captions-reviewed').checked=false;rebuildEvents().catch(e=>notify(e.message));
   }
   if(event.target.matches('#captions-reviewed,#caption-preview-mode,#placement-reviewed,#reference-events,#transcript,[data-pause-id]'))readDraft();
 });

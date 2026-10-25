@@ -1,3 +1,4 @@
+import {assertKineticRelease,reviewedKineticDirection,transcriptFingerprint,KINETIC_RELEASE} from './kinetic-release.mjs';
 import {editorialIndicators} from './editorial-analysis.mjs';
 import {planCinematic,cinematicReviewItems} from './cinematic-plan.mjs';
 import {RESTORED_PREVIEWS,restoredPlan} from './restored-models.mjs';
@@ -126,6 +127,15 @@ export function createProjects({ db, dataDir, render, maxUploadBytes = 200 * 102
     const p=get(userId,id),row=db.prepare('SELECT result FROM studio_transcripts WHERE project_id=? AND user_id=? AND source_path=?').get(id,userId,p.source_path);
     return row?JSON.parse(row.result):null;
   }
+  function kineticDirection(userId,id,input={}){
+    const p=get(userId,id);if(!p.source_path)throw fail(409,'SOURCE_REQUIRED','Importez d’abord une vidéo.');
+    const words=input.transcript??transcript(userId,id)?.words;
+    const reviewed=reviewedKineticDirection(JSON.parse(p.metadata),words);
+    if(reviewed.direction)return reviewed;
+    const saved=db.prepare('SELECT payload FROM studio_render_requests WHERE user_id=? AND project_id=? AND source_path=? ORDER BY rowid DESC').all(userId,id,p.source_path);
+    for(const row of saved){const execution=JSON.parse(row.payload),prior=execution.restoredInput;if(execution.kineticRelease===KINETIC_RELEASE&&prior?.kineticDirection&&(prior.transcriptFingerprint??transcriptFingerprint(prior.transcript))===transcriptFingerprint(words))return {release:KINETIC_RELEASE,direction:prior.kineticDirection,notice:'Direction préparée précédemment pour ce projet. Vérifiez les placements et les paroles avant un nouvel export.'};}
+    return reviewed;
+  }
   async function transcribe(userId,id){
     const p=get(userId,id);if(!p.source_path)throw fail(409,'SOURCE_REQUIRED','Importez d’abord une vidéo.');
     const key=render.transcriptionKey?.();
@@ -166,6 +176,10 @@ export function createProjects({ db, dataDir, render, maxUploadBytes = 200 * 102
     const isPreview=RESTORED_PREVIEWS.includes(preview)||RESTORED_PREVIEWS.includes(modelId);
     const restoredModel=preview||modelId;
     if (!['technical-export','guided-edit'].includes(modelId) && !isPreview && (!model || !model.available)) throw fail(422,'MODEL_UNAVAILABLE',model?.reason||'Le moteur de ce modèle est indisponible.');
+    if(restoredModel==='social-kinetic-v28'){
+      assertKineticRelease();
+      if(!input.kineticDirection||Array.isArray(input.kineticDirection))throw fail(422,'KINETIC_DIRECTION_REQUIRED','La V28 verrouillée exige une direction contextuelle. Préparez le montage et vérifiez Animations avancées. Aucun preset générique ne sera lancé.');
+    }
     let localEdit,restoredInput;
     if(isPreview&&restoredModel==='cinematic-storytelling-v7'){
       if(input.placementReviewed!==true)throw fail(422,'PLACEMENT_REVIEW_REQUIRED','Confirmez les séquences graphiques plein écran avant de lancer Cinematic.');
@@ -183,7 +197,7 @@ export function createProjects({ db, dataDir, render, maxUploadBytes = 200 * 102
       buildLocalEdit(localEdit);
     }
     const jobId = randomUUID(), outputPath = join(mediaDir,randomUUID()+'.mp4');
-    const execution={modelId,localEdit,restoredInput,captionCues:input.captionCues,analysis:input.analysis,timeline:input.timeline,frameProof:input.frameProof,editorialEvents:input.editorialEvents};
+    const execution={modelId,...(restoredModel==='social-kinetic-v28'?{kineticRelease:KINETIC_RELEASE}:{}),localEdit,restoredInput,captionCues:input.captionCues,analysis:input.analysis,timeline:input.timeline,frameProof:input.frameProof,editorialEvents:input.editorialEvents};
     db.exec('BEGIN IMMEDIATE');
     try {
       const day=now().slice(0,10);
@@ -212,6 +226,7 @@ export function createProjects({ db, dataDir, render, maxUploadBytes = 200 * 102
       if(recovered)db.prepare('UPDATE studio_render_requests SET attempts=attempts+1 WHERE job_id=?').run(jobId);
       db.prepare("UPDATE studio_jobs SET state='rendering',progress=0,error_code=NULL,error_message=NULL WHERE id=?").run(jobId);
       db.prepare("UPDATE studio_projects SET state='rendering' WHERE id=? AND user_id=?").run(id,userId);
+      if(execution.modelId?.replace('restored-preview:','')==='social-kinetic-v28'){assertKineticRelease();if(execution.kineticRelease!==KINETIC_RELEASE)throw fail(409,'KINETIC_RELEASE_CHANGED','La version de cette tâche n’est plus disponible.');}
       const result=await render.renderVideo({sourcePath,outputPath,...execution,signal,onProgress:value=>db.prepare('UPDATE studio_jobs SET progress=? WHERE id=?').run(Math.min(99,Math.max(0,Number(value)||0)),jobId)});
       const restoredModel=execution.modelId.startsWith('restored-preview:')?execution.modelId.slice(17):execution.modelId;
       const restoredInput=execution.restoredInput;
@@ -240,7 +255,10 @@ export function createProjects({ db, dataDir, render, maxUploadBytes = 200 * 102
       else db.prepare("UPDATE studio_jobs SET state='failed',error_code=?,error_message=?,completed_at=? WHERE id=?").run(error.code||'RENDER_FAILED',String(error.publicMessage||error.message||'Échec du rendu.').slice(0,500),now(),jobId);
     }finally{
       const state=db.prepare('SELECT state FROM studio_jobs WHERE id=?').get(jobId)?.state;
-      if(state&&!['queued','rendering'].includes(state))db.prepare("UPDATE studio_render_requests SET payload='{}' WHERE job_id=?").run(jobId);
+      if(state&&!['queued','rendering'].includes(state)){
+        const retained=state==='complete'&&execution.kineticRelease?{modelId:execution.modelId,kineticRelease:execution.kineticRelease,restoredInput:{kineticDirection:execution.restoredInput.kineticDirection,transcriptFingerprint:transcriptFingerprint(execution.restoredInput.transcript)}}:{};
+        db.prepare('UPDATE studio_render_requests SET payload=? WHERE job_id=?').run(JSON.stringify(retained),jobId);
+      }
       db.prepare('UPDATE studio_render_requests SET elapsed_ms=elapsed_ms+? WHERE job_id=?').run(Math.max(0,Math.round(performance.now()-started)),jobId);
     }
   }
@@ -326,7 +344,7 @@ export function createProjects({ db, dataDir, render, maxUploadBytes = 200 * 102
     }else{res.writeHead(200,{'Content-Length':info.size});createReadStream(path).on('error',()=>res.destroy()).pipe(res);}
   }
   function exportData(userId){
-    return {projects:list(userId),transcripts:db.prepare('SELECT project_id,result FROM studio_transcripts WHERE user_id=?').all(userId).map(row=>({project_id:row.project_id,...JSON.parse(row.result)})),source_analyses:db.prepare('SELECT project_id,report FROM studio_signal_reports WHERE user_id=?').all(userId).map(row=>({project_id:row.project_id,...JSON.parse(row.report)})),render_jobs:db.prepare('SELECT id,project_id,model_id,state,progress,error_code,error_message,created_at,completed_at FROM studio_jobs WHERE user_id=? ORDER BY created_at').all(userId),render_usage:db.prepare('SELECT day,started_count FROM studio_render_usage WHERE user_id=? ORDER BY day').all(userId),media_downloads:list(userId).filter(p=>p.has_source).map(p=>({project_id:p.id,source_url:`/api/projects/${p.id}/media`,output_url:p.has_output?`/api/projects/${p.id}/output?download=1`:null}))};
+    return {projects:list(userId),model_directions:db.prepare('SELECT project_id,payload FROM studio_render_requests WHERE user_id=?').all(userId).map(r=>({project_id:r.project_id,...JSON.parse(r.payload)})).filter(r=>r.kineticRelease),transcripts:db.prepare('SELECT project_id,result FROM studio_transcripts WHERE user_id=?').all(userId).map(row=>({project_id:row.project_id,...JSON.parse(row.result)})),source_analyses:db.prepare('SELECT project_id,report FROM studio_signal_reports WHERE user_id=?').all(userId).map(row=>({project_id:row.project_id,...JSON.parse(row.report)})),render_jobs:db.prepare('SELECT id,project_id,model_id,state,progress,error_code,error_message,created_at,completed_at FROM studio_jobs WHERE user_id=? ORDER BY created_at').all(userId),render_usage:db.prepare('SELECT day,started_count FROM studio_render_usage WHERE user_id=? ORDER BY day').all(userId),media_downloads:list(userId).filter(p=>p.has_source).map(p=>({project_id:p.id,source_url:`/api/projects/${p.id}/media`,output_url:p.has_output?`/api/projects/${p.id}/output?download=1`:null}))};
   }
-  return {recover,shutdown,list,create,update,analyze,editorial,signalReport,transcribe,transcript,get:(u,id)=>publicProject(get(u,id)),upload,startRender,job,remove,stream,deleteUserData,exportData};
+  return {recover,shutdown,list,create,update,analyze,editorial,signalReport,transcribe,transcript,kineticDirection,get:(u,id)=>publicProject(get(u,id)),upload,startRender,job,remove,stream,deleteUserData,exportData};
 }
