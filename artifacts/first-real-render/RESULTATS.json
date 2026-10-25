@@ -1,0 +1,63 @@
+{
+  "model": "social-kinetic-v28",
+  "renderer": "Existing V28 HTML/GSAP compositor through unchanged Social+ beta integration; not a newly implemented simplified model",
+  "metadata": {
+    "width": 512,
+    "height": 910,
+    "durationMs": 27167,
+    "videoCodec": "h264",
+    "audioCodec": "aac",
+    "hasAudio": true,
+    "audioStreams": 1,
+    "audioChannels": 1,
+    "container": "mov,mp4,m4a,3gp,3g2,mj2",
+    "mime_type": "video/mp4",
+    "bytes": 2888963,
+    "rotation": 0,
+    "rawFrameRate": "30/1"
+  },
+  "renderSeconds": 24.291558307,
+  "outputSha256": "b329e873a6278b823af99dbca0c45e94a5979ea2b39efe34e30011d789ab2966",
+  "matchesPreviousRenderSha256": true,
+  "fullDecode": true,
+  "audioPcmIdentical": true,
+  "browser": [
+    {
+      "modelId": "social-kinetic-v28",
+      "time": 0.337062,
+      "width": 512,
+      "height": 910,
+      "frames": 15,
+      "error": null,
+      "authenticatedDownloadSha256": "b329e873a6278b823af99dbca0c45e94a5979ea2b39efe34e30011d789ab2966",
+      "physicalSafari": false,
+      "anonymousOutputStatus": 401,
+      "scope": "existing locally rendered MP4 playback/download; not a browser-triggered render"
+    }
+  ],
+  "resources": {
+    "exitCode": 0,
+    "wallSecondsIncludingVerification": 25.272152707002533,
+    "sampledPeakProcessTreeRssMiB": 732.6796875,
+    "memoryMeasurement": "sum RSS over Node and descendants, sampled ~100ms; shared pages may be counted multiple times; not a Railway billable RAM measurement",
+    "samples": 235,
+    "childCpuSecondsIncludingSampler": 18.515497,
+    "illustrativeRailwayCpuUsd": 0.00014287791851666666,
+    "illustrativeRailwayPeakRssTimeUsd": 7.475100421886076e-05,
+    "costExcludes": "hosting baseline, storage, network, ASR (cached transcript), subscription; local execution only",
+    "paidCalls": 0
+  },
+  "limits": {
+    "cachedTranscription": true,
+    "transcriptionHumanConfirmed": false,
+    "asrWarningCount": 12,
+    "placementHumanConfirmed": false,
+    "masterFidelityCertified": false,
+    "physicalSafariTested": false,
+    "remoteRenderEndpointAvailable": false,
+    "zeroAdditionalHostingCostVerified": false,
+    "railwayResourcesChanged": false,
+    "productionChanged": false,
+    "pr55Changed": false
+  }
+}
