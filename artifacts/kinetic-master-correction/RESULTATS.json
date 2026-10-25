@@ -1,0 +1,71 @@
+{
+  "masterFilename": "EDITPLUS_SOCIAL_KINETIC_V28_BULLES_TIMING_VALIDE.mp4",
+  "masterSha256": "57711be2328d08a66e0f9b197ce053d4b4d3607673ad1181f2493ca59d4df2cd",
+  "historicalCompositionSha256": "1ab88d8a15de4c2dbc771df7587925758a6edb5b97f969fa4ce60111b43d6c5f",
+  "outputSha256": "0fada3b5a2c4be4527f039f8bd3e06bca293d11c94ae87362456d841f2fe631b",
+  "metadata": {
+    "width": 512,
+    "height": 910,
+    "durationMs": 27167,
+    "videoCodec": "h264",
+    "audioCodec": "aac",
+    "hasAudio": true,
+    "audioStreams": 1,
+    "audioChannels": 1,
+    "container": "mov,mp4,m4a,3gp,3g2,mj2",
+    "mime_type": "video/mp4",
+    "bytes": 2942093,
+    "rotation": 0,
+    "rawFrameRate": "30/1"
+  },
+  "renderSeconds": 27.357765389,
+  "fullDecode": true,
+  "audioPcmIdentical": true,
+  "visualComparison": {
+    "performed": true,
+    "examples": [
+      "expressive green title with white hint",
+      "blue speech-linked bubbles with two-level reflow",
+      "context-directed spoken captions"
+    ],
+    "identicalCompositionAcrossAspectRatios": false,
+    "masterFidelityCertified": false
+  },
+  "sceneChecks": {
+    "checkedFrames": 816,
+    "coverage": {
+      "captions": 98,
+      "heroTokens": 9,
+      "heroes": 3,
+      "bubbles": 3
+    },
+    "sourceWords": 107,
+    "visibleWordMidpoints": 107,
+    "graphicBoundaryAndCollisionFaults": [],
+    "jsErrors": []
+  },
+  "browserPlayback": [
+    {
+      "modelId": "social-kinetic-v28",
+      "time": 0.327052,
+      "width": 512,
+      "height": 910,
+      "frames": 15,
+      "error": null,
+      "authenticatedDownloadSha256": "0fada3b5a2c4be4527f039f8bd3e06bca293d11c94ae87362456d841f2fe631b",
+      "physicalSafari": false,
+      "anonymousOutputStatus": 401,
+      "scope": "existing locally rendered MP4 playback/download; not a browser-triggered render"
+    }
+  ],
+  "limitations": {
+    "asrWarnings": 12,
+    "humanPhoneticConfirmation": false,
+    "automaticDirection": false,
+    "automaticFaceOrHandTracking": false,
+    "physicalSafariTested": false,
+    "productionChanged": false,
+    "pr55Changed": false,
+    "releaseApproved": false
+  }
+}

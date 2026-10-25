@@ -1,3 +1,4 @@
+import {referenceDirection} from './kinetic-reference.mjs';
 import {omniBrandScene} from '../../worker/src/omni-brand-tokens.js';
 import {speechCaptionAss} from './speech-captions.mjs';
 import {writeFile} from 'node:fs/promises';
@@ -61,7 +62,9 @@ export function restoredPlan(model,meta,input={}){
  for(let i=0;i<zones.length;i++)for(let j=i+1;j<zones.length;j++)if(zones[i].firstWord<=zones[j].lastWord&&zones[j].firstWord<=zones[i].lastWord)throw fail('Les plages de placement des sous-titres se chevauchent.');
  const captionRect=c=>{const i=words.findIndex(w=>(w.startMs??Math.round(w.start*1000))===c.words[0].startMs);const z=zones.find(z=>i>=z.firstWord&&i<=z.lastWord);const r=z?.rect??[.1,.76,.8,.15];return {x:r[0],y:r[1],w:r[2],h:r[3]};};
  const captions=model==='social-kinetic-v28'?base.captions.map((c,i)=>({id:'caption-'+i,kind:'caption',text:c.text,startMs:c.startMs,endMs:c.endMs,rect:captionRect(c),words:c.words.map(w=>({...w,outputStartMs:w.startMs,outputEndMs:w.endMs}))})):[];
- return {model,width:meta.width,height:meta.height,durationMs:meta.durationMs,events,captions,palette:model==='alex-hormozi-v16'?omniBrandScene({lightBackground:true}):undefined,ass:model==='social-kinetic-v28'?null:speechCaptionAss(base,model,meta,events)};
+ const plan={...(model==='social-kinetic-v28'&&input.kineticDirection?{referenceDirection:input.kineticDirection,referenceWords:words.map(w=>({text:w.text,startMs:w.startMs??Math.round(w.start*1000),endMs:w.endMs??Math.round(w.end*1000)}))}:{}),model,width:meta.width,height:meta.height,durationMs:meta.durationMs,events,captions,palette:model==='alex-hormozi-v16'?omniBrandScene({lightBackground:true}):undefined,ass:model==='social-kinetic-v28'?null:speechCaptionAss(base,model,meta,events)};
+ if(plan.referenceDirection)referenceDirection(plan);
+ return plan;
 }
 
 export async function prepareRestoredOverlay({model,meta,input,work,run,signal}){

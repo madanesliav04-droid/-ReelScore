@@ -6,6 +6,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg fonts-de
 WORKDIR /app/apps/socialplus
 COPY --chown=node:node apps/worker/package.json /app/apps/worker/package.json
 COPY --chown=node:node apps/worker/src /app/apps/worker/src
+COPY --chown=node:node apps/worker/hyperframes/social-kinetic-v28-speech-timed/index.html /app/apps/worker/hyperframes/social-kinetic-v28-speech-timed/index.html
 COPY --chown=node:node apps/socialplus/package.json apps/socialplus/package-lock.json ./
 RUN npm ci --omit=dev --ignore-scripts --no-audit --no-fund
 COPY --chown=node:node apps/socialplus/server ./server
