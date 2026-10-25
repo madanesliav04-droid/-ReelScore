@@ -1,0 +1,5 @@
+[Unit]
+Description=Stop Social+ before exhausting local disk
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /opt/socialplus/apps/socialplus/deploy/oracle/disk-guard.py

@@ -29,4 +29,7 @@ try:
     snapshot.unlink()
     for old in sorted(backups.glob('*.tar.gz'))[:-3]:old.unlink()
 finally:
-    subprocess.run(['docker','compose','up','-d','app'],cwd=compose,check=True)
+    if shutil.disk_usage(base).free >= 8 * 1024**3:
+        subprocess.run(['docker','compose','up','-d','app'],cwd=compose,check=True)
+    else:
+        print('App left stopped: insufficient disk space; manual recovery required.')
