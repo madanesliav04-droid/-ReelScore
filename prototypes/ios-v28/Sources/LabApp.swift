@@ -13,7 +13,7 @@ struct LabView: View {
         VStack(spacing: 16) {
             Text("Social+ · laboratoire V28")
             Text("Test de compatibilité local, non validé visuellement.").font(.caption)
-            renderer.webSurface.frame(width: 1, height: 1).accessibilityHidden(true)
+            renderer.webSurface.frame(width: 320, height: 568).accessibilityHidden(true)
             Button("Importer le rush de référence préparé") { importing = true }
                 .disabled(renderer.busy)
             ProgressView(value: renderer.progress)

@@ -18,7 +18,14 @@ struct WebSurface: UIViewRepresentable {
 @MainActor final class LocalRenderer: NSObject, ObservableObject, WKNavigationDelegate {
     @Published var progress = 0.0
     @Published var busy = false
-    @Published var status = "Importer le fichier correspondant au plan préparé."
+    @Published var status = "Importer le fichier correspondant au plan préparé." {
+        didSet {
+            if ProcessInfo.processInfo.arguments.contains("--synthetic-ci") {
+                let folder = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+                try? status.write(to: folder.appendingPathComponent("ci-stage.txt"), atomically: true, encoding: .utf8)
+            }
+        }
+    }
     private let web: WKWebView = {
         let w = WKWebView(frame: .zero)
         w.isOpaque = false; w.backgroundColor = .clear
@@ -55,11 +62,16 @@ struct WebSurface: UIViewRepresentable {
         // Same 30fps GSAP sampling as the locked Chromium path.
         let t = floor(time * 30) / 30
         _ = try await web.evaluateJavaScript("window.__timelines['editplus-social-kinetic-v28-native'].seek(\(t),false); true;")
-        _ = try await web.callAsyncJavaScript("await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))); return true;", arguments: [:], in: nil, contentWorld: .page)
+        _ = try await web.callAsyncJavaScript("await Promise.race([new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))),new Promise((_,reject)=>setTimeout(()=>reject(new Error('WebKit animation-frame timeout')),10000))]); return true;", arguments: [:], in: nil, contentWorld: .page)
         let config = WKSnapshotConfiguration(); config.rect = web.bounds
-        config.snapshotWidth = NSNumber(value: Double(web.bounds.width)); config.afterScreenUpdates = true
+        config.snapshotWidth = NSNumber(value: Double(web.bounds.width)); config.afterScreenUpdates = false
         let image = try await withCheckedThrowingContinuation { (c: CheckedContinuation<UIImage, Error>) in
+            var finished = false
+            DispatchQueue.main.asyncAfter(deadline: .now() + 15) {
+                if !finished { finished = true; c.resume(throwing: self.fail("WebKit snapshot timeout after 15s")) }
+            }
             web.takeSnapshot(with: config) { image, error in
+                guard !finished else { return }; finished = true
                 if let image { c.resume(returning: image) }
                 else { c.resume(throwing: error ?? self.fail("Capture WebKit absente.")) }
             }
@@ -89,6 +101,7 @@ struct WebSurface: UIViewRepresentable {
         guard hash.finalize().map({ String(format: "%02x", $0) }).joined() == fixture.sourceSha256 else {
             throw fail("Rush différent du plan validé. Aucun timing fixe appliqué à un nouveau rush.")
         }
+        status = "Validation du rush synthétique"
         let asset = AVURLAsset(url: input)
         guard let video = try await asset.loadTracks(withMediaType: .video).first,
               let audio = try await asset.loadTracks(withMediaType: .audio).first else {
@@ -114,6 +127,7 @@ struct WebSurface: UIViewRepresentable {
         }
         status = "Chargement de la composition verrouillée"
         try await load(fixture)
+        status = "Composition chargée ; initialisation AVFoundation"
         let reader = try AVAssetReader(asset: asset)
         let source = AVAssetReaderTrackOutput(track: video, outputSettings: [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA])
         guard reader.canAdd(source) else { throw fail("Décodeur indisponible.") }; reader.add(source)
@@ -132,6 +146,7 @@ struct WebSurface: UIViewRepresentable {
             guard UIApplication.shared.applicationState == .active else { throw fail("Garder l’application ouverte pendant l’export. Relancer après interruption.") }
             let pts = CMSampleBufferGetPresentationTimeStamp(sample)
             guard let original = CMSampleBufferGetImageBuffer(sample) else { throw fail("Image source absente.") }
+            status = "Capture WebKit image \(frames)"
             let graphic = try await overlay(at: CMTimeGetSeconds(pts))
             while !sink.isReadyForMoreMediaData {
                 guard writer.status == .writing else { throw writer.error ?? fail("Encodeur arrêté.") }

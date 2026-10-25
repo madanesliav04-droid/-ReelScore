@@ -3,7 +3,10 @@ import json, subprocess, sys, os, time, shutil
 from pathlib import Path
 
 def run(*args):
-    return subprocess.check_output(args, text=True)
+    print('Running: ' + ' '.join(args), flush=True)
+    result = subprocess.check_output(args, text=True, timeout=180)
+    print(result[-400:], flush=True)
+    return result
 
 devices = json.loads(run('xcrun', 'simctl', 'list', 'devices', 'available', '--json'))['devices']
 phones = [d for runtime, ds in devices.items() if 'iOS' in runtime
@@ -23,10 +26,16 @@ try:
     run('xcrun', 'simctl', 'launch', udid, 'local.socialplus.v28lab', '--synthetic-ci')
     container = Path(run('xcrun', 'simctl', 'get_app_container', udid, 'local.socialplus.v28lab', 'data').strip())
     result = container / 'Documents/ci-result.json'
-    deadline = time.monotonic() + 420
+    deadline = time.monotonic() + 180
+    last_stage = None
     while not result.exists():
+        stage_file = container / 'Documents/ci-stage.txt'
+        stage = stage_file.read_text() if stage_file.exists() else 'Waiting for SwiftUI export task'
+        if stage != last_stage:
+            print(stage, flush=True)
+            last_stage = stage
         if time.monotonic() > deadline:
-            raise RuntimeError('Timed out after 420s waiting for iOS export report')
+            raise RuntimeError('Timed out after 180s waiting for iOS export report')
         time.sleep(2)
     data = json.loads(result.read_text())
     print(json.dumps(data))
@@ -48,4 +57,4 @@ except Exception:
     raise
 finally:
     if booted_here:
-        subprocess.run(['xcrun', 'simctl', 'shutdown', udid], check=False)
+        subprocess.run(['xcrun', 'simctl', 'shutdown', udid], check=False, timeout=60)
