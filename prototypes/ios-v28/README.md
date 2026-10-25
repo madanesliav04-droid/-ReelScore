@@ -92,3 +92,11 @@ Le dépôt cible est **déjà public** (`private:false` obtenu par API), sans ch
 Le workflow isolé utilise uniquement `macos-15` standard, 20 minutes maximum, aucun cache, aucun upload d’artefact, aucun secret et aucun déploiement. Il refuse de s’exécuter si le dépôt devient privé : dans ce cas, contrôler les quotas gratuits et le blocage des dépenses avant toute adaptation. Il compile puis installe/lance l’application sur un simulateur disponible. Ce lancement ne vérifie pas la capture ni l’export.
 
 **Confidentialité :** rush, plan de transcription et master restent hors Git. Ils ne sont donc pas disponibles sur le runner. Ne pas les ajouter au dépôt public ni à des artefacts publics pour contourner ce blocage. Le test complet nécessite un transfert privé autorisé et temporaire des trois ressources, puis un mécanisme de récupération privée du MP4. Aucun stockage ni transfert externe supplémentaire n’est activé par ce workflow.
+
+### Résultat réel de la première compilation distante
+
+Exécution réussie : https://github.com/madanesliav04-droid/-ReelScore/actions/runs/40224907698 ; commit vérifié `439c6010b2ad47b400499b4760ceda29015b1984`.
+
+Xcode 16.4 (16F6), runner macOS standard arm64, simulateur iPhone 16 Pro / iOS 18.5 : compilation, installation et commande de lancement réussies. Premier essai : arrêt au lancement ; ajout d’une signature ad hoc locale au binaire simulateur, puis second essai réussi. La santé continue de l’application n’est pas contrôlée par cette simple commande de lancement.
+
+Aucun rush privé fourni au runner, aucun export exécuté et aucun artefact stocké. La capture WebKit, le MP4 et la fidélité restent **non testés**. Le point de terminaison des secrets Actions renvoie également 403 à l’intégration actuelle. Prochaine intervention nécessaire : permettre une configuration de secret Actions pour un canal temporaire privé de transfert, avant tout envoi des médias. Ne pas envoyer le secret dans une conversation ou le committer. Les accès doivent rester limités à ce test, sans toucher aux secrets de production.
