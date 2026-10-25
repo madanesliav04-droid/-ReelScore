@@ -5,6 +5,8 @@ options:
 settings:
   base:
     SWIFT_VERSION: '5.0'
+    ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES: YES
+    ENABLE_DEBUG_DYLIB: NO
     PRODUCT_BUNDLE_IDENTIFIER: local.socialplus.v28lab
     GENERATE_INFOPLIST_FILE: YES
     INFOPLIST_KEY_UILaunchScreen_Generation: YES

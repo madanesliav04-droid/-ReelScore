@@ -1,5 +1,5 @@
 """App launch check only. Never claims a private-rush export succeeded."""
-import json, subprocess, sys, os, time, shutil
+import json, subprocess, sys, os, time, shutil, re
 from pathlib import Path
 
 def run(*args):
@@ -9,11 +9,13 @@ def run(*args):
     return result
 
 devices = json.loads(run('xcrun', 'simctl', 'list', 'devices', 'available', '--json'))['devices']
-phones = [d for runtime, ds in devices.items() if 'iOS' in runtime
-          for d in ds if 'iPhone' in d['name'] and d.get('isAvailable')]
+ordered = sorted(devices, key=lambda k: tuple(int(n) for n in re.findall(r'\d+', k)), reverse=True)
+phones = [dict(d, runtime=runtime) for runtime in ordered if 'iOS' in runtime
+          for d in devices[runtime] if 'iPhone' in d['name'] and d.get('isAvailable')]
 if not phones:
     raise SystemExit('No available iPhone simulator. No runtime download requested.')
 device = phones[0]
+print('Selected simulator: ' + device['name'] + ' / ' + device['runtime'], flush=True)
 udid = device['udid']
 booted_here = device['state'] != 'Booted'
 try:
