@@ -152,3 +152,19 @@ test('editorial route uses only the owner source and cached local transcript, ne
  assert.ok(first.criteria.hook.observation.includes('Comment'));assert.ok(!JSON.stringify(first).includes('INVENTED'));
  await assert.rejects(projects.editorial('bob',p.id),{code:'PROJECT_NOT_FOUND'});
 });
+
+test('locked Kinetic rejects generic rendering and retains only source-bound direction after completion',async t=>{
+ const {projects,db}=await fixture(t,{probeVideo:async()=>({width:640,height:360,durationMs:3000,hasAudio:true}),renderVideo:async({outputPath,onProgress,restoredInput,kineticRelease})=>{assert.ok(kineticRelease);assert.ok(restoredInput.kineticDirection);await onProgress(50);await writeFile(outputPath,'unit-test-output');return {};}});
+ const p=projects.create('alice'),req=Readable.from([Buffer.from('unit-test-upload')]);req.headers={'content-type':'video/mp4'};await projects.upload('alice',p.id,req);
+ const words=[{text:'Une',startMs:100,endMs:300},{text:'solution',startMs:300,endMs:700}];
+ assert.throws(()=>projects.startRender('alice',p.id,{style_id:'social-kinetic-v28',transcript:words,events:[]}),{code:'KINETIC_DIRECTION_REQUIRED'});
+ const direction={layout:{hero:[.05,.06,.5,.2],chat:[.65,.5,.3,.14],captionLeft:[.05,.7,.4,.15],captionRight:[.55,.7,.4,.15]},impacts:[{firstWord:0,accentWord:1,lastWord:1}],bubbles:[]};
+ const task=projects.startRender('alice',p.id,{style_id:'social-kinetic-v28',transcript:words,events:[],kineticDirection:direction,placementReviewed:true,allowUnreviewedPreview:true});
+ for(let i=0;i<100&&projects.job('alice',task.id).state==='rendering';i++)await delay(10);
+ assert.equal(projects.job('alice',task.id).state,'complete');
+ const saved=JSON.parse(db.prepare('SELECT payload FROM studio_render_requests WHERE job_id=?').get(task.id).payload);assert.equal(saved.restoredInput.transcript,undefined);assert.equal(typeof saved.restoredInput.transcriptFingerprint,'string');
+ assert.deepEqual(projects.kineticDirection('alice',p.id,{transcript:words}).direction,direction);
+ assert.equal(projects.kineticDirection('alice',p.id,{transcript:[{...words[0],text:'Autre'},words[1]]}).direction,null);
+ assert.throws(()=>projects.kineticDirection('bob',p.id,{transcript:words}),{code:'PROJECT_NOT_FOUND'});
+ assert.equal(projects.exportData('alice').model_directions.length,1);await projects.remove('alice',p.id);assert.equal(projects.exportData('alice').model_directions.length,0);
+});

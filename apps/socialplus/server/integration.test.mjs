@@ -39,6 +39,9 @@ test('integrated HTTP: public legal, owner MFA, private projects, method admin a
   const styles=await request(app,'/api/studio/styles',{cookie});assert.equal(styles.body.styles.length,6);
   const project=await request(app,'/api/projects',{method:'POST',cookie,csrf,body:{name:'HTTP integration fixture'}});assert.equal(project.status,201);
   const id=project.body.project.id;
+  assert.equal((await request(app,'/api/projects/'+id+'/kinetic-direction',{method:'POST'})).status,401);
+  assert.equal((await request(app,'/api/projects/'+id+'/kinetic-direction',{method:'POST',cookie,body:{}})).status,403);
+  assert.equal((await request(app,'/api/projects/'+id+'/kinetic-direction',{method:'POST',cookie,csrf,body:{}})).status,409);
   assert.equal((await request(app,'/api/projects',{method:'POST',cookie,body:{name:'Missing CSRF'}})).status,403);
   const methods=await request(app,'/api/admin/method-versions',{cookie});assert.equal(methods.status,200);assert.equal(methods.body.methods.length,12);
   const usage=await request(app,'/api/admin/usage',{cookie});assert.equal(usage.status,200);assert.equal(usage.body.projects,1);

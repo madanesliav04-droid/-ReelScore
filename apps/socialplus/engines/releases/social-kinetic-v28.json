@@ -1,0 +1,113 @@
+{
+  "id": "social-kinetic-v28-owner-approved-20261025",
+  "approval": "Owner explicitly approved the visual candidate in the conversation; phonetic and arbitrary new-rush approval are separate.",
+  "approvedOutputSha256": "0fada3b5a2c4be4527f039f8bd3e06bca293d11c94ae87362456d841f2fe631b",
+  "files": {
+    "server/kinetic-reference.mjs": "d7b01d1193a9cc31f885253ad141c7a39f2c907cb07e65d6ff5cdf4fcbf2ad03",
+    "server/kinetic-capture.mjs": "325e0b57f3f1154ce2e3df0f2d9c457165edc7b645c8407735feb685d42961a0",
+    "server/restored-models.mjs": "d726f22cf2893d07852707dd14994ea6987a1a899739a3cdb0d6a537c916715d",
+    "server/render.mjs": "cb40df8640a9df1a64ebabd87923d5353832971d5f5bcc1beb445aa982247774",
+    "server/render-fonts.mjs": "d055747a2bb70e25589003e0cbed799d00a249c012afebb7bd7e9d288b1ebfc3",
+    "engines/fonts/manifest.json": "970bd1c7aa954089a5ea6775a6efe2b09d3361b74242d497c05ec6801c901bf3",
+    "../worker/hyperframes/social-kinetic-v28-speech-timed/index.html": "1ab88d8a15de4c2dbc771df7587925758a6edb5b97f969fa4ce60111b43d6c5f",
+    "../worker/src/social-kinetic-v28-engine.js": "e52460afa508fc93cd5dec5b7f9e400d2ab0208c6a4be4eebe6a1e3766004b8b"
+  },
+  "reviewedSources": [
+    {
+      "sourceSha256": "53de1e48bb02b3fa7d086154f374e7f4ca38a346c2305038bc2b211c29d5716a",
+      "transcriptSha256": "9230e9ead67e444a0f57d087ca15d04dba89e6c2a1f41cd13955ecd89da1c52f",
+      "direction": {
+        "layout": {
+          "hero": [
+            0.08,
+            0.045,
+            0.84,
+            0.15
+          ],
+          "chat": [
+            0.14,
+            0.135,
+            0.72,
+            0.052
+          ],
+          "captionLeft": [
+            0.07,
+            0.65,
+            0.64,
+            0.12
+          ],
+          "captionRight": [
+            0.32,
+            0.65,
+            0.61,
+            0.12
+          ]
+        },
+        "impacts": [
+          {
+            "firstWord": 0,
+            "accentWord": 3,
+            "lastWord": 3,
+            "holdUntilWord": 8
+          },
+          {
+            "firstWord": 60,
+            "accentWord": 62,
+            "lastWord": 62,
+            "holdUntilWord": 67
+          },
+          {
+            "firstWord": 94,
+            "accentWord": 95,
+            "lastWord": 95,
+            "holdUntilWord": 99
+          }
+        ],
+        "captionRuns": [
+          {
+            "firstWord": 4,
+            "lastWord": 32,
+            "side": "right"
+          },
+          {
+            "firstWord": 33,
+            "lastWord": 59,
+            "side": "left"
+          },
+          {
+            "firstWord": 63,
+            "lastWord": 77,
+            "side": "right"
+          },
+          {
+            "firstWord": 78,
+            "lastWord": 93,
+            "side": "left"
+          },
+          {
+            "firstWord": 96,
+            "lastWord": 106,
+            "side": "right"
+          }
+        ],
+        "bubbles": [
+          {
+            "firstWord": 37,
+            "lastWord": 40,
+            "stack": 0
+          },
+          {
+            "firstWord": 48,
+            "lastWord": 53,
+            "stack": 1
+          },
+          {
+            "firstWord": 56,
+            "lastWord": 59,
+            "stack": 0
+          }
+        ]
+      }
+    }
+  ]
+}

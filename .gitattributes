@@ -1,0 +1,9 @@
+# Keep the byte-locked V28 source identical on Windows and Linux.
+apps/socialplus/server/kinetic-reference.mjs text eol=lf
+apps/socialplus/server/kinetic-capture.mjs text eol=lf
+apps/socialplus/server/restored-models.mjs text eol=lf
+apps/socialplus/server/render.mjs text eol=lf
+apps/socialplus/server/render-fonts.mjs text eol=lf
+apps/socialplus/engines/fonts/manifest.json text eol=lf
+apps/worker/hyperframes/social-kinetic-v28-speech-timed/index.html text eol=lf
+apps/worker/src/social-kinetic-v28-engine.js text eol=lf

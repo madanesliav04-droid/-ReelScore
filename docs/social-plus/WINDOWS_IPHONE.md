@@ -36,7 +36,7 @@ Pour une nouvelle installation, dans PowerShell :
 Set-Location $HOME
 New-Item -ItemType Directory -Force SocialPlus | Out-Null
 Set-Location SocialPlus
-git clone --branch codex/socialplus-mobile-premium-20261024 https://github.com/madanesliav04-droid/-ReelScore.git
+git clone --branch codex/socialplus-kinetic-iphone-connection-20261025 https://github.com/madanesliav04-droid/-ReelScore.git
 Set-Location .\-ReelScore\apps\socialplus
 ```
 
@@ -48,7 +48,7 @@ Après arrêt du serveur et sauvegarde privée, depuis le dossier du dépôt exi
 
 ```powershell
 git fetch origin
-git switch codex/socialplus-mobile-premium-20261024
+git switch codex/socialplus-kinetic-iphone-connection-20261025
 ```
 
 Si Git signale des modifications en conflit, arrêtez-vous : ne forcez pas le changement de branche. Les dossiers privés ignorés par Git sont conservés. Si l’installation HTTPS fonctionnait déjà et que l’IP Wi-Fi n’a pas changé, il suffit ensuite de relancer `DEMARRER-SOCIALPLUS.cmd` et d’actualiser Safari ; les dépendances et certificats de la nouvelle interface n’ont pas changé.
@@ -144,3 +144,9 @@ Les deux parcours ont déjà été exécutés sur un vrai extrait parlé dans Ch
 ## Nouvelle navigation mobile
 
 Les quatre onglets sont **Accueil**, **Montage**, **Analyse** et **Projets**. L’import dans Montage ou Analyse crée et enregistre automatiquement un projet ; il n’est plus nécessaire de remplir un formulaire de sauvegarde avant de commencer. Renommer reste possible dans « Nom du projet ». Dans Analyse, le choix d’un rush enregistré évite un nouvel import. La bibliothèque Projets permet aussi de lire, télécharger et supprimer un projet ; les options de partage natif dépendent du navigateur. Les mots et points d’écoute sont accessibles dans « Paroles et synchronisation », avec le JSON réservé aux outils avancés.
+
+## Social Kinetic V28 verrouillée
+
+Cette branche conserve le moteur visuel validé et raccorde la direction V28 à l’interface. Importer le rush validé, choisir Social Kinetic, cliquer sur Préparer mon montage, écouter les alertes et vérifier les placements, puis lancer le montage. Le résultat et sa direction restent dans Projets. Les cinq autres modèles sont conservés.
+
+Pour un autre rush, l’application signale explicitement qu’une direction contextuelle doit être préparée dans Animations avancées ; elle ne reprend jamais les anciens indices sur une nouvelle vidéo. Ce raccordement n’ajoute pas de direction éditoriale automatique. La lecture et le téléchargement Safari sur votre iPhone restent à vérifier après installation du certificat local.
