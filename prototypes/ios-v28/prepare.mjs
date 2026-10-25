@@ -10,7 +10,10 @@ if(!planFile||!sourceFile)throw Error('Usage: node prototypes/ios-v28/prepare.mj
 const release=JSON.parse(await readFile(new URL('../../apps/socialplus/engines/releases/social-kinetic-v28.json',import.meta.url)));
 for(const [file,sha] of Object.entries(release.files)){
  const bytes=await readFile(new URL('../../apps/socialplus/'+file,import.meta.url));
- if(createHash('sha256').update(bytes).digest('hex')!==sha)throw Error('Locked source changed: '+file);
+ const hash=value=>createHash('sha256').update(value).digest('hex');
+ // Historical GitHub upload omitted one final LF. Accept only the exact
+ // locked bytes after adding that LF, never arbitrary whitespace/content changes.
+ if(hash(bytes)!==sha && hash(Buffer.concat([bytes,Buffer.from('\n')]))!==sha)throw Error('Locked source changed: '+file);
 }
 const plan=JSON.parse(await readFile(planFile));
 if(!plan.referenceDirection||!plan.referenceWords)throw Error('Reviewed referenceDirection and referenceWords required. No generic fallback.');
