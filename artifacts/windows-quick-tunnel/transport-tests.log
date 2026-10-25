@@ -1,0 +1,13 @@
+✔ Quick Tunnel launcher selects account-free HTTP2 and an isolated config, never credentials or a public origin port (1.760676ms)
+✔ startup parser requires both an assigned HTTPS URL and a registered connection; closes early on failure (1.584865ms)
+✔ loopback gateway refuses other hosts, waits for initialization and limits declared tunnel uploads (0.400936ms)
+✔ real app behind tunnel transport retains MFA, Secure cookies, private data and exact-origin CSRF (256.518434ms)
+✔ external readiness waits for DNS but refuses an anonymous-success backend immediately (1.429304ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 371.924599
