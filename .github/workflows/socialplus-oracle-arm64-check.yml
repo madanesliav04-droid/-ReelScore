@@ -27,7 +27,8 @@ jobs:
         run: |
           test "$(uname -m)" = aarch64
           docker build -f apps/socialplus/deploy/Dockerfile.oracle-arm64 -t socialplus-arm-candidate .
-      - name: Exercise original V28 compositor and local Whisper inference
-        run: docker run --rm --cpus=2 --memory=9g --shm-size=256m socialplus-arm-candidate node scripts/arm64-runtime-smoke.mjs
+      - name: Exercise hardened ARM runtime, original V28 and offline Whisper
+        run: |
+          docker run --rm --cpus=2 --memory=9g --shm-size=256m --read-only --cap-drop=ALL --security-opt=no-new-privileges --pids-limit=512 --tmpfs /tmp:rw,exec,size=2g,mode=1777 --tmpfs /data:rw,size=64m,uid=1000,gid=1000,mode=700 -e SOCIALPLUS_ORIGIN=https://example.invalid -e SOCIALPLUS_OWNER_ID=arm64-fixture-only -e SOCIALPLUS_OWNER_TOTP_SECRET=GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ socialplus-arm-candidate sh -c 'npm run preflight && node scripts/arm64-runtime-smoke.mjs && env NODE_ENV=test node --test server/security.test.mjs'
       - name: Validate HTTPS proxy configuration without starting a public listener
         run: docker run --rm -e SOCIALPLUS_DOMAIN=example.invalid -v "$PWD/apps/socialplus/deploy/oracle/Caddyfile:/etc/caddy/Caddyfile:ro" caddy:2.10.2-alpine caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
