@@ -82,7 +82,14 @@ export function buildEditTimeline({
   style='creator_clean',
   captionPreset=null
 }){
-  const styleCfg=EDIT_STYLES[style]||EDIT_STYLES.creator_clean;
+  // Never silently substitute a generic montage for a requested approved style.
+  // A missing style must be integrated and tested before it can be offered.
+  if(!Object.hasOwn(EDIT_STYLES,style)){
+    const error=new Error('EDIT_STYLE_NOT_IMPLEMENTED: '+String(style));
+    error.code='EDIT_STYLE_NOT_IMPLEMENTED';
+    throw error;
+  }
+  const styleCfg=EDIT_STYLES[style];
   const preset=captionPreset&&CAPTION_PRESETS[captionPreset]
     ?captionPreset
     :styleCfg.captions;
