@@ -21,6 +21,18 @@ import {
   captionColorForLuma
 } from './render.js';
 
+// Supabase/PostgREST errors can be plain objects; String(error) hides the cause.
+function formatError(error){
+  if(error instanceof Error)return error.stack||error.message;
+  if(error&&typeof error==='object'){
+    const parts=[error.code,error.message,error.details,error.hint]
+      .filter(value=>value!=null&&String(value).trim());
+    if(parts.length)return parts.map(String).join(' | ');
+    try{return JSON.stringify(error)}catch{}
+  }
+  return String(error);
+}
+
 const required=[
   'SUPABASE_URL',
   'SUPABASE_SERVICE_ROLE_KEY',
@@ -88,13 +100,13 @@ server.listen(port,'0.0.0.0',()=>{
 process.on('SIGTERM',()=>{stopping=true});
 process.on('SIGINT',()=>{stopping=true});
 process.on('unhandledRejection',error=>{
-  lastError=String(error?.stack||error);
+  lastError=formatError(error);
   console.error(lastError);
 });
 
 if(!missing.length){
   loop().catch(error=>{
-    lastError=String(error?.stack||error);
+    lastError=formatError(error);
     console.error(lastError);
   });
 }
@@ -113,7 +125,7 @@ async function loop(){
       lastError=null;
       await processJob(job);
     }catch(error){
-      lastError=String(error?.stack||error);
+      lastError=formatError(error);
       console.error(lastError);
       await sleep(Math.min(10000,pollMs*2));
     }finally{
@@ -137,7 +149,7 @@ async function claimJob(){
         'Queue RPC worker_claim_processing_job absente.'
       );
     }
-    throw error;
+    throw new Error(`QUEUE_CLAIM_FAILED: ${formatError(error)}`);
   }
 
   return Array.isArray(data)
