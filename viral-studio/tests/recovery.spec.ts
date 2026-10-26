@@ -205,3 +205,13 @@ test('UGC: seven already uploaded rushes can be selected and start a render with
   expect(renderRequest.style).toBe('ugc_native');
   expect(renderRequest.settings.ugc_rush_video_ids).toEqual(saved.slice(1).map(x=>x.id));
 });
+
+test('review-required render is never presented as ready to publish',async({page})=>{
+  await setup(page);
+  await page.route('**/api/viral-edit-jobs/jobs/job-qa',r=>r.fulfill({json:{job:{id:'job-qa',kind:'edit_render',status:'completed',result:{export_id:'review-export',review_required:true}}}}));
+  await page.route('**/api/viral-edit-jobs/exports/review-export/url',r=>r.fulfill({json:{signed_url:'https://example.invalid/review.mp4'}}));
+  await page.goto('/dashboard');
+  await expect(page.getByRole('heading',{name:'Rendu de contrôle à vérifier.'})).toBeVisible();
+  await expect(page.getByRole('alert').filter({hasText:'Transcription ou fidélité non validée'})).toContainText('Transcription ou fidélité non validée');
+  await expect(page.getByText('Regarde l’export puis télécharge-le pour le publier.')).toHaveCount(0);
+});

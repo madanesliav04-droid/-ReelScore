@@ -72,17 +72,17 @@ const EDIT_MODELS:EditModel[]=[
     "name": "Alex Hormozi",
     "category": "Explication visuelle",
     "preview": "HORMOZI",
-    "meta": "Sources historiques retrouvées · générateur plein écran V11/V16 manquant",
+    "meta": "Reconstruction plein écran · validation visuelle et transcription en cours",
     "goal": "Montage didactique plein écran, en conservant toujours le format source.",
     "actions": [
-      "Le worker ne peut pas encore produire la V16 validée ; aucun autre style ne sera utilisé à sa place.",
+      "Rendus de contrôle sur rushs bruts disponibles ; le modèle reste désactivé avant validation.",
       "Respecter la référence V11 / V16 et le 16:9 natif.",
       "Aucune insertion latérale ni bande ajoutée.",
       "Cuts intentionnels, démonstrations utiles, voix et sous-titres exacts."
     ],
     "never": "Pas de recadrage horizontal, doublage ou superposition.",
     "available": false,
-    "state": "SOURCE V16 À RACCORDER"
+    "state": "RECONSTRUCTION À VALIDER"
   },
   {
     "id": "cinematic_story",
@@ -231,6 +231,7 @@ export function Dashboard(){
   const sourceRef=useRef<HTMLVideoElement|null>(null);
   const [authNotice,setAuthNotice]=useState("");
   const [editExportUrl,setEditExportUrl]=useState("");
+  const [editReviewRequired,setEditReviewRequired]=useState(false);
   const [editOutputMediaId,setEditOutputMediaId]=useState("");
   const [preFixScore,setPreFixScore]=useState<number|null>(null);
   const [preFixVersion,setPreFixVersion]=useState<string|null>(null);
@@ -273,7 +274,7 @@ export function Dashboard(){
     setBusy(false);setJob(null);setMedia(null);setFile(null);setSourceUrl("");
     setUgcRushIds([]);setUgcRushPending(false);setUgcLibrary([]);setUgcLibraryIds([]);setUgcPrimaryMedia(null);
     setAnalysis(null);setClipMedia(null);setClipFile(null);setClipProject(null);
-    setEditExportUrl("");setEditOutputMediaId("");setError("");
+    setEditExportUrl("");setEditOutputMediaId("");setEditReviewRequired(false);setError("");
     setViralQuota(null);
     if(owner){
       try{
@@ -418,7 +419,7 @@ export function Dashboard(){
       if(isClip){setClipFile(selected);setClipMedia(null);setClipUploadPct(0);setClipProject(null)}
       else{
         setSourceUrl(URL.createObjectURL(selected));setFile(selected);setMedia(null);
-        setAnalysis(null);setUploadPct(0);setEditExportUrl("");setEditOutputMediaId("");setPreFixScore(null);setPreFixVersion(null);
+        setAnalysis(null);setUploadPct(0);setEditExportUrl("");setEditOutputMediaId("");setEditReviewRequired(false);setPreFixScore(null);setPreFixVersion(null);
       }
       setJob(null);
       const storage=await api(functionUrl("viral-edit-jobs","storage-config"),token);
@@ -549,6 +550,7 @@ export function Dashboard(){
             if(!out?.signed_url)throw new Error("Export indisponible.");
             if(!alive())return;
             setEditOutputMediaId(String(body.job.result.output_video_id||out.media?.id||""));
+            setEditReviewRequired(body.job.result.review_required===true||out.media?.metadata?.review_required===true);
             setEditExportUrl(out.signed_url);
           }
           if(body.job.kind==="clip_generate"){
@@ -848,7 +850,7 @@ export function Dashboard(){
         </section>
       </>}
 
-      {active==="edit"&&editExportUrl&&<section className="result-panel edit-result"><div className="result-copy"><small>EDIT+ · EXPORT TERMINÉ</small><h2>Ton montage {selectedModel.name} est prêt.</h2><p>Regarde l’export puis télécharge-le pour le publier.</p><div className="result-actions"><a className="btn primary" href={editExportUrl} target="_blank" rel="noreferrer">Ouvrir le MP4 ↗</a><button className="btn ghost" onClick={()=>void analyzeEditOutput()} disabled={busy||!editOutputMediaId}>Analyser dans Viral+ <ArrowRight size={15}/></button></div></div><video className="result-video" src={editExportUrl} controls playsInline/></section>}
+      {active==="edit"&&editExportUrl&&<section className="result-panel edit-result"><div className="result-copy"><small>EDIT+ · EXPORT TERMINÉ</small><h2>{editReviewRequired?"Rendu de contrôle à vérifier.":`Ton montage ${selectedModel.name} est prêt.`}</h2>{editReviewRequired?<p role="alert">Transcription ou fidélité non validée. Vérifie les paroles et le rendu avant toute publication.</p>:<p>Regarde l’export puis télécharge-le pour le publier.</p>}<div className="result-actions"><a className="btn primary" href={editExportUrl} target="_blank" rel="noreferrer">Ouvrir le MP4 ↗</a><button className="btn ghost" onClick={()=>void analyzeEditOutput()} disabled={busy||!editOutputMediaId}>Analyser dans Viral+ <ArrowRight size={15}/></button></div></div><video className="result-video" src={editExportUrl} controls playsInline/></section>}
 
       {active==="viral"&&analysis&&<>
         <section className="result-panel viral-hero-result">

@@ -96,7 +96,10 @@ def block(im, box, value, active):
     d.rounded_rectangle(box, radius=16, fill=PALE if active else WHITE,
                         outline=ACCENT if active else BORDER, width=2 if active else 1)
     x0, y0, x1, y1 = box
-    text(im, value, (x0+x1)/2, y0+(21 if any(c in value for c in 'ÉÈÀÊÎ') else 27), 28, ACCENT if active else INK, display=True, max_width=x1-x0-24)
+    if font(28,True).getlength(value)>x1-x0-24:
+        wrapped(im,value,(x0+x1)/2,y0+10,24,x1-x0-24,ACCENT if active else INK,min_size=22)
+    else:
+        text(im, value, (x0+x1)/2, y0+(21 if any(c in value for c in 'ÉÈÀÊÎ') else 27), 28, ACCENT if active else INK, display=True, max_width=x1-x0-24)
 
 
 def draw_scene(scene, elapsed):
@@ -149,16 +152,20 @@ def native_scene(scene, elapsed, width, height):
     return canvas
 
 
-def wrapped(im,value,x,top,size,max_width,color=INK,max_lines=2):
+def wrapped(im,value,x,top,size,max_width,color=INK,max_lines=2,min_size=16):
     f=font(size,True);d=ImageDraw.Draw(im);lines=[];line=''
     for word in value.split():
         candidate=(line+' '+word).strip()
         if d.textlength(candidate,font=f)>max_width:
-            if not line:raise ValueError('Infographic word exceeds its safe area')
+            if not line:
+                if size>min_size:return wrapped(im,value,x,top,size-1,max_width,color,max_lines,min_size)
+                raise ValueError('Infographic word exceeds its safe area')
             lines.append(line);line=word
         else:line=candidate
     if line:lines.append(line)
-    if len(lines)>max_lines:raise ValueError('Infographic text exceeds two readable lines')
+    if len(lines)>max_lines:
+        if size>min_size:return wrapped(im,value,x,top,size-1,max_width,color,max_lines,min_size)
+        raise ValueError('Infographic text exceeds two readable lines')
     for i,line in enumerate(lines):text(im,line,x,top+i*(size+5),size,color,display=True,max_width=max_width)
 
 
@@ -171,7 +178,7 @@ def portrait_scene(scene,elapsed,width,height):
     im=Image.new('RGB',(w,h),BG);d=ImageDraw.Draw(im);v=scene['text'];c=scene['cues']
     d.ellipse((380,-90,700,230),outline=(237,242,248),width=10)
     text(im,v['chapter'],28,42,15,MUTED,center=False,max_width=456)
-    wrapped(im,v['title'],256,94,28,456)
+    wrapped(im,v['title'],256,94,28,456,min_size=24)
     d.line((28,165,484,165),fill=(192,201,213),width=1)
     cy=min(round(h*.43),420)
     if scene['kind'] in ('question','value'):

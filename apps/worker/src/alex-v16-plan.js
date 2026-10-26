@@ -3,6 +3,7 @@
 // are deliberately bounded: unsupported content is held for editorial review.
 import {mapOriginalToOutput} from './edit.js';
 import {validateTimedWords} from './word-timing.js';
+import {discourseScenes} from './alex-v16-discourse.js';
 const norm=s=>String(s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
 const fail=(code,message)=>{throw Object.assign(new Error(message),{code});};
 
@@ -39,6 +40,9 @@ export function buildAlexV16Plan({transcript,measurable}){
  const words=checked.words.map((w,i)=>({...w,sourceIndex:i,sourceStartMs:w.startMs,sourceEndMs:w.endMs,startMs:mapOriginalToOutput(w.startMs,keepRanges),endMs:mapOriginalToOutput(w.endMs,keepRanges)}));
  if(words.some(w=>w.startMs==null||w.endMs==null||w.endMs<=w.startMs))fail('ALEX_CUT_WORD_LOSS','Un cut traverse un mot.');
  const tokens=words.map(w=>norm(w.text));
+ let scenes=discourseScenes(words,outputDurationMs/1000);
+ const plannerStrategy=scenes?'extractive-discourse-relations':'bounded-legacy-intents';
+ if(!scenes){
  function find(phrases,after=0){
   for(const phrase of phrases){
    const p=phrase.split(/\s+/).map(norm);
@@ -67,13 +71,14 @@ export function buildAlexV16Plan({transcript,measurable}){
   if(end-start<2)fail('ALEX_SCENE_TOO_SHORT','La relation ne dispose pas du temps de lecture nécessaire.');
   return {kind,start,end,text:{chapter:`0${kind==='question'?1:kind==='value'?2:3} / ${headline(title)}`,title:headline(title),labels:labels.map(headline),conclusion:headline(conclusion),...(kind==='chain'?{}:{symbols:kind==='question'?['?','+']:['+','€']})},evidence:spans.map(s=>({firstWord:s.first,lastWord:s.last,start:s.start,end:s.end,text:s.text})),cues};
  }
- const scenes=[
+ scenes=[
   common('question',qStart,qEnd,qTitle,[qLeft,qRight],qCallout,[qTitle,qLeft,qRight,qCallout],{rightHighlight:qRight.start-qStart,arrowStart:qRight.start-qStart,arrowDuration:Math.max(.3,qRight.end-qRight.start),calloutStart:qCallout.start-qStart,calloutDuration:.45}),
   common('value',vStart,vEnd,valueTitle,[valueLeft,valueRight],valueCallout,[valueTitle,valueLeft,valueRight,valueCallout],{rightHighlight:valueRight.start-vStart,arrowStart:valueLeft.end-vStart,arrowDuration:Math.max(.3,valueRight.start-valueLeft.end),calloutStart:valueCallout.start-vStart,calloutDuration:.43}),
   common('chain',cStart,cEnd,chainTitle,[chain1,chain2,chain3],chainCallout,[chainTitle,chain1,chain2,chain3,chainCallout],{nodeStarts:[0,chain2.start-cStart,chain3.start-cStart],arrowStarts:[chain1.end-cStart,chain2.end-cStart],arrowDuration:.4,calloutStart:chainCallout.start-cStart,calloutDuration:.2})
  ];
+ }
  for(const s of scenes){if(s.end-s.start-s.cues.calloutStart<1)fail('ALEX_SCENE_TOO_SHORT','Bandeau trop bref pour être lu.');}
- const issues=words.filter(w=>Number(w.probability??0)<.75).map(w=>({wordIndex:w.sourceIndex,text:w.text,startMs:w.sourceStartMs,endMs:w.sourceEndMs,probability:w.probability??null}));
+ const issues=words.filter(w=>Number(w.probability??0)<.75||/\s/.test(w.text)).map(w=>({wordIndex:w.sourceIndex,text:w.text,startMs:w.sourceStartMs,endMs:w.sourceEndMs,probability:w.probability??null,...(/\s/.test(w.text)?{reason:'ASR_GROUP_WITHOUT_DISTINCT_WORD_BOUNDARIES'}:{})}));
  const reviewed=transcript.reviewed===true;
- return {schemaVersion:1,purpose:'new-rush',engine:'alex-v16-reconstructed-speech-evidence-v1',wordVerification:reviewed?'human-confirmed':'automatic-needs-review',reviewRequired:!reviewed||issues.length>0,issues,warnings:transcript.warnings||[],scenes,words:words.map(w=>({text:w.text,start:w.startMs/1000,end:w.endMs/1000,sourceIndex:w.sourceIndex,sourceStart:w.sourceStartMs/1000,sourceEnd:w.sourceEndMs/1000,probability:w.probability})),keepRanges,removedRanges,outputDurationMs,sourceDurationMs:durationMs,supportedIntent:'French advice: explain versus existing problem, easier sale, solution demonstration. Other intents are held, never rendered with generic scenes.'};
+ return {schemaVersion:1,purpose:'new-rush',engine:'alex-v16-reconstructed-discourse-v2',plannerStrategy,wordVerification:reviewed?'human-confirmed':'automatic-needs-review',reviewRequired:!reviewed||issues.length>0,issues,warnings:transcript.warnings||[],scenes,words:words.map(w=>({text:w.text,start:w.startMs/1000,end:w.endMs/1000,sourceIndex:w.sourceIndex,sourceStart:w.sourceStartMs/1000,sourceEnd:w.sourceEndMs/1000,probability:w.probability})),keepRanges,removedRanges,outputDurationMs,sourceDurationMs:durationMs,supportedIntent:'Extractive French contrasts, functional financial effects and explicit enumerations; ambiguous or incomplete sets are held. Heuristic relations, not general semantic certification.'};
 }

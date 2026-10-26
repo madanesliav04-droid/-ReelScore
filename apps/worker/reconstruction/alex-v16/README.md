@@ -30,12 +30,17 @@ Cuts require a measured long silence between completed sentences plus 160ms
 word margins. No filler or phrase is removed merely to create a cut. This test
 rush had no eligible pause, so no cut was invented.
 
-**Bounded planning:** the first deterministic editorial rule set handles French
-business advice contrasting explanation versus an existing problem, easier
-sales and a solution demonstration. Labels/headlines and cue positions are
-extracted from actual words. Other content is rejected with
-`ALEX_SCENE_EVIDENCE_REQUIRED`, rather than receiving invented/generic graphics.
-This is not a general semantic engine for arbitrary subjects.
+**Planning v2:** a deterministic extractive discourse parser detects explicit
+contrasts, negation/alternative pairs, functional effects and repeated spoken
+enumerations. It traces wording and timing to source-word indices and selects
+three nonoverlapping relations. Currency graphics require nearby financial
+language; an enumeration is not certified as a causal process. Missing relations
+are held rather than replaced with unrelated charts. The old narrow intent path
+is retained for backwards compatibility when no complete general set is found.
+This broadens phrasing and supports the two real sales/productivity sources; it
+is still a French heuristic, not universal semantic understanding. Human semantic
+and visual approval remains required. Multi-word ASR groups are explicitly
+reported as lacking distinct internal word boundaries.
 
 `--review-draft` explicitly permits an unreviewed automatic transcript in a
 control export. It NEVER marks words as human-confirmed. Without it, unreviewed
