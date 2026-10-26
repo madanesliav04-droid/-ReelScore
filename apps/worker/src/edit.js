@@ -155,8 +155,8 @@ export function buildEditTimeline({
     version:style==='cinematic_story'?3:style==='leila'?2:1,
     engine:style==='cinematic_story'?'editplus-cinematic-evidence-v1':style==='leila'?'editplus-leila-intent-v2':'editplus-timeline-v1',
     fps:30,
-    width:1080,
-    height:1920,
+    width:nativeWidth,
+    height:nativeHeight,
     style,
     styleConfig:styleCfg,
     captionPreset:preset,
@@ -176,7 +176,7 @@ export function buildEditTimeline({
       limiterDb:-1
     },
     export:{
-      width:(style==='leila'||style==='cinematic_story')?nativeWidth:1080,height:(style==='leila'||style==='cinematic_story')?nativeHeight:1920,fps:30,codec:'h264',pixelFormat:'yuv420p'
+      width:nativeWidth,height:nativeHeight,fps:30,codec:'h264',pixelFormat:'yuv420p'
     }
   };
 }
