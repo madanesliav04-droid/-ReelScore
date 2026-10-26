@@ -1,0 +1,8 @@
+{
+  "source": "Existing apps/socialplus/engines/transcribe_local.py copied unchanged from the preserved Social+ workspace",
+  "sha256": "1333fa3a8326392584806e4a4714ca4c0d954410696adec410c6ee408c66ead2",
+  "language": "fr",
+  "externalService": false,
+  "modelDownloaded": false,
+  "method": "Whisper small word timestamps plus acoustic bounds; not independent phonetic alignment"
+}

@@ -14,6 +14,7 @@ import {retryableJobError} from './retry-policy.js';
 import {verifyMp4} from './export-integrity.js';
 import {receiveObject,verifySource,MAX_SOURCE_BYTES} from './media-integrity.js';
 import {editContract} from './model-contract.js';
+import {renderAlexV16} from './alex-v16-pipeline.js';
 import {validateTimedWords} from './word-timing.js';
 import {composeUgcRushes} from './ugc-rush-compositor.js';
 import {
@@ -409,15 +410,20 @@ async function runEdit(job,media,sourcePath,dir){
     analysis=data?.result_json||null;
   }
 
-  const contract=editContract(payload.style||project.style);
+  const contract=editContract(payload.style||project.style,{alexReconstruction:process.env.ALEX_V16_RECONSTRUCTION_ENABLED==='true'});
   if(!contract.ok)throw tagged(contract.code,contract.message);
   const targetStyle=contract.workerStyle;
+  const alexRender=targetStyle==='hormozi_omni'?await renderAlexV16({
+    sourcePath:editingSourcePath,workDir:dir,outputPath:path.join(dir,'alex-final.mp4'),
+    reviewDraft:process.env.ALEX_V16_REVIEW_DRAFTS==='true',
+    onProgress:async(status,pct,stage)=>progress(job,status,pct,stage)
+  }):null;
   const priorWords=analysis?.transcript?.words;
   const timingCheck=validateTimedWords(priorWords,
     Math.round(Number(analysis?.measurable?.durationSec||0)*1000));
   // A cached Viral+ transcript that merely contains words may still have
   // invalid timecodes. Reanalyze instead of exporting desynchronized captions.
-  if(!priorWords?.length||(['leila','cinematic_story'].includes(targetStyle)&&!timingCheck.ok)){
+  if(!alexRender&&(!priorWords?.length||(['leila','cinematic_story'].includes(targetStyle)&&!timingCheck.ok))){
     await progress(
       job,
       'transcribing',
@@ -456,14 +462,14 @@ async function runEdit(job,media,sourcePath,dir){
     await updateMediaFromAnalysis(media,analysis);
   }
 
-  await progress(
+  if(!alexRender)await progress(
     job,
     'planning',
     42,
     'Construction de la timeline Edit+'
   );
 
-  const timeline=buildEditTimeline({
+  const timeline=alexRender?.timeline||buildEditTimeline({
     analysis,
     style:targetStyle,
     captionPreset:
@@ -522,11 +528,12 @@ async function runEdit(job,media,sourcePath,dir){
     dir,
     'remotion.mp4'
   );
-  const finalPath=path.join(
+  const finalPath=alexRender?.outputPath||path.join(
     dir,
     'final.mp4'
   );
 
+  if(!alexRender){
   await preprocessVideo({
     inputPath:editingSourcePath,
     outputPath:preparedPath,
@@ -559,9 +566,10 @@ async function runEdit(job,media,sourcePath,dir){
     onProgress:(pct,stage)=>
       progress(job,'encoding',pct,stage)
   });
+  }
 
   // Never persist a successful export before checking the actual final MP4.
-  await verifyMp4(finalPath,{width:timeline.width,height:timeline.height,durationMs:timeline.outputDurationMs,hasAudio:Boolean(analysis?.measurable?.audioCodec)});
+  await verifyMp4(finalPath,{width:timeline.width,height:timeline.height,durationMs:timeline.outputDurationMs,hasAudio:alexRender?alexRender.hasAudio:Boolean(analysis?.measurable?.audioCodec)});
 
   const outputStoragePath=
     `${job.user_id}/exports/${project.id}/${job.id}.mp4`;
@@ -606,7 +614,8 @@ async function runEdit(job,media,sourcePath,dir){
         job_id:job.id,
         style:timeline.style,
         caption_preset:timeline.captionPreset,
-        engine:timeline.engine
+        engine:timeline.engine,
+        ...(alexRender?{review_required:alexRender.reviewRequired,transcription_reviewed:alexRender.review.transcriptionReviewed,phonetic_alignment_certified:false}: {})
       }
     },{
       onConflict:'storage_bucket,storage_path'
@@ -660,7 +669,8 @@ async function runEdit(job,media,sourcePath,dir){
       output_video_id:outputAsset.id,
       duration_ms:timeline.outputDurationMs,
       style:timeline.style,
-      caption_preset:timeline.captionPreset
+      caption_preset:timeline.captionPreset,
+      ...(alexRender?{review_required:alexRender.reviewRequired,transcription_reviewed:alexRender.review.transcriptionReviewed}: {})
     },
     outputAsset.id
   );

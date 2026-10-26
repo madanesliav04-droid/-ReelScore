@@ -66,13 +66,13 @@ def circle(im, cx, cy, radius, symbol, active):
     text(im, symbol, cx, cy-(box[3]-box[1])/2, 32, ACCENT if active else INK)
 
 
-def connector(im, x0, x1, y, progress, width=4):
+def connector(im, x0, x1, y, progress, width=4, dot_radius=5):
     if progress <= 0:
         return
     d = ImageDraw.Draw(im)
     x = x0 + (x1-x0)*progress
     d.line((x0, y, x, y), fill=ACCENT, width=width)
-    d.ellipse((x-5, y-5, x+5, y+5), fill=ACCENT)
+    d.ellipse((x-dot_radius, y-dot_radius, x+dot_radius, y+dot_radius), fill=ACCENT)
 
 
 def pill(im, box, value, progress, size=24, travel=16):
@@ -137,6 +137,8 @@ def draw_scene(scene, elapsed):
 
 def native_scene(scene, elapsed, width, height):
     """Uniform scaling, no crop or orientation change. Portrait fidelity unvalidated."""
+    if height>width:
+        return portrait_scene(scene,elapsed,width,height)
     im = draw_scene(scene, elapsed)
     if (width, height) == (910, 512):
         return im
@@ -145,3 +147,46 @@ def native_scene(scene, elapsed, width, height):
     canvas = Image.new('RGB', (width, height), BG)
     canvas.paste(im.resize(size, Image.Resampling.LANCZOS), ((width-size[0])//2, (height-size[1])//2))
     return canvas
+
+
+def wrapped(im,value,x,top,size,max_width,color=INK,max_lines=2):
+    f=font(size,True);d=ImageDraw.Draw(im);lines=[];line=''
+    for word in value.split():
+        candidate=(line+' '+word).strip()
+        if d.textlength(candidate,font=f)>max_width:
+            if not line:raise ValueError('Infographic word exceeds its safe area')
+            lines.append(line);line=word
+        else:line=candidate
+    if line:lines.append(line)
+    if len(lines)>max_lines:raise ValueError('Infographic text exceeds two readable lines')
+    for i,line in enumerate(lines):text(im,line,x,top+i*(size+5),size,color,display=True,max_width=max_width)
+
+
+def portrait_scene(scene,elapsed,width,height):
+    """Responsive version of the same three compositions, no letterboxing.
+    At native width 512: title 28px, labels 18-20px, separate 24px captions.
+    The original landscape drawing remains unchanged.
+    """
+    w,h=512,round(height*512/width)
+    im=Image.new('RGB',(w,h),BG);d=ImageDraw.Draw(im);v=scene['text'];c=scene['cues']
+    d.ellipse((380,-90,700,230),outline=(237,242,248),width=10)
+    text(im,v['chapter'],28,42,15,MUTED,center=False,max_width=456)
+    wrapped(im,v['title'],256,94,28,456)
+    d.line((28,165,484,165),fill=(192,201,213),width=1)
+    cy=min(round(h*.43),420)
+    if scene['kind'] in ('question','value'):
+        active=elapsed>=c['rightHighlight'];is_q=scene['kind']=='question'
+        for x,symbol,a in [(134,v['symbols'][0],not active if is_q else True),(378,v['symbols'][1],active)]:circle(im,x,cy,54,symbol,a)
+        connector(im,200,312,cy,ease((elapsed-c['arrowStart'])/c['arrowDuration']),3)
+        wrapped(im,v['labels'][0],134,cy+78,20,210,MUTED if is_q else INK)
+        wrapped(im,v['labels'][1],378,cy+78,20,210,ACCENT if is_q else INK)
+        pill(im,(32,cy+176,480,cy+236),v['conclusion'],ease((elapsed-c['calloutStart'])/c['calloutDuration']),20)
+    else:
+        for i,(x,label) in enumerate(zip([98,256,414],v['labels'])):
+            if elapsed<c['nodeStarts'][i]:continue
+            active=i==max(j for j,t in enumerate(c['nodeStarts']) if elapsed>=t)
+            d.rounded_rectangle((x-65,cy-34,x+65,cy+34),radius=12,fill=PALE if active else WHITE,outline=ACCENT if active else BORDER,width=2)
+            wrapped(im,label,x,cy-15,18,114,ACCENT if active else INK)
+        for i,(a,b) in enumerate([(169,184),(327,342)]):connector(im,a,b,cy,ease((elapsed-c['arrowStarts'][i])/c['arrowDuration']),3,dot_radius=3)
+        pill(im,(32,cy+176,480,cy+236),v['conclusion'],ease((elapsed-c['calloutStart'])/c['calloutDuration']),20,travel=0)
+    return im if (width,height)==(w,h) else im.resize((width,height),Image.Resampling.LANCZOS)

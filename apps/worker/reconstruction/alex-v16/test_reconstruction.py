@@ -5,6 +5,7 @@ import unittest
 from render import validate
 from scenes import draw_scene, native_scene, ease
 from captions import draw_caption
+from captions import caption_layout
 
 
 def scene():
@@ -59,6 +60,21 @@ class Reconstruction(unittest.TestCase):
     def test_unfit_graphic_fails_instead_of_overlapping(self):
         s=scene();s['text']['title']='W'*80
         with self.assertRaisesRegex(ValueError,'safe area'):draw_scene(s,1)
+
+    def test_caption_phrase_does_not_jump_with_each_word(self):
+        im=native_scene(scene(),1,512,910)
+        words=[{'text':'Bonjour','start':0,'end':.2},{'text':'vous','start':.3,'end':.5},{'text':'tous.','start':.5,'end':.8}]
+        a=caption_layout(im,words,.1);b=caption_layout(im,words,.4)
+        self.assertEqual(a['lines'],b['lines']);self.assertEqual(a['active'],0);self.assertEqual(b['active'],1)
+        self.assertIsNone(caption_layout(im,words,.25)['active'])
+        self.assertEqual(a['size'],24)
+        self.assertLessEqual(a['top']+2*(a['size']+6),im.height*.83)
+
+    def test_unreviewed_draft_cannot_silently_become_confirmed(self):
+        p=plan();p.update(wordVerification='automatic-needs-review',reviewRequired=True)
+        with self.assertRaises(ValueError):validate(p,4,False,'abc')
+        validate(p,4,False,'abc',review_draft=True)
+        self.assertEqual(p['wordVerification'],'automatic-needs-review')
 
     def test_font_provenance(self):
         root=Path(__file__).parent/'fonts';m=json.loads((root/'manifest.json').read_text())

@@ -12,3 +12,5 @@
 **/*.mp3
 **/__pycache__/
 **/*.pyc
+
+supabase/.temp/

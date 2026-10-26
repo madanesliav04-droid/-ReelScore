@@ -30,7 +30,7 @@ def digest(path):
     return h.hexdigest()
 
 
-def validate(plan, duration, reference_qa, source_sha):
+def validate(plan, duration, reference_qa, source_sha, review_draft=False):
     if plan.get('schemaVersion') != 1 or not isinstance(plan.get('scenes'),list) or not plan['scenes']:
         raise ValueError('An explicit, nonempty scene plan is required')
     if reference_qa:
@@ -41,7 +41,9 @@ def validate(plan, duration, reference_qa, source_sha):
     else:
         # This compositor does not claim to perform transcription/alignment itself.
         words=plan.get('words')
-        if plan.get('wordVerification')!='human-confirmed' or not isinstance(words,list) or not words:
+        verified=plan.get('wordVerification')=='human-confirmed'
+        draft=review_draft and plan.get('wordVerification')=='automatic-needs-review' and plan.get('reviewRequired') is True
+        if not (verified or draft) or not isinstance(words,list) or not words:
             raise ValueError('New-rush use requires confirmed timed words; no invented transcript')
         end=0.
         for w in words:
@@ -91,7 +93,7 @@ def read_frame(stream, size):
     return data
 
 
-def run(source, plan_path, output, reference_qa=False):
+def run(source, plan_path, output, reference_qa=False, review_draft=False):
     started=time.monotonic()
     source=Path(source).resolve(); output=Path(output).resolve()
     if source==output or output.exists(): raise ValueError('Output must be a new file; no existing video is overwritten')
@@ -106,7 +108,7 @@ def run(source, plan_path, output, reference_qa=False):
     if abs(float(fps)-float(Fraction(v['r_frame_rate'])))>0.001:
         raise ValueError('Variable-rate source must be normalized by the existing pipeline')
     plan=json.loads(Path(plan_path).read_text());sha=digest(source)
-    validate(plan,duration,reference_qa,sha)
+    validate(plan,duration,reference_qa,sha,review_draft)
     if reference_qa and (width,height,float(fps))!=(910,512,30.):
         raise ValueError('Reference measurement applies only to 910x512 at 30 fps')
     output.parent.mkdir(parents=True,exist_ok=True)
@@ -137,7 +139,13 @@ def run(source, plan_path, output, reference_qa=False):
                         from captions import draw_caption
                         draw_caption(im,plan['words'],t)
                     data=im.tobytes();changed+=1
+                elif not reference_qa:
+                    from captions import draw_caption
+                    im=Image.frombytes('RGB',(width,height),data)
+                    draw_caption(im,plan['words'],t,on_graphic=False)
+                    data=im.tobytes()
                 enc.stdin.write(data);count+=1
+                if count%30==0:print(f'ALEX_PROGRESS {count}/{round(duration*float(fps))}',file=__import__('sys').stderr,flush=True)
             enc.stdin.close()
             if dec.wait()!=0 or enc.wait()!=0:
                 raise RuntimeError('FFmpeg failed; no successful output published')
@@ -147,6 +155,7 @@ def run(source, plan_path, output, reference_qa=False):
         subprocess.run(['ffmpeg','-v','error','-i',tmp,'-f','null','-'],check=True,stderr=subprocess.PIPE)
         os.replace(tmp,output)
         report={'status':'RECONSTRUCTION_REQUIRES_REVIEW','referenceQA':reference_qa,'newRushValidated':False,'originalEngineModified':False,'referencePixelsUsedForGraphics':False,'existingCaptionStripPreserved':reference_qa,'width':width,'height':height,'fps':str(fps),'frames':count,'regeneratedGraphicFrames':changed,'duration':float(final['format']['duration']),'audioStreams':len(fa),'fullDecode':True,'elapsedSeconds':round(time.monotonic()-started,3),'bytes':output.stat().st_size,'sha256':digest(output),'sourceSha256':sha}
+        report.update(newRushTechnicalExport=not reference_qa,transcriptionReviewed=plan.get('wordVerification')=='human-confirmed',reviewDraft=review_draft,reviewRequired=True)
         output.with_suffix('.qa.json').write_text(json.dumps(report,indent=2)+'\n')
         return report
     finally:
@@ -159,4 +168,5 @@ if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--input',required=True);p.add_argument('--plan',required=True);p.add_argument('--output',required=True)
     p.add_argument('--reference-qa',action='store_true')
-    a=p.parse_args();print(json.dumps(run(a.input,a.plan,a.output,a.reference_qa),indent=2))
+    p.add_argument('--review-draft',action='store_true',help='Unreviewed ASR draft only; words never marked confirmed')
+    a=p.parse_args();print(json.dumps(run(a.input,a.plan,a.output,a.reference_qa,a.review_draft),indent=2))

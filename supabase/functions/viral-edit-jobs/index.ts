@@ -316,7 +316,7 @@ async function route(req:Request){
     const allowedStyles=["codie","impact","clean","explainer","ugc_native","creator_clean","business_viral","hormozi_omni","social_kinetic","leila","cinematic_story"];
     const requestedStyle=String(body.style||"clean");
     if(!allowedStyles.includes(requestedStyle))return out({error:"EDIT_MODEL_NOT_AVAILABLE",available_models:["codie","impact","clean","explainer","ugc_native","hormozi_omni","social_kinetic","leila","cinematic_story"]},422);
-    const contract=editContract(requestedStyle);
+    const contract=editContract(requestedStyle,{alexReconstruction:Deno.env.get('ALEX_V16_RECONSTRUCTION_ENABLED')==="true"});
     if(!contract.ok)return out({error:contract.code,message:contract.message},422);
     const canonicalStyle=contract.projectStyle;
     const captionByModel={
