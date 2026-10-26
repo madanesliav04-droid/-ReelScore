@@ -81,7 +81,7 @@ const EDIT_MODELS:EditModel[]=[
       "Cuts intentionnels, démonstrations utiles, voix et sous-titres exacts."
     ],
     "never": "Pas de recadrage horizontal, doublage ou superposition.",
-    "available": false,
+    "available": process.env.NEXT_PUBLIC_ALEX_V16_REVIEW_ENABLED==="true",
     "state": "RECONSTRUCTION À VALIDER"
   },
   {

@@ -78,7 +78,7 @@ export function buildAlexV16Plan({transcript,measurable}){
  ];
  }
  for(const s of scenes){if(s.end-s.start-s.cues.calloutStart<1)fail('ALEX_SCENE_TOO_SHORT','Bandeau trop bref pour être lu.');}
- const issues=words.filter(w=>Number(w.probability??0)<.75||/\s/.test(w.text)).map(w=>({wordIndex:w.sourceIndex,text:w.text,startMs:w.sourceStartMs,endMs:w.sourceEndMs,probability:w.probability??null,...(/\s/.test(w.text)?{reason:'ASR_GROUP_WITHOUT_DISTINCT_WORD_BOUNDARIES'}:{})}));
+ const issues=words.filter(w=>Number(w.probability??0)<.75||/\s/.test(w.text)||w.alignmentReviewRequired===true).map(w=>({wordIndex:w.sourceIndex,text:w.text,startMs:w.sourceStartMs,endMs:w.sourceEndMs,probability:w.probability??null,...(/\s/.test(w.text)?{reason:'ASR_GROUP_WITHOUT_DISTINCT_WORD_BOUNDARIES'}:w.alignmentReviewRequired?{reason:'INDEPENDENT_ALIGNMENT_PROPOSAL_REQUIRES_REVIEW'}:{})}));
  const reviewed=transcript.reviewed===true;
  return {schemaVersion:1,purpose:'new-rush',engine:'alex-v16-reconstructed-discourse-v2',plannerStrategy,wordVerification:reviewed?'human-confirmed':'automatic-needs-review',reviewRequired:!reviewed||issues.length>0,issues,warnings:transcript.warnings||[],scenes,words:words.map(w=>({text:w.text,start:w.startMs/1000,end:w.endMs/1000,sourceIndex:w.sourceIndex,sourceStart:w.sourceStartMs/1000,sourceEnd:w.sourceEndMs/1000,probability:w.probability})),keepRanges,removedRanges,outputDurationMs,sourceDurationMs:durationMs,supportedIntent:'Extractive French contrasts, functional financial effects and explicit enumerations; ambiguous or incomplete sets are held. Heuristic relations, not general semantic certification.'};
 }

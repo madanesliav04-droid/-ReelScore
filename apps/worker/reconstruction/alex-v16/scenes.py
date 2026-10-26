@@ -25,7 +25,7 @@ def ease(t):
 
 @lru_cache(maxsize=32)
 def font(size, display=False):
-    path = ROOT / 'fonts' / ('SocialPlusDisplay-SemiBold.ttf' if display else 'SocialPlusSans-SemiBold.ttf')
+    path = ROOT / 'fonts' / ('SocialPlusAlexDisplay-SemiBold.ttf' if display else 'SocialPlusSans-SemiBold.ttf')
     if not path.is_file():
         raise FileNotFoundError(f'Required licensed font absent: {path.name}')
     return ImageFont.truetype(str(path), size)
