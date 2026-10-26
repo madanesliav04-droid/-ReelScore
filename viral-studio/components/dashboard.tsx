@@ -4,7 +4,7 @@ import {useEffect,useMemo,useRef,useState} from "react";
 import {BarChart3,Clapperboard,LogOut,Scissors,Upload,Zap,Check,Link2,ArrowRight,FileVideo,ShieldCheck} from "lucide-react";
 import * as tus from "tus-js-client";
 import {UgcRushUploader} from "./ugc-rush-uploader";
-import {functionUrl,supabase,SUPABASE_PROJECT_REF,VIDEO_BUCKET} from "@/lib/supabase";
+import {functionUrl,supabase,SUPABASE_RESUMABLE_URL,VIDEO_BUCKET} from "@/lib/supabase";
 import {authMessage} from "@/lib/auth-message";
 import {MAX_VIDEO_UPLOAD_MB,uploadParts,videoUploadPreflight,videoUploadErrorMessage} from "@/lib/upload-limits";
 import {uploadToR2} from "@/lib/r2-upload";
@@ -231,6 +231,7 @@ export function Dashboard(){
   const sourceRef=useRef<HTMLVideoElement|null>(null);
   const [authNotice,setAuthNotice]=useState("");
   const [editExportUrl,setEditExportUrl]=useState("");
+  const [editDownloadUrl,setEditDownloadUrl]=useState("");
   const [editReviewRequired,setEditReviewRequired]=useState(false);
   const [editOutputMediaId,setEditOutputMediaId]=useState("");
   const [preFixScore,setPreFixScore]=useState<number|null>(null);
@@ -460,7 +461,7 @@ export function Dashboard(){
         let objectName=multipart?baseName+"-part"+String(partIndex).padStart(3,"0"):baseName;
         const blob=multipart?selected.slice(part.start,part.end,mime):selected;
         const upload=new tus.Upload(blob,{
-        endpoint:`https://${SUPABASE_PROJECT_REF}.storage.supabase.co/storage/v1/upload/resumable`,
+        endpoint:SUPABASE_RESUMABLE_URL,
         fingerprint:async()=>JSON.stringify(["viral-studio-v2",owner,selected.name,selected.size,selected.lastModified,...(multipart?[partIndex]:[])]),
         retryDelays:[0,3000,5000,10000,20000],
         headers:{"x-upsert":"false"},
@@ -552,6 +553,7 @@ export function Dashboard(){
             setEditOutputMediaId(String(body.job.result.output_video_id||out.media?.id||""));
             setEditReviewRequired(body.job.result.review_required===true||out.media?.metadata?.review_required===true);
             setEditExportUrl(out.signed_url);
+            setEditDownloadUrl(out.download_url||"");
           }
           if(body.job.kind==="clip_generate"){
             if(!body.job.result?.clip_project_id)throw new Error("Clips indisponibles.");
@@ -850,7 +852,7 @@ export function Dashboard(){
         </section>
       </>}
 
-      {active==="edit"&&editExportUrl&&<section className="result-panel edit-result"><div className="result-copy"><small>EDIT+ · EXPORT TERMINÉ</small><h2>{editReviewRequired?"Rendu de contrôle à vérifier.":`Ton montage ${selectedModel.name} est prêt.`}</h2>{editReviewRequired?<p role="alert">Transcription ou fidélité non validée. Vérifie les paroles et le rendu avant toute publication.</p>:<p>Regarde l’export puis télécharge-le pour le publier.</p>}<div className="result-actions"><a className="btn primary" href={editExportUrl} target="_blank" rel="noreferrer">Ouvrir le MP4 ↗</a><button className="btn ghost" onClick={()=>void analyzeEditOutput()} disabled={busy||!editOutputMediaId}>Analyser dans Viral+ <ArrowRight size={15}/></button></div></div><video className="result-video" src={editExportUrl} controls playsInline/></section>}
+      {active==="edit"&&editExportUrl&&<section className="result-panel edit-result"><div className="result-copy"><small>EDIT+ · EXPORT TERMINÉ</small><h2>{editReviewRequired?"Rendu de contrôle à vérifier.":`Ton montage ${selectedModel.name} est prêt.`}</h2>{editReviewRequired?<p role="alert">Transcription ou fidélité non validée. Vérifie les paroles et le rendu avant toute publication.</p>:<p>Regarde l’export puis télécharge-le pour le publier.</p>}<div className="result-actions"><a className="btn primary" href={editExportUrl} target="_blank" rel="noreferrer">Ouvrir le MP4 ↗</a>{editDownloadUrl&&<a className="btn ghost" href={editDownloadUrl} download>Télécharger le MP4</a>}<button className="btn ghost" onClick={()=>void analyzeEditOutput()} disabled={busy||!editOutputMediaId}>Analyser dans Viral+ <ArrowRight size={15}/></button></div></div><video className="result-video" src={editExportUrl} controls playsInline/></section>}
 
       {active==="viral"&&analysis&&<>
         <section className="result-panel viral-hero-result">

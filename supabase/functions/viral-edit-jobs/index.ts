@@ -444,6 +444,7 @@ async function route(req:Request){
     if(!media)return out({error:"OUTPUT_MEDIA_NOT_FOUND"},404);
 
     let signedUrl="";
+    let downloadUrl:string|null=null;
     if(media.storage_bucket===R2_BUCKET){
       const config=r2Settings((name)=>Deno.env.get(name));
       if(!config)return out({error:"R2_NOT_CONFIGURED"},503);
@@ -453,6 +454,9 @@ async function route(req:Request){
         .createSignedUrl(media.storage_path,600);
       if(error||!data?.signedUrl)return out({error:error?.message||"SIGNED_URL_FAILED"},500);
       signedUrl=data.signedUrl;
+      const attachment=await db.storage.from(media.storage_bucket)
+        .createSignedUrl(media.storage_path,600,{download:`SocialPlus_${exportRow.id}.mp4`});
+      if(!attachment.error&&attachment.data?.signedUrl)downloadUrl=attachment.data.signedUrl;
     }
 
     return out({
@@ -464,6 +468,7 @@ async function route(req:Request){
         status:media.status
       },
       signed_url:signedUrl,
+      download_url:downloadUrl,
       expires_in:600
     });
   }
