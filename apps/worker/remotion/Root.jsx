@@ -27,8 +27,8 @@ export const Root=()=>(
     calculateMetadata={({props})=>({
       durationInFrames:Math.max(1,Math.ceil((Number(props.durationMs)||1000)/1000*30)),
       fps:30,
-      width:['leila','cinematic_story'].includes(props.timeline?.style)?Math.max(2,Number(props.timeline?.export?.width)||1080):1080,
-      height:['leila','cinematic_story'].includes(props.timeline?.style)?Math.max(2,Number(props.timeline?.export?.height)||1920):1920
+      width:Math.max(2,Number(props.timeline?.export?.width)||1080),
+      height:Math.max(2,Number(props.timeline?.export?.height)||1920)
     })}
   />
 );
