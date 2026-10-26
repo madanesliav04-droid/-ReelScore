@@ -1,0 +1,26 @@
+name: Social+ Worker Validation
+on:
+  push:
+    branches:
+      - socialplus-worker-errors-20261026
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  worker-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/worker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install worker dependencies
+        run: npm install --no-audit --no-fund
+      - name: Syntax checks
+        run: npm run check
+      - name: Unit tests
+        run: npm test
