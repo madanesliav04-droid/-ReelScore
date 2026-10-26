@@ -9,13 +9,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY package.json ./
-RUN npm install --omit=dev
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
 RUN npx remotion browser ensure
 
 COPY src ./src
 COPY remotion ./remotion
 COPY tests ./tests
+COPY references ./references
 RUN npm run check && npm test && node --input-type=module -e "import path from 'node:path'; import {bundle} from '@remotion/bundler'; await bundle({entryPoint:path.resolve('remotion/index.jsx')});"
 
 ENV NODE_ENV=production

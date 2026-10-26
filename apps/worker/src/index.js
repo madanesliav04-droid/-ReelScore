@@ -10,6 +10,10 @@ import {createClient} from '@supabase/supabase-js';
 import {analyzeVideo} from './viral.js';
 import {buildEditTimeline} from './edit.js';
 import {r2Settings,r2Presign} from './r2-sign.js';
+import {retryableJobError} from './retry-policy.js';
+import {verifyMp4} from './export-integrity.js';
+import {receiveObject,verifySource,MAX_SOURCE_BYTES} from './media-integrity.js';
+import {editContract} from './model-contract.js';
 import {validateTimedWords} from './word-timing.js';
 import {composeUgcRushes} from './ugc-rush-compositor.js';
 import {
@@ -172,7 +176,7 @@ async function processJob(job){
 
     const media=await one(
       'media_assets',
-      'id,user_id,storage_bucket,storage_path,original_name,mime_type,size_bytes,duration_ms,width,height,metadata,status',
+      'id,user_id,storage_bucket,storage_path,original_name,mime_type,size_bytes,sha256,duration_ms,width,height,metadata,status',
       job.video_id
     );
 
@@ -197,6 +201,7 @@ async function processJob(job){
     const sourcePath=path.join(dir,`source${ext}`);
 
     await downloadMediaAsset({media,outputPath:sourcePath});
+    await verifySource(sourcePath,{sizeBytes:media.size_bytes,sha256:media.sha256});
 
     if(job.kind==='viral_analysis'){
       await runViral(job,media,sourcePath);
@@ -404,7 +409,9 @@ async function runEdit(job,media,sourcePath,dir){
     analysis=data?.result_json||null;
   }
 
-  const targetStyle=payload.style||project.style||'creator_clean';
+  const contract=editContract(payload.style||project.style);
+  if(!contract.ok)throw tagged(contract.code,contract.message);
+  const targetStyle=contract.workerStyle;
   const priorWords=analysis?.transcript?.words;
   const timingCheck=validateTimedWords(priorWords,
     Math.round(Number(analysis?.measurable?.durationSec||0)*1000));
@@ -458,7 +465,7 @@ async function runEdit(job,media,sourcePath,dir){
 
   const timeline=buildEditTimeline({
     analysis,
-    style:payload.style||project.style||'creator_clean',
+    style:targetStyle,
     captionPreset:
       payload.caption_preset||
       project.caption_preset||
@@ -552,6 +559,9 @@ async function runEdit(job,media,sourcePath,dir){
     onProgress:(pct,stage)=>
       progress(job,'encoding',pct,stage)
   });
+
+  // Never persist a successful export before checking the actual final MP4.
+  await verifyMp4(finalPath,{width:timeline.width,height:timeline.height,durationMs:timeline.outputDurationMs,hasAudio:Boolean(analysis?.measurable?.audioCodec)});
 
   const outputStoragePath=
     `${job.user_id}/exports/${project.id}/${job.id}.mp4`;
@@ -757,7 +767,7 @@ async function downloadMediaAsset({media,outputPath}){
   const multipart=media?.metadata?.multipart;
   if(!multipart){
     return downloadStorageObject({
-      bucket:media.storage_bucket,storagePath:media.storage_path,outputPath
+      bucket:media.storage_bucket,storagePath:media.storage_path,outputPath,expectedBytes:Number(media.size_bytes)||null
     });
   }
   const parts=multipart?.parts;
@@ -775,7 +785,7 @@ async function downloadMediaAsset({media,outputPath}){
     }
     total+=Number(part.size);
     await downloadStorageObject({
-      bucket:media.storage_bucket,storagePath,outputPath,append:index>0
+      bucket:media.storage_bucket,storagePath,outputPath,append:index>0,expectedBytes:Number(part.size)
     });
   }
   if(total!==Number(media.size_bytes))throw tagged('UGC_MULTIPART_SIZE_MISMATCH','Invalid assembled file size');
@@ -785,22 +795,23 @@ async function downloadStorageObject({
   bucket,
   storagePath,
   outputPath,
-  append=false
+  append=false,
+  expectedBytes=null
 }){
   if(bucket==='socialplus-r2'){
     const config=r2Settings(name=>process.env[name]);
     if(!config)throw tagged('R2_NOT_CONFIGURED','R2 credentials missing');
     const url=await r2Presign(config,'GET',storagePath,600);
-    const response=await fetch(url);
+    const response=await fetch(url,{signal:AbortSignal.timeout(600_000)});
     if(!response.ok||!response.body)throw tagged('R2_READ_FAILED','R2 read status '+response.status);
-    await pipeline(Readable.fromWeb(response.body),
-      createWriteStream(outputPath,{flags:append?'a':'w'}));
+    await receiveObject(response,outputPath,{append,expectedBytes,maxBytes:MAX_SOURCE_BYTES});
     return;
   }
   const encoded=encodeStoragePath(storagePath);
   const url=`${process.env.SUPABASE_URL}/storage/v1/object/authenticated/${encodeURIComponent(bucket)}/${encoded}`;
 
   const response=await fetch(url,{
+    signal:AbortSignal.timeout(600_000),
     headers:{
       apikey:process.env.SUPABASE_SERVICE_ROLE_KEY,
       Authorization:
@@ -815,10 +826,7 @@ async function downloadStorageObject({
     );
   }
 
-  await pipeline(
-    Readable.fromWeb(response.body),
-    createWriteStream(outputPath,{flags:append?'a':'w'})
-  );
+  await receiveObject(response,outputPath,{append,expectedBytes,maxBytes:MAX_SOURCE_BYTES});
 }
 
 async function uploadStorageObject({
@@ -976,15 +984,7 @@ async function failJob(job,error){
   const retryCount=Number(job.retry_count||0)+1;
   const maxRetries=Number(job.max_retries||3);
 
-  const nonRetryable=new Set([
-    'VIDEO_ACCESS_DENIED',
-    'EDIT_PROJECT_ACCESS_DENIED',
-    'UNSUPPORTED_JOB',
-    'GEMINI_NOT_CONFIGURED',
-    'INVALID_VIDEO'
-  ]);
-
-  const retryable=!nonRetryable.has(error?.code);
+  const retryable=retryableJobError(error);
   const status=
     retryable&&retryCount<=maxRetries
       ?'queued'

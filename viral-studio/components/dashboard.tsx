@@ -72,17 +72,17 @@ const EDIT_MODELS:EditModel[]=[
     "name": "Alex Hormozi",
     "category": "Explication visuelle",
     "preview": "HORMOZI",
-    "meta": "Rendu natif 16:9/9:16, moteur Hormozi connecté · fidélité V11/V16 encore à auditer",
+    "meta": "Sources historiques retrouvées · générateur plein écran V11/V16 manquant",
     "goal": "Montage didactique plein écran, en conservant toujours le format source.",
     "actions": [
-      "La chaîne de rendu Hormozi est raccordée. Le module pédagogique avancé reste conditionné à des preuves vidéo vérifiables.",
+      "Le worker ne peut pas encore produire la V16 validée ; aucun autre style ne sera utilisé à sa place.",
       "Respecter la référence V11 / V16 et le 16:9 natif.",
       "Aucune insertion latérale ni bande ajoutée.",
       "Cuts intentionnels, démonstrations utiles, voix et sous-titres exacts."
     ],
     "never": "Pas de recadrage horizontal, doublage ou superposition.",
-    "available": true,
-    "state": "BÊTA · MOTEUR CONNECTÉ"
+    "available": false,
+    "state": "SOURCE V16 À RACCORDER"
   },
   {
     "id": "cinematic_story",
@@ -123,17 +123,24 @@ const EDIT_MODELS:EditModel[]=[
     "name": "Social Kinetic",
     "category": "Motion éditorial",
     "preview": "KINETIC",
-    "meta": "Moteur cinétique connecté · animations conditionnées aux preuves temporelles et visuelles",
+    "meta": "V28 existante dans la branche de référence · non raccordée sur ce worker",
     "goal": "Facecam, mots animés intégrés au décor, bulles bleues et chiffres vérifiés.",
     "actions": [
-      "Le moteur cinétique fonctionne. Sans alignement forcé et preuve de zone libre, il rend uniquement les sous-titres et les cuts vérifiés.",
+      "La V28 validée est conservée dans sa branche dédiée ; aucun montage générique ne sera lancé ici.",
       "Suivre la référence vidéo reçue le 16 octobre.",
       "N'afficher un chiffre que s'il est réellement prononcé.",
       "Animer uniquement dans une zone visuelle libre, sans cacher le visage."
     ],
     "never": "Pas d'animation décorative ou de statistique inventée.",
-    "available": true,
-    "state": "BÊTA · MOTEUR CONNECTÉ"
+    "available": false,
+    "state": "V28 NON RACCORDÉE SUR CE WORKER"
+  }
+  ,{
+    id:"apple_spatial",name:"Apple Premium / Spatial UI",category:"Spatial UI",
+    preview:"SPATIAL",meta:"Sources V10 existantes · pipeline non raccordé sur ce worker",
+    goal:"Conserver la direction artistique Spatial UI validée.",
+    actions:["Aucun rendu n’est proposé tant que le moteur original n’est pas raccordé et testé."],
+    never:"Aucun preset de remplacement.",available:false,state:"V10 À RACCORDER"
   }
 ];
 async function freshSession(){
@@ -173,6 +180,7 @@ async function api(path:string,_token:string,init:RequestInit={},allowRetry=true
   if(!res.ok){
     const code=String(body?.error||body?.message||"");
     if(res.status===401||code==="AUTH_REQUIRED")throw Object.assign(new Error("Ta session a expiré. Reconnecte-toi pour reprendre ton travail."),{status:401});
+    if(["STORAGE_OBJECT_SIZE_MISMATCH","R2_OBJECT_SIZE_MISMATCH","MULTIPART_OBJECT_MISSING"].includes(code))throw Object.assign(new Error("Le stockage ne contient pas encore le fichier complet. Reprends l’import avec le même fichier."),{status:res.status,code});
     if(code.toLowerCase().includes("quota_exhausted"))throw Object.assign(new Error("Ton quota mensuel d’analyses Viral+ est atteint. Consulte le compteur, puis réessaie après son renouvellement."),{status:429,code});
     if(["UGC_RUSH_NOT_ACCESSIBLE","INVALID_UGC_RUSH_LIST","UGC_BATCH_TOO_LARGE"].includes(code))
       throw Object.assign(new Error(code==="UGC_BATCH_TOO_LARGE"?"Le lot de rushes est trop volumineux.":"Un rush n'est plus disponible. Vérifie la sélection dans ta bibliothèque."),{status:res.status,code});
@@ -326,6 +334,8 @@ export function Dashboard(){
   function displayJobError(current:Job){
     const code=String(current?.error_code||"");
     if(code==="NO_CLIPS_FOUND")return "Aucun passage suffisamment fort n’a été détecté dans cette vidéo.";
+    if(code==="ALEX_V16_SOURCE_REQUIRED")return "Le générateur Alex V11/V16 est encore manquant. Aucun montage de remplacement n’a été lancé.";
+    if(["SOURCE_SIZE_MISMATCH","SOURCE_HASH_MISMATCH"].includes(code))return "Le fichier reçu est incomplet ou différent de l’original. Réessaie l’import sans lancer de rendu.";
     if(["ASR_TIMING_INVALID","ASR_NOT_READY"].includes(code))return "Aucune transcription vocale fiable détectée. Relance en UGC avec au moins 2 vidéos : le montage sans paroles sera utilisé, sans sous-titres inventés.";
     if(code==="UGC_NEEDS_MULTIPLE_RUSHES")return "Montage UGC : sélectionne une vidéo principale et au moins un autre rush.";
     if(code==="UGC_MEDIA_TOO_SHORT_OR_INVALID")return "Une vidéo est trop courte ou illisible. Utilise des rushes d’au moins une seconde.";
@@ -553,6 +563,10 @@ export function Dashboard(){
       }catch(e:any){
         if(!alive())return;
         if([401,403,404].includes(e?.status)){
+          if(e.status===401){
+            setSession(null);setAuthNotice("Reconnecte-toi pour reprendre ton traitement conservé.");
+            void supabase.auth.signOut({scope:"local"}).catch(()=>{});
+          }
           setError(e.status===404?"Ce traitement n’est plus disponible. Tu peux en lancer un nouveau.":"Reconnecte-toi pour reprendre ton traitement conservé.");
           setBusy(false);pollRef.current=null;
           if(e.status===404){try{localStorage.removeItem(storageKey)}catch{}}
@@ -815,7 +829,7 @@ export function Dashboard(){
         </section>}
 
         <section className="model-library">
-          <div className="section-heading"><small>{EDIT_MODELS.length} MODÈLES DISPONIBLES</small><h2>Choisis ton modèle de montage.</h2><p>Les moteurs Codie, Alex Hormozi, Social Kinetic et UGC sont raccordés en bêta. Leila V22 adapte ses animations aux mots réellement prononcés. Les sous-titres se révèlent mot par mot, et les timecodes sont contrôlés. Vérifie chaque export avant publication.</p></div>
+          <div className="section-heading"><small>{EDIT_MODELS.length} MODÈLES ET RÉFÉRENCES</small><h2>Choisis ton modèle de montage.</h2><p>Les moteurs déjà présents restent accessibles avec leurs limites bêta. Alex V16, Social Kinetic V28 et Spatial V10 restent visibles mais indisponibles tant que leur pipeline original n’est pas raccordé et testé. Vérifie chaque export avant publication.</p></div>
           <div className="model-grid social-approved-model-grid">{EDIT_MODELS.map(model=><button type="button" key={model.id} disabled={!model.available||busy||uploading} aria-label={`${model.name} — ${model.state}`} className={`model-card social-approved-model ${editModel===model.id?"selected":""} ${model.available?"is-available":"is-pending"}`} data-model={model.id} onClick={()=>{if(model.available){setEditModel(model.id);if(["hormozi_omni","leila","cinematic_story"].includes(model.id))setFormat("native")}}}>
               <div className="social-model-identity"><span>EDIT+ / {model.preview}</span><small className={`social-model-state ${model.available?"beta":"pending"}`}>{model.state}</small><strong>{model.name}</strong><p>{model.goal}</p></div>
               <div className="model-copy"><div><strong>{model.name}</strong><span>{model.category}</span></div>{editModel===model.id&&<Check size={18}/>}<p>{model.meta}</p></div>

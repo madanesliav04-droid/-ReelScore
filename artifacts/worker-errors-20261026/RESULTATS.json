@@ -1,0 +1,38 @@
+{
+  "realRushTransferred": true,
+  "unauthorizedTransferRejected": true,
+  "sourceSha256": "53de1e48bb02b3fa7d086154f374e7f4ca38a346c2305038bc2b211c29d5716a",
+  "verified": {
+    "bytes": 1348490,
+    "width": 512,
+    "height": 910,
+    "durationMs": 27167,
+    "videoCodec": "h264",
+    "audioStreams": 1
+  },
+  "fullDecode": true,
+  "audioPcmIdentical": true,
+  "wrongDimensionsRejected": true,
+  "alexRenderExecuted": false,
+  "alexBlocker": "ALEX_V16_SOURCE_REQUIRED",
+  "cloudE2E": false,
+  "physicalSafari": false,
+  "note": "Technical transfer/remux proof only. This is not an Alex montage.",
+  "workerTests": {
+    "passed": 59,
+    "failed": 0
+  },
+  "browserContractTests": {
+    "passed": 19,
+    "failed": 0,
+    "upstreamServicesIntercepted": true,
+    "physicalSafari": false
+  },
+  "nextBuild": "passed",
+  "baseBranch": "socialplus-worker-errors-20261026",
+  "baseCommit": "0d9534311c4ebe78447a3b714a75b8d152893d97",
+  "deployed": false,
+  "paidCalls": false,
+  "railwayReadAccess": "available",
+  "railwayActiveWorkerDeployment": "7fb6d620-ab30-4ee5-87ca-1116178f90a2"
+}

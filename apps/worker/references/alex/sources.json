@@ -1,0 +1,28 @@
+{
+  "branch": "editplus-alex-reference-lock-20261017",
+  "files": [
+    {
+      "path": "apps/worker/src/hormozi-omni-director.js",
+      "gitBlob": "b8170e7e2242d0343f729182d0e2f77ac97b6748",
+      "sha256": "63e67d11dc3efca7acca612c4fb37cd58163514496d96c702b42f0003c2c592b"
+    },
+    {
+      "path": "apps/worker/src/hormozi-omni-render.js",
+      "gitBlob": "6988c6521d7ce151f1846358963ae7e6112da6a0",
+      "sha256": "dd2ade3d39062b224f0fba1e5809fe294b8945e993a52b484c370cabe70a39c3"
+    },
+    {
+      "path": "apps/worker/src/hormozi-beat-timing.js",
+      "gitBlob": "c8647a9478f0c06ee8ce2f6b2c9a67565c78829d",
+      "sha256": "be2a861d7c08d4ec03e799bf95e60bdc0e480788329962fd9d7c372906f3504d"
+    },
+    {
+      "path": "apps/worker/src/omni-brand-tokens.js",
+      "gitBlob": "e24a4f372faedfa48765c18c1631ef2c27be3e57",
+      "sha256": "0dab1330a9c2551a640632712fdc34a8e6577e9a37157c898e469130befa386d"
+    }
+  ],
+  "masterReference": "EDITPLUS_HORMOZI_V16_B_PLEIN_ECRAN_V11_RESTAUREE.mp4",
+  "autonomousV16RendererFound": false,
+  "missing": "Generator source of EDITPLUS_HORMOZI_V11_B_HORIZONTAL(1).mp4, including its three fullscreen infographic scene templates and reusable timing/word mapping. V16 repair audit preserves existing V11 pixels and subtitles; it does not generate them."
+}

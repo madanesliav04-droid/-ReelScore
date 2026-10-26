@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {createClient} from "https://esm.sh/@supabase/supabase-js@2";
+import {editContract} from "./model-contract.js";
 import {r2Settings,r2Presign} from "./r2-sign.js";
 
 const SUPABASE_URL=Deno.env.get("SUPABASE_URL")!;
@@ -113,6 +114,8 @@ async function registerMedia(db:ReturnType<typeof admin>,userId:string,body:any)
   const name=path.split("/").at(-1);
   const exists=(list||[]).some(x=>x.name===name);
   if(!exists)throw new Error("STORAGE_OBJECT_NOT_FOUND");
+  const stored=(list||[]).find(x=>x.name===name);
+  if(!body?.metadata?.multipart&&Number((stored as any)?.metadata?.size)!==size)throw new Error("STORAGE_OBJECT_SIZE_MISMATCH");
 
   // A 200 MB source is stored as <=40 MiB user-owned objects. Validate every
   // part against the actual Storage metadata before accepting any manifest.
@@ -266,7 +269,7 @@ async function route(req:Request){
       return out({media},201);
     }catch(error){
       const msg=String(error?.message||error);
-      const status=/INVALID_|NOT_FOUND/.test(msg)?400:500;
+      const status=/SIZE_MISMATCH|MULTIPART_OBJECT_MISSING/.test(msg)?422:/INVALID_|NOT_FOUND/.test(msg)?400:500;
       return out({error:msg},status);
     }
   }
@@ -313,7 +316,9 @@ async function route(req:Request){
     const allowedStyles=["codie","impact","clean","explainer","ugc_native","creator_clean","business_viral","hormozi_omni","social_kinetic","leila","cinematic_story"];
     const requestedStyle=String(body.style||"clean");
     if(!allowedStyles.includes(requestedStyle))return out({error:"EDIT_MODEL_NOT_AVAILABLE",available_models:["codie","impact","clean","explainer","ugc_native","hormozi_omni","social_kinetic","leila","cinematic_story"]},422);
-    const canonicalStyle={creator_clean:"clean",business_viral:"impact"}[requestedStyle]||requestedStyle;
+    const contract=editContract(requestedStyle);
+    if(!contract.ok)return out({error:contract.code,message:contract.message},422);
+    const canonicalStyle=contract.projectStyle;
     const captionByModel={
       codie:"codie",
       impact:"impact",
