@@ -20,3 +20,18 @@ test('existing creator_clean style remains available',()=>{
   assert.equal(timeline.style,'creator_clean');
   assert.ok(timeline.outputDurationMs>0);
 });
+
+test('horizontal uploads remain horizontal after timeline planning',()=>{
+  const timeline=buildEditTimeline({analysis,style:'creator_clean'});
+  assert.equal(timeline.export.width,1920);
+  assert.equal(timeline.export.height,1080);
+  assert.equal(timeline.width,1920);
+  assert.equal(timeline.height,1080);
+});
+
+test('vertical uploads remain vertical after timeline planning',()=>{
+  const vertical={...analysis,measurable:{...analysis.measurable,width:1080,height:1920}};
+  const timeline=buildEditTimeline({analysis:vertical,style:'creator_clean'});
+  assert.equal(timeline.export.width,1080);
+  assert.equal(timeline.export.height,1920);
+});
