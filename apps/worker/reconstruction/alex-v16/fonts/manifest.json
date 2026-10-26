@@ -1,0 +1,9 @@
+{
+  "license": "SIL OFL 1.1",
+  "provenance": "Existing Social+ renamed Inter subsets, reused unchanged. Authorized alternatives; exact historical typeface not certified.",
+  "fonts": {
+    "SocialPlusSans-SemiBold.ttf": "6470a2085ceeea1743d46645b4e19262fc4180d462142fc1aa6577a27296208e",
+    "SocialPlusSans-Regular.ttf": "83c14b641cefb57744121539281b64571fa3537060232567c1c3b4e850a168f7",
+    "SocialPlusDisplay-SemiBold.ttf": "6d1ba460fddfceb0560ccb4776da7df15fa531459b33ca85271a91c060ca32c6"
+  }
+}
