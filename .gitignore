@@ -1,0 +1,12 @@
+**/node_modules/
+**/.next/
+**/test-results/
+**/playwright-report/
+**/*.tsbuildinfo
+**/.env
+**/.env.local
+**/.env.*.local
+**/*.mp4
+**/*.mov
+**/*.wav
+**/*.mp3

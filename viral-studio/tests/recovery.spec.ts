@@ -10,6 +10,7 @@ async function setup(page:Page,jobOwner=owner,channel:'core'|'clip'='core'){
     localStorage.setItem(`viral-studio-active-job:${jobOwner}`,JSON.stringify({id:'job-qa',channel,module:channel==='clip'?'clip':'edit'}));
   },{owner,jobOwner,channel});
   await page.route('**/auth/v1/**',r=>r.fulfill({json:{id:owner,email:'qa@example.invalid'}}));
+  await page.route('**/api/auth-gateway/**',r=>r.request().url().includes('/token')?r.fulfill({status:400,json:{error:'invalid_grant',error_description:'Invalid Refresh Token'}}):r.fulfill({status:204}));
 }
 test('network interruption keeps job and retries without overlapping requests',async({page})=>{
   await setup(page);
@@ -119,13 +120,15 @@ test('Social+ exposes exactly Edit+ and Viral+ and no Clip+ workflow',async({pag
 });
 
 
-test('Edit+ lists Cinematic Storytelling as a real sixth beta model',async({page})=>{
+test('original models remain visible and unconnected pipelines cannot launch',async({page})=>{
   await setup(page,other);
   await page.goto('/dashboard?tool=edit');
   const cards=page.locator('.social-approved-model');
-  await expect(cards).toHaveCount(6);
-  for(const id of ['codie','leila','hormozi_omni','cinematic_story','ugc_native','social_kinetic'])
+  await expect(cards).toHaveCount(7);
+  for(const id of ['codie','leila','cinematic_story','ugc_native'])
     await expect(page.locator(`[data-model="${id}"]`)).toBeEnabled();
+  for(const id of ['hormozi_omni','social_kinetic','apple_spatial'])
+    await expect(page.locator(`[data-model="${id}"]`)).toBeDisabled();
   await expect(cards.nth(0)).toContainText('Codie');
   await expect(cards.nth(1)).toContainText('Leila');
   await expect(cards.nth(2)).toContainText('Alex Hormozi');

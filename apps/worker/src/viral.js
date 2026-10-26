@@ -1,3 +1,4 @@
+import {displayFrame} from './display-frame.js';
 import {extractAsrWordAnnotations,validateTimedWords,semanticMatchesWords} from './word-timing.js';
 import {createReadStream} from 'node:fs';
 import {stat} from 'node:fs/promises';
@@ -132,6 +133,7 @@ export async function extractMeasurableSignals(filePath){
     probe.format?.duration||video.duration||audio.duration||0
   );
   const fps=parseRate(video.avg_frame_rate||video.r_frame_rate);
+  const frame=displayFrame(video);
 
   let silences=[];
   let sceneCuts=[];
@@ -172,8 +174,7 @@ export async function extractMeasurableSignals(filePath){
 
   return {
     durationSec:round(durationSec,3),
-    width:Number(video.width||0),
-    height:Number(video.height||0),
+    ...frame,
     fps:round(fps,2),
     videoCodec:video.codec_name||null,
     audioCodec:audio.codec_name||null,
@@ -189,8 +190,8 @@ export async function extractMeasurableSignals(filePath){
       :0,
     meanVolumeDb:meanVolume,
     maxVolumeDb:maxVolume,
-    aspectRatio:video.width&&video.height
-      ?round(video.width/video.height,4)
+    aspectRatio:frame.width&&frame.height
+      ?round(frame.width/frame.height,4)
       :null
   };
 }
