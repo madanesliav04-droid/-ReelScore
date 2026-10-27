@@ -1,5 +1,9 @@
 # Private Alex V16 beta — activation package
 
+Current step-by-step commands: [DEPLOY_CONNECTED_ALEX.md](DEPLOY_CONNECTED_ALEX.md).
+The dedicated Alex image, offline admission mode and guarded schema generator
+are now prepared; the read-only remote inventory below remains historical.
+
 Status: **prepared, not deployed; no working remote beta URL yet**.
 No production configuration, branch ref, engine or PR merge was changed.
 Scope is Alex only. The five other model engines must remain unchanged.
@@ -42,9 +46,9 @@ Scope is Alex only. The five other model engines must remain unchanged.
    or obtain explicit authorization for a bounded cost before allocating compute.
 3. Deploy the reviewed saved code object from PR #58 as a preview only. Do not
    move the PR branch, merge it, or publish any private media in GitHub builds.
-4. Build the existing worker Dockerfile with `ENABLE_ALEX_OFFLINE=1`. Place the
-   existing Whisper weights outside the public repo in private mounted storage.
-   Configure model directory and the Python interpreter; no paid transcription.
+4. Use the dedicated `deploy/socialplus-beta/Dockerfile` from the current procedure.
+   It includes pinned public Whisper weights, avoiding an extra model volume.
+   No private media or paid transcription is involved.
 5. Provision the genuine baseline schema before applying current migrations.
    The disposable test used legacy analysis/profile fixtures and replaced an
    incompatible historical job RPC. That workaround is not a validated remote
@@ -58,9 +62,9 @@ Scope is Alex only. The five other model engines must remain unchanged.
    user choose it through a secure invitation. Local ephemeral test credentials
    are not a remotely usable account and must not be published or reused.
 8. One worker replica, one job at a time. Do not activate the other renderers or
-   Analysis for this first test. Existing backend routes are not globally
-   restricted to Alex, so a beta allowlist/authorization gate must be enforced
-   server-side before adding testers. A hidden button alone is insufficient.
+   Analysis for this first test. Set `SOCIALPLUS_ALEX_ONLY=true` on the isolated Edge function and worker.
+   The prepared server admission gate rejects non-Alex jobs and analyses;
+   the normal production runtime remains unchanged. A hidden button alone is insufficient.
 9. Apply storage retention and per-user limits with a real scheduled worker or
    equivalent verified control. Existing API advertises 24-hour retention, but
    no automatic permanent-object deletion is wired in this branch. Local render

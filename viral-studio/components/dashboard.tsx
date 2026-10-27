@@ -34,6 +34,7 @@ function scoreTone(value:any){
 }
 
 // Five focused models. Historical exports from retired models remain accessible.
+const BETA_ALEX_ONLY=process.env.NEXT_PUBLIC_SOCIALPLUS_ALEX_ONLY==="true";
 const EDIT_MODELS:EditModel[]=[
   {
     "id": "codie",
@@ -143,6 +144,7 @@ const EDIT_MODELS:EditModel[]=[
     never:"Aucun preset de remplacement.",available:false,state:"V10 À RACCORDER"
   }
 ];
+if(BETA_ALEX_ONLY)for(const model of EDIT_MODELS)model.available=model.id==='hormozi_omni'&&model.available;
 async function freshSession(){
   let {data,error}=await supabase.auth.getSession();
   if(error)throw error;
@@ -218,7 +220,7 @@ export function Dashboard(){
   const [clipFile,setClipFile]=useState<File|null>(null);
   const [clipMedia,setClipMedia]=useState<Media|null>(null);
   const [clipUploadPct,setClipUploadPct]=useState(0);
-  const [editModel,setEditModel]=useState("codie");
+  const [editModel,setEditModel]=useState(BETA_ALEX_ONLY?"hormozi_omni":"codie");
   const [ugcRushIds,setUgcRushIds]=useState<string[]>([]);
   const [ugcRushPending,setUgcRushPending]=useState(false);
   const [ugcLibrary,setUgcLibrary]=useState<Media[]>([]);
@@ -591,6 +593,7 @@ export function Dashboard(){
   }
 
   async function startAnalysis(){
+    if(BETA_ALEX_ONLY)return setError("L’analyse n’est pas activée dans cette préproduction Alex V16.");
     if(busy||uploadLocked.current)return;if(!media)return setError("Importe d’abord une vidéo.");
     setError("");setAnalysis(null);setBusy(true);
     try{
@@ -760,7 +763,7 @@ export function Dashboard(){
           {viralQuota&&<p role="status" className="quota-status" data-testid="viral-monthly-quota">Analyses ce mois : <strong>{viralQuota.used}/{viralQuota.limit}</strong> · {viralQuota.remaining} disponibles · renouvellement le {new Date(viralQuota.reset_at).toLocaleDateString("fr-FR",{day:"numeric",month:"long"})}</p>}
           <label className="upload-zone"><input type="file" disabled={busy||uploading} accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" onChange={e=>{const f=e.currentTarget.files?.[0];e.currentTarget.value="";if(f)void uploadVideo(f)}}/><div><Upload size={30}/><b>{file?file.name:media?"Vidéo importée, prête à analyser":"Choisir une vidéo à analyser"}</b><span>MP4 · MOV · WebM · max {MAX_VIDEO_UPLOAD_MB} Mo</span></div></label>
           {file&&<div className="social-upload-status" role="status" aria-live="polite"><span>{uploading?"Import en cours":media?"Import terminé":"Préparation du fichier"}</span><strong>{uploadPct}%</strong><div className="progress"><i style={{width:`${uploadPct}%`}}/></div></div>}
-          <button className="btn primary full" onClick={startAnalysis} disabled={!media||busy||uploading}><Zap size={16}/> {busy&&job?.kind==="viral_analysis"?"Analyse en cours…":uploading?"Import en cours…":"Analyser ma vidéo"}</button>
+          <button className="btn primary full" onClick={startAnalysis} disabled={BETA_ALEX_ONLY||!media||busy||uploading}><Zap size={16}/> {busy&&job?.kind==="viral_analysis"?"Analyse en cours…":uploading?"Import en cours…":"Analyser ma vidéo"}</button>
           <InlineJobState job={job?.kind==="viral_analysis"?job:null}/>
           {error&&<div className="job-card error">{error}</div>}
         </section>
@@ -852,7 +855,7 @@ export function Dashboard(){
         </section>
       </>}
 
-      {active==="edit"&&editExportUrl&&<section className="result-panel edit-result"><div className="result-copy"><small>EDIT+ · EXPORT TERMINÉ</small><h2>{editReviewRequired?"Rendu de contrôle à vérifier.":`Ton montage ${selectedModel.name} est prêt.`}</h2>{editReviewRequired?<p role="alert">Transcription ou fidélité non validée. Vérifie les paroles et le rendu avant toute publication.</p>:<p>Regarde l’export puis télécharge-le pour le publier.</p>}<div className="result-actions"><a className="btn primary" href={editExportUrl} target="_blank" rel="noreferrer">Ouvrir le MP4 ↗</a>{editDownloadUrl&&<a className="btn ghost" href={editDownloadUrl} download>Télécharger le MP4</a>}<button className="btn ghost" onClick={()=>void analyzeEditOutput()} disabled={busy||!editOutputMediaId}>Analyser dans Viral+ <ArrowRight size={15}/></button></div></div><video className="result-video" src={editExportUrl} controls playsInline/></section>}
+      {active==="edit"&&editExportUrl&&<section className="result-panel edit-result"><div className="result-copy"><small>EDIT+ · EXPORT TERMINÉ</small><h2>{editReviewRequired?"Rendu de contrôle à vérifier.":`Ton montage ${selectedModel.name} est prêt.`}</h2>{editReviewRequired?<p role="alert">Transcription ou fidélité non validée. Vérifie les paroles et le rendu avant toute publication.</p>:<p>Regarde l’export puis télécharge-le pour le publier.</p>}<div className="result-actions"><a className="btn primary" href={editExportUrl} target="_blank" rel="noreferrer">Ouvrir le MP4 ↗</a>{editDownloadUrl&&<a className="btn ghost" href={editDownloadUrl} download>Télécharger le MP4</a>}<button className="btn ghost" onClick={()=>void analyzeEditOutput()} disabled={BETA_ALEX_ONLY||busy||!editOutputMediaId}>Analyser dans Viral+ <ArrowRight size={15}/></button></div></div><video className="result-video" src={editExportUrl} controls playsInline/></section>}
 
       {active==="viral"&&analysis&&<>
         <section className="result-panel viral-hero-result">

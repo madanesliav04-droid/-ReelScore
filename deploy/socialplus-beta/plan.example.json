@@ -1,0 +1,7 @@
+{
+  "gitCommit": "REPLACE_WITH_REVIEWED_SAVED_COMMIT",
+  "vercel": {"projectId": "prj_Wkh4h5DSZo3bPfeEMvX7elWkvCZt", "target": "preview"},
+  "railway": {"projectId": "eff635d8-91ad-49f7-b53b-45748b7500f8", "environmentId": "REPLACE_ISOLATED_ENVIRONMENT_ID", "serviceId": "REPLACE_NEW_ISOLATED_SERVICE_ID", "replicas": 1},
+  "supabase": {"projectRef": "REPLACE_ISOLATED_REF", "isolationVerified": false, "signupDisabled": false, "schemaVerified": false, "privateBucketVerified": false},
+  "cost": {"evidenceDate": null, "evidenceReference": null, "includedCreditRemainingUSD": null, "productionReserveUSD": null, "betaReserveUSD": null, "extraChargeUSD": null, "ownerVerified": false}
+}

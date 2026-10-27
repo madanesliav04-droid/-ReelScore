@@ -199,6 +199,7 @@ async function createJob(
 }
 
 async function route(req:Request){
+  if(Deno.env.get('SOCIALPLUS_ALEX_ONLY')==='true'&&SUPABASE_URL.includes('eiypztjpmxdiuaqxjuqx'))return out({error:'ISOLATED_SUPABASE_REQUIRED'},503);
   if(req.method==="OPTIONS")return new Response(null,{status:204,headers:CORS});
   const origin=req.headers.get("Origin");
   if(origin&&origin!==ALLOWED_ORIGIN)return out({error:"ORIGIN_NOT_ALLOWED"},403);
@@ -275,6 +276,7 @@ async function route(req:Request){
   }
 
   if(req.method==="POST"&&tail[0]==="analysis"){
+    if(Deno.env.get('SOCIALPLUS_ALEX_ONLY')==='true')return out({error:'BETA_ALEX_ONLY',message:'Seul le montage Alex V16 est activé dans cette préproduction.'},403);
     const body=await req.json().catch(()=>null);
     if(!body)return out({error:"INVALID_BODY"},400);
 
@@ -319,6 +321,7 @@ async function route(req:Request){
     const contract=editContract(requestedStyle,{alexReconstruction:Deno.env.get('ALEX_V16_RECONSTRUCTION_ENABLED')==="true"});
     if(!contract.ok)return out({error:contract.code,message:contract.message},422);
     const canonicalStyle=contract.projectStyle;
+    if(Deno.env.get('SOCIALPLUS_ALEX_ONLY')==='true'&&canonicalStyle!=='hormozi_omni')return out({error:'BETA_ALEX_ONLY',message:'Seul Alex V16 est activé dans cette préproduction.'},403);
     const captionByModel={
       codie:"codie",
       impact:"impact",
@@ -474,6 +477,12 @@ async function route(req:Request){
   }
 
   if(req.method==="POST"&&tail[0]==="jobs"&&isUuid(tail[1])&&tail[2]==="retry"){
+    if(Deno.env.get('SOCIALPLUS_ALEX_ONLY')==='true'){
+      const {data:prior,error}=await db.from('processing_jobs').select('kind,payload').eq('id',String(tail[1])).eq('user_id',user.id).maybeSingle();
+      if(error)return out({error:'JOB_READ_FAILED'},500);
+      if(!prior)return out({error:'JOB_NOT_FOUND'},404);
+      if(prior.kind!=='edit_render'||prior.payload?.style!=='hormozi_omni')return out({error:'BETA_ALEX_ONLY'},403);
+    }
     const id=String(tail[1]);
     const {data,error}=await db.from("processing_jobs")
       .update({

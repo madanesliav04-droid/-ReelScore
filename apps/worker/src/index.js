@@ -1,7 +1,7 @@
 import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
-import {createReadStream,createWriteStream} from 'node:fs';
+import {createReadStream,createWriteStream,existsSync} from 'node:fs';
 import {mkdtemp,rm,stat} from 'node:fs/promises';
 import {Readable} from 'node:stream';
 import {pipeline} from 'node:stream/promises';
@@ -15,6 +15,7 @@ import {verifyMp4} from './export-integrity.js';
 import {receiveObject,verifySource,MAX_SOURCE_BYTES} from './media-integrity.js';
 import {editContract} from './model-contract.js';
 import {renderAlexV16} from './alex-v16-pipeline.js';
+import {alexOnly,acceptsAlexJob,requiredRuntime} from './alex-beta-policy.js';
 import {validateTimedWords} from './word-timing.js';
 import {composeUgcRushes} from './ugc-rush-compositor.js';
 import {
@@ -38,12 +39,10 @@ function formatError(error){
   return String(error);
 }
 
-const required=[
-  'SUPABASE_URL',
-  'SUPABASE_SERVICE_ROLE_KEY',
-  'GEMINI_API_KEY'
-];
-const missing=required.filter(key=>!process.env[key]);
+const betaAlexOnly=alexOnly(process.env);
+const missing=requiredRuntime(process.env);
+if(betaAlexOnly&&process.env.SOCIALPLUS_ASR_MODEL_DIR&&
+  !['model.bin','config.json','tokenizer.json','vocabulary.txt'].every(name=>existsSync(path.join(process.env.SOCIALPLUS_ASR_MODEL_DIR,name))))missing.push('ASR_MODEL_FILES');
 
 const supabase=missing.length
   ?null
@@ -144,7 +143,7 @@ async function claimJob(){
     'worker_claim_processing_job',
     {
       p_worker_id:workerId,
-      p_kinds:['viral_analysis','edit_render']
+      p_kinds:betaAlexOnly?['edit_render']:['viral_analysis','edit_render']
     }
   );
 
@@ -173,6 +172,7 @@ async function processJob(job){
   );
 
   try{
+    if(betaAlexOnly&&!acceptsAlexJob(job))throw tagged('BETA_ALEX_ONLY','Cette préproduction accepte uniquement Alex V16.');
     if(await recoverIdempotentResult(job))return;
 
     const media=await one(
