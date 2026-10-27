@@ -1,6 +1,12 @@
 name: Social+ isolated secret-free worker gate
 on:
   workflow_dispatch:
+    inputs:
+      mode:
+        description: Test to execute
+        type: choice
+        options: [infrastructure, alex]
+        default: infrastructure
 permissions:
   contents: read
 concurrency:
@@ -11,7 +17,8 @@ jobs:
     if: >-
       github.repository == 'madanesliav04-droid/-ReelScore' &&
       github.event.repository.private == false &&
-      github.ref == 'refs/heads/codex/socialplus-actions-free-worker-20261027'
+      github.ref == 'refs/heads/codex/socialplus-actions-free-worker-20261027' &&
+      inputs.mode == 'infrastructure'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     defaults:
@@ -46,3 +53,79 @@ jobs:
         run: npm test
       - name: Actual FFmpeg and Remotion Chromium rendering probe
         run: node ci/dependency-smoke.mjs
+
+  alex:
+    if: >-
+      github.repository == 'madanesliav04-droid/-ReelScore' &&
+      github.event.repository.private == false &&
+      github.ref == 'refs/heads/codex/socialplus-actions-free-worker-20261027' &&
+      inputs.mode == 'alex'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: apps/worker
+    env:
+      HF_HUB_OFFLINE: '1'
+      HF_HUB_DISABLE_TELEMETRY: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - name: Check private transfer access before any media processing
+        id: access
+        env:
+          SOCIALPLUS_PRIVATE_DELIVERY_TOKEN: ${{ secrets.SOCIALPLUS_PRIVATE_DELIVERY_TOKEN }}
+        run: node ci/private-transfer.mjs preflight
+      - name: Prepare private temporary work directory
+        run: |
+          work="${RUNNER_TEMP}/socialplus-alex-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          mkdir -m 700 "$work"
+          mkdir -m 700 "$work/render"
+          echo "SOCIALPLUS_WORK_ROOT=$work" >> "$GITHUB_ENV"
+          echo "SOCIALPLUS_ACTIONS_WORK_DIR=$work/render" >> "$GITHUB_ENV"
+          echo "SOCIALPLUS_ASR_MODEL_DIR=$work/asr" >> "$GITHUB_ENV"
+          echo "SOCIALPLUS_MODEL_OUTPUT=$work/asr" >> "$GITHUB_ENV"
+          echo "SOCIALPLUS_PYTHON=$work/venv/bin/python" >> "$GITHUB_ENV"
+      - name: Install offline render dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ffmpeg python3-venv
+          npm ci --no-fund
+          python3 -m venv "$SOCIALPLUS_WORK_ROOT/venv"
+          "$SOCIALPLUS_PYTHON" -m pip install --no-cache-dir -r reconstruction/alex-v16/requirements.txt
+          python3 ../../deploy/socialplus-beta/fetch-model.py
+      - name: Retrieve hash-bound rush from private repository
+        id: source
+        env:
+          SOCIALPLUS_PRIVATE_DELIVERY_TOKEN: ${{ secrets.SOCIALPLUS_PRIVATE_DELIVERY_TOKEN }}
+        run: node ci/private-transfer.mjs download
+      - name: Real offline Alex render and resource measurements
+        run: python3 ci/measure-render.py
+      - name: Package private proofs
+        if: always() && steps.source.outcome == 'success'
+        run: |
+          python3 - <<'PYCODE'
+          import os,zipfile
+          from pathlib import Path
+          root=Path(os.environ['SOCIALPLUS_ACTIONS_WORK_DIR'])
+          names=['report.json','metrics.json','compute.log','alex-plan.json','alex-transcript.json','alex-result.json','alex.qa.json']
+          with zipfile.ZipFile(root/'proofs.zip','w',zipfile.ZIP_DEFLATED) as archive:
+              for name in names:
+                  file=root/name
+                  if file.is_file():archive.write(file,name)
+          PYCODE
+      - name: Deliver only to fixed private draft release
+        if: always() && steps.source.outcome == 'success'
+        env:
+          SOCIALPLUS_PRIVATE_DELIVERY_TOKEN: ${{ secrets.SOCIALPLUS_PRIVATE_DELIVERY_TOKEN }}
+        run: node ci/private-transfer.mjs upload
+      - name: Remove temporary private media from ephemeral runner
+        if: always()
+        run: |
+          if [[ "${SOCIALPLUS_WORK_ROOT:-}" == "${RUNNER_TEMP}/socialplus-alex-"* ]]; then
+            rm -rf -- "$SOCIALPLUS_WORK_ROOT"
+          fi
