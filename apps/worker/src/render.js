@@ -36,6 +36,16 @@ const here=path.dirname(fileURLToPath(import.meta.url));
 const entryPoint=path.resolve(here,'../remotion/index.jsx');
 let bundlePromise=null;
 
+// Native iPhone MOVs may have nonuniform presentation timestamps. Normalize
+// frame pacing only, with no resize/crop/audio filter; retain AAC bit-for-bit.
+export async function normalizeNativeVideo({inputPath,outputPath,fps=30,audioCodec='aac'}){
+  await run('ffmpeg',['-hide_banner','-loglevel','error','-y','-i',inputPath,
+    '-map','0:v:0','-map','0:a:0?','-vf','fps='+String(fps),
+    '-c:v','libx264','-preset','fast','-crf','17','-pix_fmt','yuv420p','-threads','2',
+    '-c:a',audioCodec==='aac'?'copy':'aac','-map_metadata','-1','-metadata:s:v:0','rotate=0',
+    '-movflags','+faststart',outputPath]);
+}
+
 export async function preprocessVideo({inputPath,outputPath,keepRanges,hasAudio=true,onProgress=async()=>{}}){
   const ranges=(keepRanges||[]).filter(r=>r.endMs-r.startMs>=100).slice(0,80);
   if(!ranges.length)throw new Error('Aucun segment vidéo à conserver.');

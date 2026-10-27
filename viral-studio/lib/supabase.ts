@@ -1,8 +1,19 @@
 import { createClient } from "@supabase/supabase-js";
+import {resumableUploadUrl} from "./storage-endpoint";
 
-export const SUPABASE_URL = "https://eiypztjpmxdiuaqxjuqx.supabase.co";
-export const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_Wl8iv037-iZ59iStDPu96A_RMn-US2C";
-export const SUPABASE_PROJECT_REF = "eiypztjpmxdiuaqxjuqx";
+if((process.env.NEXT_PUBLIC_SOCIALPLUS_ALEX_ONLY==="true"||process.env.VERCEL_ENV==="preview")&&
+  (!process.env.NEXT_PUBLIC_SUPABASE_URL||!process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||process.env.NEXT_PUBLIC_SUPABASE_URL.includes("eiypztjpmxdiuaqxjuqx"))){
+  throw new Error("Préproduction Alex : configurer explicitement un backend Supabase isolé et sa clé publique.");
+}
+
+// Explicit environment overrides permit real isolated local Auth/Storage tests.
+// Only a publishable/anon key belongs in NEXT_PUBLIC_; never a service-role key.
+export const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL||"https://eiypztjpmxdiuaqxjuqx.supabase.co";
+export const SUPABASE_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||"sb_publishable_Wl8iv037-iZ59iStDPu96A_RMn-US2C";
+export const SUPABASE_PROJECT_REF = new URL(SUPABASE_URL).hostname.split(".")[0];
+// Hosted projects use the dedicated Storage domain; self-hosted/test stacks
+// expose the same real resumable API on their configured origin.
+export const SUPABASE_RESUMABLE_URL = resumableUploadUrl(SUPABASE_URL);
 export const VIDEO_BUCKET = "viralplus-videos";
 
 // Redirect GoTrue browser calls through the Social+ origin. User sessions

@@ -1,0 +1,64 @@
+{
+  "date": "2026-10-27",
+  "architectureTested": "linux/arm64 under QEMU on x86_64, NOT Oracle native",
+  "artifact": {
+    "path": "/workspace/scratch/socialplus-alex-arm64.oci.tar",
+    "bytes": 1003044352,
+    "sha256": "1cf8225898c954bc229d7105bb22f13234c0b0a9a1707fa95e2f21ebff8d1989",
+    "ociVerification": {
+      "ok": true,
+      "verifiedBlobs": 14,
+      "images": [
+        {
+          "digest": "sha256:be1a8bed9f7801ad537b27d82db5daf2e2adf4e57fe0b913ffd628d1540573d1",
+          "architecture": "arm64",
+          "os": "linux",
+          "user": "node",
+          "layers": 12
+        }
+      ],
+      "note": "Archive integrity/metadata only, not a native runtime or render test"
+    }
+  },
+  "sourceDockerfileSha256": "3bbdf897e4bbdfc66d7c4fe4cf59dedc9e8da69c34143569326c29d4e266ce54",
+  "packageLockSha256": "a479c058fd6668ed5b9043b5b9d072da56b46705c6b08c23d8797eb0271bbf2a",
+  "checks": {
+    "workerNodeTestsPassed": 77,
+    "telemetryNodeTestsPassed": 4,
+    "ociValidatorPythonTestsPassed": 5,
+    "arm64GraphicPythonTestsPassed": 13,
+    "arm64PythonImports": true,
+    "arm64AlexRemotionImports": true,
+    "arm64NonrootImports": true,
+    "arm64SyntheticH264AacEncodeDecode": true,
+    "registryNpmAuditVulnerabilities": 0
+  },
+  "whisperInference": "Previously passed QEMU synthetic silence; not redundantly repeated; never native Oracle in this session",
+  "remainingSecurity": "Vendored Zod in Studio protocol not replaced; Studio not exposed by Alex worker",
+  "realOracleSpokenVideo": {
+    "executed": false,
+    "mp4": null,
+    "sourceDurationSeconds": null,
+    "elapsedSeconds": null,
+    "cpuAveragePercent": null,
+    "cpuPeakPercent": null,
+    "ramPeakBytes": null,
+    "workspacePeakBytes": null,
+    "outputBytes": null,
+    "concurrencyCapacity": null
+  },
+  "blockers": [
+    "No Oracle A1 host/authorized SSH/cloud identity configured",
+    "Available spoken sources are 512x910 and 910x512; no native 1080p source found",
+    "Authenticated Oracle upload path not deployed/tested"
+  ],
+  "cost": {
+    "servicesCreated": 0,
+    "upgradesActivated": 0,
+    "actualMonthlyOracleBillVerified": false,
+    "conditionalMonthlyTargetEUR": 0
+  },
+  "engineArtisticRulesModified": false,
+  "productionModified": false,
+  "validated": false
+}

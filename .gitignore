@@ -10,3 +10,7 @@
 **/*.mov
 **/*.wav
 **/*.mp3
+**/__pycache__/
+**/*.pyc
+
+supabase/.temp/

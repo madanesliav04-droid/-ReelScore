@@ -1,0 +1,47 @@
+{
+  "date": "2026-10-27",
+  "sourceCommit": "b729ef755668e44fee424ae85d5634090f00aed0",
+  "host": "x86_64",
+  "target": "linux/arm64",
+  "execution": "BuildKit QEMU user emulation; no Oracle VM",
+  "sourceDockerfileSha256": "4fb064a6fff604a66275355d68c173c5221a06dcbf515419b34bdada6bada57d",
+  "buildAdaptation": "Temporary Dockerfile adds proxy CA secret mounts and trust environment; no engine change",
+  "firstImageBuiltAndLoaded": true,
+  "firstImageWasBeforeNonrootOwnershipFix": true,
+  "finalBuildStagesExecuted": true,
+  "finalImageLoaded": false,
+  "finalExportError": "failed to solve: rpc error: code = Unknown desc = no space left on device",
+  "finalImageArtifactAvailable": false,
+  "finalExportManifestDigest": "sha256:8cb1246f1a40f278ba28dd96e007f72145384052b4e9e8ca22aa1ee37b95bb38",
+  "finalExportConfigDigest": "sha256:b82b1ba5438343fc5ec3cc18c59ee48726a150312e9cc58d8361aacc3cf37bf9",
+  "checks": {
+    "nativePythonImports": "passed",
+    "alexRemotionImports": "passed",
+    "nonrootAlexImports": "passed",
+    "pythonGraphicTests": {
+      "passed": 13,
+      "failed": 0
+    },
+    "syntheticMp4": {
+      "encoded": true,
+      "decoded": true,
+      "width": 320,
+      "height": 180,
+      "durationSecondsRequested": 1,
+      "videoCodec": "h264",
+      "audioCodec": "aac"
+    },
+    "whisperSmallCpuInt8SyntheticSilenceInference": "passed",
+    "speechAccuracy": "not tested",
+    "fullAlexSpokenRushArm64": "not tested",
+    "chromiumLaunch": "not tested; not invoked by Alex path",
+    "nextArm64Build": "not tested",
+    "oracleNativeCpuRamStorageAndRenderTime": "not measured",
+    "physicalSafari": "not tested"
+  },
+  "npmAuditSummary": "10 high-severity alerts reported by npm ci; reachability not analyzed",
+  "deploymentPerformed": false,
+  "paidServicesActivated": false,
+  "validatedEnginesModified": false,
+  "verdict": "ARM64 component compatibility demonstrated in emulation; complete Oracle deployment and native sizing NOT validated"
+}

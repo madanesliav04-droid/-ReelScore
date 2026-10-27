@@ -1,0 +1,10 @@
+#12 303.1 10 high severity vulnerabilities
+#12 351.9 ARM64_NATIVE_IMPORTS_OK
+#12 355.4 ARM64_ALEX_REMOTION_IMPORT_OK
+#12 356.7 Ran 13 tests in 0.409s
+#12 356.7 OK
+#13 20.13 ARM64_NONROOT_IMPORT_OK
+#13 313.3 ARM64_ASR_INFERENCE_OK_SYNTHETIC_SILENCE_NOT_SPEECH_VALIDATION
+#15 ERROR: no space left on device
+#14 ERROR: rpc error: code = Unknown desc = no space left on device
+ERROR: failed to build: failed to solve: rpc error: code = Unknown desc = no space left on device

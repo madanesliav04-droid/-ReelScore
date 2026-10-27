@@ -1,0 +1,22 @@
+{
+  "license": "SIL OFL 1.1",
+  "provenance": "Existing Social+ renamed Inter subsets, reused unchanged. Authorized alternatives; exact historical typeface not certified.",
+  "fonts": {
+    "SocialPlusSans-SemiBold.ttf": "6470a2085ceeea1743d46645b4e19262fc4180d462142fc1aa6577a27296208e",
+    "SocialPlusSans-Regular.ttf": "83c14b641cefb57744121539281b64571fa3537060232567c1c3b4e850a168f7",
+    "SocialPlusDisplay-SemiBold.ttf": "6d1ba460fddfceb0560ccb4776da7df15fa531459b33ca85271a91c060ca32c6",
+    "SocialPlusAlexDisplay-SemiBold.ttf": "0eba7261f17a0a41c1ec2cd34985c14fe70148400882de91e653785246fadd5f"
+  },
+  "alexDisplayCalibration": {
+    "font": "SocialPlusAlexDisplay-SemiBold.ttf",
+    "license": "Inter-OFL.txt",
+    "modifiedFamily": "SocialPlus Alex Display",
+    "axes": {
+      "opsz": 32,
+      "wght": 650
+    },
+    "source": "https://github.com/google/fonts/tree/main/ofl/inter",
+    "sourceSha256": "29160a80ff49ddcab2c97711247e08b1fab27a484a329ce8b813d820dc559031",
+    "purpose": "Improve measured title silhouette agreement, not claim recovery of historical font."
+  }
+}
