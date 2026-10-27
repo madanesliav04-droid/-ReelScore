@@ -66,26 +66,31 @@ const pollMs=Math.max(1000,Number(process.env.POLL_MS||2500));
 let activeJob=null;
 let lastError=null;
 let stopping=false;
+let queueFailures=0;
+let queueConnected=false;
+const QUEUE_RETRY_MAX_MS=60000;
 
 const server=http.createServer((req,res)=>{
   if(req.url==='/health'){
     return send(res,200,{
-      ok:missing.length===0,
+      ok:missing.length===0&&queueConnected,
       service:'viral-edit-worker',
       version:'0.2.0',
       worker_id:workerId,
       configured:missing.length===0,
       missing,
       active_job:activeJob,
-      last_error:lastError
+      queue_connected:queueConnected,
+      queue_failures:queueFailures,
+      last_error_code:lastError?.code||null
     });
   }
 
   if(req.url==='/ready'){
     return send(
       res,
-      missing.length?503:200,
-      {ready:missing.length===0}
+      missing.length||!queueConnected?503:200,
+      {ready:missing.length===0&&queueConnected}
     );
   }
 
@@ -118,7 +123,24 @@ if(!missing.length){
 async function loop(){
   while(!stopping){
     try{
-      const job=await claimJob();
+      let job;
+      try{
+        job=await claimJob();
+        queueConnected=true;
+        queueFailures=0;
+        lastError=null;
+      }catch(error){
+        queueConnected=false;
+        queueFailures+=1;
+        const code=String(error?.code||'QUEUE_CLAIM_FAILED');
+        lastError={code};
+        const retryMs=Math.min(QUEUE_RETRY_MAX_MS,pollMs*2**Math.min(queueFailures,6));
+        if(queueFailures===1||queueFailures%20===0){
+          console.error(JSON.stringify({event:'queue_claim_failed',code,consecutive_failures:queueFailures,retry_ms:retryMs,message:formatError(error).slice(0,500)}));
+        }
+        await sleep(retryMs);
+        continue;
+      }
 
       if(!job){
         await sleep(pollMs);
@@ -129,8 +151,8 @@ async function loop(){
       lastError=null;
       await processJob(job);
     }catch(error){
-      lastError=formatError(error);
-      console.error(lastError);
+      lastError={code:String(error?.code||'JOB_PROCESSING_FAILED')};
+      console.error(JSON.stringify({event:'job_processing_failed',code:lastError.code,message:formatError(error).slice(0,500)}));
       await sleep(Math.min(10000,pollMs*2));
     }finally{
       activeJob=null;
@@ -149,11 +171,9 @@ async function claimJob(){
 
   if(error){
     if(error.code==='PGRST202'){
-      throw new Error(
-        'Queue RPC worker_claim_processing_job absente.'
-      );
+      throw Object.assign(new Error('Queue RPC worker_claim_processing_job absente.'),{code:'PGRST202'});
     }
-    throw new Error(`QUEUE_CLAIM_FAILED: ${formatError(error)}`);
+    throw Object.assign(new Error(`QUEUE_CLAIM_FAILED: ${formatError(error)}`),{code:String(error.code||'QUEUE_CLAIM_FAILED')});
   }
 
   return Array.isArray(data)
