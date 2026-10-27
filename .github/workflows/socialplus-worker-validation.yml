@@ -1,26 +1,48 @@
-name: Social+ Worker Validation
+name: Social+ isolated secret-free worker gate
 on:
-  push:
-    branches:
-      - socialplus-worker-errors-20261026
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: socialplus-secret-free-worker-gate
+  cancel-in-progress: false
 jobs:
-  worker-tests:
-    runs-on: ubuntu-latest
+  worker:
+    if: >-
+      github.repository == 'madanesliav04-droid/-ReelScore' &&
+      github.event.repository.private == false &&
+      github.ref == 'refs/heads/codex/socialplus-actions-free-worker-20261027'
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     defaults:
       run:
         working-directory: apps/worker
+    env:
+      CI: 'true'
+      HF_HUB_OFFLINE: '1'
+      HF_HUB_DISABLE_TELEMETRY: '1'
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          node-version: '22'
-      - name: Install worker dependencies
-        run: npm install --no-audit --no-fund
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+      - name: Confirm absence of backend secrets
+        run: |
+          node --input-type=module -e '
+            for (const name of ["SUPABASE_URL","SUPABASE_SERVICE_ROLE_KEY","GEMINI_API_KEY","R2_ACCESS_KEY_ID","R2_SECRET_ACCESS_KEY"])
+              if (process.env[name]) throw new Error("Unexpected backend credential: "+name);
+            console.log("No Supabase/Gemini/R2 credential supplied");'
+      - name: Install FFmpeg and Chromium system libraries
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ffmpeg libnss3 libatk-bridge2.0-0 libgbm1 libasound2t64 libxcomposite1 libxdamage1 libxrandr2
+      - name: Install locked worker dependencies
+        run: npm ci --no-fund
       - name: Syntax checks
         run: npm run check
-      - name: Unit tests
+      - name: Worker Node tests
         run: npm test
+      - name: Actual FFmpeg and Remotion Chromium rendering probe
+        run: node ci/dependency-smoke.mjs
