@@ -72,7 +72,7 @@ const QUEUE_RETRY_MAX_MS=60000;
 
 const server=http.createServer((req,res)=>{
   if(req.url==='/health'){
-    return send(res,200,{
+    return send(res,missing.length===0&&queueConnected?200:503,{
       ok:missing.length===0&&queueConnected,
       service:'viral-edit-worker',
       version:'0.2.0',
