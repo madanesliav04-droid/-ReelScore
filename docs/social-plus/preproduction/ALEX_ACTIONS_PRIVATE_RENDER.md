@@ -1,5 +1,8 @@
 # Alex V16 — test Actions complet préparé, transfert privé requis
 
+**Procédure historique remplacée par [R2_PRIVATE_TRANSFER.md](./R2_PRIVATE_TRANSFER.md).
+Ne pas créer de jeton GitHub : le mode Alex utilise désormais les capacités R2.**
+
 Branche conservée : `codex/socialplus-actions-free-worker-20261027`.
 Commit du workflow : `040ae766d2b1904a7b4a65efc5175d63ca850b05`.
 Contrôle réel : https://github.com/madanesliav04-droid/-ReelScore/actions/runs/40565307469

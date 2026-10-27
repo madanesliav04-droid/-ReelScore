@@ -75,11 +75,11 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '24'
-      - name: Check private transfer access before any media processing
+      - name: Validate R2 object-scoped capabilities before any media processing
         id: access
         env:
-          SOCIALPLUS_PRIVATE_DELIVERY_TOKEN: ${{ secrets.SOCIALPLUS_PRIVATE_DELIVERY_TOKEN }}
-        run: node ci/private-transfer.mjs preflight
+          SOCIALPLUS_R2_TRANSFER: ${{ secrets.SOCIALPLUS_R2_TRANSFER }}
+        run: node ci/r2-transfer.mjs preflight
       - name: Prepare private temporary work directory
         run: |
           work="${RUNNER_TEMP}/socialplus-alex-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
@@ -98,11 +98,11 @@ jobs:
           python3 -m venv "$SOCIALPLUS_WORK_ROOT/venv"
           "$SOCIALPLUS_PYTHON" -m pip install --no-cache-dir -r reconstruction/alex-v16/requirements.txt
           python3 ../../deploy/socialplus-beta/fetch-model.py
-      - name: Retrieve hash-bound rush from private repository
+      - name: Retrieve hash-bound rush from private R2 object
         id: source
         env:
-          SOCIALPLUS_PRIVATE_DELIVERY_TOKEN: ${{ secrets.SOCIALPLUS_PRIVATE_DELIVERY_TOKEN }}
-        run: node ci/private-transfer.mjs download
+          SOCIALPLUS_R2_TRANSFER: ${{ secrets.SOCIALPLUS_R2_TRANSFER }}
+        run: node ci/r2-transfer.mjs download
       - name: Real offline Alex render and resource measurements
         run: python3 ci/measure-render.py
       - name: Package private proofs
@@ -118,11 +118,11 @@ jobs:
                   file=root/name
                   if file.is_file():archive.write(file,name)
           PYCODE
-      - name: Deliver only to fixed private draft release
+      - name: Deliver MP4 and proofs only through signed R2 PUT URLs
         if: always() && steps.source.outcome == 'success'
         env:
-          SOCIALPLUS_PRIVATE_DELIVERY_TOKEN: ${{ secrets.SOCIALPLUS_PRIVATE_DELIVERY_TOKEN }}
-        run: node ci/private-transfer.mjs upload
+          SOCIALPLUS_R2_TRANSFER: ${{ secrets.SOCIALPLUS_R2_TRANSFER }}
+        run: node ci/r2-transfer.mjs upload
       - name: Remove temporary private media from ephemeral runner
         if: always()
         run: |

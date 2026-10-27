@@ -7,7 +7,7 @@ import path from 'node:path';
 import assert from 'node:assert/strict';
 const exec=promisify(execFile),directory=process.env.SOCIALPLUS_ACTIONS_WORK_DIR;
 assert(directory&&path.isAbsolute(directory));
-for(const key of ['SUPABASE_URL','SUPABASE_SERVICE_ROLE_KEY','GEMINI_API_KEY','SOCIALPLUS_PRIVATE_DELIVERY_TOKEN'])assert(!process.env[key],`Compute must not receive ${key}`);
+for(const key of ['SUPABASE_URL','SUPABASE_SERVICE_ROLE_KEY','GEMINI_API_KEY','SOCIALPLUS_PRIVATE_DELIVERY_TOKEN','SOCIALPLUS_R2_TRANSFER','R2_ACCESS_KEY_ID','R2_SECRET_ACCESS_KEY'])assert(!process.env[key],`Compute must not receive ${key}`);
 const source=path.join(directory,'source.mov'),output=path.join(directory,'alex.mp4');
 const probe=async file=>JSON.parse((await exec('ffprobe',['-v','error','-show_streams','-show_format','-of','json',file],{maxBuffer:2000000})).stdout);
 const audioHash=async file=>(await exec('ffmpeg',['-v','error','-i',file,'-map','0:a:0','-c:a','copy','-f','hash','-hash','sha256','-'])).stdout.trim();
