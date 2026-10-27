@@ -8,11 +8,11 @@ RUN /opt/socialplus-asr/bin/pip install --no-cache-dir -r /tmp/alex-requirements
 COPY deploy/socialplus-beta/model-manifest.json deploy/socialplus-beta/fetch-model.py /opt/model-bootstrap/
 RUN python3 /opt/model-bootstrap/fetch-model.py
 WORKDIR /app
-COPY apps/worker/package.json apps/worker/package-lock.json ./
+COPY --chown=node:node apps/worker/package.json apps/worker/package-lock.json ./
 RUN npm ci --omit=dev
-COPY apps/worker/src ./src
-COPY apps/worker/remotion ./remotion
-COPY apps/worker/reconstruction ./reconstruction
+COPY --chown=node:node apps/worker/src ./src
+COPY --chown=node:node apps/worker/remotion ./remotion
+COPY --chown=node:node apps/worker/reconstruction ./reconstruction
 # Chromium is not downloaded: Alex V16's existing path uses Python/Pillow/FFmpeg.
 # The runtime admission gate prevents all other render paths from being invoked.
 ENV NODE_ENV=production SOCIALPLUS_ALEX_ONLY=true ALEX_V16_RECONSTRUCTION_ENABLED=true ALEX_V16_REVIEW_DRAFTS=true SOCIALPLUS_PYTHON=/opt/socialplus-asr/bin/python SOCIALPLUS_ASR_MODEL_DIR=/opt/models/whisper-small HF_HUB_OFFLINE=1 HF_HUB_DISABLE_TELEMETRY=1
