@@ -69,6 +69,7 @@ let stopping=false;
 let queueFailures=0;
 let queueConnected=false;
 const QUEUE_RETRY_MAX_MS=60000;
+const queueRetryDelay=(failures,baseMs=pollMs)=>Math.min(QUEUE_RETRY_MAX_MS,baseMs*2**Math.min(Math.max(1,failures),6));
 
 const server=http.createServer((req,res)=>{
   if(req.url==='/health'){
@@ -134,7 +135,7 @@ async function loop(){
         queueFailures+=1;
         const code=String(error?.code||'QUEUE_CLAIM_FAILED');
         lastError={code};
-        const retryMs=Math.min(QUEUE_RETRY_MAX_MS,pollMs*2**Math.min(queueFailures,6));
+        const retryMs=queueRetryDelay(queueFailures);
         if(queueFailures===1||queueFailures%20===0){
           console.error(JSON.stringify({event:'queue_claim_failed',code,consecutive_failures:queueFailures,retry_ms:retryMs,message:formatError(error).slice(0,500)}));
         }
