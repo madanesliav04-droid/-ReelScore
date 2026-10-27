@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import {resumableUploadUrl} from "./storage-endpoint";
 
-if(process.env.NEXT_PUBLIC_SOCIALPLUS_ALEX_ONLY==="true"&&
+if((process.env.NEXT_PUBLIC_SOCIALPLUS_ALEX_ONLY==="true"||process.env.VERCEL_ENV==="preview")&&
   (!process.env.NEXT_PUBLIC_SUPABASE_URL||!process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||process.env.NEXT_PUBLIC_SUPABASE_URL.includes("eiypztjpmxdiuaqxjuqx"))){
   throw new Error("Préproduction Alex : configurer explicitement un backend Supabase isolé et sa clé publique.");
 }
