@@ -1,0 +1,45 @@
+{
+  "advisory": "https://github.com/advisories/GHSA-mrhx-c7xc-m3w5",
+  "rootCause": "zod oversized collection resource consumption",
+  "independentRegistryAdvisories": 1,
+  "affectedDependencyNodes": [
+    "@remotion/bundler",
+    "@remotion/cli",
+    "@remotion/codemods",
+    "@remotion/elevenlabs",
+    "@remotion/media",
+    "@remotion/openai-whisper",
+    "@remotion/studio",
+    "@remotion/studio-protocol",
+    "@remotion/studio-server",
+    "zod"
+  ],
+  "before": {
+    "info": 0,
+    "low": 0,
+    "moderate": 0,
+    "high": 10,
+    "critical": 0,
+    "total": 10
+  },
+  "after": {
+    "info": 0,
+    "low": 0,
+    "moderate": 0,
+    "high": 0,
+    "critical": 0,
+    "total": 0
+  },
+  "fix": {
+    "zodBefore": "4.5.4",
+    "zodAfter": "4.6.6",
+    "method": "npm overrides + lockfile, Remotion stays 4.0.530"
+  },
+  "regressionTest": "tests/zod-resource-limit.test.mjs",
+  "workerTestsPassed": 77,
+  "remaining": {
+    "bundledZod": "@remotion/studio-protocol/dist/esm/index.mjs includes vendored Zod 4.5.4; npm override does not rewrite it",
+    "exposure": "Alex worker exposes health/ready only; no Studio server is started in the Alex pipeline",
+    "securityVerdict": "Registry graph cleared; not a complete application or vendored-code security approval"
+  }
+}

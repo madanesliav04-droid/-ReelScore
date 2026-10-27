@@ -1,5 +1,10 @@
 # Oracle Always Free — vérification Alex V16, 27 octobre 2026
 
+**Mise à jour :** consulter [FINAL_VALIDATION.md](./FINAL_VALIDATION.md) et
+`native-preparation-results.json`. L'export OCI corrigé a désormais réussi et
+l'audit npm a été traité de façon ciblée. Le récit ci-dessous conserve l'état
+de la première tentative ; il ne remplace pas les résultats plus récents.
+
 Ce dossier prépare une décision, sans déploiement, création de compte, changement
 d'architecture ou modification des six moteurs. Base examinée : commit local
 `b729ef755668e44fee424ae85d5634090f00aed0`, objet GitHub correspondant
