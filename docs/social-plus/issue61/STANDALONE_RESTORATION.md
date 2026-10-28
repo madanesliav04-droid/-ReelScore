@@ -99,3 +99,9 @@ Les cinq autres signatures ne deviennent pas automatiquement autonomes parce que
 leurs sources sont restaurées. Quatre restent bloquées par défaut ; Alex demeure
 une activation explicite de QA. La V28 exige toujours une direction contextuelle
 revue : le test sur son rush approuvé ne certifie pas tous les nouveaux discours.
+
+## Validation CI finale et paquet de lancement
+
+Le workflow isolé [40724306763](https://github.com/madanesliav04-droid/-ReelScore/actions/runs/40724306763), commit `87eb257332f0a1725ea2b1495e993687bbad8863`, est réussi : tests du worker, serveur autonome, frontend et build Next.js. Les trois échecs Python initiaux provenaient de NumPy absent du runner ; les dépendances existantes ont été installées sans retirer de tests.
+
+Les trois Dockerfiles incluent désormais le verrou npm du worker, ses dépendances de production, les compositions Remotion et les scripts/ressources Alex. Ces copies sont nécessaires aux imports statiques du serveur restauré. Cette correction de packaging n'est pas une validation du build Docker ni d'un rendu ARM64 natif : ils restent à exécuter sur une machine autorisée. Aucun moteur artistique verrouillé n'a été modifié.

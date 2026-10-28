@@ -4,8 +4,11 @@ FROM node:24-bookworm-slim
 RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg fonts-dejavu-core ca-certificates python3 python3-numpy python3-pil chromium \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app/apps/socialplus
-COPY --chown=node:node apps/worker/package.json /app/apps/worker/package.json
+COPY --chown=node:node apps/worker/package.json apps/worker/package-lock.json /app/apps/worker/
+RUN npm ci --prefix /app/apps/worker --omit=dev --ignore-scripts --no-audit --no-fund
 COPY --chown=node:node apps/worker/src /app/apps/worker/src
+COPY --chown=node:node apps/worker/remotion /app/apps/worker/remotion
+COPY --chown=node:node apps/worker/reconstruction/alex-v16 /app/apps/worker/reconstruction/alex-v16
 COPY --chown=node:node apps/worker/hyperframes/social-kinetic-v28-speech-timed/index.html /app/apps/worker/hyperframes/social-kinetic-v28-speech-timed/index.html
 COPY --chown=node:node apps/socialplus/package.json apps/socialplus/package-lock.json ./
 RUN npm ci --omit=dev --ignore-scripts --no-audit --no-fund

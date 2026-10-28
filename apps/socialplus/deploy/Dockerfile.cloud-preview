@@ -7,8 +7,11 @@ COPY apps/socialplus/engines/requirements-asr.txt /tmp/requirements-asr.txt
 RUN python3 -m venv --system-site-packages /opt/socialplus-asr \
     && /opt/socialplus-asr/bin/pip install --no-cache-dir -r /tmp/requirements-asr.txt
 WORKDIR /app/apps/socialplus
-COPY --chown=node:node apps/worker/package.json /app/apps/worker/package.json
+COPY --chown=node:node apps/worker/package.json apps/worker/package-lock.json /app/apps/worker/
+RUN npm ci --prefix /app/apps/worker --omit=dev --ignore-scripts --no-audit --no-fund
 COPY --chown=node:node apps/worker/src /app/apps/worker/src
+COPY --chown=node:node apps/worker/remotion /app/apps/worker/remotion
+COPY --chown=node:node apps/worker/reconstruction/alex-v16 /app/apps/worker/reconstruction/alex-v16
 COPY --chown=node:node apps/worker/hyperframes/social-kinetic-v28-speech-timed/index.html /app/apps/worker/hyperframes/social-kinetic-v28-speech-timed/index.html
 COPY --chown=node:node apps/socialplus/package.json apps/socialplus/package-lock.json ./
 RUN npm ci --omit=dev --ignore-scripts --no-audit --no-fund
