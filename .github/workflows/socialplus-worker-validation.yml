@@ -43,7 +43,11 @@ jobs:
         working-directory: viral-studio
         run: npx playwright install --with-deps chromium
       - name: Browser and API contract regressions
+        # MP4 H.264/AAC needs the codecs in the runner's installed Chrome.
+        # The minimal downloaded Chromium build is not an iPhone codec test.
         working-directory: viral-studio
+        env:
+          PLAYWRIGHT_CHROMIUM_EXECUTABLE: '/usr/bin/google-chrome'
         run: npm test
       - name: Disconnected Preview fails closed
         working-directory: viral-studio
