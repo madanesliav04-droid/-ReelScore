@@ -1,0 +1,21 @@
+{
+  "ok": true,
+  "deployment": "dpl_t9gvSREX2BSqsKytrktFTxX2R3Ta",
+  "commit": "904bfbf40b99d97419e4fcee8f98e2806a24f7d4",
+  "scope": "Real Vercel Preview in Chromium touch viewport, not physical Safari or live rendering",
+  "checks": {
+    "remoteHTTP": 200,
+    "previewDisclosure": true,
+    "tabCount": 4,
+    "modelCount": 6,
+    "renderDisabled": true,
+    "tabsNavigable": true,
+    "noHorizontalOverflow": true,
+    "jobsFailClosed": 503,
+    "authFailClosed": 503,
+    "signInDisabled": true,
+    "faq": true,
+    "privacy": true,
+    "javascriptErrors": 0
+  }
+}

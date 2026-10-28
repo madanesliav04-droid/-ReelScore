@@ -36,7 +36,7 @@ n’a été remplacé ni modifié. Aucun score de qualité globale n’est attri
 | FAQ / confidentialité | Pages françaises réelles accessibles depuis Profil | Identité juridique, contact de droits, rétention déployée restent à compléter |
 | Avis / administration privée / codes / accès | Aucun faux formulaire ni contrôle d’administration ajouté | Non développés dans cette itération ; doivent avoir stockage, autorisations et tests serveur avant activation |
 | R2 privé | Bucket `socialplus-videos` déclaré par le propriétaire ; validation d’hôte d’upload renforcée | Accès, quota, domaines et purge 24 h non vérifiés faute de credentials |
-| Preview Vercel | Configuration du vrai frontend prête, `/apercu` navigable sans faux compte ni résultat | Coût supplémentaire nul non confirmé : API coûts renvoie 404 `costs_not_found` ; aucun nouveau déploiement activé |
+| Preview Vercel | **READY**, déploiement `dpl_t9gvSREX2BSqsKytrktFTxX2R3Ta`, commit `904bfbf40b99d97419e4fcee8f98e2806a24f7d4` | Backend désactivé ; connexion, upload, analyse et rendu distants restent indisponibles |
 
 ## Analyse reproductible : périmètre exact
 
@@ -106,8 +106,33 @@ L’issue signale une erreur RPC 402 : il ne faut pas la transformer en migratio
 automatique de base, ni affirmer que le RPC est absent. Aucun test de quota live
 ou mutation de données n’a été effectué ici.
 
-**Prochaine action externe demandée :** confirmer dans Vercel DCEO → Billing/Usage
-qu’une Preview standard supplémentaire reste incluse sans frais. Cela débloquera
-uniquement la publication du frontend ; les deux parcours distants complets
-nécessitent toujours un backend Auth/Storage/queue/worker isolé et validé à coût nul.
-Cette PR ne clôt pas #61 et n’autorise aucune commercialisation automatique.
+## Preview standard activée après confirmation Hobby
+
+Le propriétaire a confirmé le plan Hobby DCEO et autorisé une Preview standard
+sans option facturable ni hausse de limites. Le 28/10, le projet existant
+`socialplus-beta-interface` a reçu un déploiement **Preview**, pas production :
+
+- ID : `dpl_t9gvSREX2BSqsKytrktFTxX2R3Ta`, statut **READY**.
+- Commit : `904bfbf40b99d97419e4fcee8f98e2806a24f7d4`.
+- URL protégée : https://socialplus-beta-interface-10x91i2l8-dceo.vercel.app/apercu
+- Racine `viral-studio`, framework Next.js, Node 24, build/install standards.
+- Variable `NEXT_PUBLIC_SOCIALPLUS_BACKEND_DISABLED=true` créée pour **Preview
+  uniquement**. La tentative de ciblage par branche a été refusée car le projet
+  n’a pas de connexion Git persistante ; aucune mutation n’a résulté de cet échec.
+  Le déploiement manuel utilise la source Git explicite et le commit vérifié.
+- Aucun plan Pro, build machine payante, nouvelle limite ou service supplémentaire.
+  Aucun alias de production réaffecté, aucune protection Vercel désactivée.
+- Un lien de partage temporaire a été créé pour le propriétaire et transmis
+  uniquement dans la conversation, pas dans ce dépôt public ni dans les preuves.
+
+Le test **distant réel** Chromium tactile 390 × 844 a vérifié HTTP 200, navigation
+Analyse/Montage/Historique/Profil, six modèles, absence de débordement horizontal,
+FAQ, confidentialité et zéro erreur JavaScript. Les API d’authentification et de
+jobs répondent bien **503 BACKEND_NOT_CONFIGURED**, sans appel amont. Voir
+`vercel-proof.json`. La vérification n’a pas utilisé d’iPhone physique ni WebKit.
+
+Cette publication débloque l’évaluation de l’interface. **Elle ne rend pas les
+montages ou les analyses opérationnels à distance.** Il manque encore un backend
+Auth/Storage/queue/worker isolé et vérifié à coût nul. Ne jamais rebrancher le
+backend Liav CRM de production pour contourner ce blocage. Cette PR ne clôt pas
+#61 et n’autorise aucune commercialisation automatique.
