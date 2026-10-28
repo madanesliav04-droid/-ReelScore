@@ -1,5 +1,5 @@
 import {NextRequest,NextResponse} from "next/server";
-import {SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY} from "@/lib/supabase";
+import {BACKEND_DISABLED,SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY} from "@/lib/supabase";
 
 // Same-origin gateway for browser-based authentication. This prevents Safari
 // in-app browser privacy/network rules from silently dropping cross-origin
@@ -15,6 +15,7 @@ const ALLOWED=new Set([
 ]);
 
 async function handler(req:NextRequest,{params}:{params:Promise<{path:string[]}>}){
+  if(BACKEND_DISABLED)return NextResponse.json({code:"BACKEND_NOT_CONFIGURED",message:"La connexion est indisponible sur cet aperçu."},{status:503,headers:{"Cache-Control":"no-store, private"}});
   const {path}=await params;
   if(!path?.length||!ALLOWED.has(path[0])||
     !path.every(x=>/^[a-zA-Z0-9_-]{1,70}$/.test(x))){

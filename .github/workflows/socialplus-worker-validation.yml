@@ -1,26 +1,61 @@
-name: Social+ Worker Validation
+name: Social+ issue 61 isolated validation
 on:
-  push:
-    branches:
-      - socialplus-worker-errors-20261026
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: socialplus-issue61-validation
+  cancel-in-progress: false
 jobs:
-  worker-tests:
-    runs-on: ubuntu-latest
+  validate:
+    if: github.repository == 'madanesliav04-droid/-ReelScore' && github.event.repository.private == false && github.ref == 'refs/heads/codex/socialplus-issue61-ios-20261028'
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
-    defaults:
-      run:
-        working-directory: apps/worker
+    env:
+      CI: 'true'
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          node-version: '22'
-      - name: Install worker dependencies
-        run: npm install --no-audit --no-fund
-      - name: Syntax checks
-        run: npm run check
-      - name: Unit tests
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - name: Check no backend credentials were supplied
+        run: |
+          node -e 'for(const key of ["SUPABASE_SERVICE_ROLE_KEY","GEMINI_API_KEY","R2_ACCESS_KEY_ID","R2_SECRET_ACCESS_KEY"])if(process.env[key])throw Error("Unexpected backend secret");'
+      - name: Install media test dependency
+        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends ffmpeg
+      - name: Worker locked dependencies, checks and unit/integration tests
+        working-directory: apps/worker
+        run: |
+          npm ci --no-audit --no-fund
+          npm run check
+          npm test
+      - name: Frontend locked dependencies
+        working-directory: viral-studio
+        run: npm ci --no-audit --no-fund
+      - name: Build the real frontend without connecting a backend
+        working-directory: viral-studio
+        env:
+          NEXT_PUBLIC_SOCIALPLUS_BACKEND_DISABLED: 'true'
+        run: npm run build
+      - name: Install browser
+        working-directory: viral-studio
+        run: npx playwright install --with-deps chromium
+      - name: Browser and API contract regressions
+        working-directory: viral-studio
         run: npm test
+      - name: Disconnected Preview fails closed
+        working-directory: viral-studio
+        env:
+          NEXT_PUBLIC_SOCIALPLUS_BACKEND_DISABLED: 'true'
+        run: npm test -- tests/backend-disabled.spec.ts
+      - name: Alex-only model selection contract
+        working-directory: viral-studio
+        env:
+          NEXT_PUBLIC_SOCIALPLUS_ALEX_ONLY: 'true'
+          NEXT_PUBLIC_ALEX_V16_REVIEW_ENABLED: 'true'
+          NEXT_PUBLIC_SUPABASE_URL: 'http://127.0.0.1:56321'
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_isolated_fixture'
+        run: npm test -- tests/alex-beta.spec.ts
+# No artifact upload, backend keys, personal rush, render or deployment.

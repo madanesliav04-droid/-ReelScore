@@ -6,7 +6,9 @@ export function uploadToR2({url,file,mime,onProgress,onRequest}:{
   onProgress?:(percent:number)=>void;onRequest?:(xhr:XMLHttpRequest)=>void;
 }):Promise<void>{
   return new Promise((resolve,reject)=>{
-    if(!url.startsWith('https://')||!url.includes('.r2.cloudflarestorage.com/'))
+    let target:URL;
+    try{target=new URL(url)}catch{return reject(new Error('Adresse R2 invalide.'))}
+    if(target.protocol!=='https:'||target.username||target.password||target.hash||target.port||!/^[a-f0-9]{32}\.r2\.cloudflarestorage\.com$/.test(target.hostname))
       return reject(new Error('Adresse R2 invalide.'));
     const xhr=new XMLHttpRequest();
     onRequest?.(xhr);

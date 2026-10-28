@@ -391,6 +391,15 @@ async function route(req:Request){
     }
   }
 
+  if(req.method==="GET"&&tail[0]==="jobs"&&tail.length===1){
+    const {data,error}=await db.from("processing_jobs")
+      .select("id,kind,video_id,status,progress,stage,created_at,completed_at,error_code")
+      .eq("user_id",user.id).in("kind",["edit_render","viral_analysis"])
+      .order("created_at",{ascending:false}).limit(30);
+    if(error)return out({error:"HISTORY_UNAVAILABLE"},503);
+    return out({jobs:data||[]});
+  }
+
   if(req.method==="GET"&&tail[0]==="jobs"&&isUuid(tail[1])){
     const id=String(tail[1]);
     const {data,error}=await db.from("processing_jobs")
