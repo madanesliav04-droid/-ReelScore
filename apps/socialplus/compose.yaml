@@ -1,0 +1,20 @@
+# Preparation only: no automatic deployment or connection to existing services.
+services:
+  socialplus:
+    build:
+      context: ../..
+      dockerfile: apps/socialplus/Dockerfile
+    env_file: .env.local
+    environment:
+      NODE_ENV: production
+      SOCIALPLUS_HOST: 0.0.0.0
+      SOCIALPLUS_DATA_DIR: /data
+      PORT: "4318"
+    ports:
+      - "127.0.0.1:4318:4318"
+    volumes:
+      - socialplus_data:/data
+    restart: unless-stopped
+    stop_grace_period: 30s
+volumes:
+  socialplus_data:

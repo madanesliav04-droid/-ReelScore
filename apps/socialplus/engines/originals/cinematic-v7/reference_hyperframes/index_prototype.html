@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Social+ Cinematic Storytelling | IMG_0506</title>
+<style>
+:root{--ink:#03101f;--ink2:#071e37;--gold:#e9c47d;--white:#f5f7f9;--muted:#b3c3d2}
+*{box-sizing:border-box}html,body{margin:0;background:#000;overflow:hidden;font-family:Inter,'Arial',sans-serif}#cinematic{width:1280px;height:720px;position:relative;overflow:hidden;isolation:isolate;background:#061321;color:var(--white)}
+#source{position:absolute;width:100%;height:100%;object-fit:cover;inset:0;z-index:0}
+.clip{position:absolute;inset:0}.cover{z-index:20;overflow:hidden;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 83% 10%,#25435a 0%,#081d34 29%,#031020 68%)}
+.cover:before{content:"";position:absolute;inset:-20%;background:repeating-linear-gradient(90deg,transparent 0,transparent 103px,#ffffff04 104px,#ffffff04 105px),repeating-linear-gradient(0deg,transparent 0,transparent 101px,#ffffff04 102px,#ffffff04 103px);transform:rotate(-12deg)}
+.cover:after{content:"";position:absolute;left:-12%;top:-160%;width:49%;height:420%;transform:rotate(23deg);background:linear-gradient(90deg,transparent,#b9d7f308,transparent)}
+.scene-inner{position:relative;z-index:5;padding:55px 105px;width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center}
+.kicker{font-size:18px;font-weight:760;letter-spacing:.25em;color:var(--gold);margin-bottom:34px;text-transform:uppercase}
+.hero{font-size:77px;letter-spacing:-.055em;line-height:1.05;font-weight:870;max-width:1140px;text-wrap:balance}
+.hero.medium{font-size:66px}.hero .gold{color:var(--gold)}.hero .outline{-webkit-text-stroke:2px var(--gold);color:transparent}
+.rule{width:0;height:4px;margin-top:32px;background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+.sub{font-size:24px;letter-spacing:.12em;color:var(--muted);margin-top:24px;font-weight:600}
+.num{position:absolute;left:55px;top:48px;color:#6989a2;font-weight:750;letter-spacing:.15em;font-size:18px}
+.corner{position:absolute;right:55px;top:48px;width:92px;height:4px;background:var(--gold)}
+.flow{display:flex;align-items:center;justify-content:center;gap:16px;margin:36px 0 0}.step{min-width:265px;padding:21px 22px;border:1px solid #9eb6c457;border-radius:13px;background:#0e2a46df;font-size:25px;font-weight:780;letter-spacing:-.02em}.step.highlight{color:var(--gold);border-color:var(--gold);background:#1e3445}.arrow{font-size:38px;color:var(--gold)}
+.items{width:100%;display:flex;gap:20px;margin-top:44px}.item{flex:1;background:#112c45;border-radius:14px;border:1px solid #7691a860;padding:28px 20px;position:relative;text-align:center}.item b{font-size:30px;display:block}.item em{font-size:18px;font-weight:800;color:var(--gold);font-style:normal;margin-bottom:17px;display:block}
+.lower{z-index:4;position:absolute;inset:auto auto 36px 42px;height:66px;padding:0 25px;display:flex;align-items:center;gap:21px;max-width:550px;border-radius:10px;border:1px solid #a1b1c077;background:#051c34e8;box-shadow:0 4px 30px #0006}.lower:before{content:"";position:absolute;top:0;bottom:0;left:0;width:6px;background:var(--gold);border-radius:10px 0 0 10px}.lower .mark{color:var(--gold);font-size:22px;font-weight:750}.lower .desc{font-size:26px;font-weight:780;letter-spacing:.035em}
+@media(prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</head>
+<body>
+<div id="cinematic" data-composition-id="cinematic" data-start="0" data-duration="38.83333" data-width="1280" data-height="720" data-fps="30">
+ <video id="source" class="clip" data-start="0" data-duration="38.83333" data-track-index="0" data-has-audio="true" data-volume="1" src="./assets/facecam_originale_cuts.mp4" playsinline></video>
+ <div id="lower-intro" class="clip lower" data-start="0.35" data-duration="3.1" data-track-index="3"><span class="mark">01</span><span class="desc">LE POINT DE DÉPART</span></div>
+ <div id="lower-pivot" class="clip lower" data-start="13.4" data-duration="3.2" data-track-index="3"><span class="mark">02</span><span class="desc">CHANGER DE LOGIQUE</span></div>
+ <div id="lower-resolve" class="clip lower" data-start="29.6" data-duration="2.8" data-track-index="3"><span class="mark">03</span><span class="desc">APPORTER UNE SOLUTION</span></div>
+ <section id="screen-question" class="clip cover" data-start="6.15" data-duration="1.92" data-track-index="7">
+  <span class="num">01 / 04</span><span class="corner"></span>
+  <div class="scene-inner"><div class="kicker" id="q-kicker">LA MAUVAISE QUESTION</div><div class="hero" id="q-title">COMMENT <span class="gold">GAGNER DE L’ARGENT</span><br>EN LIGNE ?</div><div class="rule" id="q-rule"></div></div>
+ </section>
+ <section id="screen-aider" class="clip cover" data-start="19.15" data-duration="3.25" data-track-index="7">
+  <span class="num">02 / 04</span><span class="corner"></span>
+  <div class="scene-inner"><div class="kicker" id="a-kicker">LA VRAIE LOGIQUE</div><div class="hero medium" id="a-title">TU GAGNES QUAND TU<br><span class="gold">AIDES LES AUTRES</span></div><div class="flow"><div id="step1" class="step">AIDER</div><div class="arrow">→</div><div id="step2" class="step highlight">CRÉER DE LA VALEUR</div><div class="arrow">→</div><div id="step3" class="step">GAGNER</div></div><div class="rule" id="a-rule"></div></div>
+ </section>
+ <section id="screen-competence" class="clip cover" data-start="26.10" data-duration="3.30" data-track-index="7">
+  <span class="num">03 / 04</span><span class="corner"></span>
+  <div class="scene-inner"><div class="kicker" id="c-kicker">LE DEUXIÈME POINT</div><div class="hero medium" id="c-title">APPRENDS UNE<br><span class="gold">COMPÉTENCE</span></div><div class="sub" id="c-sub">POUR RÉSOUDRE UN VRAI PROBLÈME</div><div class="rule" id="c-rule"></div></div>
+ </section>
+ <section id="screen-benefices" class="clip cover" data-start="33.15" data-duration="4.90" data-track-index="7">
+  <span class="num">04 / 04</span><span class="corner"></span>
+  <div class="scene-inner"><div class="kicker" id="b-kicker">POURQUOI LES GENS TE PAIENT</div><div class="hero medium" id="b-title">APPORTER UNE <span class="gold">SOLUTION</span></div><div class="items"><div class="item" id="benefit1"><em>01</em><b>GAIN DE TEMPS</b></div><div class="item" id="benefit2"><em>02</em><b>GAIN D’ARGENT</b></div><div class="item" id="benefit3"><em>03</em><b>PROBLÈME RÉSOLU</b></div></div><div class="rule" id="b-rule"></div></div>
+ </section>
+</div>
+<script>
+// HyperFrames registers a deterministic, frame-seekable timeline at the root composition ID.
+window.__timelines = window.__timelines || {};
+const tl = gsap.timeline({paused:true});
+const coming = (id,t,dy=30,dur=.40)=>tl.fromTo(id,{opacity:0,y:dy,filter:'blur(8px)'},{opacity:1,y:0,filter:'blur(0px)',duration:dur,ease:'power3.out'},t);
+const line = (id,t)=>tl.fromTo(id,{width:0},{width:460,duration:.6,ease:'power2.out'},t);
+coming('#lower-intro',.48,18,.28);coming('#lower-pivot',13.55,18,.28);coming('#lower-resolve',29.76,18,.28);
+coming('#q-kicker',6.22,16,.32);coming('#q-title',6.38,57,.49);line('#q-rule',6.66);
+coming('#a-kicker',19.20,15,.35);coming('#a-title',19.41,48,.46);
+coming('#step1',19.86,45,.32);coming('#step2',20.14,45,.32);coming('#step3',20.42,45,.32);line('#a-rule',20.82);
+coming('#c-kicker',26.15,15,.32);coming('#c-title',26.38,47,.48);coming('#c-sub',26.88,30,.36);line('#c-rule',27.20);
+coming('#b-kicker',33.22,16,.35);coming('#b-title',33.43,42,.49);
+coming('#benefit1',34.00,44,.38);coming('#benefit2',34.56,44,.38);coming('#benefit3',35.10,44,.38);line('#b-rule',35.52);
+// Return to the face camera visually, without trimming the original spoken conclusion.
+window.__timelines.cinematic=tl;
+</script>
+</body>
+</html>

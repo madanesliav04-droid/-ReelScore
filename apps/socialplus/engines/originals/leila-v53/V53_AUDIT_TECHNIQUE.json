@@ -1,0 +1,175 @@
+{
+  "version": "V53",
+  "source_base": "V51 code, V49 audio, IMG_0516 raw video, V44 subtitles",
+  "framerate": 30,
+  "size": [
+    1280,
+    720
+  ],
+  "frames": 1307,
+  "duration_expected": 43.56666666666667,
+  "real_internal_cuts": 6,
+  "removed_frames": 43,
+  "removed_seconds": 1.433,
+  "cuts": [
+    {
+      "number": 1,
+      "source_start_s": 8.167,
+      "source_end_s": 8.433,
+      "output_join_s": 8.167,
+      "frames_removed": 8
+    },
+    {
+      "number": 2,
+      "source_start_s": 12.567,
+      "source_end_s": 12.833,
+      "output_join_s": 12.3,
+      "frames_removed": 8
+    },
+    {
+      "number": 3,
+      "source_start_s": 18.733,
+      "source_end_s": 18.9,
+      "output_join_s": 18.2,
+      "frames_removed": 5
+    },
+    {
+      "number": 4,
+      "source_start_s": 31.567,
+      "source_end_s": 31.833,
+      "output_join_s": 30.867,
+      "frames_removed": 8
+    },
+    {
+      "number": 5,
+      "source_start_s": 36.0,
+      "source_end_s": 36.267,
+      "output_join_s": 35.033,
+      "frames_removed": 8
+    },
+    {
+      "number": 6,
+      "source_start_s": 37.433,
+      "source_end_s": 37.633,
+      "output_join_s": 36.2,
+      "frames_removed": 6
+    }
+  ],
+  "zoom_word_cues_source_s": {
+    "Compétence": 10.74,
+    "Offre": 22.25,
+    "Prospection": 39.51
+  },
+  "zoom_cues_output_s": {
+    "Compétence": 10.067,
+    "Offre": 21.167,
+    "Prospection": 37.667
+  },
+  "captions": "V44 original subtitle pixels, no new invented or altered words; audio and visual edits identical intervals",
+  "audio": "Source V49 single natural-voice audio stream, sample-exact cuts, AAC output. Loudness separately tested.",
+  "honesty": "Phonetic word-level matching remains uncertified: source captions retained without editing; no ASR installed and no human-audio check was performed.",
+  "probe": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "codec_name": "h264",
+        "width": 1280,
+        "height": 720,
+        "nb_read_frames": "1307"
+      },
+      {
+        "codec_name": "aac",
+        "sample_rate": "44100",
+        "channels": 2,
+        "nb_read_frames": "1873"
+      }
+    ],
+    "format": {
+      "duration": "43.566667"
+    }
+  },
+  "seam_measurements": [
+    {
+      "cut": 1,
+      "output_join_s": 8.166666666666666,
+      "frame_diff": 8.14,
+      "neighbor_diff": 2.55,
+      "ratio": 3.2
+    },
+    {
+      "cut": 2,
+      "output_join_s": 12.3,
+      "frame_diff": 11.29,
+      "neighbor_diff": 4.34,
+      "ratio": 2.6
+    },
+    {
+      "cut": 3,
+      "output_join_s": 18.2,
+      "frame_diff": 8.61,
+      "neighbor_diff": 3.66,
+      "ratio": 2.36
+    },
+    {
+      "cut": 4,
+      "output_join_s": 30.866666666666667,
+      "frame_diff": 6.58,
+      "neighbor_diff": 2.01,
+      "ratio": 3.28
+    },
+    {
+      "cut": 5,
+      "output_join_s": 35.03333333333333,
+      "frame_diff": 7.01,
+      "neighbor_diff": 2.13,
+      "ratio": 3.29
+    },
+    {
+      "cut": 6,
+      "output_join_s": 36.2,
+      "frame_diff": 8.14,
+      "neighbor_diff": 3.23,
+      "ratio": 2.52
+    }
+  ],
+  "sampled_black_frames": 0,
+  "mean_brightness_min": 121.63,
+  "decoded_frames": 1307,
+  "audio_loudnorm": {
+    "input_i": "-16.49",
+    "input_tp": "-1.45",
+    "input_lra": "3.90",
+    "input_thresh": "-26.99",
+    "output_i": "-16.34",
+    "output_tp": "-1.50",
+    "output_lra": "3.70",
+    "output_thresh": "-26.86",
+    "normalization_type": "dynamic",
+    "target_offset": "0.34"
+  },
+  "probe_final": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "index": 0,
+        "codec_name": "h264",
+        "width": 1280,
+        "height": 720,
+        "nb_read_frames": "1307"
+      },
+      {
+        "index": 1,
+        "codec_name": "aac",
+        "sample_rate": "44100",
+        "channels": 2,
+        "nb_read_frames": "1873"
+      }
+    ],
+    "format": {
+      "duration": "43.566667"
+    }
+  },
+  "phonetic_word_level_certified": false
+}

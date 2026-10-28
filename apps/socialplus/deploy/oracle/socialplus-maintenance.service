@@ -1,0 +1,7 @@
+[Unit]
+Description=Social+ private backup and abandoned render cleanup
+After=socialplus.service
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /opt/socialplus/apps/socialplus/deploy/oracle/maintenance.py
+UMask=0077

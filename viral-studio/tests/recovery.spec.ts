@@ -102,7 +102,7 @@ test('resumed upload registers original storage object and locks concurrent uplo
   await expect.poll(()=>Boolean(patchResolve)).toBe(true);
   await expect(page.locator('input[type=file]').first()).toBeDisabled();
   patchResolve!();
-  await expect(page.getByRole('button',{name:'Créer mon montage · Codie',exact:true})).toBeEnabled();
+  await expect(page.getByRole('button',{name:'Créer mon montage · Codie × OMNI',exact:true})).toBeEnabled();
   expect(registered).toBe(original);
 });
 
@@ -110,11 +110,11 @@ test('Social+ exposes exactly Edit+ and Viral+ and no Clip+ workflow',async({pag
   await setup(page,other);
   await page.goto('/dashboard?tool=edit');
   await expect(page.getByRole('heading',{name:'Montage intelligent.'})).toBeVisible();
-  const chooser=page.getByRole('group',{name:'Choisir un outil'});
-  await expect(chooser.getByRole('button')).toHaveCount(2);
-  await expect(chooser.getByRole('button',{name:/Edit\+/})).toHaveAttribute('aria-pressed','true');
+  const chooser=page.getByRole('navigation',{name:'Navigation Social+'});
+  await expect(chooser.getByRole('button')).toHaveCount(4);
+  await expect(chooser.getByRole('button',{name:/Montage/})).toHaveAttribute('aria-current','page');
   await expect(page.getByRole('button',{name:/Clip\+/})).toHaveCount(0);
-  await chooser.getByRole('button',{name:/Viral\+/}).click();
+  await chooser.getByRole('button',{name:/Analyse/}).click();
   await expect(page.getByRole('heading',{name:'Analyse éditoriale.'})).toBeVisible();
   await expect(page).toHaveURL(/tool=viral/);
 });
@@ -124,8 +124,8 @@ test('original models remain visible and unconnected pipelines cannot launch',as
   await setup(page,other);
   await page.goto('/dashboard?tool=edit');
   const cards=page.locator('.social-approved-model');
-  await expect(cards).toHaveCount(7);
-  for(const id of ['codie','leila','cinematic_story','ugc_native'])
+  await expect(cards).toHaveCount(6);
+  for(const id of ['codie','leila','cinematic_story'])
     await expect(page.locator(`[data-model="${id}"]`)).toBeEnabled();
   for(const id of ['hormozi_omni','social_kinetic','apple_spatial'])
     await expect(page.locator(`[data-model="${id}"]`)).toBeDisabled();
@@ -133,8 +133,8 @@ test('original models remain visible and unconnected pipelines cannot launch',as
   await expect(cards.nth(1)).toContainText('Leila');
   await expect(cards.nth(2)).toContainText('Alex Hormozi');
   await expect(cards.nth(3)).toContainText('Cinematic Storytelling');
-  await expect(cards.nth(4)).toContainText('UGC Storytelling');
-  await expect(cards.nth(5)).toContainText('Social Kinetic');
+  await expect(cards.nth(4)).toContainText('Social Kinetic');
+  await expect(cards.nth(5)).toContainText('Apple Premium');
   await page.locator('[data-model="cinematic_story"]').click();
   await expect(page.getByText(/STORYBOARD CONTEXTUEL/)).toBeVisible();
   await expect(page.getByRole('button',{name:/Créer mon montage · Cinematic Storytelling/})).toBeDisabled();
@@ -142,6 +142,7 @@ test('original models remain visible and unconnected pipelines cannot launch',as
   await expect(page.locator('.format-picker select')).toBeDisabled();
   await expect(page.locator('.social-approved-model-grid')).not.toContainText('Explainer');
   await expect(page.getByText(/Les moteurs activés produisent un rendu bêta/)).toBeVisible();
+  await page.getByText('Laboratoire · UGC non validé',{exact:true}).click();
   await page.locator('[data-model="ugc_native"]').click();
   await expect(page.getByTestId('ugc-rush-uploader')).toBeVisible();
   await expect(page.getByTestId('ugc-file-input')).toHaveAttribute('multiple','');
@@ -151,6 +152,7 @@ test('iPhone UGC: one video, short batch, and Files fallback remain separate',as
   await page.route('**/storage/v1/upload/resumable',async route=>
     route.fulfill({status:413,headers:{'Access-Control-Allow-Origin':'*'},body:'Part rejected'}));
   await page.goto('/dashboard?tool=edit');
+  await page.getByText('Laboratoire · UGC non validé',{exact:true}).click();
   await page.locator('[data-model="ugc_native"]').click();
   const single=page.getByTestId('ugc-single-file-input');
   const batch=page.getByTestId('ugc-file-input');
@@ -191,6 +193,7 @@ test('UGC: seven already uploaded rushes can be selected and start a render with
     job:{id:'ugc-qa-job',kind:'edit_render',status:'cancelled'}
   }}));
   await page.goto('/dashboard?tool=edit');
+  await page.getByText('Laboratoire · UGC non validé',{exact:true}).click();
   await page.locator('[data-model="ugc_native"]').click();
   await expect(page.getByTestId('ugc-saved-library').getByText('7 retrouvées')).toBeVisible();
   await expect(page.getByRole('button',{name:'Créer mon montage · UGC Storytelling'})).toBeDisabled();

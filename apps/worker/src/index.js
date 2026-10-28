@@ -8,6 +8,7 @@ import {pipeline} from 'node:stream/promises';
 import {randomUUID} from 'node:crypto';
 import {createClient} from '@supabase/supabase-js';
 import {analyzeVideo} from './viral.js';
+import {replayAnalysis} from './analysis-replay.js';
 import {buildEditTimeline} from './edit.js';
 import {r2Settings,r2Presign} from './r2-sign.js';
 import {retryableJobError} from './retry-policy.js';
@@ -66,26 +67,32 @@ const pollMs=Math.max(1000,Number(process.env.POLL_MS||2500));
 let activeJob=null;
 let lastError=null;
 let stopping=false;
+let queueFailures=0;
+let queueConnected=false;
+const QUEUE_RETRY_MAX_MS=60000;
+const queueRetryDelay=(failures,baseMs=pollMs)=>Math.min(QUEUE_RETRY_MAX_MS,baseMs*2**Math.min(Math.max(1,failures),6));
 
 const server=http.createServer((req,res)=>{
   if(req.url==='/health'){
     return send(res,200,{
-      ok:missing.length===0,
+      ok:missing.length===0&&queueConnected,
       service:'viral-edit-worker',
       version:'0.2.0',
       worker_id:workerId,
       configured:missing.length===0,
       missing,
       active_job:activeJob,
-      last_error:lastError
+      queue_connected:queueConnected,
+      queue_failures:queueFailures,
+      last_error_code:lastError?.code||null
     });
   }
 
   if(req.url==='/ready'){
     return send(
       res,
-      missing.length?503:200,
-      {ready:missing.length===0}
+      missing.length||!queueConnected?503:200,
+      {ready:missing.length===0&&queueConnected}
     );
   }
 
@@ -104,21 +111,38 @@ server.listen(port,'0.0.0.0',()=>{
 process.on('SIGTERM',()=>{stopping=true});
 process.on('SIGINT',()=>{stopping=true});
 process.on('unhandledRejection',error=>{
-  lastError=formatError(error);
-  console.error(lastError);
+  lastError={code:"UNHANDLED_WORKER_ERROR"};
+  console.error(JSON.stringify({event:"worker_unhandled_error",code:lastError.code}));
 });
 
 if(!missing.length){
   loop().catch(error=>{
-    lastError=formatError(error);
-    console.error(lastError);
+    lastError={code:"WORKER_LOOP_FAILED"};
+    console.error(JSON.stringify({event:"worker_loop_failed",code:lastError.code}));
   });
 }
 
 async function loop(){
   while(!stopping){
     try{
-      const job=await claimJob();
+      let job;
+      try{
+        job=await claimJob();
+        queueConnected=true;
+        queueFailures=0;
+        lastError=null;
+      }catch(error){
+        queueConnected=false;
+        queueFailures+=1;
+        const code=String(error?.code||'QUEUE_CLAIM_FAILED');
+        lastError={code};
+        const retryMs=queueRetryDelay(queueFailures);
+        if(queueFailures===1||queueFailures%20===0){
+          console.error(JSON.stringify({event:'queue_claim_failed',code,consecutive_failures:queueFailures,retry_ms:retryMs}));
+        }
+        await sleep(retryMs);
+        continue;
+      }
 
       if(!job){
         await sleep(pollMs);
@@ -129,8 +153,8 @@ async function loop(){
       lastError=null;
       await processJob(job);
     }catch(error){
-      lastError=formatError(error);
-      console.error(lastError);
+      lastError={code:String(error?.code||'JOB_PROCESSING_FAILED')};
+      console.error(JSON.stringify({event:'job_processing_failed',code:lastError.code}));
       await sleep(Math.min(10000,pollMs*2));
     }finally{
       activeJob=null;
@@ -149,11 +173,9 @@ async function claimJob(){
 
   if(error){
     if(error.code==='PGRST202'){
-      throw new Error(
-        'Queue RPC worker_claim_processing_job absente.'
-      );
+      throw Object.assign(new Error('Queue RPC worker_claim_processing_job absente.'),{code:'PGRST202'});
     }
-    throw new Error(`QUEUE_CLAIM_FAILED: ${formatError(error)}`);
+    throw Object.assign(new Error(`QUEUE_CLAIM_FAILED: ${formatError(error)}`),{code:String(error.code||'QUEUE_CLAIM_FAILED')});
   }
 
   return Array.isArray(data)
@@ -269,7 +291,10 @@ async function recoverIdempotentResult(job){
 }
 
 async function runViral(job,media,filePath){
-  const result=await analyzeVideo({
+  const configuration={model:process.env.GEMINI_MODEL||'gemini-3.8-flash',fallbackModel:process.env.GEMINI_FALLBACK_MODEL||'gemini-3.5-flash-lite',transcribeModel:process.env.GEMINI_TRANSCRIBE_MODEL||'gemini-3.5-transcribe'};
+  const result=await replayAnalysis({db:supabase,userId:job.user_id,filePath,configuration,
+   onReplay:()=>progress(job,'analyzing',84,'Reprise de l’analyse enregistrée pour cette vidéo et cette version'),
+   analyze:()=>analyzeVideo({
     filePath,
     mimeType:media.mime_type,
     fileName:media.original_name||'video',
@@ -283,7 +308,7 @@ async function runViral(job,media,filePath){
       'gemini-3.5-transcribe',
     onProgress:(status,pct,stage)=>
       progress(job,status,pct,stage)
-  });
+  })});
 
   await updateMediaFromAnalysis(media,result);
 
@@ -311,7 +336,7 @@ async function runViral(job,media,filePath){
     video_id:job.video_id,
     job_id:job.id,
     video_name:media.original_name||'video',
-    video_sha256:null,
+    video_sha256:result.source_sha256||null,
     is_reanalysis:Boolean(payload.reanalysis||payload.is_reanalysis),
     baseline_analysis_id:baselineAnalysisId,
     final_score:result.final_score,

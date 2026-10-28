@@ -1,9 +1,10 @@
 import { NextRequest } from "next/server";
-import { SUPABASE_URL } from "@/lib/supabase";
+import { BACKEND_DISABLED,SUPABASE_URL } from "@/lib/supabase";
 import {proxyJobs} from "@/lib/jobs-proxy";
 export const dynamic="force-dynamic";
 
 async function proxy(req:NextRequest,{params}:{params:Promise<{fn:string;path:string[]}>}){
+  if(BACKEND_DISABLED)return Response.json({error:"BACKEND_NOT_CONFIGURED",message:"Le serveur de cette prévisualisation n’est pas connecté."},{status:503,headers:{"Cache-Control":"no-store, private"}});
   const {fn,path}=await params;
   return proxyJobs(req,fn,path,SUPABASE_URL);
 }

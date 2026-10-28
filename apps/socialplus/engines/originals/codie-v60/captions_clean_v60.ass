@@ -1,0 +1,46 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 910
+PlayResY: 512
+WrapStyle: 2
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Captions,Inter Display,34,&H00FFFFFF,&H00FFFFFF,&H00231D20,&HFF000000,-1,0,0,0,100,100,0,0,1,2.6,.8,2,60,60,45,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 3,0:00:00.52,0:00:01.72,Captions,,0,0,0,,{\fad(62,72)}Tu ne fais pas d'{\c&H00E6CDF5&}argent{\c&H00FFFFFF&}
+Dialogue: 3,0:00:01.74,0:00:03.14,Captions,,0,0,0,,{\fad(62,72)}et tu n'en seras probablement
+Dialogue: 3,0:00:03.18,0:00:04.50,Captions,,0,0,0,,{\fad(62,72)}pas parce que Tu te
+Dialogue: 3,0:00:04.52,0:00:06.13,Captions,,0,0,0,,{\fad(62,72)}poses la mauvaise question dès
+Dialogue: 3,0:00:06.16,0:00:06.73,Captions,,0,0,0,,{\fad(62,72)}le départ.
+Dialogue: 3,0:00:06.93,0:00:08.27,Captions,,0,0,0,,{\fad(62,72)}Comment faire pour gagner de
+Dialogue: 3,0:00:08.30,0:00:09.13,Captions,,0,0,0,,{\fad(62,72)}l'{\c&H00E6CDF5&}argent{\c&H00FFFFFF&} en ligne?
+Dialogue: 3,0:00:09.41,0:00:10.32,Captions,,0,0,0,,{\fad(62,72)}Tout le monde veut gagner
+Dialogue: 3,0:00:10.34,0:00:11.24,Captions,,0,0,0,,{\fad(62,72)}de l'{\c&H00E6CDF5&}argent{\c&H00FFFFFF&}, mais est-ce que
+Dialogue: 3,0:00:11.28,0:00:12.04,Captions,,0,0,0,,{\fad(62,72)}tu sais comment on fait
+Dialogue: 3,0:00:12.08,0:00:13.21,Captions,,0,0,0,,{\fad(62,72)}pour gagner de l'{\c&H00E6CDF5&}argent{\c&H00FFFFFF&} concrètement?
+Dialogue: 3,0:00:13.36,0:00:14.84,Captions,,0,0,0,,{\fad(62,72)}Est-ce que tu sais?
+Dialogue: 3,0:00:15.60,0:00:16.52,Captions,,0,0,0,,{\fad(62,72)}Non, je ne sais pas.
+Dialogue: 3,0:00:16.56,0:00:17.64,Captions,,0,0,0,,{\fad(62,72)}Parce qu'en fait, ta question
+Dialogue: 3,0:00:17.68,0:00:18.94,Captions,,0,0,0,,{\fad(62,72)}dès le départ n'est pas bonne.
+Dialogue: 3,0:00:18.97,0:00:20.03,Captions,,0,0,0,,{\fad(62,72)}Comment on fait pour gagner
+Dialogue: 3,0:00:20.06,0:00:20.49,Captions,,0,0,0,,{\fad(62,72)}de l'{\c&H00E6CDF5&}argent{\c&H00FFFFFF&}?
+Dialogue: 3,0:00:20.52,0:00:21.44,Captions,,0,0,0,,{\fad(62,72)}Je vais te le dire.
+Dialogue: 3,0:00:21.47,0:00:22.68,Captions,,0,0,0,,{\fad(62,72)}On {\c&H00E6CDF5&}aide{\c&H00FFFFFF&} d'autres personnes à
+Dialogue: 3,0:00:22.72,0:00:23.48,Captions,,0,0,0,,{\fad(62,72)}gagner de l'{\c&H00E6CDF5&}argent{\c&H00FFFFFF&}.
+Dialogue: 3,0:00:23.51,0:00:24.48,Captions,,0,0,0,,{\fad(62,72)}Quand tu {\c&H00E6CDF5&}aide{\c&H00FFFFFF&}s les gens
+Dialogue: 3,0:00:24.52,0:00:25.56,Captions,,0,0,0,,{\fad(62,72)}autour de toi à gagner
+Dialogue: 3,0:00:25.58,0:00:27.08,Captions,,0,0,0,,{\fad(62,72)}de l'{\c&H00E6CDF5&}argent{\c&H00FFFFFF&}, tu vas forcément gagner.
+Dialogue: 3,0:00:27.33,0:00:27.60,Captions,,0,0,0,,{\fad(62,72)}OK?
+Dialogue: 3,0:00:27.64,0:00:29.14,Captions,,0,0,0,,{\fad(62,72)}Ça c'est le 1er des points.
+Dialogue: 3,0:00:29.18,0:00:30.42,Captions,,0,0,0,,{\fad(62,72)}2e des points, tu dois
+Dialogue: 3,0:00:30.44,0:00:32.16,Captions,,0,0,0,,{\fad(62,72)}{\c&H00E6CDF5&}apprendre{\c&H00FFFFFF&} quelque chose que les
+Dialogue: 3,0:00:32.20,0:00:34.02,Captions,,0,0,0,,{\fad(62,72)}personnes seraient prêtes à te
+Dialogue: 3,0:00:34.04,0:00:35.53,Captions,,0,0,0,,{\fad(62,72)}{\c&H00E6CDF5&}payer{\c&H00FFFFFF&} pour que tu résolves,
+Dialogue: 3,0:00:35.56,0:00:36.78,Captions,,0,0,0,,{\fad(62,72)}pour leur faire gagner du
+Dialogue: 3,0:00:36.80,0:00:38.00,Captions,,0,0,0,,{\fad(62,72)}{\c&H00E6CDF5&}temps{\c&H00FFFFFF&}, pour leur faire gagner
+Dialogue: 3,0:00:38.03,0:00:39.72,Captions,,0,0,0,,{\fad(62,72)}de l'{\c&H00E6CDF5&}argent{\c&H00FFFFFF&}, pour résoudre un
+Dialogue: 3,0:00:39.75,0:00:41.53,Captions,,0,0,0,,{\fad(62,72)}problème qui qui réside chez eux.

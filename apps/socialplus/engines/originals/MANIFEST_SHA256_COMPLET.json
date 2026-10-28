@@ -1,0 +1,76 @@
+{
+  "generated_at": "2026-10-22",
+  "purpose": "Handoff de ressources des anciennes conversations ChatGPT vers Codex pour Social+",
+  "items": [
+    {
+      "path": "01_CINEMATIC_STORYTELLING_V7/CINEMATIC_STORYTELLING_V7_PROJET_COMPLET.zip",
+      "bytes": 39127887,
+      "sha256": "bb6f90e93365d514ed4b259cff179ad724636dafc6587d4943c40f84b6269a66"
+    },
+    {
+      "path": "01_CINEMATIC_STORYTELLING_V7/IMG_0506_CINEMATIC_V7_PREMIUM_FINAL_IPHONE.mp4",
+      "bytes": 11477006,
+      "sha256": "09cf38cc735d05df72d00f1e045a0415c5fc79acd7a81841b4b2a7cbc5ec35ba"
+    },
+    {
+      "path": "01_CINEMATIC_STORYTELLING_V7/CINEMATIC_STORYTELLING_V7_CODE_SOURCE.zip",
+      "bytes": 24902,
+      "sha256": "60b5b45a9d1699dcb11f87d2e8f2e9a9e9134401aa35788fdb5951bac3795b0f"
+    },
+    {
+      "path": "01_CINEMATIC_STORYTELLING_V7/CINEMATIC_STORYTELLING_V7_CODE.py",
+      "bytes": 9671,
+      "sha256": "8cf4c0257804a276c68e2eea54d424fe20396309890da52409d6aaedcfca267b"
+    },
+    {
+      "path": "02_LEILA_HORMOZI_V53/EDITPLUS_LEILA_MODELE_3_V53_SOURCE_ET_AUDIT.zip",
+      "bytes": 301681,
+      "sha256": "b2a6ca24573eefba3c565d63192a755aad807c459eeac365269730cb7bb66189"
+    },
+    {
+      "path": "02_LEILA_HORMOZI_V53/EDITPLUS_LEILA_IMG_0516_V53_RACCORDS_AFFINES.mp4",
+      "bytes": 19354596,
+      "sha256": "c4bfedc6c6472798c5f1529ead7e3a78a5b52ddc800fd68da9afa9471082178f"
+    },
+    {
+      "path": "02_LEILA_HORMOZI_V53/LEILA_MODELE_3_REFERENCE_VERROUILLEE.md",
+      "bytes": 1787,
+      "sha256": "ea81cd228c56359d961743fa9988c1390e5d18b1ad10c4243fe7ca3098351e06"
+    },
+    {
+      "path": "03_CODIE_OMNI_V60/EDITPLUS_V60_FINITION_PACK_QA.zip",
+      "bytes": 13919681,
+      "sha256": "363f40dd68ad2bc0347667a274ca056349a55c279e4a85401eca7fe43a4b1cbc"
+    },
+    {
+      "path": "04_ALEX_HORMOZI_V16/EDITPLUS_HORMOZI_V16_RETOUR_V11_PACK.zip",
+      "bytes": 7245038,
+      "sha256": "14f2fb3ce7a41dd2e9aad7d044830eddbd7c70d9adb9160f58f121d7b8b6b745"
+    },
+    {
+      "path": "05_SOCIAL_KINETIC_V28/EDITPLUS_SOCIAL_KINETIC_V28_BULLES_TIMING_VALIDE.mp4",
+      "bytes": 9448133,
+      "sha256": "57711be2328d08a66e0f9b197ce053d4b4d3607673ad1181f2493ca59d4df2cd"
+    },
+    {
+      "path": "05_SOCIAL_KINETIC_V28/EDITPLUS_SOCIAL_KINETIC_V27_LIVRAISON_CONTROLES.zip",
+      "bytes": 18266151,
+      "sha256": "eeaddd5f35336d6a86f8e90e093dc6691fca7d922c64a941829a7fc7d5ee2c42"
+    },
+    {
+      "path": "05_SOCIAL_KINETIC_V28/SOCIAL_PLUS_SOURCES_ALEX_SOCIAL_KINETIC_2026-10-21.md",
+      "bytes": 4873,
+      "sha256": "de95578de93a8c3786e700cd5cfa6e84bfb27c02b521f3c0ac271eaa6e453730"
+    },
+    {
+      "path": "06_APPLE_PREMIUM_SPATIAL_UI_V10/MODELE05_V10_SAUVEGARDE_COMPLETE.zip",
+      "bytes": 56771585,
+      "sha256": "18006e312c831b78fd83cf4979b76fa2f58ce69b76bc60f8fb43ebf8a3efe4bb"
+    },
+    {
+      "path": "00_SCRIPTS_COMMUNS/SOCIAL_PLUS_CODES_REPERES_3_MODELES.zip",
+      "bytes": 58602,
+      "sha256": "8f951b7fb78a351da5776e994e3dee4dd7f0b9e88cc026131e375ddc4f38059d"
+    }
+  ]
+}

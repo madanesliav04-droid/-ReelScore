@@ -1,0 +1,17 @@
+{
+  "ok": true,
+  "deployment": "dpl_aU7J8fe1PXCSS3pReEQDdfwLzDLd",
+  "commit": "264ee8d8072d102b9f8e5a623b8008904d431ec7",
+  "scope": "Real Vercel page and actual authorized synthetic H264/AAC MP4 in Chromium touch viewport; not iPhone physical or editorial analysis",
+  "checks": {
+    "http": 200,
+    "playback": true,
+    "realAudioMeasured": true,
+    "silenceWindows": 1,
+    "jsonDownload": true,
+    "uploadRequests": 0,
+    "javascriptErrors": 0,
+    "noHorizontalOverflow": true,
+    "removal": true
+  }
+}
