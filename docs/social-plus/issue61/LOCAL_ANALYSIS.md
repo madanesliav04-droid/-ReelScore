@@ -38,3 +38,31 @@ ni service payant n’a été ajouté.
 
 Le 28/10, l’inventaire Railway confirme un seul environnement, **production**.
 Il n’a été ni modifié ni utilisé pour contourner l’absence de backend de test.
+
+## Preview vérifiée
+
+Déploiement standard Hobby **READY** : `dpl_aU7J8fe1PXCSS3pReEQDdfwLzDLd`,
+source `264ee8d8072d102b9f8e5a623b8008904d431ec7`.
+URL protégée : https://socialplus-beta-interface-f8hzmn6cg-dceo.vercel.app/analyse-locale
+Le lien temporaire de partage est remis uniquement au propriétaire, pas dans Git.
+
+Le parcours distant a été testé dans Chromium tactile avec un MP4 synthétique
+H.264/AAC autorisé : import local, lecture, mesure de la piste, fenêtre silencieuse,
+JSON téléchargé et retrait du fichier. Aucun POST/PUT ou appel API observé.
+Voir `local-analysis-remote-proof.json` (aucun média ni clé). Un test indépendant
+sur le rush parlé privé existant a aussi réussi ; ses preuves et capture restent
+privées dans le workspace, sans publication des valeurs ou du média personnel.
+
+La première CI `40695290594` a échoué sur le chargement du MP4 avec le Chromium
+minimal téléchargé. Le test n’a pas été supprimé ni remplacé par un faux résultat :
+la suite média utilise maintenant le Chrome installé sur le runner, compatible
+H.264/AAC. **CI finale réussie** :
+https://github.com/madanesliav04-droid/-ReelScore/actions/runs/40695947163
+commit `6cb1a83a827a07e42d1ca5a91ea774844094729e`, mêmes sources applicatives que la
+Preview (différence : configuration CI). 80 tests worker, 36 tests frontend et
+deux tests conditionnels exécutés séparément (backend désactivé et sélection Alex),
+soit 38 tests frontend réussis ; build Next.js/TypeScript réussi.
+
+Ni la production, ni un moteur validé, ni les limites de compte n’ont été modifiés.
+L’interface de test n’envoie toujours aucun média à Railway/Supabase/R2 ; le
+backend distant complet reste un blocage distinct.
