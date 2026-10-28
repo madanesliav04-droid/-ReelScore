@@ -24,7 +24,7 @@ jobs:
         run: |
           node -e 'for(const key of ["SUPABASE_SERVICE_ROLE_KEY","GEMINI_API_KEY","R2_ACCESS_KEY_ID","R2_SECRET_ACCESS_KEY"])if(process.env[key])throw Error("Unexpected backend secret");'
       - name: Install media test dependency
-        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends ffmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends ffmpeg python3-numpy python3-pil fonts-dejavu-core
       - name: Worker locked dependencies, checks and unit/integration tests
         working-directory: apps/worker
         run: |
@@ -36,6 +36,8 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Restored standalone Auth SQLite queue and media regressions
         working-directory: apps/socialplus
+        env:
+          SOCIALPLUS_PYTHON: '/usr/bin/python3'
         run: |
           npm ci --no-audit --no-fund
           npm test
