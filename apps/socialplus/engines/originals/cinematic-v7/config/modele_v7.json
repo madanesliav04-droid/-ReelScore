@@ -1,0 +1,52 @@
+{
+  "name": "Social+ / Cinematic Storytelling",
+  "version": "V7 — verrouillée après validation utilisateur",
+  "referenceFile": "IMG_0506_CINEMATIC_V7_PREMIUM_FINAL_IPHONE.mp4",
+  "engineUsedForDeliveredMP4": "Python OpenCV + Pillow + FFmpeg",
+  "notRenderedWith": "Hyperframes CLI",
+  "format": {
+    "resolution": "960x540",
+    "fps": 30,
+    "durationSeconds": 38.833333,
+    "videoCodec": "H.264",
+    "audioCodec": "AAC"
+  },
+  "rules": {
+    "sourceAspect": "horizontal native",
+    "broll": false,
+    "voice": "original no AI",
+    "lowerLeftBox": false,
+    "captionBackground": false,
+    "captionText": "Inter SemiBold 24px centered, fine shadow",
+    "captionsOnFullScreen": false,
+    "fullScreenTransitions": "short fade / eased motion 0.22-0.36 s",
+    "colors": {
+      "navy": "#031120",
+      "gold": "#E4BD71",
+      "white": "#F7FAFF"
+    }
+  },
+  "scenes": [
+    {
+      "start": 6.166667,
+      "end": 8.066667,
+      "theme": "LA MAUVAISE QUESTION"
+    },
+    {
+      "start": 19.15,
+      "end": 22.4,
+      "theme": "AIDER LES AUTRES"
+    },
+    {
+      "start": 26.1,
+      "end": 29.4,
+      "theme": "COMPÉTENCE"
+    },
+    {
+      "start": 33.15,
+      "end": 38.43,
+      "theme": "LES TROIS BÉNÉFICES"
+    }
+  ],
+  "reusabilityNote": "Pour adapter le modèle à de nouveaux rushs, recalculer les cuts, le timing des paroles et les séquences en fonction du récit. Ne pas réemployer ces timestamps ni des textes inadaptés."
+}

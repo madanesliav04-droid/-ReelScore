@@ -209,3 +209,6 @@ function run(cmd,args){
 export async function fileSize(filePath){
   return (await stat(filePath)).size;
 }
+
+// Compatibility for the restored standalone server; existing pipelines are unchanged.
+export {buildCaptionAss} from './legacy-caption-ass.js';

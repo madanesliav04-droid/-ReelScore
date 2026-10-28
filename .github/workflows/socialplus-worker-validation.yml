@@ -34,6 +34,11 @@ jobs:
       - name: Frontend locked dependencies
         working-directory: viral-studio
         run: npm ci --no-audit --no-fund
+      - name: Restored standalone Auth SQLite queue and media regressions
+        working-directory: apps/socialplus
+        run: |
+          npm ci --no-audit --no-fund
+          npm test
       - name: Build the real frontend without connecting a backend
         working-directory: viral-studio
         env:

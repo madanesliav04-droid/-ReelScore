@@ -1,0 +1,804 @@
+{
+  "alignmentMethod": "recognized speech segments mapped to source cuts; estimated intra-segment word timing",
+  "sourceAudio": "original speech, not re-voiced",
+  "words": [
+    {
+      "word": "Tu",
+      "start": 0.56,
+      "end": 0.776
+    },
+    {
+      "word": "ne",
+      "start": 0.776,
+      "end": 0.992
+    },
+    {
+      "word": "fais",
+      "start": 0.992,
+      "end": 1.222
+    },
+    {
+      "word": "pas",
+      "start": 1.222,
+      "end": 1.444
+    },
+    {
+      "word": "d'argent",
+      "start": 1.444,
+      "end": 1.765
+    },
+    {
+      "word": "et",
+      "start": 1.765,
+      "end": 1.981
+    },
+    {
+      "word": "tu",
+      "start": 1.981,
+      "end": 2.197
+    },
+    {
+      "word": "n'en",
+      "start": 2.197,
+      "end": 2.427
+    },
+    {
+      "word": "feras",
+      "start": 2.427,
+      "end": 2.727
+    },
+    {
+      "word": "probablement",
+      "start": 2.727,
+      "end": 3.174
+    },
+    {
+      "word": "pas",
+      "start": 3.174,
+      "end": 3.397
+    },
+    {
+      "word": "parce",
+      "start": 3.397,
+      "end": 3.697
+    },
+    {
+      "word": "que",
+      "start": 3.697,
+      "end": 3.9
+    },
+    {
+      "word": "Tu",
+      "start": 3.9,
+      "end": 4.057
+    },
+    {
+      "word": "te",
+      "start": 4.057,
+      "end": 4.287
+    },
+    {
+      "word": "poses",
+      "start": 4.287,
+      "end": 4.608
+    },
+    {
+      "word": "la",
+      "start": 4.608,
+      "end": 4.838
+    },
+    {
+      "word": "mauvaise",
+      "start": 4.838,
+      "end": 5.249
+    },
+    {
+      "word": "question",
+      "start": 5.249,
+      "end": 5.591
+    },
+    {
+      "word": "dès",
+      "start": 5.591,
+      "end": 5.829
+    },
+    {
+      "word": "le",
+      "start": 5.829,
+      "end": 6.059
+    },
+    {
+      "word": "départ",
+      "start": 6.059,
+      "end": 6.167
+    },
+    {
+      "word": "Comment",
+      "start": 6.24,
+      "end": 6.518
+    },
+    {
+      "word": "faire",
+      "start": 6.518,
+      "end": 6.783
+    },
+    {
+      "word": "pour",
+      "start": 6.783,
+      "end": 6.986
+    },
+    {
+      "word": "gagner",
+      "start": 6.986,
+      "end": 7.257
+    },
+    {
+      "word": "de",
+      "start": 7.257,
+      "end": 7.448
+    },
+    {
+      "word": "l'argent",
+      "start": 7.448,
+      "end": 7.732
+    },
+    {
+      "word": "en",
+      "start": 7.732,
+      "end": 7.923
+    },
+    {
+      "word": "ligne",
+      "start": 7.923,
+      "end": 8.067
+    },
+    {
+      "word": "Tout",
+      "start": 8.087,
+      "end": 8.241
+    },
+    {
+      "word": "le",
+      "start": 8.241,
+      "end": 8.387
+    },
+    {
+      "word": "monde",
+      "start": 8.387,
+      "end": 8.589
+    },
+    {
+      "word": "veut",
+      "start": 8.589,
+      "end": 8.744
+    },
+    {
+      "word": "gagner",
+      "start": 8.744,
+      "end": 8.951
+    },
+    {
+      "word": "de",
+      "start": 8.951,
+      "end": 9.097
+    },
+    {
+      "word": "l'argent,",
+      "start": 9.097,
+      "end": 9.317
+    },
+    {
+      "word": "mais",
+      "start": 9.317,
+      "end": 9.472
+    },
+    {
+      "word": "est-ce",
+      "start": 9.472,
+      "end": 9.679
+    },
+    {
+      "word": "que",
+      "start": 9.679,
+      "end": 9.829
+    },
+    {
+      "word": "tu",
+      "start": 9.829,
+      "end": 9.975
+    },
+    {
+      "word": "sais",
+      "start": 9.975,
+      "end": 10.129
+    },
+    {
+      "word": "comment",
+      "start": 10.129,
+      "end": 10.341
+    },
+    {
+      "word": "on",
+      "start": 10.341,
+      "end": 10.487
+    },
+    {
+      "word": "fait",
+      "start": 10.487,
+      "end": 10.641
+    },
+    {
+      "word": "pour",
+      "start": 10.641,
+      "end": 10.796
+    },
+    {
+      "word": "gagner",
+      "start": 10.796,
+      "end": 11.003
+    },
+    {
+      "word": "de",
+      "start": 11.003,
+      "end": 11.149
+    },
+    {
+      "word": "l'argent",
+      "start": 11.149,
+      "end": 11.365
+    },
+    {
+      "word": "concrètement",
+      "start": 11.365,
+      "end": 11.666
+    },
+    {
+      "word": "?",
+      "start": 11.666,
+      "end": 11.767
+    },
+    {
+      "word": "Est-ce",
+      "start": 12.067,
+      "end": 12.366
+    },
+    {
+      "word": "que",
+      "start": 12.366,
+      "end": 12.636
+    },
+    {
+      "word": "tu",
+      "start": 12.636,
+      "end": 12.897
+    },
+    {
+      "word": "sais",
+      "start": 12.897,
+      "end": 13.175
+    },
+    {
+      "word": "?",
+      "start": 13.175,
+      "end": 13.233
+    },
+    {
+      "word": "Non,",
+      "start": 13.268,
+      "end": 13.463
+    },
+    {
+      "word": "je",
+      "start": 13.463,
+      "end": 13.647
+    },
+    {
+      "word": "ne",
+      "start": 13.647,
+      "end": 13.83
+    },
+    {
+      "word": "sais",
+      "start": 13.83,
+      "end": 14.025
+    },
+    {
+      "word": "pas.",
+      "start": 14.025,
+      "end": 14.22
+    },
+    {
+      "word": "Parce",
+      "start": 14.22,
+      "end": 14.475
+    },
+    {
+      "word": "qu'en",
+      "start": 14.475,
+      "end": 14.73
+    },
+    {
+      "word": "fait,",
+      "start": 14.73,
+      "end": 14.931
+    },
+    {
+      "word": "ta",
+      "start": 14.931,
+      "end": 15.114
+    },
+    {
+      "word": "question",
+      "start": 15.114,
+      "end": 15.386
+    },
+    {
+      "word": "de",
+      "start": 15.386,
+      "end": 15.57
+    },
+    {
+      "word": "départ",
+      "start": 15.57,
+      "end": 15.83
+    },
+    {
+      "word": "n'est",
+      "start": 15.83,
+      "end": 16.031
+    },
+    {
+      "word": "pas",
+      "start": 16.031,
+      "end": 16.22
+    },
+    {
+      "word": "bonne.",
+      "start": 16.22,
+      "end": 16.481
+    },
+    {
+      "word": "Comment",
+      "start": 16.481,
+      "end": 16.747
+    },
+    {
+      "word": "on",
+      "start": 16.747,
+      "end": 16.931
+    },
+    {
+      "word": "fait",
+      "start": 16.931,
+      "end": 17.126
+    },
+    {
+      "word": "pour",
+      "start": 17.126,
+      "end": 17.321
+    },
+    {
+      "word": "gagner",
+      "start": 17.321,
+      "end": 17.581
+    },
+    {
+      "word": "de",
+      "start": 17.581,
+      "end": 17.765
+    },
+    {
+      "word": "l'argent",
+      "start": 17.765,
+      "end": 18.037
+    },
+    {
+      "word": "?",
+      "start": 18.037,
+      "end": 18.164
+    },
+    {
+      "word": "Je",
+      "start": 18.164,
+      "end": 18.347
+    },
+    {
+      "word": "vais",
+      "start": 18.347,
+      "end": 18.542
+    },
+    {
+      "word": "te",
+      "start": 18.542,
+      "end": 18.725
+    },
+    {
+      "word": "le",
+      "start": 18.725,
+      "end": 18.909
+    },
+    {
+      "word": "dire.",
+      "start": 18.909,
+      "end": 19.164
+    },
+    {
+      "word": "On",
+      "start": 19.164,
+      "end": 19.347
+    },
+    {
+      "word": "aide",
+      "start": 19.347,
+      "end": 19.596
+    },
+    {
+      "word": "d'autres",
+      "start": 19.596,
+      "end": 19.869
+    },
+    {
+      "word": "personnes",
+      "start": 19.869,
+      "end": 20.201
+    },
+    {
+      "word": "à",
+      "start": 20.201,
+      "end": 20.379
+    },
+    {
+      "word": "gagner",
+      "start": 20.379,
+      "end": 20.639
+    },
+    {
+      "word": "de",
+      "start": 20.639,
+      "end": 20.823
+    },
+    {
+      "word": "l'argent.",
+      "start": 20.823,
+      "end": 21.101
+    },
+    {
+      "word": "Quand",
+      "start": 21.101,
+      "end": 21.301
+    },
+    {
+      "word": "tu",
+      "start": 21.301,
+      "end": 21.485
+    },
+    {
+      "word": "aides",
+      "start": 21.485,
+      "end": 21.74
+    },
+    {
+      "word": "les",
+      "start": 21.74,
+      "end": 21.929
+    },
+    {
+      "word": "gens",
+      "start": 21.929,
+      "end": 22.124
+    },
+    {
+      "word": "autour",
+      "start": 22.124,
+      "end": 22.385
+    },
+    {
+      "word": "de",
+      "start": 22.385,
+      "end": 22.568
+    },
+    {
+      "word": "toi",
+      "start": 22.568,
+      "end": 22.757
+    },
+    {
+      "word": "à",
+      "start": 22.757,
+      "end": 22.935
+    },
+    {
+      "word": "gagner",
+      "start": 22.935,
+      "end": 23.195
+    },
+    {
+      "word": "de",
+      "start": 23.195,
+      "end": 23.379
+    },
+    {
+      "word": "l'argent,",
+      "start": 23.379,
+      "end": 23.657
+    },
+    {
+      "word": "tu",
+      "start": 23.657,
+      "end": 23.84
+    },
+    {
+      "word": "vas",
+      "start": 23.84,
+      "end": 24.029
+    },
+    {
+      "word": "forcément",
+      "start": 24.029,
+      "end": 24.362
+    },
+    {
+      "word": "gagner.",
+      "start": 24.362,
+      "end": 24.628
+    },
+    {
+      "word": "OK",
+      "start": 25.003,
+      "end": 25.244
+    },
+    {
+      "word": "?",
+      "start": 25.244,
+      "end": 25.41
+    },
+    {
+      "word": "Ça,",
+      "start": 25.41,
+      "end": 25.658
+    },
+    {
+      "word": "c'est",
+      "start": 25.658,
+      "end": 25.922
+    },
+    {
+      "word": "le",
+      "start": 25.922,
+      "end": 26.163
+    },
+    {
+      "word": "premier",
+      "start": 26.163,
+      "end": 26.512
+    },
+    {
+      "word": "des",
+      "start": 26.512,
+      "end": 26.761
+    },
+    {
+      "word": "points.",
+      "start": 26.761,
+      "end": 27.039
+    },
+    {
+      "word": "Deuxième",
+      "start": 27.039,
+      "end": 27.468
+    },
+    {
+      "word": "des",
+      "start": 27.468,
+      "end": 27.716
+    },
+    {
+      "word": "points,",
+      "start": 27.716,
+      "end": 27.995
+    },
+    {
+      "word": "tu",
+      "start": 27.995,
+      "end": 28.236
+    },
+    {
+      "word": "dois",
+      "start": 28.236,
+      "end": 28.492
+    },
+    {
+      "word": "apprendre",
+      "start": 28.492,
+      "end": 28.928
+    },
+    {
+      "word": "quelque",
+      "start": 28.928,
+      "end": 29.278
+    },
+    {
+      "word": "chose",
+      "start": 29.278,
+      "end": 29.612
+    },
+    {
+      "word": "que",
+      "start": 29.612,
+      "end": 29.861
+    },
+    {
+      "word": "les",
+      "start": 29.861,
+      "end": 30.109
+    },
+    {
+      "word": "personnes",
+      "start": 30.109,
+      "end": 30.545
+    },
+    {
+      "word": "seraient",
+      "start": 30.545,
+      "end": 30.903
+    },
+    {
+      "word": "prêtes",
+      "start": 30.903,
+      "end": 31.245
+    },
+    {
+      "word": "à",
+      "start": 31.245,
+      "end": 31.478
+    },
+    {
+      "word": "te",
+      "start": 31.478,
+      "end": 31.719
+    },
+    {
+      "word": "payer",
+      "start": 31.719,
+      "end": 31.982
+    },
+    {
+      "word": "pour",
+      "start": 31.982,
+      "end": 32.238
+    },
+    {
+      "word": "que",
+      "start": 32.238,
+      "end": 32.486
+    },
+    {
+      "word": "tu",
+      "start": 32.486,
+      "end": 32.727
+    },
+    {
+      "word": "résolves,",
+      "start": 32.727,
+      "end": 33.163
+    },
+    {
+      "word": "pour",
+      "start": 33.163,
+      "end": 33.38
+    },
+    {
+      "word": "leur",
+      "start": 33.38,
+      "end": 33.597
+    },
+    {
+      "word": "faire",
+      "start": 33.597,
+      "end": 33.88
+    },
+    {
+      "word": "gagner",
+      "start": 33.88,
+      "end": 34.17
+    },
+    {
+      "word": "du",
+      "start": 34.17,
+      "end": 34.374
+    },
+    {
+      "word": "temps,",
+      "start": 34.374,
+      "end": 34.604
+    },
+    {
+      "word": "pour",
+      "start": 34.604,
+      "end": 34.82
+    },
+    {
+      "word": "leur",
+      "start": 34.82,
+      "end": 35.037
+    },
+    {
+      "word": "faire",
+      "start": 35.037,
+      "end": 35.32
+    },
+    {
+      "word": "gagner",
+      "start": 35.32,
+      "end": 35.61
+    },
+    {
+      "word": "de",
+      "start": 35.61,
+      "end": 35.814
+    },
+    {
+      "word": "l'argent,",
+      "start": 35.814,
+      "end": 35.9
+    },
+    {
+      "word": "pour",
+      "start": 36.077,
+      "end": 36.344
+    },
+    {
+      "word": "résoudre",
+      "start": 36.344,
+      "end": 36.792
+    },
+    {
+      "word": "un",
+      "start": 36.792,
+      "end": 37.043
+    },
+    {
+      "word": "problème",
+      "start": 37.043,
+      "end": 37.491
+    },
+    {
+      "word": "qui",
+      "start": 37.491,
+      "end": 37.75
+    },
+    {
+      "word": "réside",
+      "start": 37.75,
+      "end": 38.182
+    },
+    {
+      "word": "chez",
+      "start": 38.182,
+      "end": 38.449
+    },
+    {
+      "word": "eux.",
+      "start": 38.449,
+      "end": 38.717
+    }
+  ],
+  "fullScreenSceneBounds": [
+    [
+      6.166667,
+      8.066667
+    ],
+    [
+      19.15,
+      22.4
+    ],
+    [
+      26.1,
+      29.4
+    ],
+    [
+      33.15,
+      38.64
+    ]
+  ]
+}

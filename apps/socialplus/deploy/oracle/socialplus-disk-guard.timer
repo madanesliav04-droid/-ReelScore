@@ -1,0 +1,7 @@
+[Unit]
+Description=Social+ disk guard every minute
+[Timer]
+OnBootSec=2m
+OnUnitActiveSec=1m
+[Install]
+WantedBy=timers.target

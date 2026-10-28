@@ -1,0 +1,104 @@
+{
+  "license": "SIL OFL 1.1",
+  "source": "https://github.com/google/fonts",
+  "charset": "Latin U+0000–024F, punctuation, arrows and mathematical signs; no promise of full Unicode coverage",
+  "modified": true,
+  "note": "Inter current optical instances and EB Garamond are authorized alternatives to historical files. Lato Medium is replaced by Lato Regular. Modified subsets renamed; no exact historical font identity claimed.",
+  "aliases": {
+    "Inter-Regular.otf": "SocialPlusSans-Regular.ttf",
+    "Inter-Medium.otf": "SocialPlusSans-Medium.ttf",
+    "Inter-SemiBold.otf": "SocialPlusSans-SemiBold.ttf",
+    "Inter-Bold.otf": "SocialPlusSans-Bold.ttf",
+    "Inter-ExtraBold.otf": "SocialPlusSans-ExtraBold.ttf",
+    "InterDisplay-SemiBold.otf": "SocialPlusDisplay-SemiBold.ttf",
+    "EBGaramond08-Regular.ttf": "SocialPlusSerif-Regular.ttf",
+    "Lato-Regular.ttf": "SocialPlusHumanist-Regular.ttf",
+    "Lato-Medium.ttf": "SocialPlusHumanist-Regular.ttf"
+  },
+  "fonts": {
+    "SocialPlusSans-Regular.ttf": {
+      "family": "SocialPlus Sans Regular",
+      "license": "Inter-OFL.txt",
+      "sha256": "83c14b641cefb57744121539281b64571fa3537060232567c1c3b4e850a168f7",
+      "sourceFile": "Inter-VF.ttf",
+      "sourceSha256": "29160a80ff49ddcab2c97711247e08b1fab27a484a329ce8b813d820dc559031",
+      "axes": {
+        "wght": 400,
+        "opsz": 14
+      }
+    },
+    "SocialPlusSans-Medium.ttf": {
+      "family": "SocialPlus Sans Medium",
+      "license": "Inter-OFL.txt",
+      "sha256": "8fef5f5478b2459ee39793242867ef27884a7a7c09f229538a560fa8ea0c0ca2",
+      "sourceFile": "Inter-VF.ttf",
+      "sourceSha256": "29160a80ff49ddcab2c97711247e08b1fab27a484a329ce8b813d820dc559031",
+      "axes": {
+        "wght": 500,
+        "opsz": 14
+      }
+    },
+    "SocialPlusSans-SemiBold.ttf": {
+      "family": "SocialPlus Sans SemiBold",
+      "license": "Inter-OFL.txt",
+      "sha256": "6470a2085ceeea1743d46645b4e19262fc4180d462142fc1aa6577a27296208e",
+      "sourceFile": "Inter-VF.ttf",
+      "sourceSha256": "29160a80ff49ddcab2c97711247e08b1fab27a484a329ce8b813d820dc559031",
+      "axes": {
+        "wght": 600,
+        "opsz": 14
+      }
+    },
+    "SocialPlusSans-Bold.ttf": {
+      "family": "SocialPlus Sans Bold",
+      "license": "Inter-OFL.txt",
+      "sha256": "d0598697ad2fab5cd4137f55fbbf7e7911641dcc99082f80c4ffe3395adfd0e6",
+      "sourceFile": "Inter-VF.ttf",
+      "sourceSha256": "29160a80ff49ddcab2c97711247e08b1fab27a484a329ce8b813d820dc559031",
+      "axes": {
+        "wght": 700,
+        "opsz": 14
+      }
+    },
+    "SocialPlusSans-ExtraBold.ttf": {
+      "family": "SocialPlus Sans ExtraBold",
+      "license": "Inter-OFL.txt",
+      "sha256": "01b81b3577da39a6f48f594ecb0c57ba2103d3e361c72e702004a9a7e9277c24",
+      "sourceFile": "Inter-VF.ttf",
+      "sourceSha256": "29160a80ff49ddcab2c97711247e08b1fab27a484a329ce8b813d820dc559031",
+      "axes": {
+        "wght": 800,
+        "opsz": 14
+      }
+    },
+    "SocialPlusDisplay-SemiBold.ttf": {
+      "family": "SocialPlus Display SemiBold",
+      "license": "Inter-OFL.txt",
+      "sha256": "6d1ba460fddfceb0560ccb4776da7df15fa531459b33ca85271a91c060ca32c6",
+      "sourceFile": "Inter-VF.ttf",
+      "sourceSha256": "29160a80ff49ddcab2c97711247e08b1fab27a484a329ce8b813d820dc559031",
+      "axes": {
+        "wght": 600,
+        "opsz": 32
+      }
+    },
+    "SocialPlusSerif-Regular.ttf": {
+      "family": "SocialPlus Serif",
+      "license": "EBGaramond-OFL.txt",
+      "sha256": "432d8ed3eedf96ece5d8384cda37da2e7cd5a3738b579f92ee29fce308ac6d7c",
+      "sourceFile": "EBGaramond-VF.ttf",
+      "sourceSha256": "ef9512f92f6d579e5dc75af59a5a4b1b8b47d2eda89e00b954d44520e5369027",
+      "axes": {
+        "wght": 400
+      }
+    },
+    "SocialPlusHumanist-Regular.ttf": {
+      "family": "SocialPlus Humanist",
+      "license": "Lato-OFL.txt",
+      "sha256": "737c070b06112dc727a619ed58827d4a8510041320efc58ac7f4230a7325061a",
+      "sourceFile": "Lato-Regular.ttf",
+      "sourceSha256": "d636e4683231f931eda222d588e944d082bfd3bdba02f928bee461c0f185b251",
+      "axes": null
+    }
+  }
+}

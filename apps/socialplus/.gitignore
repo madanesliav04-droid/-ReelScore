@@ -1,0 +1,10 @@
+.env
+.env.local
+.data/
+test-artifacts/
+
+node_modules/
+# Private Windows certificates, model cache and local runtime paths
+.local-windows/
+
+.preview-build/

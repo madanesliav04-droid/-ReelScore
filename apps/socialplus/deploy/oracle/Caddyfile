@@ -1,0 +1,13 @@
+{$SOCIALPLUS_DOMAIN} {
+    encode zstd gzip
+    request_body {
+        max_size 100MB
+    }
+    header {
+        Strict-Transport-Security "max-age=31536000"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "same-origin"
+    }
+    # No access log of user URLs, headers or uploaded content.
+    reverse_proxy app:4318
+}

@@ -1,0 +1,15 @@
+import {createServer} from 'node:http';import {readFile,mkdir} from 'node:fs/promises';import {join} from 'node:path';import {fileURLToPath} from 'node:url';import assert from 'node:assert/strict';
+import {chromium} from 'playwright-core';
+const root=fileURLToPath(new URL('../.preview-build/',import.meta.url));const out=process.env.SOCIALPLUS_PREVIEW_PROOFS||'/workspace/socialplus-private-renders/beta-preview';await mkdir(out,{recursive:true});
+const server=createServer(async(req,res)=>{const file={'/':'index.html','/app.css':'app.css','/interface-preview.js':'interface-preview.js','/catalog.json':'catalog.json'}[req.url];if(!file){res.writeHead(404).end();return;}res.setHeader('content-type',file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':file.endsWith('.json')?'application/json':'text/html');res.end(await readFile(join(root,file)));});await new Promise(r=>server.listen(4342,'localhost',r));let browser;
+try{
+ browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,args:['--disable-dev-shm-usage']});const page=await browser.newPage({viewport:{width:402,height:874},isMobile:true,hasTouch:true});const errors=[],mutations=[];page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(r.method()!=='GET')mutations.push(r.url());});
+ await page.goto('http://localhost:4342');await page.locator('#main-nav').waitFor({state:'visible'});assert.equal(await page.locator('#main-nav a').count(),4);
+ await page.locator('[data-tab=montage]').click();assert.equal(await page.locator('[data-preview-model]').count(),6);
+ for(const el of await page.locator('[data-preview-model]').all()){await el.click();assert.equal(await el.getAttribute('aria-pressed'),'true');}
+ const source=process.env.SOCIALPLUS_TEST_RUSH;if(!source)throw Error('Supply a real video path in SOCIALPLUS_TEST_RUSH');
+ await page.locator('#preview-file').setInputFiles(source);const v=page.locator('#source-preview');await v.evaluate(async el=>{el.muted=true;await el.play();});await page.waitForFunction(()=>document.querySelector('#source-preview').currentTime>.2);assert.equal(await page.locator('button[disabled]').count(),1);
+ await page.locator('[data-tab=analysis]').click();await page.locator('#source-preview').waitFor();assert.equal(await page.locator('button[disabled]').count(),1);assert.equal(await page.locator('.score-value').count(),0);
+ for(const width of [320,390,402,440,768,1440]){await page.setViewportSize({width,height:900});for(const tab of ['home','montage','analysis','projects']){await page.locator(`[data-tab=${tab}]`).click();await page.waitForTimeout(60);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),`${tab} overflow at ${width}`);}}
+ assert.deepEqual(errors,[]);assert.deepEqual(mutations,[]);console.log(JSON.stringify({fourSections:true,sixModelsSelectable:true,localVideoPlayback:true,sameLocalVideoAcrossViews:true,backendActionsExplicitlyDisabled:true,noFakeScore:true,noFileUploadRequest:true,widths:[320,390,402,440,768,1440],javascriptErrors:errors,physicalIphone:false}));
+}finally{await browser?.close();await new Promise(r=>server.close(r));}

@@ -1,0 +1,17 @@
+[Unit]
+Description=Social+ isolated Oracle ARM64 test
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/socialplus/apps/socialplus/deploy/oracle
+ExecStartPre=/usr/bin/test -s /etc/socialplus/app.env
+ExecStartPre=/usr/bin/test -s /etc/socialplus/https.env
+ExecStart=/usr/bin/docker compose up -d --wait --wait-timeout 180
+ExecStop=/usr/bin/docker compose stop -t 60
+TimeoutStartSec=240
+TimeoutStopSec=150
+[Install]
+WantedBy=multi-user.target
