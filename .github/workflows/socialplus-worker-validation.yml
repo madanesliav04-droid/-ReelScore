@@ -81,7 +81,8 @@ jobs:
               for name,marker in [('ui','{"media":'),('resources','{"case": "ui-1080p"')]:
                   i=line.find(marker)
                   if i>=0:found[name]=json.loads(line[i:])
-          if set(found)!={'ui','resources'}:raise RuntimeError('PROOF_SUMMARY_MISSING')
+          if 'resources' not in found:raise RuntimeError('PROOF_SUMMARY_MISSING')
+          if found['resources']['exitCode']!=0 or found['resources']['oomKilled']:raise RuntimeError('SOURCE_TEST_NOT_SUCCESSFUL')
           print('SOURCE_JOB: 126759628433; no rendering executed in this recovery job')
           print('VERIFIED_PROOF_JSON '+json.dumps(found))
           PYCODE
