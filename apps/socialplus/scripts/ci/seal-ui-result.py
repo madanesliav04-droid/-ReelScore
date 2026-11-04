@@ -4,7 +4,7 @@ from pathlib import Path
 root=Path(os.environ['SOCIALPLUS_ACTIONS_WORK_DIR']);out=root/'ui'
 archive=root/'result.zip'
 with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as z:
- for name in ['SocialPlus_Alex_V16_standalone_UI.mp4','RESULTATS.json','resources.json','resource-samples.json','container.log','failure.txt']:
+ for name in ['SocialPlus_Alex_V16_standalone_UI.mp4','RESULTATS.json','resources.json','resource-samples.json','container.log','failure.txt','diagnostics.json']:
   p=out/name
   if p.is_file():z.write(p,name)
 sealed=root/'result.cms'

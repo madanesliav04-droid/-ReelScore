@@ -10,15 +10,17 @@ const out=resolve(process.env.SOCIALPLUS_BROWSER_ARTIFACT_DIR||join(tmpdir(),'so
 const dataDir=await mkdtemp(join(tmpdir(),'socialplus-kinetic-ui-'));const ownerId=randomUUID(),seed='JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP',password=randomBytes(24).toString('base64url');
 const origin='https://localhost:4343';const cert=join(dataDir,'test.crt'),key=join(dataDir,'test.key');
 execFileSync('openssl',['req','-x509','-newkey','rsa:2048','-nodes','-keyout',key,'-out',cert,'-days','1','-subj','/CN=localhost','-addext','subjectAltName=DNS:localhost,IP:127.0.0.1'],{stdio:'ignore'});
-let app,server,browser;const events=[],errors=[],progress=[];let projectId;
+let app,server,browser,context;const events=[],errors=[],progress=[],network=[];let projectId;
 const config={dataDir,origin,securityConfig:{ownerId,ownerTotpSecret:seed,secureCookies:true}};
 async function start(){app=await createApp(config);server=https.createServer({key:await readFile(key),cert:await readFile(cert),minVersion:'TLSv1.2'},app.server.listeners('request')[0]);server.requestTimeout=600000;await new Promise(r=>server.listen(4343,'localhost',r));}
 async function stop(){await app.projects.shutdown();await new Promise(r=>server.close(r));app.releaseRuntime();app.db.close();}
 try{
  assertKineticRelease();await start();await app.security.provisionOwner({id:ownerId,email:'kinetic-ui@example.test',password,displayName:'Recette Kinetic'});
- browser=await chromium.launch({headless:true,executablePath:process.env.SOCIALPLUS_CHROMIUM||'/usr/bin/chromium',args:['--disable-dev-shm-usage',...(process.env.SOCIALPLUS_ISOLATED_CONTAINER_BROWSER==='true'?['--no-sandbox']:[])]});
+ const publicKey=execFileSync('openssl',['x509','-in',cert,'-pubkey','-noout']);
+ const spki=createHash('sha256').update(execFileSync('openssl',['pkey','-pubin','-outform','DER'],{input:publicKey})).digest('base64');
+ browser=await chromium.launch({headless:true,executablePath:process.env.SOCIALPLUS_CHROMIUM||'/usr/bin/chromium',args:['--disable-dev-shm-usage','--ignore-certificate-errors-spki-list='+spki,...(process.env.SOCIALPLUS_ISOLATED_CONTAINER_BROWSER==='true'?['--no-sandbox']:[])]});
  // Self-signed cert is accepted only by this isolated local test context.
- const context=await browser.newContext({viewport:{width:402,height:874},isMobile:true,hasTouch:true,acceptDownloads:true,ignoreHTTPSErrors:true});const page=await context.newPage();page.setDefaultTimeout(20000);page.on('pageerror',e=>errors.push(e.message));
+ context=await browser.newContext({viewport:{width:402,height:874},isMobile:true,hasTouch:true,acceptDownloads:true,ignoreHTTPSErrors:true});const page=await context.newPage();page.setDefaultTimeout(20000);page.on('pageerror',e=>errors.push(e.message));page.on('requestfailed',r=>network.push({path:new URL(r.url()).pathname,error:r.failure()?.errorText}));
  page.on('response',async res=>{try{if(/\/api\/jobs\//.test(res.url())&&res.ok())progress.push((await res.json()).job.progress);}catch{}});
  await page.goto(origin);await page.locator('[name=email]').fill('kinetic-ui@example.test');await page.locator('[name=password]').fill(password);await page.locator('[name=totp]').fill(totpCode(seed));await page.locator('[data-form=login] button[type=submit]').click();await page.locator('#main-nav').waitFor();assert.ok((await context.cookies()).some(c=>c.secure&&c.httpOnly));events.push('HTTPS login, Secure HttpOnly session, owner MFA');
  await page.locator('[data-action=new-project]').first().click();await page.locator('#video-input').setInputFiles(resolve(source));await page.locator('#source-preview').waitFor({timeout:60000});
@@ -32,6 +34,8 @@ try{
  const saved=app.db.prepare('SELECT output_path FROM studio_projects WHERE id=?').get(projectId);
  const job=app.db.prepare('SELECT audit FROM studio_jobs WHERE project_id=? ORDER BY created_at DESC LIMIT 1').get(projectId);const audit=JSON.parse(job.audit);
  assert.equal(audit.engine,'alex-v16-shared-worker');assert.equal(audit.referenceUsed,false);assert.equal(audit.releaseApproved,false);
+ // Preserve the genuine produced export for diagnosis even if browser download fails.
+ await copyFile(saved.output_path,join(out,'SocialPlus_Alex_V16_standalone_UI.mp4'));events.push('Real renderer produced output; browser download not yet verified');
  const video=page.locator('#render-status video');await video.evaluate(async e=>{e.muted=true;await e.play()});await page.waitForFunction(()=>document.querySelector('#render-status video').currentTime>.1);
  const pending=page.waitForEvent('download');await page.locator('#render-status a[download]').click();const download=await pending;const bytes=await readFile(await download.path());assert.equal(createHash('sha256').update(bytes).digest('hex'),createHash('sha256').update(await readFile(saved.output_path)).digest('hex'));
  await copyFile(await download.path(),join(out,'SocialPlus_Alex_V16_standalone_UI.mp4'));
@@ -48,5 +52,9 @@ try{
  const media={privateProjectBytesAtCompletion,sourceDurationSeconds,outputDurationSeconds,width:outputVideo.width,height:outputVideo.height,bytes:bytes.length,videoCodec:outputVideo.codec_name,audioCodec:outputAudio[0].codec_name};
  const report={media,observedProgress:[...new Set(progress.filter(Number.isFinite))],scope:'Real isolated local HTTPS UI/Auth/upload/offline ASR/shared Alex worker/preview/download/restart, not public cloud or physical Safari',authenticatedUI:true,realUpload:true,offlineTranscription:true,sharedWorkerPipeline:true,referenceUsed:false,fullDecode:true,downloadHashMatches:true,persistedAfterRestart:true,reviewRequired:audit.reviewRequired,releaseApproved:false,paidCalls:0,physicalSafari:false};
  await writeFile(join(out,'RESULTATS.json'),JSON.stringify(report,null,2));console.log(JSON.stringify(report));
-}catch(e){await writeFile(join(out,'failure.txt'),String(e.stack));throw e;}
+}catch(e){
+ const diagnostics={network,events,error:String(e.message)};
+ if(context&&projectId)try{const response=await context.request.get(origin+'/api/projects/'+projectId+'/output?download=1');diagnostics.authenticatedDownloadStatus=response.status();if(response.ok()){const data=await response.body();diagnostics.authenticatedDownloadBytes=data.length;diagnostics.authenticatedDownloadSha256=createHash('sha256').update(data).digest('hex');}}catch(error){diagnostics.apiError=String(error.message);}
+ await writeFile(join(out,'diagnostics.json'),JSON.stringify(diagnostics,null,2));await writeFile(join(out,'failure.txt'),String(e.stack));throw e;}
+
 finally{await browser?.close();if(server?.listening)await stop();await rm(dataDir,{recursive:true,force:true});}
