@@ -4,8 +4,8 @@ case='ui-1080p';root=Path(os.environ['SOCIALPLUS_ACTIONS_WORK_DIR']).resolve();o
 source=root/'source.mov'
 name='socialplus-preflight-'+case
 cmd=['docker','run','--name',name,'--user',str(os.getuid())+':'+str(os.getgid()),'--cpus','2','--memory','8g','--memory-swap','8g','--network','none','--shm-size','256m','--mount','type=bind,src='+str(source)+',dst=/test/source.mov,readonly','--mount','type=bind,src='+str(out)+',dst=/out','--label','socialplus.test=isolated-preflight']
-for k,v in {'SOCIALPLUS_TEST_RUSH':'/test/source.mov','SOCIALPLUS_BROWSER_ARTIFACT_DIR':'/out','SOCIALPLUS_CHROMIUM':'/usr/bin/chromium','SOCIALPLUS_ISOLATED_CONTAINER_BROWSER':'true','SOCIALPLUS_ALEX_V16_PIPELINE':'true','ALEX_V16_RECONSTRUCTION_ENABLED':'true','ALEX_V16_REVIEW_DRAFTS':'true','SOCIALPLUS_ORIGIN':'https://localhost:4343','SOCIALPLUS_OWNER_ID':'00000000-0000-4000-8000-000000000001','SOCIALPLUS_OWNER_TOTP_SECRET':'JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP'}.items():cmd+=['-e',k+'='+v]
-cmd+=['--entrypoint','sh','socialplus-preflight:20261104','-c','npm run preflight && exec node scripts/alex-ui-smoke.mjs']
+for k,v in {'HOME':'/tmp/socialplus-test-home','XDG_CACHE_HOME':'/tmp/socialplus-test-home/cache','XDG_CONFIG_HOME':'/tmp/socialplus-test-home/config','SOCIALPLUS_TEST_RUSH':'/test/source.mov','SOCIALPLUS_BROWSER_ARTIFACT_DIR':'/out','SOCIALPLUS_CHROMIUM':'/usr/bin/chromium','SOCIALPLUS_ISOLATED_CONTAINER_BROWSER':'true','SOCIALPLUS_ALEX_V16_PIPELINE':'true','ALEX_V16_RECONSTRUCTION_ENABLED':'true','ALEX_V16_REVIEW_DRAFTS':'true','SOCIALPLUS_ORIGIN':'https://localhost:4343','SOCIALPLUS_OWNER_ID':'00000000-0000-4000-8000-000000000001','SOCIALPLUS_OWNER_TOTP_SECRET':'JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP'}.items():cmd+=['-e',k+'='+v]
+cmd+=['--entrypoint','sh','socialplus-preflight:20261104','-c','mkdir -p "$HOME" "$XDG_CACHE_HOME" "$XDG_CONFIG_HOME" && npm run preflight && exec node scripts/alex-ui-smoke.mjs']
 start=time.monotonic();samples=[]
 with (out/'container.log').open('wb') as log:
  p=subprocess.Popen(cmd,stdout=log,stderr=log)
