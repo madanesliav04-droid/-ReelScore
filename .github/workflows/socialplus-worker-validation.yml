@@ -1,72 +1,46 @@
-name: Social+ issue 61 isolated validation
+name: Social+ isolated server and native 1080p UI preflight
 on:
   workflow_dispatch:
 permissions:
   contents: read
 concurrency:
-  group: socialplus-issue61-validation
+  group: socialplus-isolated-server-preflight
   cancel-in-progress: false
 jobs:
-  validate:
-    if: github.repository == 'madanesliav04-droid/-ReelScore' && github.event.repository.private == false && github.ref == 'refs/heads/codex/socialplus-issue61-ios-20261028'
+  preflight:
+    if: github.repository == 'madanesliav04-droid/-ReelScore' && github.event.repository.private == false && github.ref == 'refs/heads/codex/socialplus-server-preflight-20261104'
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 25
     env:
-      CI: 'true'
+      HF_HUB_OFFLINE: '1'
+      HF_HUB_DISABLE_TELEMETRY: '1'
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
-        with:
-          node-version: '24'
-      - name: Check no backend credentials were supplied
+      - name: Prepare private ephemeral test paths
         run: |
-          node -e 'for(const key of ["SUPABASE_SERVICE_ROLE_KEY","GEMINI_API_KEY","R2_ACCESS_KEY_ID","R2_SECRET_ACCESS_KEY"])if(process.env[key])throw Error("Unexpected backend secret");'
-      - name: Install media test dependency
-        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends ffmpeg python3-numpy python3-pil fonts-dejavu-core
-      - name: Worker locked dependencies, checks and unit/integration tests
-        working-directory: apps/worker
+          umask 077
+          work="$RUNNER_TEMP/socialplus-server-preflight"
+          mkdir -p "$work"
+          echo "SOCIALPLUS_ACTIONS_WORK_DIR=$work" >> "$GITHUB_ENV"
+          echo "SOCIALPLUS_PYTHON=$work/fixture-venv/bin/python" >> "$GITHUB_ENV"
+      - name: Generate licensed non-personal native 1080p fixture
         run: |
-          npm ci --no-audit --no-fund
-          npm run check
-          npm test
-      - name: Frontend locked dependencies
-        working-directory: viral-studio
-        run: npm ci --no-audit --no-fund
-      - name: Restored standalone Auth SQLite queue and media regressions
-        working-directory: apps/socialplus
-        env:
-          SOCIALPLUS_PYTHON: '/usr/bin/python3'
-        run: |
-          npm ci --no-audit --no-fund
-          npm test
-      - name: Build the real frontend without connecting a backend
-        working-directory: viral-studio
-        env:
-          NEXT_PUBLIC_SOCIALPLUS_BACKEND_DISABLED: 'true'
-        run: npm run build
-      - name: Install browser
-        working-directory: viral-studio
-        run: npx playwright install --with-deps chromium
-      - name: Browser and API contract regressions
-        # MP4 H.264/AAC needs the codecs in the runner's installed Chrome.
-        # The minimal downloaded Chromium build is not an iPhone codec test.
-        working-directory: viral-studio
-        env:
-          PLAYWRIGHT_CHROMIUM_EXECUTABLE: '/usr/bin/google-chrome'
-        run: npm test
-      - name: Disconnected Preview fails closed
-        working-directory: viral-studio
-        env:
-          NEXT_PUBLIC_SOCIALPLUS_BACKEND_DISABLED: 'true'
-        run: npm test -- tests/backend-disabled.spec.ts
-      - name: Alex-only model selection contract
-        working-directory: viral-studio
-        env:
-          NEXT_PUBLIC_SOCIALPLUS_ALEX_ONLY: 'true'
-          NEXT_PUBLIC_ALEX_V16_REVIEW_ENABLED: 'true'
-          NEXT_PUBLIC_SUPABASE_URL: 'http://127.0.0.1:56321'
-          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_isolated_fixture'
-        run: npm test -- tests/alex-beta.spec.ts
-# No artifact upload, backend keys, personal rush, render or deployment.
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ffmpeg python3-venv openssl
+          python3 -m venv "$SOCIALPLUS_ACTIONS_WORK_DIR/fixture-venv"
+          "$SOCIALPLUS_PYTHON" -m pip install --no-cache-dir piper-tts==1.3.0
+          python3 apps/socialplus/scripts/ci/synthetic-fixture.py
+      - name: Build exact standalone deployment image with offline model
+        run: docker build -f apps/socialplus/deploy/Dockerfile.cloud-preview -t socialplus-preflight:20261104 .
+      - name: Real MFA login upload Alex render preview download and restart inside image
+        id: ui
+        run: python3 apps/socialplus/scripts/ci/container-ui-preflight.py
+      - name: Encrypt result and measurements before log-only delivery
+        if: always() && steps.ui.outcome != 'skipped'
+        run: python3 apps/socialplus/scripts/ci/seal-ui-result.py
+      - name: Clean ephemeral generated files
+        if: always()
+        run: rm -rf -- "$RUNNER_TEMP/socialplus-server-preflight"
+# Standard free public runner only. No services, artifacts, cache, keys or deployment.
