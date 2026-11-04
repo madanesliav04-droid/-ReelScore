@@ -144,11 +144,6 @@ jobs:
     env:
       HF_HUB_OFFLINE: '1'
       HF_HUB_DISABLE_TELEMETRY: '1'
-      SOCIALPLUS_ACTIONS_WORK_DIR: ${{ runner.temp }}/socialplus-synthetic
-      SOCIALPLUS_WORK_ROOT: ${{ runner.temp }}/socialplus-synthetic
-      SOCIALPLUS_ASR_MODEL_DIR: ${{ runner.temp }}/socialplus-synthetic/asr
-      SOCIALPLUS_MODEL_OUTPUT: ${{ runner.temp }}/socialplus-synthetic/asr
-      SOCIALPLUS_PYTHON: ${{ runner.temp }}/socialplus-synthetic/venv/bin/python
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -156,6 +151,16 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '24'
+      - name: Set private ephemeral work paths
+        run: |
+          umask 077
+          work="$RUNNER_TEMP/socialplus-synthetic"
+          mkdir -p "$work"
+          echo "SOCIALPLUS_WORK_ROOT=$work" >> "$GITHUB_ENV"
+          echo "SOCIALPLUS_ACTIONS_WORK_DIR=$work" >> "$GITHUB_ENV"
+          echo "SOCIALPLUS_ASR_MODEL_DIR=$work/asr" >> "$GITHUB_ENV"
+          echo "SOCIALPLUS_MODEL_OUTPUT=$work/asr" >> "$GITHUB_ENV"
+          echo "SOCIALPLUS_PYTHON=$work/venv/bin/python" >> "$GITHUB_ENV"
       - name: Install local-only render dependencies
         run: |
           umask 077
