@@ -1,6 +1,12 @@
 name: Social+ isolated server and native 1080p UI preflight
 on:
   workflow_dispatch:
+    inputs:
+      mode:
+        description: Full preflight or read-only summary of the completed proof
+        type: choice
+        options: [preflight, summary]
+        default: preflight
 permissions:
   contents: read
 concurrency:
@@ -8,7 +14,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   preflight:
-    if: github.repository == 'madanesliav04-droid/-ReelScore' && github.event.repository.private == false && github.ref == 'refs/heads/codex/socialplus-server-preflight-20261104'
+    if: github.repository == 'madanesliav04-droid/-ReelScore' && github.event.repository.private == false && github.ref == 'refs/heads/codex/socialplus-server-preflight-20261104' && inputs.mode != 'summary'
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     env:
@@ -44,3 +50,38 @@ jobs:
         if: always()
         run: rm -rf -- "$RUNNER_TEMP/socialplus-server-preflight"
 # Standard free public runner only. No services, artifacts, cache, keys or deployment.
+
+  summary:
+    if: github.repository == 'madanesliav04-droid/-ReelScore' && github.event.repository.private == false && github.ref == 'refs/heads/codex/socialplus-server-preflight-20261104' && inputs.mode == 'summary'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      actions: read
+    steps:
+      - name: Read only the numeric proof from the completed job, without a new render
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PYCODE'
+          import os,json,urllib.request,urllib.error
+          class NoRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self,*args):return None
+          url='https://api.github.com/repos/madanesliav04-droid/-ReelScore/actions/jobs/126759628433/logs'
+          req=urllib.request.Request(url,headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json'})
+          try:
+              response=urllib.request.build_opener(NoRedirect).open(req,timeout=30)
+              text=response.read().decode('utf-8-sig')
+          except urllib.error.HTTPError as error:
+              if error.code!=302:raise RuntimeError('SOURCE_LOG_READ_FAILED') from None
+              # Standard GitHub log-download redirect, no authorization forwarded.
+              with urllib.request.urlopen(error.headers['Location'],timeout=90) as response:
+                  text=response.read().decode('utf-8-sig')
+          found={}
+          for line in text.splitlines():
+              for name,marker in [('ui','{"media":'),('resources','{"case": "ui-1080p"')]:
+                  i=line.find(marker)
+                  if i>=0:found[name]=json.loads(line[i:])
+          if set(found)!={'ui','resources'}:raise RuntimeError('PROOF_SUMMARY_MISSING')
+          print('SOURCE_JOB: 126759628433; no rendering executed in this recovery job')
+          print('VERIFIED_PROOF_JSON '+json.dumps(found))
+          PYCODE
