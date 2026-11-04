@@ -24,3 +24,12 @@ test('explicit Alex admission uses the existing shared worker pipeline, never th
  assert.equal(call.sourcePath,'/private/new.mov');assert.equal(call.reviewDraft,true);assert.equal(result.engine,'alex-v16-shared-worker');assert.equal(result.reviewRequired,true);assert.equal(result.referenceUsed,false);
  await assert.rejects(stat(call.workDir),{code:'ENOENT'});
 });
+
+test('Cinematic is opt-in, beta and requires the existing autonomous planner',async()=>{
+ const runtime=connectedRuntime(engines,{SOCIALPLUS_CINEMATIC_V7_PIPELINE:'true'});
+ assert.equal(runtime.MODEL_CATALOG.find(m=>m.id==='cinematic-storytelling-v7').status,'beta');
+ await assert.rejects(runtime.renderVideo({modelId:'cinematic-storytelling-v7',restoredInput:{events:[]}}),e=>e.code==='CINEMATIC_AUTONOMOUS_PLAN_REQUIRED');
+ const value={modelId:'cinematic-storytelling-v7',restoredInput:{engineVersion:'cinematic-v7-autonomous-1'}};
+ assert.deepEqual(await runtime.renderVideo(value),{unchanged:value});
+ assert.equal(runtime.MODEL_CATALOG.find(m=>m.id==='leila-hormozi-v53').available,false);
+});
