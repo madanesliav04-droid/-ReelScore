@@ -1,31 +1,28 @@
-# Isolated cloud preview image. Preparation only: no deployment is triggered.
-# Build context: repository root. No private app credentials or user videos.
+# syntax=docker/dockerfile:1
+# Build from repository root using the adjacent explicit runtime allowlist.
+# No deployment, user media or credentials are included in this image.
 FROM node:24-bookworm-slim
-RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg fonts-dejavu-core ca-certificates python3 python3-venv python3-pip python3-numpy python3-pil chromium \
-    && rm -rf /var/lib/apt/lists/*
-COPY apps/socialplus/engines/requirements-asr.txt /tmp/requirements-asr.txt
-RUN python3 -m venv --system-site-packages /opt/socialplus-asr \
-    && /opt/socialplus-asr/bin/pip install --no-cache-dir -r /tmp/requirements-asr.txt
 WORKDIR /app/apps/socialplus
-COPY --chown=node:node apps/worker/package.json apps/worker/package-lock.json /app/apps/worker/
-RUN npm ci --prefix /app/apps/worker --omit=dev --ignore-scripts --no-audit --no-fund
-COPY --chown=node:node apps/worker/src /app/apps/worker/src
-COPY --chown=node:node apps/worker/remotion /app/apps/worker/remotion
-COPY --chown=node:node apps/worker/reconstruction/alex-v16 /app/apps/worker/reconstruction/alex-v16
-COPY --chown=node:node apps/worker/hyperframes/social-kinetic-v28-speech-timed/index.html /app/apps/worker/hyperframes/social-kinetic-v28-speech-timed/index.html
-COPY --chown=node:node apps/socialplus/package.json apps/socialplus/package-lock.json ./
-RUN npm ci --omit=dev --ignore-scripts --no-audit --no-fund
-COPY --chown=node:node apps/socialplus/server ./server
-COPY --chown=node:node apps/socialplus/public ./public
-COPY --chown=node:node apps/socialplus/scripts ./scripts
-COPY --chown=node:node apps/socialplus/engines ./engines
-# Fetch only public model weights during the explicitly authorized image build.
-# Reject a changed model rather than silently altering the approved transcription.
-RUN /opt/socialplus-asr/bin/python scripts/download-local-model.py /opt/socialplus-models/whisper-small \
+COPY --chown=node:node . /app
+# One installation layer avoids copying the complete media runtime repeatedly
+# on disk-constrained builders. The optional CA is only a build-time mount.
+RUN --mount=type=secret,id=proxy_ca \
+    if [ -f /run/secrets/proxy_ca ]; then \
+      export NODE_EXTRA_CA_CERTS=/run/secrets/proxy_ca SSL_CERT_FILE=/run/secrets/proxy_ca PIP_CERT=/run/secrets/proxy_ca; \
+    fi \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends ffmpeg fonts-dejavu-core ca-certificates python3 python3-venv python3-pip python3-numpy python3-pil chromium \
+    && rm -rf /var/lib/apt/lists/* \
+    && python3 -m venv --system-site-packages /opt/socialplus-asr \
+    && /opt/socialplus-asr/bin/pip install --no-cache-dir -r engines/requirements-asr.txt -r /app/apps/worker/reconstruction/alex-v16/requirements.txt \
+    && npm ci --prefix /app/apps/worker --omit=dev --ignore-scripts --no-audit --no-fund \
+    && npm ci --omit=dev --ignore-scripts --no-audit --no-fund \
+    && /opt/socialplus-asr/bin/python scripts/download-local-model.py /opt/socialplus-models/whisper-small \
     && echo '3e305921506d8872816023e4c273e75d2419fb89b24da97b4fe7bce14170d671  /opt/socialplus-models/whisper-small/model.bin' | sha256sum -c - \
-    && chmod -R a+rX /opt/socialplus-models
-ENV SOCIALPLUS_ASR_PYTHON=/opt/socialplus-asr/bin/python SOCIALPLUS_ASR_MODEL_DIR=/opt/socialplus-models/whisper-small HF_HUB_OFFLINE=1
-RUN mkdir -p /data && chown -R node:node /data /app/apps/socialplus
+    && chmod -R a+rX /opt/socialplus-models \
+    && mkdir -p /data && chown node:node /data
+# Both standalone ASR and the shared Alex pipeline must use the same environment.
+ENV SOCIALPLUS_PYTHON=/opt/socialplus-asr/bin/python SOCIALPLUS_ASR_PYTHON=/opt/socialplus-asr/bin/python SOCIALPLUS_ASR_MODEL_DIR=/opt/socialplus-models/whisper-small HF_HUB_OFFLINE=1
 USER node
 ENV NODE_ENV=production SOCIALPLUS_HOST=0.0.0.0 PORT=4318 SOCIALPLUS_DATA_DIR=/data
 EXPOSE 4318
