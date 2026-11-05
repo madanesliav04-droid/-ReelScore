@@ -1,0 +1,12 @@
+{
+  "repository": "rhasspy/piper-voices",
+  "revision": "e7229f7d33a10e145e109b886d661984201ac3c4",
+  "path": "fr/fr_FR/siwis/medium/",
+  "files": {
+    "fr_FR-siwis-medium.onnx": "641d1ab097da2b81128c076810edb052b385decc8be3381814802a64a73baf99",
+    "fr_FR-siwis-medium.onnx.json": "39479916c2db192b5ac9764daddd0c744d83e023ad890c6976c0633ae4df8959",
+    "MODEL_CARD": "bd8b8d079d4d3d2c4cc20345889bbcd586d72f021a132f93357a763eb5232cce"
+  },
+  "license": "CC-BY-4.0",
+  "source": "https://datashare.is.ed.ac.uk/handle/10283/2353"
+}
