@@ -7,3 +7,9 @@ test('Uncertain words never authorize an icon; no guessed cue or portrait fallba
 test('Historical dialogue/timings do not enter newly generated ASS',async()=>{const header=await readFile(new URL('../engines/codie-v60-caption-header.ass',import.meta.url),'utf8');assert(!header.includes('Dialogue:'));const ass=captionAss(header,codiePlan(report,{words}));assert(ass.includes('SocialPlus Display SemiBold'));assert(ass.includes('temps'));assert(!ass.includes('Tu ne fais pas'));});
 
 test('Audio alignment refuses source overwrite and invalid ranges before launching FFmpeg',async()=>{await assert.rejects(alignOriginalAudio('/same.mov','/same.mov',[{startMs:0,endMs:1000}]));await assert.rejects(alignOriginalAudio('/source.mov','/output.mp4',[{startMs:1000,endMs:0}]));});
+
+test('Reviewed graphic directions are honored; unrelated icons and overlaps are rejected',()=>{
+ const event={wordIndex:1,wordCount:1,kind:'euro',endMs:4800,rect:[.73,.1,.22,.34]};
+ const p=codiePlan(report,{words},{events:[event],placementReviewed:true});assert.equal(p.cues.length,1);assert.equal(p.cues[0].kind,'euro');assert(p.cues[0].x>report.metadata.width/2);
+ assert.throws(()=>codiePlan(report,{words},{events:[{...event,kind:'clock'}],placementReviewed:true}));assert.throws(()=>codiePlan(report,{words},{events:[event,event],placementReviewed:true}));assert.throws(()=>codiePlan(report,{words},{events:[event]}));
+});

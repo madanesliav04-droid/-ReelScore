@@ -33,3 +33,12 @@ test('Cinematic is opt-in, beta and requires the existing autonomous planner',as
  assert.deepEqual(await runtime.renderVideo(value),{unchanged:value});
  assert.equal(runtime.MODEL_CATALOG.find(m=>m.id==='leila-hormozi-v53').available,false);
 });
+
+test('Codie partial beta is opt-in, explicit, uses its real port and refuses ignored edits',async()=>{
+ let call;const runtime=connectedRuntime(engines,{SOCIALPLUS_CODIE_V60_PARTIAL_BETA:'true'},{codie:async v=>{call=v;return {bytes:12,plan:{engine:'codie-v60-original-animation-port-beta-1',cues:[],cuts:[],warnings:[],missingHistoricalInserts:['MX-241.mp4']}};}});
+ const model=runtime.MODEL_CATALOG.find(x=>x.id==='codie-omni-v60');assert(model.label.includes('partielle'));assert.equal(model.fullModelRestored,false);
+ await assert.rejects(runtime.renderVideo({modelId:'codie-omni-v60'}),e=>e.code==='CODIE_DIRECTION_REQUIRED');
+ const options={modelId:'codie-omni-v60',sourcePath:'/private/input.mov',outputPath:'/private/out.mp4',restoredInput:{transcript:[{text:'argent'}],events:[],placementReviewed:true}};
+ await assert.rejects(runtime.renderVideo({...options,localEdit:{approvedPauseIds:['pause-0']}}),e=>e.code==='CODIE_CUSTOM_EDIT_NOT_CONNECTED');
+ const result=await runtime.renderVideo(options);assert.equal(result.fullModelRestored,false);assert.equal(result.releaseApproved,false);assert.equal(call.writePlan,false);assert.deepEqual(call.transcript,options.restoredInput.transcript);assert.deepEqual(call.direction,options.restoredInput);
+});

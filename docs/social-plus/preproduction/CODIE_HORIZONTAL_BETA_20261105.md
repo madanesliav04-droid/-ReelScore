@@ -1,5 +1,8 @@
 # Codie V60 horizontal input port — partial beta, 2026-11-05
 
+Follow-up: the opt-in partial interface connection is now tested; see
+`CODIE_UI_BETA_20261105.md`. The initial CLI-only evidence below is retained.
+
 The original build_v60.py remains unchanged (SHA-256
 0127903c5b2a7674cf669730d0f1c73d466510572e034e2c4c3c80cf0b60a205).
 New input/IO glue reuses its tile drawing function and complete original
